@@ -3,7 +3,7 @@
 Loads settings from environment variables or a .env file using pydantic-settings.
 """
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,7 +19,13 @@ class AutoPoCConfig(BaseSettings):
     )
 
     # LLM
-    anthropic_api_key: str = Field(description="Anthropic API key for Claude")
+    anthropic_api_key: str | None = Field(default=None, description="Anthropic API key for Claude")
+    vertex_project: str | None = Field(
+        default=None, description="Google Cloud project ID for Vertex AI"
+    )
+    vertex_location: str | None = Field(
+        default=None, description="Google Cloud region for Vertex AI (e.g., us-central1)"
+    )
     llm_max_retries: int = Field(
         default=0,
         description="Max retries for LLM API calls (default 0 to fail fast on rate limits)",
@@ -54,6 +60,16 @@ class AutoPoCConfig(BaseSettings):
         default="/tmp/autopoc", description="Directory for cloned repos and temp files"
     )
 
+    @model_validator(mode="after")
+    def validate_llm_config(self) -> "AutoPoCConfig":
+        """Ensure we have either Anthropic API key or Vertex AI config."""
+        if not self.anthropic_api_key and not self.vertex_project:
+            raise ValueError("Either ANTHROPIC_API_KEY or VERTEX_PROJECT must be provided.")
+        if self.vertex_project and not self.vertex_location:
+            # Default to us-central1 if project is provided but location is not
+            self.vertex_location = "us-central1"
+        return self
+
     def masked_summary(self) -> dict[str, str]:
         """Return config as a dict with secrets masked for display."""
 
@@ -66,7 +82,9 @@ class AutoPoCConfig(BaseSettings):
         result = {}
         for field_name in self.__class__.model_fields:
             value = getattr(self, field_name)
-            if field_name in secret_fields:
+            if value is None:
+                result[field_name] = "None"
+            elif field_name in secret_fields:
                 result[field_name] = mask(str(value))
             else:
                 result[field_name] = str(value)
