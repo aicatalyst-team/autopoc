@@ -139,15 +139,18 @@ async def intake_agent(
     Returns:
         Partial state update with repo analysis results.
     """
-    source_url = state["source_repo_url"]
-    project_name = state["project_name"]
+    source_url = state.get("source_repo_url", "")
+    project_name = state.get("project_name", "unknown")
 
     logger.info("Starting intake analysis for %s (%s)", project_name, source_url)
 
     # Clone if not already done
     clone_path = state.get("local_clone_path")
     if not clone_path or not Path(clone_path).exists():
-        work_dir = Path("/tmp/autopoc") / project_name
+        from autopoc.config import load_config
+
+        app_config = load_config()
+        work_dir = Path(app_config.work_dir) / project_name
         clone_path = git_clone.invoke({"url": source_url, "dest": str(work_dir)})
         logger.info("Cloned repo to %s", clone_path)
 
@@ -195,7 +198,7 @@ async def intake_agent(
     logger.info(
         "Intake complete: found %d component(s): %s",
         len(components),
-        [c["name"] for c in components],
+        [c.get("name", "unknown") for c in components],
     )
 
     # Return partial state update
