@@ -1,0 +1,36 @@
+# Builder stage
+FROM {{ builder_image }} AS builder
+
+WORKDIR /build
+
+COPY . .
+
+RUN {{ build_cmd }}
+
+# Runtime stage
+FROM {{ runtime_image }}
+
+LABEL maintainer="autopoc" \
+      io.openshift.tags="{{ language }}" \
+      io.k8s.description="AutoPoC-generated UBI image for {{ component_name }}"
+
+WORKDIR /opt/app-root/src
+
+COPY --from=builder {{ build_artifact }} .
+
+{% if system_packages %}
+USER 0
+RUN microdnf install -y {{ system_packages | join(' ') }} && microdnf clean all
+USER 1001
+{% endif %}
+
+{% if expose_port %}
+EXPOSE {{ expose_port }}
+{% endif %}
+
+# OpenShift: support arbitrary UIDs
+RUN chgrp -R 0 /opt/app-root && chmod -R g=u /opt/app-root
+
+USER 1001
+
+CMD {{ cmd }}

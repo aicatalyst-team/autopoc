@@ -26,7 +26,7 @@
 |-------|--------|------------|-------|
 | **1. Foundation** | **COMPLETE** | 11/11 | 49 passing |
 | **2. Fork & Containerize** | **COMPLETE** | 11/11 | 24 passing |
-| **3. Build & Push** | Pending | 0/6 | — |
+| **3. Build & Push** | **COMPLETE** | 6/6 | 6 passing |
 | **4. Deploy** | Pending | 0/6 | — |
 | **5. Hardening** | Pending | 0/2 | — |
 | **6. Local E2E Harness** | **COMPLETE** | 1/1 | 1 passing (with --e2e) |
@@ -726,7 +726,7 @@ dev = [
 
 ## Phase 3: Build & Push
 
-### Task 23 — Podman tools
+### Task 23 — Podman tools ✅
 
 **Files:** `src/autopoc/tools/podman_tools.py`, `tests/test_podman_tools.py`
 
@@ -754,7 +754,7 @@ dev = [
 
 ---
 
-### Task 24 — Quay tools
+### Task 24 — Quay tools ✅
 
 **Files:** `src/autopoc/tools/quay_tools.py`, `tests/test_quay_tools.py`
 
@@ -779,7 +779,7 @@ dev = [
 
 ---
 
-### Task 25 — Build agent
+### Task 25 — Build agent ✅
 
 **Files:** `src/autopoc/agents/build.py`
 
@@ -810,7 +810,7 @@ dev = [
 
 ---
 
-### Task 26 — Build agent tests
+### Task 26 — Build agent tests ✅
 
 **Files:** `tests/test_build.py`
 
@@ -828,7 +828,7 @@ dev = [
 
 ---
 
-### Task 27 — Graph: add build node + retry edge
+### Task 27 — Graph: add build node + retry edge ✅
 
 **Files:** Update `src/autopoc/graph.py`
 
@@ -853,7 +853,7 @@ dev = [
 
 ---
 
-### Task 28 — Retry loop integration test
+### Task 28 — Retry loop integration test ✅
 
 **Files:** `tests/test_retry_loop.py`
 

@@ -1,0 +1,96 @@
+"""Quay.io API tools for project management.
+
+Provides functions for creating and querying repositories on a Quay
+registry. These are NOT LangChain @tool-decorated — they are called procedurally
+by the build agent.
+"""
+
+import logging
+
+import httpx
+
+from autopoc.config import AutoPoCConfig
+
+logger = logging.getLogger(__name__)
+
+# Timeout for Quay API calls (seconds)
+QUAY_TIMEOUT = 30
+
+
+class QuayClient:
+    """Client for interacting with the Quay API.
+
+    Args:
+        config: AutoPoC configuration with Quay token and registry.
+    """
+
+    def __init__(self, config: AutoPoCConfig) -> None:
+        self.registry = config.quay_registry
+        self.base_url = f"https://{self.registry}".rstrip("/")
+        self.token = config.quay_token
+        self._client = httpx.Client(
+            base_url=f"{self.base_url}/api/v1",
+            headers={"Authorization": f"Bearer {self.token}"},
+            timeout=QUAY_TIMEOUT,
+            follow_redirects=True,
+        )
+
+    def repo_exists(self, org: str, name: str) -> bool:
+        """Check if a repository exists in Quay.
+
+        Args:
+            org: Organization namespace.
+            name: Repository name.
+
+        Returns:
+            True if the repository exists.
+        """
+        response = self._client.get(f"/repository/{org}/{name}")
+        if response.status_code == 404:
+            return False
+        
+        response.raise_for_status()
+        return True
+
+    def ensure_repo(self, org: str, name: str) -> str:
+        """Check if a Quay repo exists. If not, create it.
+
+        Args:
+            org: Organization namespace.
+            name: Repository name.
+
+        Returns:
+            The image reference string for the repository (e.g. quay.io/org/name).
+        
+        Raises:
+            httpx.HTTPStatusError: If creation fails.
+        """
+        repo_ref = f"{self.registry}/{org}/{name}"
+        
+        if self.repo_exists(org, name):
+            logger.info("Quay repository %s already exists.", repo_ref)
+            return repo_ref
+        
+        response = self._client.post(
+            "/repository",
+            json={
+                "namespace": org,
+                "repository": name,
+                "visibility": "private",
+                "description": "AutoPoC created repository",
+            },
+        )
+        response.raise_for_status()
+        logger.info("Created Quay repository %s.", repo_ref)
+        
+        return repo_ref
+
+    def close(self) -> None:
+        """Close the underlying HTTP client."""
+        self._client.close()
+
+    def __enter__(self) -> "QuayClient":
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        self.close()

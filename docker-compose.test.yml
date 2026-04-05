@@ -1,0 +1,52 @@
+---
+# Local E2E test infrastructure for AutoPoC.
+#
+# Usage:
+#   ./scripts/setup-e2e.sh     # starts services, waits for health, creates credentials
+#   pytest tests/e2e/ --e2e    # runs E2E tests against local services
+#   ./scripts/teardown-e2e.sh  # stops and removes everything
+#
+# Requirements:
+#   - Docker or Podman with docker-compose / podman-compose
+#   - ~4GB free RAM for GitLab CE
+
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: autopoc-gitlab
+    hostname: gitlab.local
+    restart: unless-stopped
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://localhost:8929'
+        gitlab_rails['initial_root_password'] = 'autopoc-test-password'
+        # Speed up startup — disable unnecessary services
+        prometheus_monitoring['enable'] = false
+        alertmanager['enable'] = false
+        gitlab_kas['enable'] = false
+        gitlab_pages['enable'] = false
+        registry['enable'] = false
+        mattermost['enable'] = false
+        # Reduce resource usage
+        puma['worker_processes'] = 2
+        sidekiq['concurrency'] = 5
+        postgresql['shared_buffers'] = '128MB'
+    ports:
+      - "8929:8929"    # HTTP
+      - "2224:22"      # SSH
+    volumes:
+      - gitlab-config:/etc/gitlab
+      - gitlab-logs:/var/log/gitlab
+      - gitlab-data:/var/opt/gitlab
+    shm_size: "256m"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8929/users/sign_in > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 180s
+
+volumes:
+  gitlab-config:
+  gitlab-logs:
+  gitlab-data:
