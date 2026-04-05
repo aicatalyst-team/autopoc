@@ -14,8 +14,6 @@ class AutoPoCConfig(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
-        # Environment variables take priority over .env file values
-        env_priority="environment",
     )
 
     # LLM
@@ -66,8 +64,8 @@ class AutoPoCConfig(BaseSettings):
         if not self.anthropic_api_key and not self.vertex_project:
             raise ValueError("Either ANTHROPIC_API_KEY or VERTEX_PROJECT must be provided.")
         if self.vertex_project and not self.vertex_location:
-            # Default to us-central1 if project is provided but location is not
-            self.vertex_location = "us-central1"
+            # Default to us-east5 (where Claude is supported) if project is provided but location is not
+            self.vertex_location = "us-east5"
         return self
 
     def masked_summary(self) -> dict[str, str]:

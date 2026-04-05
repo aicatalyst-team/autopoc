@@ -25,6 +25,10 @@ def create_llm(model: str = DEFAULT_MODEL) -> BaseChatModel:
     config = load_config()
 
     if config.vertex_project:
+        # Vertex uses a different naming convention for the model
+        if model == DEFAULT_MODEL:
+            model = "claude-3-5-sonnet-v2@20241022"
+
         return ChatAnthropicVertex(
             project=config.vertex_project,
             location=config.vertex_location,
