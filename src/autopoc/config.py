@@ -22,7 +22,11 @@ class AutoPoCConfig(BaseSettings):
         default=None, description="Google Cloud project ID for Vertex AI"
     )
     vertex_location: str | None = Field(
-        default=None, description="Google Cloud region for Vertex AI (e.g., us-central1)"
+        default=None, description="Google Cloud region for Vertex AI (e.g., us-east5)"
+    )
+    llm_model: str | None = Field(
+        default=None,
+        description="LLM model name to use (e.g., claude-3-5-sonnet-20241022 or claude-3-5-haiku@20241022)",
     )
     llm_max_retries: int = Field(
         default=0,

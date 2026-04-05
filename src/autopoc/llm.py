@@ -10,34 +10,38 @@ from langchain_google_vertexai.model_garden import ChatAnthropicVertex
 
 from autopoc.config import load_config
 
-DEFAULT_MODEL = "claude-sonnet-4-20250514"
+DEFAULT_MODEL = "claude-3-5-sonnet-20241022"
 
 
-def create_llm(model: str = DEFAULT_MODEL) -> BaseChatModel:
+def create_llm(model: str | None = None) -> BaseChatModel:
     """Create a ChatAnthropic or ChatAnthropicVertex instance based on config.
 
     Args:
-        model: Anthropic model name to use.
+        model: Model name to use. If not provided, uses the model from config.
 
     Returns:
         A configured ChatAnthropic or ChatAnthropicVertex instance.
     """
     config = load_config()
 
+    # Use explicitly passed model, or config, or fallback to default
+    actual_model = model or config.llm_model or DEFAULT_MODEL
+
     if config.vertex_project:
-        # Vertex uses a different naming convention for the model
-        if model == DEFAULT_MODEL:
-            model = "claude-3-5-sonnet-v2@20241022"
+        # Map common Anthropic model names to Vertex equivalents if needed
+        # (claude-3-5-sonnet-20241022 -> claude-3-5-sonnet-v2@20241022)
+        if actual_model == "claude-3-5-sonnet-20241022":
+            actual_model = "claude-3-5-sonnet-v2@20241022"
 
         return ChatAnthropicVertex(
             project=config.vertex_project,
             location=config.vertex_location,
-            model_name=model,
+            model_name=actual_model,
             max_retries=config.llm_max_retries,
         )
 
     return ChatAnthropic(
-        model_name=model,
+        model_name=actual_model,
         api_key=config.anthropic_api_key,
         max_retries=config.llm_max_retries,
     )  # type: ignore[call-arg]

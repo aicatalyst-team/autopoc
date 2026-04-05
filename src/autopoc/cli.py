@@ -27,6 +27,9 @@ console = Console()
 def run(
     name: Annotated[str, typer.Option("--name", "-n", help="Project name for the PoC")],
     repo: Annotated[str, typer.Option("--repo", "-r", help="GitHub repository URL")],
+    model: Annotated[
+        str | None, typer.Option("--model", "-m", help="LLM model name to override config")
+    ] = None,
     verbose: Annotated[
         bool, typer.Option("--verbose", "-v", help="Enable verbose logging")
     ] = False,
@@ -46,6 +49,9 @@ def run(
     # Load and validate config
     try:
         config = load_config()
+        # Override config model if explicitly passed via CLI
+        if model:
+            config.llm_model = model
     except ValidationError as e:
         console.print("[bold red]Configuration error:[/bold red]")
         for error in e.errors():
