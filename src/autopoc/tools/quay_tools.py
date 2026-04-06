@@ -25,8 +25,14 @@ class QuayClient:
     """
 
     def __init__(self, config: AutoPoCConfig) -> None:
-        self.registry = config.quay_registry
-        self.base_url = f"https://{self.registry}".rstrip("/")
+        raw_registry = config.quay_registry
+        if raw_registry.startswith(("http://", "https://")):
+            self.base_url = raw_registry.rstrip("/")
+            self.registry = raw_registry.split("://", 1)[1].rstrip("/")
+        else:
+            self.base_url = f"https://{raw_registry}".rstrip("/")
+            self.registry = raw_registry.rstrip("/")
+
         self.token = config.quay_token
         self._client = httpx.Client(
             base_url=f"{self.base_url}/api/v1",
@@ -48,7 +54,7 @@ class QuayClient:
         response = self._client.get(f"/repository/{org}/{name}")
         if response.status_code == 404:
             return False
-        
+
         response.raise_for_status()
         return True
 
@@ -61,16 +67,16 @@ class QuayClient:
 
         Returns:
             The image reference string for the repository (e.g. quay.io/org/name).
-        
+
         Raises:
             httpx.HTTPStatusError: If creation fails.
         """
         repo_ref = f"{self.registry}/{org}/{name}"
-        
+
         if self.repo_exists(org, name):
             logger.info("Quay repository %s already exists.", repo_ref)
             return repo_ref
-        
+
         response = self._client.post(
             "/repository",
             json={
@@ -82,7 +88,7 @@ class QuayClient:
         )
         response.raise_for_status()
         logger.info("Created Quay repository %s.", repo_ref)
-        
+
         return repo_ref
 
     def close(self) -> None:

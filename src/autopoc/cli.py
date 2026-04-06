@@ -41,7 +41,7 @@ def run(
             level=logging.INFO,
             format="%(message)s",
             datefmt="[%X]",
-            handlers=[RichHandler(rich_tracebacks=True, console=console, show_path=False)],
+            handlers=[RichHandler(rich_tracebacks=True, console=console, show_path=True)],
         )
         # Suppress noisy external loggers
         logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -103,6 +103,10 @@ def run(
         result = asyncio.run(graph.ainvoke(initial_state))
     except Exception as e:
         console.print(f"\n[bold red]Pipeline failed:[/bold red] {e}")
+        if verbose:
+            console.print_exception(show_locals=True)
+        else:
+            console.print("\nRun with --verbose to see the full traceback.")
         raise typer.Exit(code=1)
 
     elapsed = time.time() - start_time
