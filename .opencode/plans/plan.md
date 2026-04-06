@@ -473,14 +473,14 @@ MAX_BUILD_RETRIES=3
 
 | # | Task | Details |
 |---|------|---------|
-| 1.1 | Project setup | `pyproject.toml` with dependencies (`langgraph`, `langchain-anthropic`, `typer`, `python-dotenv`, `jinja2`, `pyyaml`, `httpx`). Set up `src/autopoc/` package structure. |
-| 1.2 | Config module | `config.py` — Load env vars, validate required ones are set, provide typed config object. |
-| 1.3 | State definition | `state.py` — Define `PoCState`, `ComponentInfo`, `PoCPhase` as shown above. |
-| 1.4 | CLI entry point | `cli.py` — `typer` app with `run` command accepting `--name` and `--repo` args. |
-| 1.5 | File tools | `tools/file_tools.py` — Wrappers for reading, writing, listing, searching files in a cloned repo. |
-| 1.6 | Git tools | `tools/git_tools.py` — Wrappers for `git clone`, `git remote add`, `git push`, `git commit`. |
-| 1.7 | Intake agent | `agents/intake.py` — LLM-powered repo analysis. Bind file tools. Write system prompt in `prompts/intake.md`. |
-| 1.8 | Tests for intake | Unit tests with fixture repos (small sample repos in `tests/fixtures/`). |
+| 1.1 | Project setup ✅ | `pyproject.toml` with dependencies (`langgraph`, `langchain-anthropic`, `typer`, `python-dotenv`, `jinja2`, `pyyaml`, `httpx`). Set up `src/autopoc/` package structure. |
+| 1.2 | Config module ✅ | `config.py` — Load env vars, validate required ones are set, provide typed config object. |
+| 1.3 | State definition ✅ | `state.py` — Define `PoCState`, `ComponentInfo`, `PoCPhase` as shown above. |
+| 1.4 | CLI entry point ✅ | `cli.py` — `typer` app with `run` command accepting `--name` and `--repo` args. |
+| 1.5 | File tools ✅ | `tools/file_tools.py` — Wrappers for reading, writing, listing, searching files in a cloned repo. |
+| 1.6 | Git tools ✅ | `tools/git_tools.py` — Wrappers for `git clone`, `git remote add`, `git push`, `git commit`. |
+| 1.7 | Intake agent ✅ | `agents/intake.py` — LLM-powered repo analysis. Bind file tools. Write system prompt in `prompts/intake.md`. |
+| 1.8 | Tests for intake ✅ | Unit tests with fixture repos (small sample repos in `tests/fixtures/`). |
 
 ### Phase 2: Fork & Containerize (Week 2)
 
@@ -488,13 +488,13 @@ MAX_BUILD_RETRIES=3
 
 | # | Task | Details |
 |---|------|---------|
-| 2.1 | GitLab tools | `tools/gitlab_tools.py` — Create project via API, manage remotes. |
-| 2.2 | Fork agent | `agents/fork.py` — Mostly procedural: create project, push repo. |
-| 2.3 | Dockerfile templates | `templates/Dockerfile.ubi*.j2` — Jinja2 templates for common patterns (Python, Node, Go, Java, generic). |
-| 2.4 | Containerize agent | `agents/containerize.py` — The core LLM-heavy agent. System prompt in `prompts/containerize.md`. |
-| 2.5 | Containerize prompt engineering | Craft the system prompt with UBI image mappings, OpenShift compatibility rules, multi-stage build patterns, and ML workload considerations. |
-| 2.6 | Wire graph (partial) | `graph.py` — Wire intake → fork → containerize in a `StateGraph`. |
-| 2.7 | Integration test | End-to-end test: given a sample GitHub repo, run through intake → fork → containerize and verify Dockerfile.ubi is generated correctly. |
+| 2.1 | GitLab tools ✅ | `tools/gitlab_tools.py` — Create project via API, manage remotes. |
+| 2.2 | Fork agent ✅ | `agents/fork.py` — Mostly procedural: create project, push repo. |
+| 2.3 | Dockerfile templates ✅ | `templates/Dockerfile.ubi*.j2` — Jinja2 templates for common patterns (Python, Node, Go, Java, generic). |
+| 2.4 | Containerize agent ✅ | `agents/containerize.py` — The core LLM-heavy agent. System prompt in `prompts/containerize.md`. |
+| 2.5 | Containerize prompt engineering ✅ | Craft the system prompt with UBI image mappings, OpenShift compatibility rules, multi-stage build patterns, and ML workload considerations. |
+| 2.6 | Wire graph (partial) ✅ | `graph.py` — Wire intake → fork → containerize in a `StateGraph`. |
+| 2.7 | Integration test ✅ | End-to-end test: given a sample GitHub repo, run through intake → fork → containerize and verify Dockerfile.ubi is generated correctly. |
 
 ### Phase 3: Build & Push (Week 3)
 
@@ -502,11 +502,11 @@ MAX_BUILD_RETRIES=3
 
 | # | Task | Details |
 |---|------|---------|
-| 3.1 | Podman tools | `tools/podman_tools.py` — Build, tag, push, inspect wrappers. |
-| 3.2 | Quay tools | `tools/quay_tools.py` — Ensure repo exists (API call or just push). |
-| 3.3 | Build agent | `agents/build.py` — Build loop with error diagnosis and retry. |
-| 3.4 | Build→Containerize retry loop | Implement conditional edge in graph: on build failure, go back to containerize agent with error context. |
-| 3.5 | Tests | Test build agent with intentionally broken Dockerfiles to verify retry logic. |
+| 3.1 | Podman tools ✅ | `tools/podman_tools.py` — Build, tag, push, inspect wrappers. |
+| 3.2 | Quay tools ✅ | `tools/quay_tools.py` — Ensure repo exists (API call or just push). |
+| 3.3 | Build agent ✅ | `agents/build.py` — Build loop with error diagnosis and retry. |
+| 3.4 | Build→Containerize retry loop ✅ | Implement conditional edge in graph: on build failure, go back to containerize agent with error context. |
+| 3.5 | Tests ✅ | Test build agent with intentionally broken Dockerfiles to verify retry logic. |
 
 ### Phase 4: Deploy (Week 4)
 
