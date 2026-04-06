@@ -14,7 +14,7 @@
 | **3. Build & Push** | 23–28 | Podman/Quay tools, build agent, retry loop |
 | **4. Deploy** | 29–34 | OpenShift tools, K8s templates, deploy agent, full graph |
 | **5. Hardening** | 35–36 | Logging, tracing, credential validation, CLI polish, checkpointing |
-| **6. Local E2E Harness** | 37 | Docker-compose test infra with GitLab CE, E2E test suite |
+| **6. Local E2E Harness** | 37–39 | Docker-compose test infra with GitLab CE/Quay, E2E test suite |
 
 **Critical path:** 1 → 2 → 4 → 6,7 → 9 → 13,18 → 20 → 25 → 27 → 33 → 34
 
@@ -29,7 +29,7 @@
 | **3. Build & Push** | **COMPLETE** | 6/6 | 6 passing |
 | **4. Deploy** | Pending | 0/6 | — |
 | **5. Hardening** | Pending | 0/2 | — |
-| **6. Local E2E Harness** | **COMPLETE** | 1/1 | 1 passing (with --e2e) |
+| **6. Local E2E Harness** | **COMPLETE** | 1/3 | 1 passing (with --e2e) |
 
 ---
 
@@ -1157,6 +1157,45 @@ dev = [
 
 ---
 
+### Task 38 — Build & Push E2E tests
+
+**Files:** `tests/e2e/test_e2e_build.py`
+
+**Depends on:** Tasks 28, 37
+
+**Work:**
+- Create `tests/e2e/test_e2e_build.py` to test the build phase.
+- Pass state (either generated from intake/fork or mocked) into the `build_agent`.
+- Verify that `podman` can build the image based on the generated Dockerfile.
+- Verify the image is successfully pushed to the local Quay.io instance (configured via E2E setup).
+- Clean up local podman images after test to save disk space.
+
+**Acceptance criteria:**
+- `pytest tests/e2e/test_e2e_build.py --e2e` successfully builds and pushes the image.
+- The image appears in the local Quay instance.
+
+---
+
+### Task 39 — Deploy E2E tests & Full Pipeline Run
+
+**Files:** `tests/e2e/test_e2e_deploy.py`, `tests/e2e/test_e2e_full.py`
+
+**Depends on:** Tasks 34, 38
+
+**Work:**
+- Create `tests/e2e/test_e2e_deploy.py`:
+  - Assuming a built image exists in the local Quay instance, invoke `deploy_agent`.
+  - Verify that K8s/OpenShift manifests are correctly applied to a local cluster (e.g. MicroShift, Kind, or minikube).
+  - Check that the pod spins up and the application is reachable.
+- Create `tests/e2e/test_e2e_full.py`:
+  - Run the entire LangGraph orchestration (Intake → Fork → Containerize → Build → Deploy) against the local E2E environment.
+
+**Acceptance criteria:**
+- `pytest tests/e2e/ --e2e` runs all phases successfully.
+- Deployment creates running pods on the local K8s test cluster.
+
+---
+
 ## Testing Strategy Summary
 
 | Layer | What | How | Command |
@@ -1183,5 +1222,5 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 | 3. Build & Push | 23–28 | 3 days |
 | 4. Deploy | 29–34 | 4–5 days |
 | 5. Hardening | 35–36 | 2–3 days |
-| 6. Local E2E Harness | 37 | 1–2 days |
-| **Total** | **37 tasks** | **~18–23 days** |
+| 6. Local E2E Harness | 37–39 | 1–2 days |
+| **Total** | **39 tasks** | **~19–24 days** |

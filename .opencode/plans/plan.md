@@ -534,6 +534,16 @@ MAX_BUILD_RETRIES=3
 | 5.5 | CLI polish | Progress output, colored status, summary report at end. |
 | 5.6 | Documentation | README with setup instructions, usage examples, architecture overview. |
 
+### Phase 6: Local E2E Harness (Week 6)
+
+**Goal:** Provide end-to-end integration tests against real infrastructure running locally.
+
+| # | Task | Details |
+|---|------|---------|
+| 6.1 | Docker-compose E2E test infrastructure ✅ | `docker-compose.test.yml`, `scripts/setup-e2e.sh`, `tests/e2e/test_e2e_intake_fork.py`. Sets up GitLab CE and Quay for testing. |
+| 6.2 | Build & Push E2E tests | `tests/e2e/test_e2e_build.py` — Test the `build_agent` against the local Quay instance. |
+| 6.3 | Deploy E2E tests | `tests/e2e/test_e2e_deploy.py` — Test the `deploy_agent` and full graph against a local K8s/OpenShift setup (MicroShift or Kind). |
+
 ---
 
 ## Key Design Decisions
