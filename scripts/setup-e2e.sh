@@ -173,6 +173,31 @@ else
     fi
 fi
 
+# --- Wait for Quay to be healthy ---
+info "Waiting for Quay to become healthy (can take 1-2 minutes for DB migrations)..."
+
+QUAY_URL="http://localhost:8080"
+ELAPSED=0
+while true; do
+    HTTP_CODE=$(curl -so /dev/null -w '%{http_code}' "$QUAY_URL/health/instance" 2>/dev/null || echo "000")
+
+    if [ "$HTTP_CODE" = "200" ]; then
+        info "Quay is responding (HTTP $HTTP_CODE)!"
+        break
+    fi
+
+    if [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
+        error "Quay did not become healthy within ${MAX_WAIT}s"
+        error "Last HTTP status: $HTTP_CODE"
+        error "Check logs with: docker logs autopoc-quay"
+        exit 1
+    fi
+
+    printf "  waiting... (%ds, HTTP %s)\n" "$ELAPSED" "$HTTP_CODE"
+    sleep "$INTERVAL"
+    ELAPSED=$((ELAPSED + INTERVAL))
+done
+
 # --- Write .env.test ---
 info "Writing credentials to $ENV_TEST_FILE"
 
@@ -186,7 +211,7 @@ GITLAB_URL=$GITLAB_URL
 GITLAB_TOKEN=$TOKEN_VALUE
 GITLAB_GROUP=$GITLAB_GROUP
 
-QUAY_REGISTRY=localhost:5000
+QUAY_REGISTRY=http://localhost:8080
 QUAY_ORG=autopoc-test
 QUAY_TOKEN=not-needed-yet
 

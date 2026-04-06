@@ -1,15 +1,5 @@
 ---
 # Local E2E test infrastructure for AutoPoC.
-#
-# Usage:
-#   ./scripts/setup-e2e.sh     # starts services, waits for health, creates credentials
-#   pytest tests/e2e/ --e2e    # runs E2E tests against local services
-#   ./scripts/teardown-e2e.sh  # stops and removes everything
-#
-# Requirements:
-#   - Docker or Podman with docker-compose / podman-compose
-#   - ~4GB free RAM for GitLab CE
-
 services:
   gitlab:
     image: gitlab/gitlab-ce:latest
@@ -20,24 +10,22 @@ services:
       GITLAB_OMNIBUS_CONFIG: |
         external_url 'http://localhost:8929'
         gitlab_rails['initial_root_password'] = 'autopoc-test-password'
-        # Speed up startup — disable unnecessary services
         prometheus_monitoring['enable'] = false
         alertmanager['enable'] = false
         gitlab_kas['enable'] = false
         gitlab_pages['enable'] = false
         registry['enable'] = false
         mattermost['enable'] = false
-        # Reduce resource usage
         puma['worker_processes'] = 2
         sidekiq['concurrency'] = 5
         postgresql['shared_buffers'] = '128MB'
     ports:
-      - "8929:8929"    # HTTP
-      - "2224:22"      # SSH
+      - "8929:8929"
+      - "2224:22"
     volumes:
-      - gitlab-config:/etc/gitlab
-      - gitlab-logs:/var/log/gitlab
-      - gitlab-data:/var/opt/gitlab
+      - gitlab-config:/etc/gitlab:Z
+      - gitlab-logs:/var/log/gitlab:Z
+      - gitlab-data:/var/opt/gitlab:Z
     shm_size: "256m"
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8929/users/sign_in > /dev/null || exit 1"]
@@ -46,7 +34,99 @@ services:
       retries: 20
       start_period: 180s
 
+  quay-db:
+    image: postgres:15
+    container_name: autopoc-quay-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: quay
+      POSTGRES_PASSWORD: quaypassword
+      POSTGRES_DB: quay
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quay -d quay"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: >
+      bash -c "docker-entrypoint.sh postgres &
+      sleep 5 &&
+      psql -U quay -d quay -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm;' &&
+      wait"
+
+  quay-redis:
+    image: redis:7
+    container_name: autopoc-quay-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  quay-config-seed:
+    image: busybox
+    container_name: autopoc-quay-config-seed
+    volumes:
+      - quay-config-vol:/conf/stack:Z
+    command: >
+      sh -c 'echo "SERVER_HOSTNAME: \"localhost:8080\"" > /conf/stack/config.yaml &&
+      echo "SETUP_COMPLETE: true" >> /conf/stack/config.yaml &&
+      echo "DB_URI: \"postgresql://quay:quaypassword@autopoc-quay-db:5432/quay\"" >> /conf/stack/config.yaml &&
+      echo "REDIS_URL: \"redis://autopoc-quay-redis:6379\"" >> /conf/stack/config.yaml &&
+      echo "BUILDLOGS_REDIS:
+        host: \"autopoc-quay-redis\"
+        port: 6379
+        password: \"\"" >> /conf/stack/config.yaml &&
+      echo "USER_EVENTS_REDIS:
+        host: \"autopoc-quay-redis\"
+        port: 6379
+        password: \"\"" >> /conf/stack/config.yaml &&
+      echo "DISTRIBUTED_STORAGE_CONFIG:
+        default:
+          - LocalStorage
+          - storage_path: /datastorage" >> /conf/stack/config.yaml &&
+      echo "DISTRIBUTED_STORAGE_PREFERENCE: [\"default\"]" >> /conf/stack/config.yaml &&
+      echo "SECRET_KEY: \"supersecret-autopoc-e2e-key\"" >> /conf/stack/config.yaml &&
+      echo "DATABASE_SECRET_KEY: \"supersecret-autopoc-e2e-db-key\"" >> /conf/stack/config.yaml &&
+      echo "FEATURE_ACTION_LOG: false" >> /conf/stack/config.yaml &&
+      echo "FEATURE_USER_CREATION: true" >> /conf/stack/config.yaml &&
+      echo "FEATURE_DIRECT_LOGIN: true" >> /conf/stack/config.yaml &&
+      echo "SUPER_USERS: [\"quayadmin\"]" >> /conf/stack/config.yaml &&
+      chmod 777 /conf/stack/config.yaml && chmod 777 /conf/stack'
+
+  quay:
+    image: quay.io/projectquay/quay:latest
+    container_name: autopoc-quay
+    restart: unless-stopped
+    depends_on:
+      quay-config-seed:
+        condition: service_completed_successfully
+      quay-db:
+        condition: service_healthy
+      quay-redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    environment:
+      - DEBUGLOG=true
+    volumes:
+      - quay-config-vol:/conf/stack:Z
+      - quay-storage-vol:/datastorage:Z
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health/instance || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+
 volumes:
   gitlab-config:
   gitlab-logs:
   gitlab-data:
+  quay-config-vol:
+  quay-storage-vol:
