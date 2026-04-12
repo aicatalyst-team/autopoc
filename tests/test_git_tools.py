@@ -91,11 +91,20 @@ class TestGitAddRemote:
         )
         assert "gitlab" in remotes.stdout
 
-    def test_remote_already_exists(self, local_repo: Path) -> None:
+    def test_remote_already_exists_updates_url(self, local_repo: Path) -> None:
         result = git_add_remote.invoke(
             {"repo_path": str(local_repo), "name": "origin", "url": "https://other.com"}
         )
-        assert "already exists" in result
+        assert "Updated remote" in result
+
+        # Verify it actually updated
+        actual = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=str(local_repo),
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        assert actual == "https://other.com"
 
 
 class TestGitCommit:

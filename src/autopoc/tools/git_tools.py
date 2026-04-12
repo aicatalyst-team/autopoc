@@ -85,6 +85,10 @@ def git_add_remote(repo_path: str, name: str, url: str) -> str:
     # Check if remote already exists
     try:
         existing = _run_git(["remote", "get-url", name], cwd=repo_path)
+        if existing != url:
+            # If the remote URL has changed (e.g. new token generated for E2E tests), update it
+            _run_git(["remote", "set-url", name, url], cwd=repo_path)
+            return f"Updated remote '{name}' to new URL"
         return f"Remote '{name}' already exists with URL: {existing}"
     except RuntimeError:
         pass  # Remote doesn't exist, create it
