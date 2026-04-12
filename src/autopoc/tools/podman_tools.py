@@ -40,7 +40,9 @@ def _run_podman(
         )
         output = (result.stdout + "\n" + result.stderr).strip()
         if result.returncode != 0:
-            raise RuntimeError(f"podman {' '.join(args)} failed with exit code {result.returncode}:\n{output}")
+            raise RuntimeError(
+                f"podman {' '.join(args)} failed with exit code {result.returncode}:\n{output}"
+            )
         return output
     except subprocess.TimeoutExpired:
         raise RuntimeError(f"podman {' '.join(args)} timed out after {timeout}s")
@@ -52,6 +54,7 @@ def podman_build(
     dockerfile: str,
     tag: str,
     build_args: Optional[Dict[str, str]] = None,
+    tls_verify: bool = True,
 ) -> str:
     """Build a container image using podman.
 
@@ -60,11 +63,14 @@ def podman_build(
         dockerfile: Path to the Dockerfile (relative to context or absolute).
         tag: Image tag (e.g. quay.io/org/repo:tag).
         build_args: Optional dictionary of build arguments.
+        tls_verify: Whether to verify TLS certificates (useful for local testing).
 
     Returns:
         Build output.
     """
     args = ["build", "-f", dockerfile, "-t", tag]
+    if not tls_verify:
+        args.append("--tls-verify=false")
     if build_args:
         for k, v in build_args.items():
             args.extend(["--build-arg", f"{k}={v}"])
@@ -74,16 +80,21 @@ def podman_build(
 
 
 @tool
-def podman_push(image: str) -> str:
+def podman_push(image: str, tls_verify: bool = True) -> str:
     """Push a container image to a registry.
 
     Args:
         image: Image tag to push.
+        tls_verify: Whether to verify TLS certificates (useful for local testing).
 
     Returns:
         Push output.
     """
-    return _run_podman(["push", image])
+    args = ["push"]
+    if not tls_verify:
+        args.append("--tls-verify=false")
+    args.append(image)
+    return _run_podman(args)
 
 
 @tool

@@ -198,6 +198,66 @@ while true; do
     ELAPSED=$((ELAPSED + INTERVAL))
 done
 
+# --- Create Quay Token and Organization ---
+info "Generating Quay OAuth token via internal script..."
+
+cat << 'EOF' > /tmp/quay_setup.py
+import sys
+sys.path.insert(0, '/quay-registry')
+import logging
+logging.basicConfig(level=logging.ERROR)
+from app import app
+from data.model import user, organization, oauth
+import auth.scopes
+
+with app.app_context():
+    # 1. Ensure user exists
+    u = user.get_user("autopoc")
+    if not u:
+        u = user.create_user("autopoc", "password", "test@autopoc.com")
+
+    # 2. Ensure org exists
+    org = user.get_namespace_user("autopoc-test")
+    if not org:
+        org = organization.create_organization("autopoc-test", "org@autopoc.com", u)
+
+    # 3. Create Application
+    app_name = "AutoPoC E2E App"
+    apps = oauth.list_applications_for_org(org)
+    my_app = next((a for a in apps if a.name == app_name), None)
+    if not my_app:
+        my_app = oauth.create_application(org, app_name, "http://localhost", "http://localhost")
+
+    # 4. Generate Token with all scopes
+    all_scopes_str = ",".join(auth.scopes.ALL_SCOPES.keys())
+    token_str = oauth.random_string_generator(40)()
+    token_obj = oauth.create_user_access_token(
+        u, 
+        my_app.client_id, 
+        all_scopes_str, 
+        access_token=token_str, 
+        expires_in=315360000
+    )
+    print(token_str)
+EOF
+
+docker cp /tmp/quay_setup.py autopoc-quay:/quay_setup.py
+QUAY_TOKEN=$(docker exec autopoc-quay bash -c "PYTHONPATH=/quay-registry python /quay_setup.py" | tr -d '\r\n')
+
+if [ -z "$QUAY_TOKEN" ]; then
+    error "Failed to generate Quay token."
+    exit 1
+fi
+info "Quay token generated: $QUAY_TOKEN"
+
+# --- Podman login for E2E push access ---
+if command -v podman &>/dev/null; then
+    info "Logging podman into local Quay registry..."
+    podman login --tls-verify=false -u autopoc -p password localhost:8080 || warn "Podman login failed, build/push tests may fail."
+else
+    warn "Podman CLI not found on host. Skipping podman login."
+fi
+
 # --- Write .env.test ---
 info "Writing credentials to $ENV_TEST_FILE"
 
@@ -213,7 +273,7 @@ GITLAB_GROUP=$GITLAB_GROUP
 
 QUAY_REGISTRY=http://localhost:8080
 QUAY_ORG=autopoc-test
-QUAY_TOKEN=not-needed-yet
+QUAY_TOKEN=$QUAY_TOKEN
 
 OPENSHIFT_API_URL=https://localhost:6443
 OPENSHIFT_TOKEN=not-needed-yet
