@@ -23,6 +23,57 @@ app = typer.Typer(
 console = Console()
 
 
+def _extract_plan_preview(plan_content: str, max_lines: int = 15) -> str:
+    """Extract a concise preview from the PoC plan markdown.
+
+    Tries to show the most useful sections: Project Classification,
+    PoC Objectives, and Test Scenarios summary. Falls back to the
+    first max_lines lines if no sections are found.
+    """
+    lines = plan_content.strip().splitlines()
+    if not lines:
+        return ""
+
+    preview_parts: list[str] = []
+    in_section = False
+    section_count = 0
+    target_sections = {
+        "project classification",
+        "poc objectives",
+        "infrastructure requirements",
+        "test scenarios",
+    }
+
+    for line in lines:
+        stripped = line.strip().lower()
+        # Detect section headers (## level)
+        if stripped.startswith("## "):
+            section_name = stripped.lstrip("# ").strip()
+            if any(target in section_name for target in target_sections):
+                in_section = True
+                section_count += 1
+                preview_parts.append(line)
+                continue
+            else:
+                if in_section:
+                    in_section = False
+                continue
+        # Detect next section at same or higher level (stop current)
+        if stripped.startswith("# ") and in_section:
+            in_section = False
+            continue
+
+        if in_section:
+            preview_parts.append(line)
+
+    if preview_parts:
+        return "\n".join(preview_parts).strip()
+
+    # Fallback: return the first max_lines lines, skipping the title
+    start = 1 if lines[0].startswith("# ") else 0
+    return "\n".join(lines[start : start + max_lines]).strip()
+
+
 @app.command()
 def graph(
     format: Annotated[
@@ -177,9 +228,28 @@ def run(
     if poc_type:
         console.print(f"\n[bold]PoC Type:[/bold] {poc_type}")
 
-    poc_plan_path = result.get("poc_plan_path")
+    poc_plan_content = result.get("poc_plan", "")
+    poc_plan_path = result.get("poc_plan_path", "")
+
+    if poc_plan_content:
+        if verbose:
+            # Full plan in verbose mode
+            console.print("\n[bold]PoC Plan:[/bold]")
+            console.print(poc_plan_content)
+        else:
+            # Show a preview: objectives/first meaningful section
+            preview = _extract_plan_preview(poc_plan_content)
+            if preview:
+                console.print(f"\n[bold]PoC Plan Summary:[/bold]")
+                console.print(preview)
+
     if poc_plan_path:
-        console.print(f"[bold]PoC Plan:[/bold] {poc_plan_path}")
+        from pathlib import Path as _Path
+
+        if _Path(poc_plan_path).exists():
+            console.print(f"[dim]Full plan:[/dim] {poc_plan_path}")
+        else:
+            console.print(f"[dim]Plan path:[/dim] {poc_plan_path} [yellow](not written)[/yellow]")
 
     # PoC Test Results
     poc_results = result.get("poc_results", [])
@@ -211,9 +281,29 @@ def run(
         passed = sum(1 for r in poc_results if r.get("status") == "pass")
         console.print(f"  {passed}/{total} passed")
 
-    poc_report_path = result.get("poc_report_path")
+    # PoC scenarios summary (always show if plan has scenarios)
+    poc_scenarios = result.get("poc_scenarios", [])
+    if poc_scenarios and not poc_results:
+        # Show planned scenarios if we haven't reached execution yet
+        console.print(f"\n[bold]Planned Test Scenarios ({len(poc_scenarios)}):[/bold]")
+        for s in poc_scenarios:
+            endpoint = s.get("endpoint", "")
+            endpoint_str = f" ({endpoint})" if endpoint else ""
+            console.print(f"  - {s.get('name', '?')}: {s.get('description', '')}{endpoint_str}")
+
+    poc_report_path = result.get("poc_report_path", "")
     if poc_report_path:
-        console.print(f"\n[bold]PoC Report:[/bold] {poc_report_path}")
+        from pathlib import Path as _Path
+
+        if _Path(poc_report_path).exists():
+            console.print(f"\n[bold]PoC Report:[/bold] {poc_report_path}")
+            if verbose:
+                report_content = _Path(poc_report_path).read_text(encoding="utf-8")
+                console.print(report_content)
+        else:
+            console.print(
+                f"\n[bold]PoC Report:[/bold] {poc_report_path} [yellow](not written)[/yellow]"
+            )
 
     if result.get("gitlab_repo_url"):
         console.print(f"\n[bold]GitLab:[/bold] {result['gitlab_repo_url']}")
