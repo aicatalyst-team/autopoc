@@ -14,9 +14,12 @@ class PoCPhase(str, Enum):
 
     INTAKE = "intake"
     FORK = "fork"
+    POC_PLAN = "poc_plan"
     CONTAINERIZE = "containerize"
     BUILD = "build"
     DEPLOY = "deploy"
+    POC_EXECUTE = "poc_execute"
+    POC_REPORT = "poc_report"
     DONE = "done"
     FAILED = "failed"
 
@@ -43,6 +46,55 @@ class ComponentInfo(TypedDict, total=False):
 
     # Populated by build agent
     image_name: str  # Full quay.io/org/name:tag
+
+
+class PoCScenario(TypedDict, total=False):
+    """A single PoC test scenario defined by the PoC Plan agent.
+
+    Each scenario describes a concrete, executable test that proves
+    some aspect of the PoC works correctly.
+    """
+
+    name: str  # e.g. "inference-test", "health-check"
+    description: str  # What this test verifies
+    type: str  # "http", "script", "cli"
+    endpoint: str | None  # Target endpoint (if HTTP-based)
+    input_data: str | None  # Sample input (prompt, query, request body, etc.)
+    expected_behavior: str  # What success looks like
+    timeout_seconds: int  # Max wait time
+
+
+class PoCInfrastructure(TypedDict, total=False):
+    """Infrastructure requirements determined by the PoC Plan agent.
+
+    Influences how the Dockerfile is built and how the deployment
+    is structured (sidecars, PVCs, GPU, etc.).
+    """
+
+    needs_inference_server: bool  # e.g. vLLM, TGI, Triton
+    inference_server_type: str | None  # "vllm", "tgi", "triton", "custom"
+    needs_vector_db: bool  # e.g. Milvus, ChromaDB, Qdrant
+    vector_db_type: str | None  # "milvus", "chromadb", "qdrant", "in-memory"
+    needs_embedding_model: bool  # Whether an embedding model is needed
+    embedding_model: str | None  # e.g. "sentence-transformers/all-MiniLM-L6-v2"
+    needs_gpu: bool  # GPU resource requirements
+    gpu_type: str | None  # "nvidia-a10g", "nvidia-t4", etc.
+    needs_pvc: bool  # Persistent storage for models/data
+    pvc_size: str | None  # e.g. "10Gi", "50Gi"
+    sidecar_containers: list[dict]  # Additional containers to deploy alongside
+    extra_env_vars: dict[str, str]  # Environment variables for the main container
+    odh_components: list[str]  # ODH components needed: "model-mesh", "kserve", etc.
+    resource_profile: str  # "small", "medium", "large", "gpu"
+
+
+class PoCResult(TypedDict, total=False):
+    """Result of a single PoC test scenario execution."""
+
+    scenario_name: str  # Matches PoCScenario.name
+    status: str  # "pass", "fail", "skip", "error"
+    output: str  # Captured output/response
+    error_message: str | None  # Error details if failed
+    duration_seconds: float  # How long it took
 
 
 class PoCState(TypedDict, total=False):
@@ -73,6 +125,13 @@ class PoCState(TypedDict, total=False):
     has_compose: bool
     existing_ci_cd: str | None  # e.g. "github-actions", "gitlab-ci", etc.
 
+    # --- PoC Plan output ---
+    poc_plan: str  # Raw markdown content of the PoC plan
+    poc_plan_path: str  # Path to poc-plan.md in the repo
+    poc_scenarios: list[PoCScenario]  # Structured test scenarios
+    poc_infrastructure: PoCInfrastructure  # Infrastructure requirements
+    poc_type: str  # "model-serving", "rag", "training", "web-app", etc.
+
     # --- Build phase output ---
     built_images: list[str]  # List of pushed image refs (quay.io/org/name:tag)
     build_retries: int  # Current retry count for build failures
@@ -80,3 +139,11 @@ class PoCState(TypedDict, total=False):
     # --- Deploy phase output ---
     deployed_resources: list[str]  # List of created K8s resource identifiers
     routes: list[str]  # Accessible URLs for deployed services
+    deploy_retries: int  # Current retry count for deployment failures
+
+    # --- PoC Execute output ---
+    poc_results: list[PoCResult]  # Test execution results
+    poc_script_path: str  # Path to generated test script
+
+    # --- PoC Report output ---
+    poc_report_path: str  # Path to poc-report.md in the repo

@@ -31,7 +31,7 @@
 | **4. Deploy** | **COMPLETE** | 4/6 | E2E (with --e2e) |
 | **5. Hardening** | Pending | 0/2 | — |
 | **6. Local E2E Harness** | **COMPLETE** | 3/3 | 7 passing (with --e2e) |
-| **7. PoC Intelligence** | In Progress | 0/17 | — |
+| **7. PoC Intelligence** | In Progress | 15/17 | 44 passing |
 
 ---
 
@@ -1208,7 +1208,7 @@ dev = [
 
 ## Phase 7: PoC Intelligence
 
-### Task 40 — State updates for PoC intelligence
+### Task 40 — State updates for PoC intelligence ✅
 
 **Files:** `src/autopoc/state.py`
 
@@ -1241,7 +1241,7 @@ dev = [
 
 ---
 
-### Task 41 — PoC Plan system prompt
+### Task 41 — PoC Plan system prompt ✅
 
 **Files:** `src/autopoc/prompts/poc_plan.md`
 
@@ -1283,7 +1283,7 @@ dev = [
 
 ---
 
-### Task 42 — PoC Plan agent
+### Task 42 — PoC Plan agent ✅
 
 **Files:** `src/autopoc/agents/poc_plan.py`
 
@@ -1313,7 +1313,7 @@ dev = [
 
 ---
 
-### Task 43 — PoC Plan tests
+### Task 43 — PoC Plan tests ✅
 
 **Files:** `tests/test_poc_plan.py`
 
@@ -1336,7 +1336,7 @@ dev = [
 
 ---
 
-### Task 44 — Parallel graph: fan-out / fan-in
+### Task 44 — Parallel graph: fan-out / fan-in ✅
 
 **Files:** `src/autopoc/graph.py`
 
@@ -1373,7 +1373,7 @@ dev = [
 
 ---
 
-### Task 45 — Update containerize for PoC awareness
+### Task 45 — Update containerize for PoC awareness ✅
 
 **Files:** `src/autopoc/prompts/containerize.md`, `src/autopoc/agents/containerize.py`
 
@@ -1403,7 +1403,7 @@ dev = [
 
 ---
 
-### Task 46 — Update deploy for PoC awareness
+### Task 46 — Update deploy for PoC awareness ✅
 
 **Files:** `src/autopoc/prompts/deploy.md`, `src/autopoc/agents/deploy.py`
 
@@ -1433,7 +1433,7 @@ dev = [
 
 ---
 
-### Task 47 — Script execution tool
+### Task 47 — Script execution tool ✅
 
 **Files:** `src/autopoc/tools/script_tools.py`, `tests/test_script_tools.py`
 
@@ -1467,7 +1467,7 @@ dev = [
 
 ---
 
-### Task 48 — PoC Execute system prompt
+### Task 48 — PoC Execute system prompt ✅
 
 **Files:** `src/autopoc/prompts/poc_execute.md`
 
@@ -1502,7 +1502,7 @@ dev = [
 
 ---
 
-### Task 49 — PoC Execute agent
+### Task 49 — PoC Execute agent ✅
 
 **Files:** `src/autopoc/agents/poc_execute.py`
 
@@ -1537,7 +1537,7 @@ dev = [
 
 ---
 
-### Task 50 — PoC Execute tests
+### Task 50 — PoC Execute tests ✅
 
 **Files:** `tests/test_poc_execute.py`
 
@@ -1558,7 +1558,7 @@ dev = [
 
 ---
 
-### Task 51 — PoC Report system prompt
+### Task 51 — PoC Report system prompt ✅
 
 **Files:** `src/autopoc/prompts/poc_report.md`
 
@@ -1585,7 +1585,7 @@ dev = [
 
 ---
 
-### Task 52 — PoC Report agent
+### Task 52 — PoC Report agent ✅
 
 **Files:** `src/autopoc/agents/poc_report.py`
 
@@ -1615,7 +1615,7 @@ dev = [
 
 ---
 
-### Task 53 — PoC Report tests
+### Task 53 — PoC Report tests ✅
 
 **Files:** `tests/test_poc_report.py`
 
@@ -1635,7 +1635,7 @@ dev = [
 
 ---
 
-### Task 54 — Complete graph wiring
+### Task 54 — Complete graph wiring ✅
 
 **Files:** `src/autopoc/graph.py`
 
@@ -1659,7 +1659,7 @@ dev = [
 
 ---
 
-### Task 55 — CLI updates for PoC output
+### Task 55 — CLI updates for PoC output ✅
 
 **Files:** `src/autopoc/cli.py`
 

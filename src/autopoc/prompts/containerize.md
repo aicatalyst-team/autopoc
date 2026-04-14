@@ -109,14 +109,91 @@ If `is_ml_workload` is true:
 - If the app uses a model serving framework (TorchServe, Triton, vLLM), follow
   that framework's containerization pattern.
 
+## PoC Infrastructure Requirements
+
+If the user message includes a "PoC Infrastructure Requirements" section, use it to
+inform your Dockerfile decisions:
+
+- **Inference server needed:** If the project needs an inference server (vLLM, TGI, Triton)
+  and doesn't include its own, consider adding it as a dependency or using a base image
+  that includes it.
+- **In-memory vector DB needed:** Add the relevant Python library (e.g., `chromadb`, `faiss-cpu`)
+  to the pip install command.
+- **Embedding model needed:** Consider downloading the model at build time with
+  `RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('model-name')"`
+  for small models, or document that it will be downloaded at runtime for large ones.
+- **GPU support needed:** Use a CUDA-capable base image like `nvcr.io/nvidia/cuda:12.x-runtime-ubi9`.
+- **Resource profile:** Use this to guide whether to optimize for size (small profile)
+  or include more build tools and dependencies (large/gpu profile).
+- **Extra environment variables:** Set non-secret variables directly in the Dockerfile with
+  `ENV`. Mark secret variables with comments indicating they should be provided at runtime.
+
+These requirements come from the PoC Plan agent's analysis of what the project needs
+to function as a proof of concept on Open Data Hub / OpenShift AI.
+
+## Build Context and COPY Paths (CRITICAL for Monorepos!)
+
+**IMPORTANT:** When the Dockerfile is in a subdirectory, understand how `COPY` paths work:
+
+- The **build context** is ALWAYS the repository root (where `podman build` is run)
+- The **Dockerfile location** does NOT affect COPY paths
+- COPY paths are ALWAYS relative to the build context (repo root), NOT the Dockerfile location
+
+**Example - Component in subdirectory:**
+```
+Repository structure:
+  /repo-root/
+    ├── website/
+    │   ├── Dockerfile.ubi      ← The Dockerfile is HERE
+    │   ├── package.json         ← The files are HERE
+    │   └── src/
+
+Build command:
+  podman build -f website/Dockerfile.ubi -t myimage /repo-root
+                                                     ^^^^^^^^^^^^
+                                                     Build context = repo root!
+
+In Dockerfile.ubi:
+  WRONG: COPY package.json ./           ← Looks for /repo-root/package.json (doesn't exist!)
+  RIGHT: COPY website/package.json ./   ← Looks for /repo-root/website/package.json ✓
+
+  WRONG: COPY src/ ./src/               ← Looks for /repo-root/src/ (doesn't exist!)
+  RIGHT: COPY website/src/ ./src/       ← Looks for /repo-root/website/src/ ✓
+```
+
+**How to determine the correct COPY path:**
+1. You are given `source_dir` in the component metadata (e.g., "website")
+2. If `source_dir` is NOT ".", ALL COPY commands must be prefixed with `{source_dir}/`
+3. Example: For source_dir="website", use `COPY website/file.txt ./`
+
+**Common error pattern:**
+```
+Error: building at STEP "COPY package.json ./": no such file or directory
+       ↑
+       This means podman looked at {context}/package.json
+       but the file is at {context}/website/package.json
+       FIX: Change to COPY {source_dir}/package.json ./
+```
+
 ## Build Error Retry Context
 
 If you receive a previous build error, read the error carefully and fix the
 Dockerfile.ubi to address the issue. Common fixes:
-- Missing system dependency → add `microdnf install -y <package>`
-- Wrong Python/Node version → use a different UBI base image
-- Permission denied → ensure `chgrp -R 0` covers the relevant directory
-- File not found → check COPY paths and WORKDIR
+
+- **File not found during COPY:**
+  - **FIRST CHECK:** If source_dir is not ".", did you prefix COPY paths with `{source_dir}/`?
+  - Example: source_dir="website" → use `COPY website/package.json ./` not `COPY package.json ./`
+  - The build context is the repo root, not the Dockerfile location!
+
+- **Missing system dependency:**
+  - Add `microdnf install -y <package>` or `dnf install -y <package>`
+
+- **Wrong Python/Node version:**
+  - Use a different UBI base image version
+
+- **Permission denied:**
+  - Ensure `chgrp -R 0` covers the relevant directory
+  - Some operations may need to run as USER 0 before final USER 1001
 
 ## Output
 

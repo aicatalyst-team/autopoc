@@ -799,22 +799,22 @@ with ODH/OpenShift AI context. Introduce parallel execution in the graph.
 
 | # | Task | Details |
 |---|------|---------|
-| 7.1 | State updates | Add `PoCScenario`, `PoCInfrastructure`, `PoCResult` TypedDicts. Add `poc_plan`, `poc_scenarios`, `poc_infrastructure`, `poc_type`, `poc_results`, `poc_script_path`, `poc_report_path` to `PoCState`. New `PoCPhase` values. |
-| 7.2 | PoC Plan system prompt | `prompts/poc_plan.md` — ODH-aware project classification, infrastructure requirements, scenario generation. |
-| 7.3 | PoC Plan agent | `agents/poc_plan.py` — Reads repo + intake results, generates poc-plan.md, populates structured state. |
-| 7.4 | PoC Plan tests | Unit tests with mocked LLM for PoC plan agent. |
-| 7.5 | Parallel graph wiring | Update `graph.py` for fan-out (`intake → [poc_plan ∥ fork]`) and fan-in (`→ containerize`). |
-| 7.6 | Update containerize | Enhance containerize prompt and agent to read `poc_infrastructure` from state and adjust Dockerfile (e.g., inference server, model packaging). |
-| 7.7 | Update deploy | Enhance deploy prompt and agent to read `poc_infrastructure` from state and deploy sidecars, PVCs, extra resources. |
-| 7.8 | Script execution tool | `tools/script_tools.py` — `run_script` tool for executing Python test scripts with timeout and output capture. |
-| 7.9 | PoC Execute system prompt | `prompts/poc_execute.md` — Test script generation and execution instructions. |
-| 7.10 | PoC Execute agent | `agents/poc_execute.py` — Generates and runs PoC test scripts based on scenarios. |
-| 7.11 | PoC Execute tests | Unit tests with mocked LLM and mocked script execution. |
-| 7.12 | PoC Report system prompt | `prompts/poc_report.md` — Report generation instructions with structured sections. |
-| 7.13 | PoC Report agent | `agents/poc_report.py` — Generates comprehensive poc-report.md. |
-| 7.14 | PoC Report tests | Unit tests for report generation. |
-| 7.15 | Full graph wiring | Wire `poc_execute → poc_report → END` in graph.py. Update routing functions. |
-| 7.16 | CLI updates | Display PoC plan summary, test results table, and report path in CLI output. |
+| 7.1 | State updates ✅ | Add `PoCScenario`, `PoCInfrastructure`, `PoCResult` TypedDicts. Add `poc_plan`, `poc_scenarios`, `poc_infrastructure`, `poc_type`, `poc_results`, `poc_script_path`, `poc_report_path` to `PoCState`. New `PoCPhase` values. |
+| 7.2 | PoC Plan system prompt ✅ | `prompts/poc_plan.md` — ODH-aware project classification, infrastructure requirements, scenario generation. |
+| 7.3 | PoC Plan agent ✅ | `agents/poc_plan.py` — Reads repo + intake results, generates poc-plan.md, populates structured state. |
+| 7.4 | PoC Plan tests ✅ | Unit tests with mocked LLM for PoC plan agent. |
+| 7.5 | Parallel graph wiring ✅ | Update `graph.py` for fan-out (`intake → [poc_plan ∥ fork]`) and fan-in (`→ containerize`). |
+| 7.6 | Update containerize ✅ | Enhance containerize prompt and agent to read `poc_infrastructure` from state and adjust Dockerfile (e.g., inference server, model packaging). |
+| 7.7 | Update deploy ✅ | Enhance deploy prompt and agent to read `poc_infrastructure` from state and deploy sidecars, PVCs, extra resources. |
+| 7.8 | Script execution tool ✅ | `tools/script_tools.py` — `run_script` tool for executing Python test scripts with timeout and output capture. |
+| 7.9 | PoC Execute system prompt ✅ | `prompts/poc_execute.md` — Test script generation and execution instructions. |
+| 7.10 | PoC Execute agent ✅ | `agents/poc_execute.py` — Generates and runs PoC test scripts based on scenarios. |
+| 7.11 | PoC Execute tests ✅ | Unit tests with mocked LLM and mocked script execution. |
+| 7.12 | PoC Report system prompt ✅ | `prompts/poc_report.md` — Report generation instructions with structured sections. |
+| 7.13 | PoC Report agent ✅ | `agents/poc_report.py` — Generates comprehensive poc-report.md. |
+| 7.14 | PoC Report tests ✅ | Unit tests for report generation. |
+| 7.15 | Full graph wiring ✅ | Wire `poc_execute → poc_report → END` in graph.py. Update routing functions. |
+| 7.16 | CLI updates ✅ | Display PoC plan summary, test results table, and report path in CLI output. |
 | 7.17 | Integration tests | End-to-end graph test with all new nodes, including parallel execution. |
 
 ---
