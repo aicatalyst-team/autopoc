@@ -60,32 +60,184 @@ def _extract_final_ai_content(messages: list) -> str:
 def _parse_poc_plan_output(raw_output: str) -> dict:
     """Parse the LLM's JSON output into a structured dict.
 
-    Handles common issues like markdown code fences around JSON.
+    The LLM output often contains markdown prose followed by (or mixed with)
+    a JSON block. We need to find the JSON that contains our expected keys
+    (poc_type, scenarios, infrastructure).
+
+    Handles common issues like:
+    - Markdown code fences around JSON
+    - JSON embedded in narrative text
+    - Multiple JSON-like blocks (from markdown examples in the poc-plan)
     """
     text = raw_output.strip()
 
-    # Try to find a markdown code block containing JSON
-    match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
-    if match:
-        text = match.group(1)
-    else:
-        # Fallback: extract from first { to last }
-        match = re.search(r"\{.*\}", text, re.DOTALL)
-        if match:
-            text = match.group(0)
+    # Strategy 1: Find a ```json ... ``` code block containing our expected keys
+    for match in re.finditer(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL):
+        candidate = match.group(1)
+        try:
+            parsed = json.loads(candidate)
+            if isinstance(parsed, dict) and ("poc_type" in parsed or "scenarios" in parsed):
+                return parsed
+        except json.JSONDecodeError:
+            continue
 
+    # Strategy 2: Find JSON objects containing our expected keys
+    # Search backwards (the structured output is usually at the end)
+    # Use a balanced brace matcher instead of greedy regex
+    candidates = _find_json_objects(text)
+    for candidate in reversed(candidates):
+        try:
+            parsed = json.loads(candidate)
+            if isinstance(parsed, dict) and ("poc_type" in parsed or "scenarios" in parsed):
+                return parsed
+        except json.JSONDecodeError:
+            continue
+
+    # Strategy 3: Last resort — try the whole text
     try:
-        return json.loads(text)
-    except json.JSONDecodeError as e:
-        logger.warning("Failed to parse PoC plan output as JSON: %s", e)
-        logger.debug("Raw output: %s", text[:500])
-        # Return a minimal valid structure
-        return {
-            "poc_type": "web-app",
-            "poc_plan_summary": f"Failed to parse PoC plan output: {e}",
-            "infrastructure": {},
-            "scenarios": [],
-        }
+        parsed = json.loads(text)
+        if isinstance(parsed, dict):
+            return parsed
+    except json.JSONDecodeError:
+        pass
+
+    logger.warning("Failed to parse PoC plan output as JSON from %d chars of output", len(text))
+    logger.debug("Raw output (last 500 chars): %s", text[-500:])
+    # Return a minimal valid structure
+    return {
+        "poc_type": "web-app",
+        "poc_plan_summary": f"Failed to parse PoC plan output from LLM response",
+        "infrastructure": {},
+        "scenarios": [],
+    }
+
+
+def _find_json_objects(text: str) -> list[str]:
+    """Find potential JSON object strings in text using balanced brace matching.
+
+    Returns a list of substrings that start with { and end with the matching }.
+    Only returns candidates that are at least 20 chars (to skip trivial matches
+    like `{}` or `{"key": "val"}`).
+    """
+    candidates = []
+    i = 0
+    while i < len(text):
+        if text[i] == "{":
+            depth = 0
+            start = i
+            in_string = False
+            escape_next = False
+            for j in range(i, len(text)):
+                ch = text[j]
+                if escape_next:
+                    escape_next = False
+                    continue
+                if ch == "\\":
+                    escape_next = True
+                    continue
+                if ch == '"' and not escape_next:
+                    in_string = not in_string
+                    continue
+                if in_string:
+                    continue
+                if ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        candidate = text[start : j + 1]
+                        if len(candidate) >= 20:
+                            candidates.append(candidate)
+                        i = j + 1
+                        break
+            else:
+                # Unbalanced — skip this opening brace
+                i += 1
+        else:
+            i += 1
+    return candidates
+
+
+def _collect_all_ai_content(messages: list) -> str:
+    """Collect text content from all AIMessages, concatenated.
+
+    Useful when the structured JSON output is in a different message
+    than the final one (e.g., when the agent makes tool calls after
+    outputting the JSON).
+    """
+    parts = []
+    for msg in messages:
+        if not isinstance(msg, AIMessage):
+            continue
+        content = msg.content
+        if isinstance(content, list):
+            content = "".join(
+                part["text"] if isinstance(part, dict) and "text" in part else str(part)
+                for part in content
+            )
+        if isinstance(content, str) and content.strip():
+            parts.append(content)
+    return "\n\n".join(parts)
+
+
+def _extract_poc_plan_from_tool_calls(messages: list, expected_path: str) -> str:
+    """Extract poc-plan.md content from write_file tool calls in the message history.
+
+    The agent should have called write_file to create poc-plan.md. If the file
+    wasn't written to disk (path mismatch, etc.), we can extract the content
+    from the tool call arguments.
+    """
+    for msg in messages:
+        if not hasattr(msg, "tool_calls"):
+            continue
+        for tool_call in getattr(msg, "tool_calls", []):
+            if tool_call.get("name") == "write_file":
+                args = tool_call.get("args", {})
+                path = args.get("path", "")
+                content = args.get("content", "")
+                # Check if this is the poc-plan.md file
+                if content and (
+                    "poc-plan" in path.lower()
+                    or "poc_plan" in path.lower()
+                    or "PoC Plan" in content[:200]
+                ):
+                    logger.info(
+                        "Found poc-plan.md content in write_file tool call (%d chars)", len(content)
+                    )
+                    return content
+    return ""
+
+
+def _extract_markdown_plan_from_response(raw_output: str) -> str:
+    """Extract a markdown PoC plan from the LLM's raw text response.
+
+    If the LLM included the poc-plan.md content directly in its response
+    (instead of using write_file), try to extract the markdown section.
+    """
+    # Look for a markdown heading that indicates the plan
+    plan_markers = [
+        "# PoC Plan",
+        "# Proof of Concept Plan",
+        "## Project Classification",
+        "## PoC Objectives",
+    ]
+
+    for marker in plan_markers:
+        idx = raw_output.find(marker)
+        if idx != -1:
+            # Find where the plan content ends — usually before the JSON block
+            plan_text = raw_output[idx:]
+            # Cut off at the JSON block if present
+            json_start = plan_text.find('{"poc_type"')
+            if json_start == -1:
+                json_start = plan_text.find("```json")
+            if json_start > 0:
+                plan_text = plan_text[:json_start].rstrip()
+            if len(plan_text) > 50:  # Ensure it's substantial
+                logger.info("Extracted PoC plan from LLM response text (%d chars)", len(plan_text))
+                return plan_text.strip()
+
+    return ""
 
 
 def _validate_scenario(scenario: dict) -> PoCScenario:
@@ -241,8 +393,16 @@ async def poc_plan_agent(
     # Extract the final AI message with actual content
     raw_output = _extract_final_ai_content(result["messages"])
 
-    # Parse the structured output
+    # Also try to extract JSON from all messages (the structured output
+    # may be in a different message than the final one)
+    all_ai_content = _collect_all_ai_content(result["messages"])
+
+    # Parse the structured output — try the final message first, then all content
     parsed = _parse_poc_plan_output(raw_output)
+    if not parsed.get("scenarios") and all_ai_content != raw_output:
+        parsed_alt = _parse_poc_plan_output(all_ai_content)
+        if parsed_alt.get("scenarios"):
+            parsed = parsed_alt
 
     # Validate scenarios
     scenarios = [_validate_scenario(s) for s in parsed.get("scenarios", [])]
@@ -250,7 +410,7 @@ async def poc_plan_agent(
     # Validate infrastructure
     infrastructure = _validate_infrastructure(parsed.get("infrastructure", {}))
 
-    # Read the poc-plan.md content (agent should have written it)
+    # Read the poc-plan.md content (agent should have written it via write_file tool)
     poc_plan_path = str(Path(clone_path or ".") / "poc-plan.md")
     poc_plan_content = ""
     try:
@@ -259,9 +419,34 @@ async def poc_plan_agent(
             poc_plan_content = poc_plan_file.read_text(encoding="utf-8")
             logger.info("PoC plan written to %s (%d chars)", poc_plan_path, len(poc_plan_content))
         else:
-            logger.warning("poc-plan.md was not written by the agent at %s", poc_plan_path)
-            # Use the summary as fallback content
-            poc_plan_content = parsed.get("poc_plan_summary", "")
+            # Fallback 1: Try to extract poc-plan.md content from write_file tool calls
+            poc_plan_content = _extract_poc_plan_from_tool_calls(result["messages"], poc_plan_path)
+            if poc_plan_content:
+                # The tool call was made but the file wasn't written (path issue?)
+                # Write it ourselves
+                try:
+                    poc_plan_file.parent.mkdir(parents=True, exist_ok=True)
+                    poc_plan_file.write_text(poc_plan_content, encoding="utf-8")
+                    logger.info(
+                        "Wrote poc-plan.md from tool call content (%d chars)", len(poc_plan_content)
+                    )
+                except Exception as write_err:
+                    logger.warning("Failed to write poc-plan.md: %s", write_err)
+            else:
+                # Fallback 2: Extract markdown content from the LLM response
+                poc_plan_content = _extract_markdown_plan_from_response(raw_output)
+                if poc_plan_content:
+                    try:
+                        poc_plan_file.parent.mkdir(parents=True, exist_ok=True)
+                        poc_plan_file.write_text(poc_plan_content, encoding="utf-8")
+                        logger.info(
+                            "Wrote poc-plan.md from LLM response (%d chars)", len(poc_plan_content)
+                        )
+                    except Exception as write_err:
+                        logger.warning("Failed to write poc-plan.md: %s", write_err)
+                else:
+                    logger.warning("poc-plan.md was not written and could not be extracted")
+                    poc_plan_content = parsed.get("poc_plan_summary", "")
     except Exception as e:
         logger.warning("Failed to read poc-plan.md: %s", e)
         poc_plan_content = parsed.get("poc_plan_summary", "")

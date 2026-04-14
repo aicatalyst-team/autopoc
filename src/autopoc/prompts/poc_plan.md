@@ -336,9 +336,27 @@ For a standard Flask/Node.js web application:
 }
 ```
 
+## Critical Instructions — Output Procedure
+
+Follow these steps IN ORDER:
+
+1. **Step 1 — Analyze the repository** using the available tools (`list_files`, `read_file`,
+   `search_files`). Examine key files like README, dependency manifests, source code, and
+   any existing Dockerfiles or deployment configurations.
+
+2. **Step 2 — Write poc-plan.md** using the `write_file` tool. You MUST call `write_file`
+   to create this file. Do NOT just include the markdown in your response text. Example:
+   ```
+   write_file(path="/path/to/repo/poc-plan.md", content="# PoC Plan: project-name\n...")
+   ```
+
+3. **Step 3 — Output the structured JSON** as your final text response. The JSON must be
+   a single valid JSON object on its own — no surrounding prose, no markdown code fences,
+   no explanatory text before or after it.
+
 ## Important Notes
 
-- **Always write the poc-plan.md file first**, then output the structured JSON.
+- You MUST call `write_file` to create poc-plan.md. Do not skip this step.
 - The poc-plan.md should be human-readable and explain the reasoning behind the plan.
 - For model-serving projects, check if the model weights are included in the repo or
   need to be downloaded. If they need to be downloaded, note this in the plan.
@@ -353,5 +371,5 @@ For a standard Flask/Node.js web application:
   `api-service`, or `infrastructure` and create appropriate scenarios.
 - For `odh_components`, only list components that are directly relevant. Leave empty
   if none apply.
-- Respond with the JSON object ONLY after writing the poc-plan.md file. Do not include
-  any text before or after the JSON.
+- Your final text response after writing the file must contain ONLY the JSON object.
+  No additional text, no markdown fences, just the raw JSON.
