@@ -130,6 +130,94 @@ class TestValidateInfrastructure:
 # --- Tests for _build_user_message ---
 
 
+class TestExtractMarkdownPlan:
+    """Test _extract_markdown_plan_from_response with realistic LLM outputs."""
+
+    def test_extracts_full_plan_with_curly_braces_in_prose(self):
+        """The bug: plan text containing { was being cut by JSON extraction."""
+        from autopoc.agents.poc_plan import _extract_markdown_plan_from_response
+
+        raw = (
+            "Here is the plan I created:\n\n"
+            "## Project Classification\n"
+            "MemPalace is a sophisticated LLM-backed application that:\n"
+            "- Stores conversations and project files in a searchable vector database (ChromaDB)\n"
+            "- Uses LLM {via LangChain} for retrieval-augmented generation\n"
+            "- Provides a CLI and REST API\n\n"
+            "## PoC Objectives\n"
+            "1. Verify the application containerizes on UBI\n"
+            "2. Test the health endpoint\n\n"
+            "## Infrastructure Requirements\n"
+            "- Resource Profile: medium\n\n"
+            "## Test Scenarios\n"
+            "### Scenario 1: health-check\n"
+            "- Endpoint: /health\n\n"
+            '{"poc_type": "llm-app", "scenarios": []}\n'
+        )
+        result = _extract_markdown_plan_from_response(raw)
+        assert "## Project Classification" in result
+        assert "ChromaDB" in result
+        assert "{via LangChain}" in result  # curly braces should NOT cause truncation
+        assert "## PoC Objectives" in result
+        assert "## Test Scenarios" in result
+        assert "health-check" in result
+        assert "poc_type" not in result  # JSON should be cut off
+
+    def test_extracts_plan_when_json_on_own_line(self):
+        from autopoc.agents.poc_plan import _extract_markdown_plan_from_response
+
+        raw = (
+            "# PoC Plan: test-app\n\n"
+            "## Project Classification\n"
+            "Type: web-app\n\n"
+            "## PoC Objectives\n"
+            "Deploy and test.\n\n"
+            '{"poc_type": "web-app", "scenarios": []}\n'
+        )
+        result = _extract_markdown_plan_from_response(raw)
+        assert "# PoC Plan" in result
+        assert "Deploy and test" in result
+        assert "poc_type" not in result
+
+    def test_returns_empty_for_no_plan_markers(self):
+        from autopoc.agents.poc_plan import _extract_markdown_plan_from_response
+
+        result = _extract_markdown_plan_from_response("Just some random text with no plan")
+        assert result == ""
+
+    def test_extracts_from_multiline_ai_content(self):
+        """Simulate concatenated AI messages where plan is in an earlier message."""
+        from autopoc.agents.poc_plan import _extract_markdown_plan_from_response
+
+        raw = (
+            "I'll analyze the repository.\n\n"
+            "Let me read the key files.\n\n"
+            "# PoC Plan: my-project\n\n"
+            "## Project Classification\n"
+            "- **Type:** rag\n"
+            "- **Key Technologies:** LangChain, ChromaDB, OpenAI\n\n"
+            "## PoC Objectives\n"
+            "1. Test document ingestion\n"
+            "2. Test RAG query flow\n\n"
+            "## Infrastructure Requirements\n"
+            "- Vector DB: in-memory (ChromaDB)\n"
+            "- Embedding Model: all-MiniLM-L6-v2\n\n"
+            "## Test Scenarios\n"
+            "### health-check\n"
+            "GET /health\n\n"
+            "### query-test\n"
+            "POST /query\n\n"
+            "Now here is the structured output:\n\n"
+            '{"poc_type": "rag", "scenarios": [{"name": "health-check"}]}\n'
+        )
+        result = _extract_markdown_plan_from_response(raw)
+        assert "# PoC Plan" in result
+        assert "rag" in result
+        assert "ChromaDB" in result
+        assert "query-test" in result
+        assert len(result) > 200  # Should be substantial
+
+
 class TestBuildUserMessage:
     def test_includes_project_info(self):
         state = {

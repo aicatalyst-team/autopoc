@@ -191,51 +191,78 @@ def _extract_poc_plan_from_tool_calls(messages: list, expected_path: str) -> str
         if not hasattr(msg, "tool_calls"):
             continue
         for tool_call in getattr(msg, "tool_calls", []):
-            if tool_call.get("name") == "write_file":
-                args = tool_call.get("args", {})
-                path = args.get("path", "")
-                content = args.get("content", "")
-                # Check if this is the poc-plan.md file
-                if content and (
-                    "poc-plan" in path.lower()
-                    or "poc_plan" in path.lower()
-                    or "PoC Plan" in content[:200]
-                ):
-                    logger.info(
-                        "Found poc-plan.md content in write_file tool call (%d chars)", len(content)
-                    )
-                    return content
+            name = tool_call.get("name", "")
+            if name != "write_file":
+                continue
+            args = tool_call.get("args", {})
+            # LLM might use "path" or "file_path" as the arg name
+            path = args.get("path", "") or args.get("file_path", "")
+            content = args.get("content", "")
+            if not content:
+                continue
+            # Check if this is the poc-plan.md file
+            if (
+                "poc-plan" in path.lower()
+                or "poc_plan" in path.lower()
+                or "PoC Plan" in content[:500]
+                or "Project Classification" in content[:500]
+            ):
+                logger.info(
+                    "Found poc-plan.md content in write_file tool call (%d chars, path=%s)",
+                    len(content),
+                    path,
+                )
+                return content
     return ""
 
 
-def _extract_markdown_plan_from_response(raw_output: str) -> str:
-    """Extract a markdown PoC plan from the LLM's raw text response.
+def _extract_markdown_plan_from_response(text: str) -> str:
+    """Extract a markdown PoC plan from LLM response text.
 
     If the LLM included the poc-plan.md content directly in its response
-    (instead of using write_file), try to extract the markdown section.
+    (instead of using write_file), try to extract the full markdown plan.
+    Looks for the plan start marker and extracts until the JSON output block.
     """
-    # Look for a markdown heading that indicates the plan
+    # Look for a markdown heading that indicates the plan start.
+    # Try most specific first.
     plan_markers = [
         "# PoC Plan",
         "# Proof of Concept Plan",
         "## Project Classification",
-        "## PoC Objectives",
     ]
 
+    best_start = -1
     for marker in plan_markers:
-        idx = raw_output.find(marker)
+        idx = text.find(marker)
         if idx != -1:
-            # Find where the plan content ends — usually before the JSON block
-            plan_text = raw_output[idx:]
-            # Cut off at the JSON block if present
-            json_start = plan_text.find('{"poc_type"')
-            if json_start == -1:
-                json_start = plan_text.find("```json")
-            if json_start > 0:
-                plan_text = plan_text[:json_start].rstrip()
-            if len(plan_text) > 50:  # Ensure it's substantial
-                logger.info("Extracted PoC plan from LLM response text (%d chars)", len(plan_text))
-                return plan_text.strip()
+            if best_start == -1 or idx < best_start:
+                best_start = idx
+
+    if best_start == -1:
+        return ""
+
+    plan_text = text[best_start:]
+
+    # Cut off at the structured JSON output block.
+    # The JSON block starts with {"poc_type" at the beginning of a line,
+    # or inside a ```json fence. We need to be careful not to cut on
+    # random { characters inside markdown prose.
+    cutoff_patterns = [
+        '\n{"poc_type"',  # JSON at start of line
+        "\n```json",  # Fenced JSON block
+        '\n```\n{"poc_type"',  # Fenced then JSON
+    ]
+    earliest_cut = len(plan_text)
+    for pattern in cutoff_patterns:
+        idx = plan_text.find(pattern)
+        if idx != -1 and idx < earliest_cut:
+            earliest_cut = idx
+
+    plan_text = plan_text[:earliest_cut].rstrip()
+
+    if len(plan_text) > 50:
+        logger.info("Extracted PoC plan from LLM response text (%d chars)", len(plan_text))
+        return plan_text.strip()
 
     return ""
 
@@ -434,7 +461,9 @@ async def poc_plan_agent(
                     logger.warning("Failed to write poc-plan.md: %s", write_err)
             else:
                 # Fallback 2: Extract markdown content from the LLM response
-                poc_plan_content = _extract_markdown_plan_from_response(raw_output)
+                # Try all AI content (not just the last message), since the plan
+                # may be in an earlier message before tool calls
+                poc_plan_content = _extract_markdown_plan_from_response(all_ai_content)
                 if poc_plan_content:
                     try:
                         poc_plan_file.parent.mkdir(parents=True, exist_ok=True)
