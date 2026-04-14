@@ -96,8 +96,9 @@ async def fork_agent(
 
         logger.info("Pushed all branches and tags to GitLab")
 
+        # NOTE: Do not set current_phase here — fork runs in parallel with
+        # poc_plan, and both writing to current_phase causes a conflict.
         return {
-            "current_phase": PoCPhase.FORK,
             "gitlab_repo_url": gitlab_url,
             "local_clone_path": str(clone_path),
         }

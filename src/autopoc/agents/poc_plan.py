@@ -276,8 +276,9 @@ async def poc_plan_agent(
     )
 
     # Return partial state update
+    # NOTE: Do not set current_phase here — poc_plan runs in parallel with
+    # fork, and both writing to current_phase would cause a LangGraph conflict.
     return {
-        "current_phase": PoCPhase.POC_PLAN,
         "poc_plan": poc_plan_content,
         "poc_plan_path": poc_plan_path,
         "poc_scenarios": scenarios,

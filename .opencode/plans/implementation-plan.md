@@ -31,7 +31,7 @@
 | **4. Deploy** | **COMPLETE** | 4/6 | E2E (with --e2e) |
 | **5. Hardening** | Pending | 0/2 | — |
 | **6. Local E2E Harness** | **COMPLETE** | 3/3 | 7 passing (with --e2e) |
-| **7. PoC Intelligence** | In Progress | 15/17 | 44 passing |
+| **7. PoC Intelligence** | **COMPLETE** | 17/17 | 55 passing |
 
 ---
 
@@ -1681,7 +1681,7 @@ dev = [
 
 ---
 
-### Task 56 — Integration tests for PoC Intelligence
+### Task 56 — Integration tests for PoC Intelligence ✅
 
 **Files:** `tests/test_graph_poc.py`
 

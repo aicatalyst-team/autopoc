@@ -255,7 +255,8 @@ class TestPocPlanAgent:
 
                 result = await poc_plan_agent(state, llm=MagicMock())
 
-        assert result["current_phase"] == PoCPhase.POC_PLAN
+        # poc_plan runs in parallel with fork, so it does NOT set current_phase
+        assert "current_phase" not in result
         assert result["poc_type"] == "web-app"
         assert len(result["poc_scenarios"]) == 1
         assert result["poc_scenarios"][0]["name"] == "health"
@@ -285,6 +286,7 @@ class TestPocPlanAgent:
 
             result = await poc_plan_agent(state, llm=MagicMock())
 
-        assert result["current_phase"] == PoCPhase.POC_PLAN
+        # poc_plan runs in parallel with fork, so it does NOT set current_phase
+        assert "current_phase" not in result
         assert result["poc_type"] == "web-app"  # default
         assert result["poc_scenarios"] == []  # no scenarios parsed

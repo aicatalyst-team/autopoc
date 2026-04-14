@@ -815,7 +815,7 @@ with ODH/OpenShift AI context. Introduce parallel execution in the graph.
 | 7.14 | PoC Report tests ✅ | Unit tests for report generation. |
 | 7.15 | Full graph wiring ✅ | Wire `poc_execute → poc_report → END` in graph.py. Update routing functions. |
 | 7.16 | CLI updates ✅ | Display PoC plan summary, test results table, and report path in CLI output. |
-| 7.17 | Integration tests | End-to-end graph test with all new nodes, including parallel execution. |
+| 7.17 | Integration tests ✅ | End-to-end graph test with all new nodes, including parallel execution. |
 
 ---
 
