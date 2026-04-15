@@ -147,17 +147,22 @@ def kubectl_create_namespace(name: str) -> str:
 
 @tool
 def kubectl_get(resource: str, name: str, namespace: str) -> str:
-    """Get a Kubernetes resource as JSON.
+    """Get a Kubernetes resource or list all resources of a type.
 
     Args:
-        resource: Resource type (e.g., 'pod', 'deployment', 'service')
-        name: Resource name
+        resource: Resource type (e.g., 'pod', 'deployment', 'service', 'job')
+        name: Resource name. Pass empty string "" to list ALL resources of this type.
         namespace: Namespace
 
     Returns:
-        Resource JSON string
+        Resource JSON string (single resource or list)
     """
-    return _run_kubectl(["get", resource, name, "-n", namespace, "-o", "json"])
+    args = ["get", resource]
+    if name:  # specific resource
+        args.append(name)
+    # else: list all resources of this type
+    args.extend(["-n", namespace, "-o", "json"])
+    return _run_kubectl(args)
 
 
 @tool
