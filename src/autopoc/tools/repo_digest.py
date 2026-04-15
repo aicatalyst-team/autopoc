@@ -139,6 +139,25 @@ ENTRY_POINTS = [
 # README filenames in priority order
 README_FILES = ["README.md", "README.rst", "README.txt", "README"]
 
+# Docs site indicators: if a subdirectory contains any of these, it's a docs site
+# and should NOT be treated as a deployable component.
+DOCS_SITE_INDICATORS = {
+    # Config files that identify doc site generators
+    "vitepress": [".vitepress"],
+    "docusaurus": ["docusaurus.config.js", "docusaurus.config.ts"],
+    "mkdocs": ["mkdocs.yml", "mkdocs.yaml"],
+    "jekyll": ["_config.yml"],
+    "hugo": ["hugo.toml", "hugo.yaml", "config.toml"],
+    "sphinx": ["conf.py"],
+    "gitbook": [".gitbook.yaml"],
+}
+
+# npm script names that indicate a docs-only project
+DOCS_SCRIPTS = {"docs:build", "docs:dev", "docs:preview", "docs:serve"}
+
+# Directory names commonly used for docs sites
+DOCS_DIR_NAMES = {"website", "docs-site", "docsite", "documentation", "site"}
+
 # Max chars for each section
 MAX_TREE_CHARS = 3000
 MAX_README_CHARS = 4000
@@ -308,6 +327,63 @@ def _detect_cicd(repo_path: Path) -> str | None:
     return None
 
 
+def _detect_docs_sites(repo_path: Path) -> list[dict]:
+    """Detect documentation site subdirectories that should NOT be treated as components.
+
+    Returns a list of dicts: [{"dir": "website", "generator": "vitepress"}, ...]
+    """
+    results = []
+
+    for child in sorted(repo_path.iterdir()):
+        if not child.is_dir():
+            continue
+        if child.name.startswith(".") or child.name in SKIP_DIRS:
+            continue
+
+        generator = None
+
+        # Check for doc site generator config files
+        for gen_name, indicators in DOCS_SITE_INDICATORS.items():
+            for indicator in indicators:
+                if (child / indicator).exists():
+                    generator = gen_name
+                    break
+            if generator:
+                break
+
+        # Check package.json for docs scripts
+        if not generator:
+            pkg_json = child / "package.json"
+            if pkg_json.exists():
+                try:
+                    import json as _json
+
+                    data = _json.loads(pkg_json.read_text(encoding="utf-8", errors="replace"))
+                    scripts = set(data.get("scripts", {}).keys())
+                    if scripts & DOCS_SCRIPTS:
+                        # Has docs scripts — check if it also has non-docs scripts
+                        non_docs = (
+                            scripts
+                            - DOCS_SCRIPTS
+                            - {"build", "dev", "start", "preview", "serve", "test", "lint"}
+                        )
+                        if not non_docs or child.name.lower() in DOCS_DIR_NAMES:
+                            generator = "docs-site (npm)"
+                except Exception:
+                    pass
+
+        # Directory name heuristic (only if also has a build config)
+        if not generator and child.name.lower() in DOCS_DIR_NAMES:
+            # Check for any build config
+            if any((child / f).exists() for f in ["package.json", "mkdocs.yml", "conf.py"]):
+                generator = "docs-site"
+
+        if generator:
+            results.append({"dir": child.name, "generator": generator})
+
+    return results
+
+
 def _extract_python_deps(content: str, filename: str) -> list[str]:
     """Extract dependency names from Python build files."""
     deps = []
@@ -445,6 +521,14 @@ def build_repo_digest(repo_path: str, max_total_chars: int = MAX_TOTAL_CHARS) ->
     # CI/CD
     cicd = _detect_cicd(root)
     sections.append(f"## CI/CD: {cicd or 'none detected'}\n")
+
+    # Docs sites (should NOT be treated as deployable components)
+    docs_sites = _detect_docs_sites(root)
+    if docs_sites:
+        sections.append("## Documentation Sites (NOT deployable components)")
+        for ds in docs_sites:
+            sections.append(f"- **{ds['dir']}/** — {ds['generator']} (skip for PoC)")
+        sections.append("")
 
     # Helm / Kustomize
     has_helm = any(root.rglob("Chart.yaml"))

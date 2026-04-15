@@ -140,6 +140,7 @@ class PoCState(TypedDict, total=False):
     poc_plan_error: (
         str | None
     )  # Set when poc_plan fails; separate from error to avoid parallel state conflict with fork
+    poc_components: list[str]  # Component names relevant for the PoC (subset of components)
     poc_scenarios: list[PoCScenario]  # Structured test scenarios
     poc_infrastructure: PoCInfrastructure  # Infrastructure requirements
     poc_type: str  # "model-serving", "rag", "training", "web-app", etc.

@@ -404,10 +404,10 @@ def _process_poc_plan_output(
     raw_output: str,
     clone_path: str,
     messages: list | None = None,
-) -> tuple[dict, list, PoCInfrastructure, str, str | None]:
+) -> tuple[dict, list, PoCInfrastructure, list[str], str, str | None]:
     """Process LLM output into validated poc_plan results.
 
-    Returns (parsed, scenarios, infrastructure, poc_plan_content, plan_error).
+    Returns (parsed, scenarios, infrastructure, poc_components, poc_plan_content, plan_error).
     Shared between one-shot and fallback phases.
     """
     # Also try all AI content if messages provided (ReAct fallback)
@@ -424,6 +424,7 @@ def _process_poc_plan_output(
 
     scenarios = [_validate_scenario(s) for s in parsed.get("scenarios", [])]
     infrastructure = _validate_infrastructure(parsed.get("infrastructure", {}))
+    poc_components = parsed.get("poc_components", [])
 
     # Extract/write poc-plan.md
     poc_plan_path = str(Path(clone_path or ".") / "poc-plan.md")
@@ -471,7 +472,7 @@ def _process_poc_plan_output(
     elif not scenarios:
         logger.warning("PoC plan produced 0 test scenarios — downstream testing will be limited")
 
-    return parsed, scenarios, infrastructure, poc_plan_content, plan_error
+    return parsed, scenarios, infrastructure, poc_components, poc_plan_content, plan_error
 
 
 async def poc_plan_agent(
@@ -524,8 +525,8 @@ async def poc_plan_agent(
             for part in raw_output
         )
 
-    parsed, scenarios, infrastructure, poc_plan_content, plan_error = _process_poc_plan_output(
-        raw_output, clone_path
+    parsed, scenarios, infrastructure, poc_components, poc_plan_content, plan_error = (
+        _process_poc_plan_output(raw_output, clone_path or ".")
     )
 
     poc_type = parsed.get("poc_type", "web-app")
@@ -533,15 +534,17 @@ async def poc_plan_agent(
     # If phase 1 produced valid output with scenarios, we're done
     if scenarios and not plan_error:
         logger.info(
-            "Phase 1 succeeded: type=%s, %d scenarios, profile=%s",
+            "Phase 1 succeeded: type=%s, %d scenarios, poc_components=%s, profile=%s",
             poc_type,
             len(scenarios),
+            poc_components,
             infrastructure.get("resource_profile", "unknown"),
         )
         return {
             "poc_plan": poc_plan_content,
             "poc_plan_path": str(Path(clone_path or ".") / "poc-plan.md"),
             "poc_plan_error": None,
+            "poc_components": poc_components,
             "poc_scenarios": scenarios,
             "poc_infrastructure": infrastructure,
             "poc_type": poc_type,
@@ -592,14 +595,20 @@ async def poc_plan_agent(
 
         raw_output_2 = _extract_final_ai_content(result["messages"])
 
-        parsed_2, scenarios_2, infrastructure_2, poc_plan_content_2, plan_error_2 = (
-            _process_poc_plan_output(raw_output_2, clone_path, result["messages"])
-        )
+        (
+            parsed_2,
+            scenarios_2,
+            infrastructure_2,
+            poc_components_2,
+            poc_plan_content_2,
+            plan_error_2,
+        ) = _process_poc_plan_output(raw_output_2, clone_path or ".", result["messages"])
 
         # Use phase 2 results if better, otherwise keep phase 1
         if scenarios_2 or (not scenarios and not plan_error_2):
             scenarios = scenarios_2
             infrastructure = infrastructure_2
+            poc_components = poc_components_2 or poc_components
             poc_plan_content = poc_plan_content_2 or poc_plan_content
             plan_error = plan_error_2
             poc_type = parsed_2.get("poc_type", poc_type)
@@ -622,6 +631,7 @@ async def poc_plan_agent(
         "poc_plan": poc_plan_content,
         "poc_plan_path": str(Path(clone_path or ".") / "poc-plan.md"),
         "poc_plan_error": plan_error,
+        "poc_components": poc_components,
         "poc_scenarios": scenarios,
         "poc_infrastructure": infrastructure,
         "poc_type": poc_type,

@@ -271,6 +271,23 @@ async def containerize_agent(
         logger.warning("No components to containerize")
         return {"current_phase": PoCPhase.CONTAINERIZE, "components": components}
 
+    # Filter to only PoC-relevant components (if poc_plan specified which ones)
+    poc_components = state.get("poc_components", [])
+    if poc_components:
+        original_count = len(components)
+        components = [c for c in components if c.get("name", "") in poc_components]
+        skipped = original_count - len(components)
+        if skipped > 0:
+            logger.info(
+                "Filtered to %d PoC-relevant component(s), skipping %d (poc_components=%s)",
+                len(components),
+                skipped,
+                poc_components,
+            )
+        if not components:
+            logger.warning("No PoC-relevant components after filtering")
+            return {"current_phase": PoCPhase.CONTAINERIZE, "components": components}
+
     # Get PoC infrastructure requirements (may be absent for older flows)
     poc_infrastructure = state.get("poc_infrastructure")
     poc_type = state.get("poc_type")

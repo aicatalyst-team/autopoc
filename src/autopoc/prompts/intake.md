@@ -72,6 +72,10 @@ before or after the JSON. Do not wrap it in markdown code fences.
 
 ## Important Notes
 
+- **Do NOT include documentation sites as components.** If the digest lists a
+  "Documentation Sites (NOT deployable components)" section, skip those directories.
+  Examples: VitePress sites, Docusaurus sites, MkDocs, Jekyll, Hugo sites.
+  These are static doc generators, not deployable applications.
 - If you cannot determine a port, set it to `null`.
 - If there is no existing Dockerfile for a component, set `existing_dockerfile` to `null`.
 - If there is no CI/CD, set `existing_ci_cd` to `null`.

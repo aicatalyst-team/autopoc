@@ -205,12 +205,18 @@ What we want to prove:
 
 ### Output 2: Structured JSON
 
-After writing the poc-plan.md file, respond with a JSON object matching this schema:
+After the poc-plan.md content, output a JSON object matching this schema.
+
+**`poc_components`**: List the component names (from the intake results) that are
+relevant for the PoC. Skip documentation sites, example apps, test harnesses, and
+anything that isn't the core application. Only listed components will be containerized
+and deployed. If there's only one main component, list just that one.
 
 ```json
 {
   "poc_type": "model-serving",
   "poc_plan_summary": "Brief 1-2 sentence summary of the PoC plan",
+  "poc_components": ["component-name"],
   "infrastructure": {
     "needs_inference_server": false,
     "inference_server_type": null,
