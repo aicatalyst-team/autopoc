@@ -5,6 +5,17 @@ analyze a source code repository that has already been examined by the intake ag
 produce a **PoC plan** that answers the question: "What would prove this project works
 on Open Data Hub / OpenShift AI?"
 
+## How This Prompt Is Used
+
+You receive a pre-generated repository digest and intake analysis results in the user
+message. **In most cases, you can produce the complete plan from this information alone
+without calling any tools.** The digest includes the file tree, build file content,
+README, entry point headers, and existing Dockerfiles.
+
+If you need additional details (e.g., reading a specific config file for environment
+variables, or searching for a particular import pattern), you MAY have access to file
+tools. But always try to produce your output from the provided context first.
+
 ## Context
 
 Open Data Hub (ODH) is the community upstream of Red Hat OpenShift AI. It provides:
@@ -129,10 +140,13 @@ the intake agent already found. Focus on:
 
 You must produce TWO outputs:
 
-### Output 1: poc-plan.md file
+### Output 1: poc-plan.md content
 
-Write a markdown file called `poc-plan.md` in the repository root using the `write_file`
-tool. This file should contain:
+Produce a markdown PoC plan. If you have the `write_file` tool available, use it to
+write this to `poc-plan.md` in the repository root. If you don't have tools, include
+the full markdown in your response — the system will extract and write it.
+
+The plan should contain:
 
 ```markdown
 # PoC Plan: {project_name}
@@ -467,25 +481,32 @@ This tells downstream agents to NOT create a Deployment or Service, and to test 
 
 ## Critical Instructions — Output Procedure
 
-Follow these steps IN ORDER:
+Your response MUST contain two things:
 
-1. **Step 1 — Analyze the repository** using the available tools (`list_files`, `read_file`,
-   `search_files`). Examine key files like README, dependency manifests, source code, and
-   any existing Dockerfiles or deployment configurations.
+1. **The poc-plan.md content** — Include the full markdown plan in your response.
+   Start it with `# PoC Plan: {project_name}`. If you have `write_file` available,
+   also write it to disk. But always include it in your response text regardless.
 
-2. **Step 2 — Write poc-plan.md** using the `write_file` tool. You MUST call `write_file`
-   to create this file. Do NOT just include the markdown in your response text. Example:
-   ```
-   write_file(path="/path/to/repo/poc-plan.md", content="# PoC Plan: project-name\n...")
-   ```
-
-3. **Step 3 — Output the structured JSON** as your final text response. The JSON must be
-   a single valid JSON object on its own — no surrounding prose, no markdown code fences,
+2. **The structured JSON** — After the markdown plan, output the JSON object.
+   It must be a single valid JSON object. No markdown code fences around it,
    no explanatory text before or after it.
+
+Example response structure:
+```
+# PoC Plan: my-project
+
+## Project Classification
+... (markdown plan content) ...
+
+## Deployment Considerations
+... (more plan content) ...
+
+{"poc_type": "web-app", "infrastructure": {...}, "scenarios": [...]}
+```
 
 ## Important Notes
 
-- You MUST call `write_file` to create poc-plan.md. Do not skip this step.
+- Include the poc-plan.md markdown content directly in your response.
 - The poc-plan.md should be human-readable and explain the reasoning behind the plan.
 - For model-serving projects, check if the model weights are included in the repo or
   need to be downloaded. If they need to be downloaded, note this in the plan.

@@ -308,8 +308,14 @@ def _validate_infrastructure(infra: dict) -> PoCInfrastructure:
     )
 
 
-def _build_user_message(state: PoCState) -> str:
-    """Build the user message for the PoC plan agent."""
+def _build_user_message(state: PoCState, *, include_tool_instructions: bool = True) -> str:
+    """Build the user message for the PoC plan agent.
+
+    Args:
+        state: Current pipeline state.
+        include_tool_instructions: If True, include instructions about using tools.
+            Set to False for the one-shot (no-tools) phase.
+    """
     parts = []
 
     project_name = state.get("project_name", "unknown")
@@ -326,11 +332,6 @@ def _build_user_message(state: PoCState) -> str:
     if repo_digest:
         parts.append("## Repository Digest (pre-generated)")
         parts.append(repo_digest)
-        parts.append("")
-        parts.append(
-            "Use this digest as your primary reference. Only call file tools "
-            "if you need specific details not covered above."
-        )
         parts.append("")
 
     # Include intake results
@@ -376,17 +377,100 @@ def _build_user_message(state: PoCState) -> str:
         parts.append(", ".join(existing))
         parts.append("")
 
-    parts.append("## Instructions")
-    parts.append(
-        f"Use the tools to examine the repository at {clone_path}. "
-        f"Read key files (README, dependency files, main source files) to understand "
-        f"the project deeply. Then write a poc-plan.md file to {clone_path}/poc-plan.md "
-        f"and respond with the structured JSON output as described in your system prompt."
-    )
-    parts.append("")
-    parts.append(f"All tool calls should use absolute paths starting with {clone_path}.")
+    if include_tool_instructions:
+        parts.append("## Instructions")
+        parts.append(
+            f"Use the tools to examine the repository at {clone_path}. "
+            f"Read key files (README, dependency files, main source files) to understand "
+            f"the project deeply. Then write a poc-plan.md file to {clone_path}/poc-plan.md "
+            f"and respond with the structured JSON output as described in your system prompt."
+        )
+        parts.append("")
+        parts.append(f"All tool calls should use absolute paths starting with {clone_path}.")
+    else:
+        parts.append("## Instructions")
+        parts.append(
+            "Based on the repository digest and intake results above, produce:\n"
+            "1. A poc-plan.md in markdown format (include it in your response)\n"
+            "2. The structured JSON output as described in your system prompt\n\n"
+            "You have all the information you need. Produce your output directly."
+        )
 
     return "\n".join(parts)
+
+
+def _process_poc_plan_output(
+    raw_output: str,
+    clone_path: str,
+    messages: list | None = None,
+) -> tuple[dict, list, PoCInfrastructure, str, str | None]:
+    """Process LLM output into validated poc_plan results.
+
+    Returns (parsed, scenarios, infrastructure, poc_plan_content, plan_error).
+    Shared between one-shot and fallback phases.
+    """
+    # Also try all AI content if messages provided (ReAct fallback)
+    all_ai_content = ""
+    if messages:
+        all_ai_content = _collect_all_ai_content(messages)
+
+    # Parse the structured JSON output
+    parsed = _parse_poc_plan_output(raw_output)
+    if not parsed.get("scenarios") and all_ai_content and all_ai_content != raw_output:
+        parsed_alt = _parse_poc_plan_output(all_ai_content)
+        if parsed_alt.get("scenarios"):
+            parsed = parsed_alt
+
+    scenarios = [_validate_scenario(s) for s in parsed.get("scenarios", [])]
+    infrastructure = _validate_infrastructure(parsed.get("infrastructure", {}))
+
+    # Extract/write poc-plan.md
+    poc_plan_path = str(Path(clone_path or ".") / "poc-plan.md")
+    poc_plan_content = ""
+    text_to_search = all_ai_content if all_ai_content else raw_output
+
+    try:
+        poc_plan_file = Path(poc_plan_path)
+        if poc_plan_file.exists():
+            poc_plan_content = poc_plan_file.read_text(encoding="utf-8")
+            logger.info("PoC plan read from %s (%d chars)", poc_plan_path, len(poc_plan_content))
+        else:
+            # Try to extract from tool calls (ReAct fallback)
+            if messages:
+                poc_plan_content = _extract_poc_plan_from_tool_calls(messages, poc_plan_path)
+
+            # Try to extract from response text
+            if not poc_plan_content:
+                poc_plan_content = _extract_markdown_plan_from_response(text_to_search)
+
+            # Write if we found content
+            if poc_plan_content:
+                try:
+                    poc_plan_file.parent.mkdir(parents=True, exist_ok=True)
+                    poc_plan_file.write_text(poc_plan_content, encoding="utf-8")
+                    logger.info("Wrote poc-plan.md (%d chars)", len(poc_plan_content))
+                except Exception as e:
+                    logger.warning("Failed to write poc-plan.md: %s", e)
+            else:
+                logger.warning("Could not extract poc-plan.md content")
+                poc_plan_content = parsed.get("poc_plan_summary", "")
+    except Exception as e:
+        logger.warning("Error processing poc-plan.md: %s", e)
+        poc_plan_content = parsed.get("poc_plan_summary", "")
+
+    # Detect failure
+    parse_failed = parsed.get("_parse_failed", False)
+    plan_error = None
+    if parse_failed:
+        plan_error = (
+            "PoC plan agent failed to produce valid JSON output. "
+            "The pipeline cannot proceed with default/fallback values."
+        )
+        logger.error("PoC plan failed: %s", plan_error)
+    elif not scenarios:
+        logger.warning("PoC plan produced 0 test scenarios — downstream testing will be limited")
+
+    return parsed, scenarios, infrastructure, poc_plan_content, plan_error
 
 
 async def poc_plan_agent(
@@ -396,8 +480,11 @@ async def poc_plan_agent(
 ) -> dict:
     """Generate a PoC plan for the repository.
 
-    This is a LangGraph node function. It receives the current state and returns
-    a partial state update dict. It runs in parallel with the fork agent.
+    Two-phase approach:
+    - Phase 1: One-shot LLM call with repo digest (no tools). Handles 90%+ of cases.
+    - Phase 2: ReAct fallback with file tools (only if phase 1 fails to produce scenarios).
+
+    This is a LangGraph node function. It runs in parallel with the fork agent.
 
     Args:
         state: Current pipeline state with intake results populated.
@@ -411,122 +498,116 @@ async def poc_plan_agent(
 
     logger.info("Starting PoC plan generation for %s", project_name)
 
-    # Set up LLM — fresh instance to avoid context overflow
     if llm is None:
         llm = create_llm()
 
-    # Load system prompt
     system_prompt = _load_system_prompt()
 
-    # Create the ReAct agent with context trimming to prevent overflow
+    # -------------------------------------------------------------------------
+    # Phase 1: One-shot LLM call (no tools, no ReAct agent)
+    # -------------------------------------------------------------------------
+    user_message = _build_user_message(state, include_tool_instructions=False)
+
+    logger.info("Phase 1: one-shot PoC plan (no tools)")
+    response = await llm.ainvoke(
+        [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_message),
+        ]
+    )
+
+    raw_output = response.content
+    if isinstance(raw_output, list):
+        raw_output = "".join(
+            part["text"] if isinstance(part, dict) and "text" in part else str(part)
+            for part in raw_output
+        )
+
+    parsed, scenarios, infrastructure, poc_plan_content, plan_error = _process_poc_plan_output(
+        raw_output, clone_path
+    )
+
+    poc_type = parsed.get("poc_type", "web-app")
+
+    # If phase 1 produced valid output with scenarios, we're done
+    if scenarios and not plan_error:
+        logger.info(
+            "Phase 1 succeeded: type=%s, %d scenarios, profile=%s",
+            poc_type,
+            len(scenarios),
+            infrastructure.get("resource_profile", "unknown"),
+        )
+        return {
+            "poc_plan": poc_plan_content,
+            "poc_plan_path": str(Path(clone_path or ".") / "poc-plan.md"),
+            "poc_plan_error": None,
+            "poc_scenarios": scenarios,
+            "poc_infrastructure": infrastructure,
+            "poc_type": poc_type,
+        }
+
+    # -------------------------------------------------------------------------
+    # Phase 2: ReAct fallback with file tools
+    # Only triggered when phase 1 didn't produce scenarios.
+    # -------------------------------------------------------------------------
+    logger.warning(
+        "Phase 1 produced %d scenarios (parse_failed=%s). Falling back to ReAct agent.",
+        len(scenarios),
+        bool(plan_error),
+    )
+
+    # Fresh LLM instance to avoid context carryover from phase 1
+    fallback_llm = create_llm()
+
     agent = create_react_agent(
-        model=llm,
+        model=fallback_llm,
         tools=POC_PLAN_TOOLS,
         pre_model_hook=make_context_trimmer(),
     )
 
-    # Build the user message
-    user_message = _build_user_message(state)
+    # Build user message with tool instructions + phase 1 context
+    fallback_message = _build_user_message(state, include_tool_instructions=True)
 
-    # Invoke the agent with a recursion limit.
-    # Each tool call round-trip is ~2 recursions. Limit of 50 allows ~25 tool calls,
-    # which gives the agent enough room to read files AND produce the plan + JSON.
-    # (30 was too tight — the agent would exhaust steps reading files and never
-    # get to write poc-plan.md or output the JSON.)
-    result = await agent.ainvoke(
-        {
-            "messages": [
-                SystemMessage(content=system_prompt),
-                HumanMessage(content=user_message),
-            ],
-        },
-        config={"recursion_limit": 50},
-    )
-
-    # Extract the final AI message with actual content
-    raw_output = _extract_final_ai_content(result["messages"])
-
-    # Detect agent step exhaustion
-    steps_exhausted_msg = "Sorry, need more steps to process this request."
-    if steps_exhausted_msg in raw_output:
-        logger.error("PoC plan agent exhausted its step budget without producing output")
-
-    # Also try to extract JSON from all messages (the structured output
-    # may be in a different message than the final one)
-    all_ai_content = _collect_all_ai_content(result["messages"])
-
-    # Parse the structured output — try the final message first, then all content
-    parsed = _parse_poc_plan_output(raw_output)
-    if not parsed.get("scenarios") and all_ai_content != raw_output:
-        parsed_alt = _parse_poc_plan_output(all_ai_content)
-        if parsed_alt.get("scenarios"):
-            parsed = parsed_alt
-
-    # Validate scenarios
-    scenarios = [_validate_scenario(s) for s in parsed.get("scenarios", [])]
-
-    # Validate infrastructure
-    infrastructure = _validate_infrastructure(parsed.get("infrastructure", {}))
-
-    # Read the poc-plan.md content (agent should have written it via write_file tool)
-    poc_plan_path = str(Path(clone_path or ".") / "poc-plan.md")
-    poc_plan_content = ""
-    try:
-        poc_plan_file = Path(poc_plan_path)
-        if poc_plan_file.exists():
-            poc_plan_content = poc_plan_file.read_text(encoding="utf-8")
-            logger.info("PoC plan written to %s (%d chars)", poc_plan_path, len(poc_plan_content))
-        else:
-            # Fallback 1: Try to extract poc-plan.md content from write_file tool calls
-            poc_plan_content = _extract_poc_plan_from_tool_calls(result["messages"], poc_plan_path)
-            if poc_plan_content:
-                # The tool call was made but the file wasn't written (path issue?)
-                # Write it ourselves
-                try:
-                    poc_plan_file.parent.mkdir(parents=True, exist_ok=True)
-                    poc_plan_file.write_text(poc_plan_content, encoding="utf-8")
-                    logger.info(
-                        "Wrote poc-plan.md from tool call content (%d chars)", len(poc_plan_content)
-                    )
-                except Exception as write_err:
-                    logger.warning("Failed to write poc-plan.md: %s", write_err)
-            else:
-                # Fallback 2: Extract markdown content from the LLM response
-                # Try all AI content (not just the last message), since the plan
-                # may be in an earlier message before tool calls
-                poc_plan_content = _extract_markdown_plan_from_response(all_ai_content)
-                if poc_plan_content:
-                    try:
-                        poc_plan_file.parent.mkdir(parents=True, exist_ok=True)
-                        poc_plan_file.write_text(poc_plan_content, encoding="utf-8")
-                        logger.info(
-                            "Wrote poc-plan.md from LLM response (%d chars)", len(poc_plan_content)
-                        )
-                    except Exception as write_err:
-                        logger.warning("Failed to write poc-plan.md: %s", write_err)
-                else:
-                    logger.warning("poc-plan.md was not written and could not be extracted")
-                    poc_plan_content = parsed.get("poc_plan_summary", "")
-    except Exception as e:
-        logger.warning("Failed to read poc-plan.md: %s", e)
-        poc_plan_content = parsed.get("poc_plan_summary", "")
-
-    poc_type = parsed.get("poc_type", "web-app")
-
-    # Detect if the plan agent failed to produce valid output
-    parse_failed = parsed.get("_parse_failed", False)
-    plan_error = None
-    if parse_failed:
-        plan_error = (
-            "PoC plan agent failed to produce valid JSON output. "
-            "The LLM may have exhausted its tool call budget before writing "
-            "the plan. The pipeline cannot proceed with default/fallback values."
+    # Include phase 1's partial result to avoid re-doing work
+    if not plan_error and parsed.get("poc_type"):
+        fallback_message += (
+            f"\n\n## Previous Analysis Attempt\n"
+            f"A previous analysis produced this partial result (missing test scenarios):\n"
+            f"```json\n{json.dumps(parsed, indent=2)}\n```\n\n"
+            f"Please complete this by adding concrete test scenarios. "
+            f"Read specific source files if needed to determine how to test the application."
         )
-        logger.error("PoC plan failed: %s", plan_error)
-    elif not scenarios:
-        # No scenarios but JSON parsed OK — this is a soft warning, not a failure.
-        # The agent may have produced a plan with no test scenarios.
-        logger.warning("PoC plan produced 0 test scenarios — downstream testing will be limited")
+
+    try:
+        result = await agent.ainvoke(
+            {
+                "messages": [
+                    SystemMessage(content=system_prompt),
+                    HumanMessage(content=fallback_message),
+                ],
+            },
+            config={"recursion_limit": 60},
+        )
+
+        raw_output_2 = _extract_final_ai_content(result["messages"])
+
+        parsed_2, scenarios_2, infrastructure_2, poc_plan_content_2, plan_error_2 = (
+            _process_poc_plan_output(raw_output_2, clone_path, result["messages"])
+        )
+
+        # Use phase 2 results if better, otherwise keep phase 1
+        if scenarios_2 or (not scenarios and not plan_error_2):
+            scenarios = scenarios_2
+            infrastructure = infrastructure_2
+            poc_plan_content = poc_plan_content_2 or poc_plan_content
+            plan_error = plan_error_2
+            poc_type = parsed_2.get("poc_type", poc_type)
+
+    except Exception as e:
+        logger.error("Phase 2 (ReAct fallback) failed: %s", e)
+        # Keep phase 1 results (possibly partial) rather than failing completely
+        if not plan_error:
+            plan_error = f"ReAct fallback failed: {e}"
 
     logger.info(
         "PoC plan complete: type=%s, %d scenarios, profile=%s, error=%s",
@@ -536,13 +617,9 @@ async def poc_plan_agent(
         "yes" if plan_error else "no",
     )
 
-    # Return partial state update
-    # NOTE: Do not set current_phase or error here — poc_plan runs in parallel
-    # with fork, and both writing to those fields would cause a LangGraph conflict.
-    # Use poc_plan_error (dedicated field) to signal failure to downstream agents.
     return {
         "poc_plan": poc_plan_content,
-        "poc_plan_path": poc_plan_path,
+        "poc_plan_path": str(Path(clone_path or ".") / "poc-plan.md"),
         "poc_plan_error": plan_error,
         "poc_scenarios": scenarios,
         "poc_infrastructure": infrastructure,

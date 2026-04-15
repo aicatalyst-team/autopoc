@@ -276,34 +276,21 @@ class TestBuildUserMessage:
 class TestPocPlanAgent:
     @pytest.mark.asyncio
     async def test_agent_returns_poc_plan_state(self):
-        """Test that the agent returns properly structured state."""
-        mock_agent_result = {
-            "messages": [
-                MagicMock(
-                    content=json.dumps(
-                        {
-                            "poc_type": "web-app",
-                            "poc_plan_summary": "Deploy and test the Flask app",
-                            "infrastructure": {
-                                "needs_inference_server": False,
-                                "resource_profile": "small",
-                            },
-                            "scenarios": [
-                                {
-                                    "name": "health-check",
-                                    "description": "Check health endpoint",
-                                    "type": "http",
-                                    "endpoint": "/health",
-                                    "expected_behavior": "Returns 200",
-                                    "timeout_seconds": 30,
-                                }
-                            ],
-                        }
-                    ),
-                    __class__=type("AIMessage", (), {"__instancecheck__": lambda cls, inst: True}),
-                )
-            ]
-        }
+        """Test that phase 1 (one-shot) returns properly structured state."""
+        from langchain_core.messages import AIMessage
+
+        # Phase 1 response: LLM returns poc-plan markdown + JSON directly
+        llm_response_text = (
+            "# PoC Plan: test-flask\n\n"
+            "## Project Classification\n- **Type:** web-app\n\n"
+            '{"poc_type": "web-app", "poc_plan_summary": "Deploy and test", '
+            '"infrastructure": {"resource_profile": "small"}, '
+            '"scenarios": [{"name": "health", "type": "http", "description": "Check health", '
+            '"endpoint": "/health", "expected_behavior": "Returns 200", "timeout_seconds": 30}]}'
+        )
+
+        mock_llm = AsyncMock()
+        mock_llm.ainvoke.return_value = AIMessage(content=llm_response_text)
 
         state = {
             "project_name": "test-flask",
@@ -321,27 +308,7 @@ class TestPocPlanAgent:
             ],
         }
 
-        with patch("autopoc.agents.poc_plan.create_react_agent") as mock_create:
-            mock_agent = AsyncMock()
-            mock_agent.ainvoke.return_value = mock_agent_result
-            mock_create.return_value = mock_agent
-
-            # Need to patch AIMessage isinstance check
-            from langchain_core.messages import AIMessage
-
-            with patch("autopoc.agents.poc_plan.AIMessage", AIMessage):
-                mock_msg = MagicMock(spec=AIMessage)
-                mock_msg.content = json.dumps(
-                    {
-                        "poc_type": "web-app",
-                        "poc_plan_summary": "Deploy and test",
-                        "infrastructure": {"resource_profile": "small"},
-                        "scenarios": [{"name": "health", "type": "http"}],
-                    }
-                )
-                mock_agent_result["messages"] = [mock_msg]
-
-                result = await poc_plan_agent(state, llm=MagicMock())
+        result = await poc_plan_agent(state, llm=mock_llm)
 
         # poc_plan runs in parallel with fork, so it does NOT set current_phase
         assert "current_phase" not in result
@@ -349,16 +316,19 @@ class TestPocPlanAgent:
         assert len(result["poc_scenarios"]) == 1
         assert result["poc_scenarios"][0]["name"] == "health"
         assert result["poc_infrastructure"]["resource_profile"] == "small"
+        assert result["poc_plan_error"] is None
+
+        # Phase 1 should have been called (one-shot, no ReAct)
+        mock_llm.ainvoke.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_agent_handles_malformed_output(self):
-        """Test graceful degradation on malformed LLM output."""
+        """Test graceful degradation: phase 1 fails, phase 2 (fallback) also fails."""
         from langchain_core.messages import AIMessage
 
-        mock_msg = MagicMock(spec=AIMessage)
-        mock_msg.content = "This is not valid JSON output"
-
-        mock_agent_result = {"messages": [mock_msg]}
+        # Phase 1: LLM returns non-JSON
+        mock_llm = AsyncMock()
+        mock_llm.ainvoke.return_value = AIMessage(content="This is not valid JSON output")
 
         state = {
             "project_name": "test",
@@ -367,12 +337,16 @@ class TestPocPlanAgent:
             "components": [],
         }
 
-        with patch("autopoc.agents.poc_plan.create_react_agent") as mock_create:
-            mock_agent = AsyncMock()
-            mock_agent.ainvoke.return_value = mock_agent_result
-            mock_create.return_value = mock_agent
+        # Phase 2 fallback will also be triggered. Mock create_react_agent
+        # to return an agent whose output is also malformed.
+        mock_agent = AsyncMock()
+        mock_agent.ainvoke.return_value = {"messages": [AIMessage(content="Still not valid JSON")]}
 
-            result = await poc_plan_agent(state, llm=MagicMock())
+        with (
+            patch("autopoc.agents.poc_plan.create_react_agent", return_value=mock_agent),
+            patch("autopoc.agents.poc_plan.create_llm", return_value=AsyncMock()),
+        ):
+            result = await poc_plan_agent(state, llm=mock_llm)
 
         # poc_plan runs in parallel with fork, so it does NOT set current_phase
         assert "current_phase" not in result
