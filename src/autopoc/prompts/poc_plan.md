@@ -481,18 +481,25 @@ This tells downstream agents to NOT create a Deployment or Service, and to test 
 
 ## Critical Instructions — Output Procedure
 
-Your response MUST contain two things:
+Your response MUST contain two things, **in this exact order**:
 
-1. **The poc-plan.md content** — Include the full markdown plan in your response.
+1. **The structured JSON FIRST** — Output the JSON object at the very start of your
+   response. It must be a single valid JSON object. No markdown code fences around it,
+   no explanatory text before it. This is the most critical output — the pipeline
+   parses it to drive all downstream steps.
+
+2. **The poc-plan.md content SECOND** — After the JSON, include the full markdown plan.
    Start it with `# PoC Plan: {project_name}`. If you have `write_file` available,
    also write it to disk. But always include it in your response text regardless.
 
-2. **The structured JSON** — After the markdown plan, output the JSON object.
-   It must be a single valid JSON object. No markdown code fences around it,
-   no explanatory text before or after it.
+**WHY JSON FIRST:** If your response is truncated due to output length limits, the
+JSON (which is compact) will survive. The markdown plan can be regenerated, but the
+JSON contains the structured fields the pipeline depends on.
 
 Example response structure:
 ```
+{"poc_type": "web-app", "infrastructure": {...}, "scenarios": [...]}
+
 # PoC Plan: my-project
 
 ## Project Classification
@@ -500,13 +507,11 @@ Example response structure:
 
 ## Deployment Considerations
 ... (more plan content) ...
-
-{"poc_type": "web-app", "infrastructure": {...}, "scenarios": [...]}
 ```
 
 ## Important Notes
 
-- Include the poc-plan.md markdown content directly in your response.
+- **JSON FIRST, markdown SECOND.** This is critical for reliability.
 - The poc-plan.md should be human-readable and explain the reasoning behind the plan.
 - For model-serving projects, check if the model weights are included in the repo or
   need to be downloaded. If they need to be downloaded, note this in the plan.

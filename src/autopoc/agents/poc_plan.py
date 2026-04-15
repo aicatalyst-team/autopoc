@@ -223,10 +223,12 @@ def _extract_markdown_plan_from_response(text: str) -> str:
 
     If the LLM included the poc-plan.md content directly in its response
     (instead of using write_file), try to extract the full markdown plan.
-    Looks for the plan start marker and extracts until the JSON output block.
+
+    The expected response format is: JSON first, then markdown plan.
+    But we also handle the reverse order (markdown first, then JSON) for
+    backward compatibility.
     """
     # Look for a markdown heading that indicates the plan start.
-    # Try most specific first.
     plan_markers = [
         "# PoC Plan",
         "# Proof of Concept Plan",
@@ -245,14 +247,13 @@ def _extract_markdown_plan_from_response(text: str) -> str:
 
     plan_text = text[best_start:]
 
-    # Cut off at the structured JSON output block.
-    # The JSON block starts with {"poc_type" at the beginning of a line,
-    # or inside a ```json fence. We need to be careful not to cut on
-    # random { characters inside markdown prose.
+    # If the JSON came before the markdown (expected order), plan_text is
+    # already clean — just the markdown from the heading onward.
+    # If the JSON came after the markdown (legacy order), cut it off.
     cutoff_patterns = [
-        '\n{"poc_type"',  # JSON at start of line
-        "\n```json",  # Fenced JSON block
-        '\n```\n{"poc_type"',  # Fenced then JSON
+        '\n{"poc_type"',
+        "\n```json",
+        '\n```\n{"poc_type"',
     ]
     earliest_cut = len(plan_text)
     for pattern in cutoff_patterns:
