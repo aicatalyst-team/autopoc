@@ -69,27 +69,58 @@ async def fork_agent(
             clone_path = git_clone.invoke({"url": source_url, "dest": str(work_dir)})
             logger.info("Cloned repo to %s", clone_path)
 
-        # Add GitLab as a remote (idempotent — git_add_remote handles existing remotes)
-        git_add_remote.invoke(
-            {
-                "repo_path": str(clone_path),
-                "name": "gitlab",
-                "url": gitlab_url,
-            }
-        )
+        # Rename origin (GitHub) to "github" so it's never the default push target,
+        # then set origin to GitLab. This ensures any `git push` (without specifying
+        # a remote) goes to GitLab, not back to the source GitHub repo.
+        clone_str = str(clone_path)
+        try:
+            from autopoc.tools.git_tools import _run_git
 
-        # Push all branches and tags to GitLab
+            # Check if origin exists and rename it to github
+            try:
+                _run_git(["remote", "get-url", "origin"], cwd=clone_str)
+                # Rename origin -> github (preserves the source URL for reference)
+                try:
+                    _run_git(["remote", "rename", "origin", "github"], cwd=clone_str)
+                    logger.info("Renamed remote 'origin' -> 'github' (source repo)")
+                except RuntimeError:
+                    # May already be renamed from a previous run
+                    pass
+            except RuntimeError:
+                # No origin remote (shouldn't happen for cloned repos, but handle it)
+                pass
+
+            # Set origin to GitLab
+            try:
+                _run_git(["remote", "get-url", "origin"], cwd=clone_str)
+                _run_git(["remote", "set-url", "origin", gitlab_url], cwd=clone_str)
+            except RuntimeError:
+                _run_git(["remote", "add", "origin", gitlab_url], cwd=clone_str)
+
+            logger.info("Set remote 'origin' -> GitLab (%s)", gitlab_url)
+        except Exception as e:
+            logger.warning("Failed to reconfigure remotes, falling back to 'gitlab' remote: %s", e)
+            # Fallback: add gitlab as a separate remote
+            git_add_remote.invoke(
+                {
+                    "repo_path": clone_str,
+                    "name": "gitlab",
+                    "url": gitlab_url,
+                }
+            )
+
+        # Push all branches and tags to GitLab (via origin, which now points to GitLab)
         git_push.invoke(
             {
-                "repo_path": str(clone_path),
-                "remote": "gitlab",
+                "repo_path": clone_str,
+                "remote": "origin",
                 "ref": "--all",
             }
         )
         git_push.invoke(
             {
-                "repo_path": str(clone_path),
-                "remote": "gitlab",
+                "repo_path": clone_str,
+                "remote": "origin",
                 "ref": "--tags",
             }
         )
