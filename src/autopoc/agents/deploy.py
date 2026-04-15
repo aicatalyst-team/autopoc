@@ -228,7 +228,8 @@ Components and their built images:
                     SystemMessage(content=system_prompt),
                     HumanMessage(content=user_message),
                 ]
-            }
+            },
+            config={"recursion_limit": 40},
         )
 
         # Extract deployed resources and routes from agent's response

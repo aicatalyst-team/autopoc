@@ -413,14 +413,16 @@ async def poc_plan_agent(
     # Build the user message
     user_message = _build_user_message(state)
 
-    # Invoke the agent
+    # Invoke the agent with a recursion limit to prevent context overflow.
+    # Each tool call round-trip is ~2 recursions. Limit of 30 allows ~15 tool calls.
     result = await agent.ainvoke(
         {
             "messages": [
                 SystemMessage(content=system_prompt),
                 HumanMessage(content=user_message),
             ],
-        }
+        },
+        config={"recursion_limit": 30},
     )
 
     # Extract the final AI message with actual content

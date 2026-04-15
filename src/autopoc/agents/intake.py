@@ -155,6 +155,8 @@ async def intake_agent(
         logger.info("Cloned repo to %s", clone_path)
 
     # Set up LLM
+    # NOTE: Create a fresh LLM instance to avoid context overflow from previous agents.
+    # Each agent should start with a clean slate.
     if llm is None:
         llm = create_llm()
 
@@ -176,14 +178,17 @@ async def intake_agent(
         f"All tool calls should use absolute paths starting with {clone_path}."
     )
 
-    # Invoke the agent
+    # Invoke the agent with a recursion limit to prevent context overflow.
+    # Each tool call round-trip is ~2 recursions. Limit of 30 allows ~15 tool calls,
+    # which is sufficient for intake analysis of any repo.
     result = await agent.ainvoke(
         {
             "messages": [
                 SystemMessage(content=system_prompt),
                 HumanMessage(content=user_message),
             ],
-        }
+        },
+        config={"recursion_limit": 30},
     )
 
     # Extract the final AI message with actual content

@@ -225,7 +225,8 @@ async def poc_execute_agent(
                     SystemMessage(content=system_prompt),
                     HumanMessage(content=user_message),
                 ],
-            }
+            },
+            config={"recursion_limit": 40},
         )
 
         # Extract the final AI message

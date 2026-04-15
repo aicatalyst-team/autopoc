@@ -242,7 +242,8 @@ async def poc_report_agent(
                     SystemMessage(content=system_prompt),
                     HumanMessage(content=user_message),
                 ],
-            }
+            },
+            config={"recursion_limit": 20},
         )
 
         poc_report_path = str(Path(clone_path or ".") / "poc-report.md")

@@ -226,7 +226,30 @@ Output:
 - If there is no CI/CD, set `existing_ci_cd` to `null`.
 - For `existing_ci_cd`, use one of: `"github-actions"`, `"gitlab-ci"`, `"jenkins"`,
   `"circleci"`, `"travis"`, `"azure-pipelines"`, `"cloudbuild"`, or `null`.
-- Always use the `list_files` tool first, then read specific files as needed.
-  Do not try to read every file — focus on build configs, entry points, and
-  deployment artifacts.
 - Respond ONLY with the JSON object. No additional text.
+
+## CRITICAL — Context Budget
+
+You have a limited context window. Be extremely selective about which files you read.
+**Do NOT read every file in the repo.** Follow this discipline:
+
+1. **Start with `list_files`** on the repo root to understand the structure.
+2. **Read ONLY these files** (if they exist):
+   - `README.md` or `README.rst` (project overview)
+   - The primary dependency manifest (`requirements.txt`, `pyproject.toml`, `package.json`,
+     `go.mod`, `pom.xml`, `Cargo.toml` — pick ONE, not all)
+   - The main Dockerfile (if one exists)
+   - The main entry point file (e.g., `app.py`, `main.py`, `index.js` — pick ONE)
+   - `docker-compose.yml` or `compose.yaml` (if present)
+3. **Do NOT read:**
+   - Lock files (`uv.lock`, `poetry.lock`, `package-lock.json`, `yarn.lock`, `go.sum`)
+   - Test files, benchmark files, example files
+   - Data files (`.json`, `.jsonl`, `.csv`, `.parquet`)
+   - Documentation files beyond the main README
+   - Source code files beyond the main entry point — use `search_files` instead
+     to search for specific patterns (like port numbers or ML library imports)
+   - Website or static asset directories
+4. **Use `search_files`** instead of `read_file` when you need to find patterns
+   across the codebase (e.g., `search_files(path, "EXPOSE|listen|bind")` to find ports).
+5. **Aim for 5-10 `read_file` calls maximum.** If you've already read 8+ files,
+   stop reading and produce your output with the information you have.

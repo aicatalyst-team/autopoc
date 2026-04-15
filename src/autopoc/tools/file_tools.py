@@ -9,8 +9,102 @@ from pathlib import Path
 
 from langchain_core.tools import tool
 
-# Maximum file size to read (50KB)
-MAX_READ_BYTES = 50 * 1024
+# Maximum file size to read (20KB — keeps context manageable across many reads)
+MAX_READ_BYTES = 20 * 1024
+
+# Maximum number of files to list (prevents huge file trees from filling context)
+MAX_LIST_FILES = 500
+
+# Files that should be skipped or heavily truncated — they're large and not useful
+# for understanding project structure.
+SKIP_EXTENSIONS = frozenset(
+    {
+        # Lock files (often hundreds of KB)
+        ".lock",
+        # Data/benchmark files
+        ".jsonl",
+        ".csv",
+        ".tsv",
+        ".parquet",
+        ".arrow",
+        # Binary/media files
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".svg",
+        ".ico",
+        ".webp",
+        ".woff",
+        ".woff2",
+        ".ttf",
+        ".eot",
+        ".zip",
+        ".tar",
+        ".gz",
+        ".bz2",
+        ".xz",
+        ".7z",
+        ".pdf",
+        ".doc",
+        ".docx",
+        ".xls",
+        ".xlsx",
+        # Model/data files
+        ".pt",
+        ".pth",
+        ".onnx",
+        ".safetensors",
+        ".bin",
+        ".h5",
+        ".pkl",
+        ".pickle",
+        ".npy",
+        ".npz",
+        # Compiled/generated
+        ".pyc",
+        ".pyo",
+        ".so",
+        ".dylib",
+        ".dll",
+        ".o",
+        ".a",
+        ".wasm",
+        ".map",
+    }
+)
+
+# Directories whose contents should be skipped when reading files
+SKIP_DIRS = frozenset(
+    {
+        "node_modules",
+        "__pycache__",
+        ".git",
+        ".svn",
+        ".hg",
+        "vendor",
+        "dist",
+        "build",
+        ".tox",
+        ".eggs",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        "benchmarks",
+        "benchmark",
+    }
+)
+
+# Maximum bytes for files that match LARGE_FILE_EXTENSIONS — show just enough to
+# understand what they are.
+LARGE_FILE_MAX_BYTES = 2 * 1024  # 2KB preview
+
+LARGE_FILE_EXTENSIONS = frozenset(
+    {
+        ".lock",  # uv.lock, poetry.lock, yarn.lock, package-lock.json, etc.
+        ".sum",  # go.sum
+    }
+)
 
 
 def _validate_path(path: str) -> Path:
@@ -19,6 +113,11 @@ def _validate_path(path: str) -> Path:
     if not resolved.is_absolute():
         raise ValueError(f"Path must be absolute: {path}")
     return resolved
+
+
+def _is_in_skip_dir(rel_path: Path) -> bool:
+    """Check if a relative path is inside a directory that should be skipped."""
+    return any(part in SKIP_DIRS for part in rel_path.parts)
 
 
 @tool
@@ -30,7 +129,7 @@ def list_files(path: str, pattern: str = "**/*") -> str:
         pattern: Glob pattern to filter files (default: "**/*" for all files).
 
     Returns:
-        Newline-separated list of relative file paths.
+        Newline-separated list of relative file paths (max 500).
     """
     root = _validate_path(path)
     if not root.is_dir():
@@ -39,12 +138,21 @@ def list_files(path: str, pattern: str = "**/*") -> str:
     matches = []
     for p in sorted(root.glob(pattern)):
         if p.is_file():
-            # Skip hidden dirs like .git
             rel = p.relative_to(root)
             parts = rel.parts
+            # Skip hidden dirs like .git
             if any(part.startswith(".") for part in parts):
                 continue
+            # Skip known noisy directories
+            if _is_in_skip_dir(rel):
+                continue
             matches.append(str(rel))
+            if len(matches) >= MAX_LIST_FILES:
+                matches.append(
+                    f"... [truncated at {MAX_LIST_FILES} files — "
+                    f"use a more specific glob pattern to see more]"
+                )
+                break
 
     if not matches:
         return "No files found matching the pattern."
@@ -55,15 +163,53 @@ def list_files(path: str, pattern: str = "**/*") -> str:
 def read_file(path: str) -> str:
     """Read the contents of a file.
 
+    Skips binary/data files and truncates lock files. Returns at most 20KB
+    to keep agent context manageable.
+
     Args:
         path: Absolute path to the file to read.
 
     Returns:
-        File contents as a string, truncated at 50KB with a notice if larger.
+        File contents as a string, or a short message explaining why
+        the file was skipped/truncated.
     """
     file_path = _validate_path(path)
     if not file_path.is_file():
         return f"Error: {path} is not a file or does not exist"
+
+    suffix = file_path.suffix.lower()
+    name_lower = file_path.name.lower()
+
+    # Skip binary/data files entirely
+    if suffix in SKIP_EXTENSIONS:
+        size = file_path.stat().st_size
+        return (
+            f"[Skipped: {file_path.name} is a {suffix} file ({size:,} bytes). "
+            f"These files are not useful for project analysis.]"
+        )
+
+    # Large lock files: show just a preview
+    if suffix in LARGE_FILE_EXTENSIONS or name_lower in (
+        "package-lock.json",
+        "yarn.lock",
+        "pnpm-lock.yaml",
+        "poetry.lock",
+        "composer.lock",
+        "gemfile.lock",
+    ):
+        try:
+            content = file_path.read_text(encoding="utf-8", errors="replace")
+            size = len(content.encode("utf-8"))
+            if size > LARGE_FILE_MAX_BYTES:
+                truncated = content[:LARGE_FILE_MAX_BYTES]
+                return (
+                    f"{truncated}\n\n... [lock/generated file truncated at "
+                    f"{LARGE_FILE_MAX_BYTES} bytes — full file is {size:,} bytes. "
+                    f"Only the first entries are shown for dependency identification.]"
+                )
+            return content
+        except Exception as e:
+            return f"Error reading {path}: {e}"
 
     try:
         content = file_path.read_text(encoding="utf-8", errors="replace")

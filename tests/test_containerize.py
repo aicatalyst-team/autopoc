@@ -278,7 +278,7 @@ class TestContainerizeAgent:
 
         call_count = 0
 
-        async def mock_ainvoke(input_data):
+        async def mock_ainvoke(input_data, **kwargs):
             nonlocal call_count
             from langchain_core.messages import AIMessage
 
