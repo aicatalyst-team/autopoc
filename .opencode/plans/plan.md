@@ -781,11 +781,11 @@ MAX_BUILD_RETRIES=3
 
 | # | Task | Details |
 |---|------|---------|
-| 5.1 | Structured logging | Add logging throughout with structured context (project name, phase, component). |
-| 5.2 | LangSmith tracing | Integrate LangSmith (or LangFuse) for LLM call tracing and debugging. |
-| 5.3 | State persistence | Use LangGraph checkpointing so runs can be resumed if interrupted. |
-| 5.4 | Error recovery | Ensure graceful handling of: network failures, CLI tool not found, permission denied, quota exceeded, etc. |
-| 5.5 | CLI polish | Progress output, colored status, summary report at end. |
+| 5.1 | Structured logging ✅ | Centralized `logging_config.py` with Rich handler, verbose/normal modes, external logger suppression. |
+| 5.2 | LangSmith tracing ✅ | Auto-configures when `LANGCHAIN_TRACING_V2=true`. `langgraph.json` for Studio. |
+| 5.3 | State persistence ✅ | LangGraph checkpointing with SqliteSaver (optional) or MemorySaver fallback. `resume` and `status` commands. |
+| 5.4 | Credential validation ✅ | `credentials.py` validates GitLab, Quay, Anthropic/Vertex at startup. Rich table output. |
+| 5.5 | CLI polish ✅ | Panel-style output, thread IDs, elapsed time, `--skip-validation` flag. |
 | 5.6 | Documentation | README with setup instructions, usage examples, architecture overview. |
 
 ### Phase 6: Local E2E Harness (Week 6) ✅

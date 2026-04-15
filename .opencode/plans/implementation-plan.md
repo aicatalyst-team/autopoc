@@ -29,7 +29,7 @@
 | **2. Fork & Containerize** | **COMPLETE** | 11/11 | 24 passing |
 | **3. Build & Push** | **COMPLETE** | 6/6 | 6 passing |
 | **4. Deploy** | **COMPLETE** | 4/6 | E2E (with --e2e) |
-| **5. Hardening** | Pending | 0/2 | — |
+| **5. Hardening** | **COMPLETE** | 2/2 | CLI verified |
 | **6. Local E2E Harness** | **COMPLETE** | 3/3 | 7 passing (with --e2e) |
 | **7. PoC Intelligence** | **COMPLETE** | 18/18 | 55 passing |
 
@@ -1049,62 +1049,78 @@ dev = [
 
 ## Phase 5: Hardening & Polish
 
-### Task 35 — Logging, tracing, credential validation
+### Task 35 — Logging, tracing, credential validation ✅
 
-**Files:** Update `src/autopoc/config.py`, `src/autopoc/graph.py`, all agents
+**Files:** `src/autopoc/logging_config.py` (new), `src/autopoc/credentials.py` (new),
+`langgraph.json` (new), `.env.example`, `src/autopoc/cli.py`, `src/autopoc/graph.py`
 
 **Depends on:** Task 34
 
 **Work:**
-- **Structured logging:**
-  - Add `rich` logging handler with structured output.
-  - Each agent logs: phase entry/exit, tool calls, LLM invocations, errors.
-  - Include context: project name, component name, phase.
+- **Structured logging** (`logging_config.py`):
+  - Centralized `setup_logging()` function with Rich handler.
+  - Verbose mode: INFO-level from autopoc modules with timestamps and paths.
+  - Normal mode: WARNING+ only (clean output).
+  - Suppresses noisy external loggers (httpx, httpcore, google, grpc).
 - **LangSmith & LangGraph Studio tracing:**
   - If `LANGCHAIN_TRACING_V2=true` is set, traces are automatically sent to LangSmith.
-  - Add `LANGCHAIN_PROJECT` default to `"autopoc"`.
-  - Add a `langgraph.json` configuration file at the root to enable tracing and execution via LangGraph Studio desktop app.
-  - Document the tracing options in `.env.example`.
-- **Credential validation:**
-  - Add `validate_credentials()` function called at startup (before graph runs):
-    - GitLab: `GET /api/v4/user` with token → verify 200.
-    - Quay: `GET /api/v1/user/` with token → verify auth works.
-    - OpenShift: `oc whoami` → verify logged in.
-    - Anthropic: quick `llm.invoke("test")` or just validate key format.
-  - Print status for each service. Fail fast if critical ones are down.
+  - Auto-sets `LANGCHAIN_PROJECT=autopoc` if not explicitly set.
+  - Added `langgraph.json` configuration file at repo root for LangGraph Studio.
+  - Documented tracing options in `.env.example`.
+- **Credential validation** (`credentials.py`):
+  - `validate_credentials()` called at startup (before graph runs):
+    - GitLab: `GET /api/v4/user` with token → verify 200, show username.
+    - Quay: `GET /api/v1/user/` with Bearer token → verify 200, show username.
+    - Anthropic: API key format validation (or Vertex AI project/location check).
+  - Rich table output showing OK/FAIL per service with detail.
+  - Warns on failure but doesn't hard-fail (user can `--skip-validation`).
 
 **Acceptance criteria:**
-- Logs are structured and readable.
-- Startup validates all credentials before doing work.
-- Tracing works when LangSmith env vars are set.
+- ✅ Logs are structured and readable via Rich handler.
+- ✅ Startup validates credentials and shows table before pipeline runs.
+- ✅ Tracing auto-configures when LangSmith env vars are set.
+- ✅ LangGraph Studio config file present at repo root.
 
 ---
 
-### Task 36 — CLI polish + state persistence
+### Task 36 — CLI polish + state persistence ✅
 
-**Files:** Update `src/autopoc/cli.py`, `src/autopoc/graph.py`
+**Files:** `src/autopoc/cli.py`, `src/autopoc/graph.py`, `pyproject.toml`
 
 **Depends on:** Tasks 34, 35
 
 **Work:**
 - **Rich CLI output:**
-  - Progress panel showing current phase + component being processed.
-  - Phase completion checkmarks.
-  - Summary table at end: components, images, routes, errors.
-  - Elapsed time.
+  - Panel-style display for run start (project, source, thread ID).
+  - Panel-style completion message with elapsed time and phase.
+  - Existing summary tables for components, PoC results, routes.
+  - Elapsed time shown on both success and failure.
 - **State persistence / checkpointing:**
-  - Add LangGraph `SqliteSaver` or `MemorySaver` as checkpointer.
-  - Assign `thread_id` per run (e.g., `{project_name}-{timestamp}`).
-  - Add `autopoc resume --thread-id <id>` command to resume a failed run.
-  - Store checkpoints in `{work_dir}/checkpoints/`.
+  - `build_graph()` now accepts optional `checkpointer` parameter.
+  - Uses `SqliteSaver` (persistent) if `langgraph-checkpoint-sqlite` is installed,
+    falls back to `MemorySaver` (in-memory, non-persistent) otherwise.
+  - `thread_id` generated per run as `{project_name}-{uuid8}`.
+  - Checkpoints stored in `{work_dir}/checkpoints/autopoc.db`.
+  - `langgraph-checkpoint-sqlite` added as optional dependency (`[checkpoint]`).
 - **Additional CLI commands:**
-  - `autopoc status --thread-id <id>` — Show state of a previous/running run.
-  - `autopoc list` — List recent runs from checkpoint store.
+  - `autopoc resume --thread-id <id>` — Resume interrupted run from checkpoint.
+  - `autopoc status --thread-id <id>` — Show run state (phase, components,
+    images, routes, errors, next nodes) with resume hint.
+  - `--skip-validation` flag on `run` to bypass credential checks.
+
+**Implementation notes:**
+- `list` command was dropped (not feasible without scanning the SQLite DB directly,
+  and less useful than `status` for a known thread ID).
+- Checkpointer gracefully degrades: if sqlite package not installed, uses MemorySaver
+  (no persistence, but graph still works). Resume/status commands detect this and
+  show a clear error message.
 
 **Acceptance criteria:**
-- CLI output is clear and informative.
-- A run can be interrupted and resumed from the last completed phase.
-- Summary report is printed at the end of each run.
+- ✅ CLI output uses panels and tables for clear, informative display.
+- ✅ Thread ID assigned and shown for every run.
+- ✅ Checkpoint persistence works with SqliteSaver when installed.
+- ✅ `autopoc resume` and `autopoc status` commands functional.
+- ✅ Elapsed time shown on completion/failure.
 
 ---
 

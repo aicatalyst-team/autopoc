@@ -89,7 +89,7 @@ def route_after_deploy(state: PoCState) -> str:
     return "failed"
 
 
-def build_graph() -> CompiledStateGraph:
+def build_graph(checkpointer=None) -> CompiledStateGraph:
     """Build and compile the AutoPoC pipeline graph.
 
     Full graph:
@@ -101,6 +101,10 @@ def build_graph() -> CompiledStateGraph:
     - Build retry loop: build failure → containerize → build (up to max_build_retries)
     - Deploy retry loop: deploy failure → deploy (up to max_deploy_retries)
     - PoC tail: after successful deploy, execute tests and generate report
+
+    Args:
+        checkpointer: Optional LangGraph checkpointer for state persistence.
+            Enables resuming interrupted runs. Pass a SqliteSaver or MemorySaver.
 
     Returns:
         Compiled LangGraph ready for invocation.
@@ -157,10 +161,12 @@ def build_graph() -> CompiledStateGraph:
     graph.add_edge("poc_execute", "poc_report")
     graph.add_edge("poc_report", END)
 
-    # Compile
-    compiled = graph.compile()
+    # Compile (with optional checkpointer for state persistence)
+    compiled = graph.compile(checkpointer=checkpointer)
     logger.info(
         "Graph compiled: intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ poc_execute → poc_report → END"
     )
+    if checkpointer is not None:
+        logger.info("Checkpointer enabled: %s", type(checkpointer).__name__)
 
     return compiled

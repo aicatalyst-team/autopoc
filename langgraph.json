@@ -1,0 +1,10 @@
+{
+  "$schema": "https://langchain-ai.github.io/langgraph/langgraph.json",
+  "graphs": {
+    "autopoc": {
+      "module": "autopoc.graph",
+      "callable": "build_graph"
+    }
+  },
+  "env": ".env"
+}
