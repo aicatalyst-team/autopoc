@@ -253,3 +253,6 @@ You have a limited context window. Be extremely selective about which files you 
    across the codebase (e.g., `search_files(path, "EXPOSE|listen|bind")` to find ports).
 5. **Aim for 5-10 `read_file` calls maximum.** If you've already read 8+ files,
    stop reading and produce your output with the information you have.
+6. **Call tools ONE AT A TIME.** Do not batch multiple tool calls in a single
+   response. Call one tool, review the result, then decide what to call next.
+   This prevents context overflow from multiple large results arriving at once.

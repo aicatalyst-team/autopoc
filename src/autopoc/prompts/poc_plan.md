@@ -523,3 +523,5 @@ structure and provided its findings above. **Be surgical with file reads:**
    the codebase (e.g., searching for imports, port bindings, or env var usage).
 5. **Aim for 5-8 `read_file` calls maximum.** You already have the intake results —
    you need targeted reads, not a full repo scan.
+6. **Call tools ONE AT A TIME.** Do not batch multiple tool calls in a single
+   response. Call one tool, review the result, then decide what to call next.
