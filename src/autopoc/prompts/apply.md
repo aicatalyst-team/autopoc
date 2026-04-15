@@ -92,16 +92,22 @@ Common issues and what to report:
 
 The user message includes a `deployment_model` field. Handle accordingly:
 
-### CLI tools (deployment_model: "cli-only")
-- Only apply namespace and RBAC manifests
-- Skip Deployment and Service (there shouldn't be any in the manifests)
-- Return empty `routes` — there are no URLs for CLI tools
-- Still return the namespace and RBAC as `deployed_resources`
-
-### Jobs (deployment_model: "job")
-- Apply Job manifests instead of Deployments
-- Wait for Job completion instead of rollout
-- Return empty `routes`
+### Jobs / CLI tools (deployment_model: "job")
+- Apply all Job manifests (there may be one per test scenario)
+- **Wait for each Job to complete** (not rollout — Jobs don't have rollouts):
+  ```
+  kubectl_get("job", job_name, namespace)
+  ```
+  Check the `status.succeeded` or `status.failed` fields.
+- **Get Job logs** for the report:
+  ```
+  kubectl_logs(pod_name, namespace)
+  ```
+  Find the pod created by the Job via `kubectl_get("pod", "", namespace)` and
+  match by the Job name label.
+- Return empty `routes` — Jobs don't have URLs
+- Return Job names in `deployed_resources` (e.g., `"job/mempalace-help"`)
+- If a Job fails (exit code != 0), include the pod logs in the error message
 
 ## Output Format
 

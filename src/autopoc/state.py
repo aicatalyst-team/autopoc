@@ -88,7 +88,7 @@ class PoCInfrastructure(TypedDict, total=False):
     resource_profile: str  # "small", "medium", "large", "gpu"
 
     # Runtime / deployment model — guides containerize + deploy decisions
-    deployment_model: str  # "deployment" | "job" | "cronjob" | "cli-only"
+    deployment_model: str  # "deployment" | "job" | "cronjob"
     listens_on_port: bool  # Whether the app binds to a network port
     long_running: bool  # Whether it runs continuously (server, worker) vs exits (CLI, batch)
     entrypoint_suggestion: str | None  # Suggested ENTRYPOINT/CMD for Dockerfile

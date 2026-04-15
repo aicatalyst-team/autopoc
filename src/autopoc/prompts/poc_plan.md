@@ -112,25 +112,28 @@ the intake agent already found. Focus on:
    - **`deployment`** — Long-running server that listens on a port (web app, API,
      inference server) or runs continuously without a port (worker, consumer).
      Deployed as a Kubernetes Deployment. Gets a Service only if it listens on a port.
-   - **`job`** — Run-to-completion workload (data processing, training, migration).
-     Deployed as a Kubernetes Job. No Service.
+   - **`job`** — Run-to-completion workload. Use this for **CLI tools**, batch
+     processing, data pipelines, training scripts, migrations, and any application
+     that runs a command and exits. Deployed as a Kubernetes Job. The Job runs a
+     specific command, its output is captured via `kubectl logs`, and success is
+     verified via the Job's exit code. No Service needed.
    - **`cronjob`** — Scheduled workload. Deployed as a Kubernetes CronJob. No Service.
-   - **`cli-only`** — CLI tool, library, SDK, or stdio-based server (e.g., MCP protocol).
-     The container is built but NOT deployed as a Deployment. Instead, it is tested
-     by running commands via `kubectl run --rm`. No Deployment, no Service.
+
+   **IMPORTANT:** `deployment_model: "job"` is the RIGHT choice for CLI tools and
+   libraries. Do NOT use `deployment_model: "deployment"` for applications that
+   don't run as long-lived servers — they will CrashLoopBackOff endlessly.
 
    **Decision criteria:**
-   - Does the app listen on a network port (HTTP, gRPC, WebSocket)? → `listens_on_port: true`
-   - Does the process run indefinitely? → `long_running: true`
-   - CLI tools that run a command and exit → `deployment_model: "cli-only"`
-   - MCP servers using stdio (not HTTP) → `deployment_model: "cli-only"`
-   - Batch processing scripts → `deployment_model: "job"`
    - Web servers, API servers, inference servers → `deployment_model: "deployment"`
    - Message queue consumers, watchers → `deployment_model: "deployment"`, `listens_on_port: false`
+   - **CLI tools** (run a command, print output, exit) → `deployment_model: "job"`
+   - **Libraries / SDKs** (used by other tools, e.g. MCP servers) → `deployment_model: "job"`
+   - Batch processing, training, data pipelines → `deployment_model: "job"`
+   - Scheduled tasks → `deployment_model: "cronjob"`
 
    Also determine the **test strategy**:
    - `"http"` — Test by sending HTTP requests to deployed endpoints
-   - `"cli"` — Test by running CLI commands via `kubectl run --rm`
+   - `"cli"` — Test by running CLI commands as Jobs and checking exit code + logs
    - `"exec"` — Test by exec-ing into a running pod
 
 5. **Define 2-5 concrete test scenarios** that can be automated:
@@ -443,7 +446,7 @@ ChromaDB, MCP server support, and command-line interface):
     "extra_env_vars": {},
     "odh_components": [],
     "resource_profile": "small",
-    "deployment_model": "cli-only",
+    "deployment_model": "job",
     "listens_on_port": false,
     "long_running": false,
     "entrypoint_suggestion": "mempalace",
@@ -455,8 +458,8 @@ ChromaDB, MCP server support, and command-line interface):
       "description": "Verify the tool initializes its data structures",
       "type": "cli",
       "endpoint": null,
-      "input_data": null,
-      "expected_behavior": "Command exits 0, palace directory is created with config files",
+      "input_data": "mempalace init /tmp/test-palace",
+      "expected_behavior": "Job exits 0, palace directory is created with config files",
       "timeout_seconds": 30
     },
     {
@@ -464,8 +467,8 @@ ChromaDB, MCP server support, and command-line interface):
       "description": "Verify the status command reports palace state",
       "type": "cli",
       "endpoint": null,
-      "input_data": null,
-      "expected_behavior": "Command exits 0, outputs palace summary with drawer count",
+      "input_data": "mempalace status",
+      "expected_behavior": "Job exits 0, outputs palace summary with drawer count",
       "timeout_seconds": 15
     },
     {
@@ -473,17 +476,19 @@ ChromaDB, MCP server support, and command-line interface):
       "description": "Verify the CLI shows help with available commands",
       "type": "cli",
       "endpoint": null,
-      "input_data": null,
-      "expected_behavior": "Command exits 0, outputs usage info listing available subcommands",
+      "input_data": "mempalace --help",
+      "expected_behavior": "Job exits 0, outputs usage info listing available subcommands",
       "timeout_seconds": 10
     }
   ]
 }
 ```
 
-Note: The key difference is `deployment_model: "cli-only"` and `listens_on_port: false`.
-This tells downstream agents to NOT create a Deployment or Service, and to test via
-`kubectl run --rm` instead of HTTP requests.
+Note: The key difference is `deployment_model: "job"` and `listens_on_port: false`.
+This tells downstream agents to create a Kubernetes Job (not a Deployment) for each
+test scenario. Each Job runs a CLI command, and success is verified by checking the
+Job's exit code and output via `kubectl logs`. Use `input_data` to specify the exact
+command to run.
 
 ## Critical Instructions — Output Procedure
 

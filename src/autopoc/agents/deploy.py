@@ -177,16 +177,26 @@ Components and their built images:
         user_message += f"\n**Long-running process:** {long_running}"
         user_message += f"\n**Test strategy:** {test_strategy}"
 
-        if deployment_model == "cli-only":
+        if deployment_model in ("cli-only", "job"):
+            # Get test scenarios to create per-scenario Jobs
+            scenarios = state.get("poc_scenarios", [])
+            scenario_cmds = []
+            for s in scenarios:
+                input_data = s.get("input_data", "")
+                if input_data:
+                    scenario_cmds.append(f"  - {s.get('name', '?')}: `{input_data}`")
+
             user_message += (
-                "\n\n**CRITICAL:** This is a CLI tool. Do NOT create Deployment or Service manifests. "
-                "Create only namespace.yaml and any required PVC/RBAC manifests."
+                "\n\n**CRITICAL:** This is a CLI tool / run-to-completion workload. "
+                "Create **Job** manifests, NOT Deployments. Do NOT create a Service. "
+                "A Deployment would CrashLoopBackOff because the process exits after running."
             )
-        elif deployment_model == "job":
-            user_message += (
-                "\n\n**CRITICAL:** Create a Job manifest instead of a Deployment. "
-                "Do NOT create a Service manifest."
-            )
+            if scenario_cmds:
+                user_message += (
+                    "\n\nCreate one Job manifest per test scenario:\n"
+                    + "\n".join(scenario_cmds)
+                    + "\n\nEach Job should run the specified command and exit."
+                )
         elif not listens_on_port:
             user_message += (
                 "\n\n**NOTE:** This component does not listen on a port. "

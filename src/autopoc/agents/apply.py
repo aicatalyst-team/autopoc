@@ -195,6 +195,13 @@ Components:
         user_message += f"\n**Listens on port:** {listens_on_port}"
         user_message += f"\n**Test strategy:** {test_strategy}"
 
+        if deployment_model in ("cli-only", "job"):
+            user_message += (
+                "\n\n**NOTE:** This is a Job-based workload. Apply the Job manifests, "
+                "wait for completion (not rollout), and capture logs from the Job pods. "
+                "Do NOT look for Deployments or Services."
+            )
+
     # If this is a retry, include the previous error
     if previous_error and deploy_retries > 0:
         user_message += (

@@ -144,29 +144,36 @@ After writing all manifests:
 
 Not every component should have a Deployment + Service manifest.
 
-### CLI Tools (deployment_model: "cli-only")
-- **Do NOT create Deployment or Service manifests**
-- Create only `namespace.yaml` and any required PVC/RBAC manifests
-- The apply agent will handle testing via `kubectl run`
+### CLI Tools and Batch Workloads (deployment_model: "job")
+This is the correct model for CLI tools, libraries, batch processors, data pipelines,
+training scripts, and any application that runs a command and exits.
 
-### Batch Jobs (deployment_model: "job")
-- Create a **Job** manifest instead of a Deployment:
-  ```yaml
-  apiVersion: batch/v1
-  kind: Job
-  metadata:
-    name: {component}-job
-  spec:
-    backoffLimit: 3
-    activeDeadlineSeconds: 600
-    template:
-      spec:
-        containers:
-        - name: {component}
-          image: {image}
-        restartPolicy: Never
-  ```
-- **Do NOT create a Service manifest**
+- Create a **Job** manifest instead of a Deployment
+- Use the test scenario's `input_data` field as the Job's command (if provided)
+- If the PoC plan has multiple test scenarios, create one Job manifest per scenario
+  (e.g., `{component}-init-job.yaml`, `{component}-status-job.yaml`)
+- **Do NOT create a Service** — Jobs don't listen on ports
+- **Do NOT add health probes** — Jobs are run-to-completion
+
+Example Job manifest:
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {component}-{scenario-name}
+  namespace: {namespace}
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 120
+  template:
+    spec:
+      containers:
+      - name: {component}
+        image: {image}
+        command: ["mempalace"]           # from entrypoint_suggestion
+        args: ["--help"]                 # from scenario input_data
+      restartPolicy: Never
+```
 
 ### Workers (deployment_model: "deployment", listens_on_port: false)
 - Create a Deployment manifest (process runs continuously)
@@ -175,12 +182,11 @@ Not every component should have a Deployment + Service manifest.
 
 ### Decision Matrix
 
-| deployment_model | listens_on_port | Deployment? | Service? | Probes? |
+| deployment_model | listens_on_port | K8s Resource | Service? | Probes? |
 |-----------------|-----------------|-------------|----------|---------|
-| deployment | true | Yes | Yes | HTTP |
-| deployment | false | Yes | No | exec |
-| job | N/A | Job | No | No |
-| cli-only | N/A | No | No | No |
+| deployment | true | Deployment | Yes | HTTP |
+| deployment | false | Deployment | No | exec |
+| job | N/A | Job(s) | No | No |
 
 ## PoC Infrastructure Requirements
 
