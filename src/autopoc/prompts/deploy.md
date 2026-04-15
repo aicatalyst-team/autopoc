@@ -224,7 +224,42 @@ tolerations:
 ```
 
 ### Extra Environment Variables
-Add to the container spec `env:` section.
+
+Sensitive values (API keys, tokens, passwords) MUST go in a Kubernetes Secret,
+NOT as plain `env:` values. Non-sensitive values can be plain `env:` entries.
+
+**Step 1:** Create a `kubernetes/secret.yaml` for sensitive vars:
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {component}-secrets
+  namespace: {namespace}
+type: Opaque
+stringData:
+  ANTHROPIC_API_KEY: "placeholder-replace-me"
+  # Add other sensitive vars here
+```
+
+Use `stringData` (not `data`) so values are human-readable in the manifest.
+Use placeholder values — the user will replace them before deploying.
+
+**Step 2:** Reference from the container spec:
+```yaml
+env:
+  - name: ANTHROPIC_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: {component}-secrets
+        key: ANTHROPIC_API_KEY
+  - name: NON_SENSITIVE_VAR
+    value: "plain-value"
+```
+
+**How to classify variables:**
+- **Secret** (use `secretKeyRef`): any var containing `KEY`, `TOKEN`, `SECRET`,
+  `PASSWORD`, `CREDENTIAL`, `API_KEY`, or with value `"required"` in the PoC plan
+- **Plain** (use `value:`): everything else (ports, hostnames, feature flags, model names)
 
 ## Important Notes
 

@@ -156,9 +156,28 @@ Components and their built images:
 
         extra_env = poc_infrastructure.get("extra_env_vars", {})
         if extra_env:
-            user_message += "\n\n**Extra environment variables for deployment:**"
+            # Classify env vars as sensitive (-> Secret) vs plain
+            sensitive_keywords = {"KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL", "API_KEY"}
+            secret_vars = {}
+            plain_vars = {}
             for key, value in extra_env.items():
-                user_message += f"\n- {key}={value}"
+                is_sensitive = value == "required" or any(
+                    kw in key.upper() for kw in sensitive_keywords
+                )
+                if is_sensitive:
+                    secret_vars[key] = value
+                else:
+                    plain_vars[key] = value
+
+            if secret_vars:
+                user_message += "\n\n**Sensitive environment variables (put in a K8s Secret, reference via secretKeyRef):**"
+                for key, value in secret_vars.items():
+                    user_message += f"\n- {key}={value}"
+
+            if plain_vars:
+                user_message += "\n\n**Plain environment variables (put directly in env:):**"
+                for key, value in plain_vars.items():
+                    user_message += f"\n- {key}={value}"
 
         odh_components = poc_infrastructure.get("odh_components", [])
         if odh_components:

@@ -163,6 +163,38 @@ If `listens_on_port` is `false` in the PoC infrastructure requirements, do NOT a
 `EXPOSE` to the Dockerfile. If `entrypoint_suggestion` is provided, use it as the
 basis for your ENTRYPOINT/CMD.
 
+## .dockerignore (ALWAYS generate)
+
+**ALWAYS create a `.dockerignore` file** in the repository root alongside the Dockerfile.
+The image pushed to the registry must be clean — no test data, no generated artifacts,
+no kubernetes manifests, no git history.
+
+Write a `.dockerignore` file using `write_file`. At minimum include:
+
+```
+.git
+.gitignore
+*.md
+LICENSE
+kubernetes/
+poc-plan.md
+tests/
+test/
+benchmarks/
+docs/
+website/
+*.log
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+node_modules/
+.env*
+*.pyc
+```
+
+Add any project-specific exclusions (e.g., `data/`, `models/`, `examples/`).
+
 ## Build Context and COPY Paths (CRITICAL for Monorepos!)
 
 **IMPORTANT:** When the Dockerfile is in a subdirectory, understand how `COPY` paths work:
