@@ -13,6 +13,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.prebuilt import create_react_agent
 
 from autopoc.config import AutoPoCConfig, load_config
+from autopoc.context import make_context_trimmer
 from autopoc.llm import create_llm
 from autopoc.state import PoCPhase, PoCState
 from autopoc.tools.file_tools import read_file, write_file
@@ -217,7 +218,7 @@ Components and their built images:
         git_push,
     ]
 
-    agent = create_react_agent(model=llm, tools=tools)
+    agent = create_react_agent(model=llm, tools=tools, pre_model_hook=make_context_trimmer())
 
     logger.info("Invoking deploy agent for %d components", len(components))
 

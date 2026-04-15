@@ -14,6 +14,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.prebuilt import create_react_agent
 
 from autopoc.agents.intake import _extract_final_ai_content
+from autopoc.context import make_context_trimmer
 from autopoc.llm import create_llm
 from autopoc.state import ComponentInfo, PoCInfrastructure, PoCPhase, PoCState
 from autopoc.tools.file_tools import list_files, read_file, search_files, write_file
@@ -285,10 +286,11 @@ async def containerize_agent(
 
         logger.info("Containerizing component: %s", comp_name)
 
-        # Create the ReAct agent
+        # Create the ReAct agent with context trimming to prevent overflow
         agent = create_react_agent(
             model=llm,
             tools=CONTAINERIZE_TOOLS,
+            pre_model_hook=make_context_trimmer(),
         )
 
         # Build user message (with PoC context if available)

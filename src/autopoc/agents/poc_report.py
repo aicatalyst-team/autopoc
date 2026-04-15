@@ -13,6 +13,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.prebuilt import create_react_agent
 
+from autopoc.context import make_context_trimmer
 from autopoc.llm import create_llm
 from autopoc.state import PoCPhase, PoCState
 from autopoc.tools.file_tools import read_file, write_file
@@ -229,6 +230,7 @@ async def poc_report_agent(
     agent = create_react_agent(
         model=llm,
         tools=POC_REPORT_TOOLS,
+        pre_model_hook=make_context_trimmer(),
     )
 
     # Build user message

@@ -14,6 +14,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.prebuilt import create_react_agent
 
+from autopoc.context import make_context_trimmer
 from autopoc.llm import create_llm
 from autopoc.state import ComponentInfo, PoCPhase, PoCState
 from autopoc.tools.file_tools import list_files, read_file, search_files
@@ -163,10 +164,11 @@ async def intake_agent(
     # Load system prompt
     system_prompt = _load_system_prompt()
 
-    # Create the ReAct agent
+    # Create the ReAct agent with context trimming to prevent overflow
     agent = create_react_agent(
         model=llm,
         tools=INTAKE_TOOLS,
+        pre_model_hook=make_context_trimmer(),
     )
 
     # Build the user message
