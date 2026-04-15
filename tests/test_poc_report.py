@@ -1,6 +1,7 @@
 """Tests for the PoC Report agent."""
 
 import json
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -10,6 +11,7 @@ from autopoc.agents.poc_report import (
     poc_report_agent,
 )
 from autopoc.state import PoCPhase
+from langchain_core.messages import AIMessage
 
 
 # --- Tests for _build_user_message ---
@@ -137,11 +139,6 @@ class TestPocReportAgent:
         """Test that the agent returns the report file path."""
         from langchain_core.messages import AIMessage
 
-        mock_msg = MagicMock(spec=AIMessage)
-        mock_msg.content = "Report written to /tmp/test/poc-report.md"
-
-        mock_agent_result = {"messages": [mock_msg]}
-
         state = {
             "project_name": "test",
             "local_clone_path": "/tmp/test",
@@ -153,19 +150,24 @@ class TestPocReportAgent:
             "poc_results": [],
         }
 
-        with patch("autopoc.agents.poc_report.create_react_agent") as mock_create:
-            mock_agent = AsyncMock()
-            mock_agent.ainvoke.return_value = mock_agent_result
-            mock_create.return_value = mock_agent
+        # poc_report is now one-shot: mock llm.ainvoke directly
+        mock_llm = AsyncMock()
+        mock_llm.ainvoke.return_value = AIMessage(
+            content="# PoC Report: test\n\n## Summary\nReport content here."
+        )
 
-            result = await poc_report_agent(state, llm=MagicMock())
+        result = await poc_report_agent(state, llm=mock_llm)
 
         assert result["current_phase"] == PoCPhase.POC_REPORT
         assert result["poc_report_path"] == "/tmp/test/poc-report.md"
+        # Verify the report was written to disk
+        report_file = Path("/tmp/test/poc-report.md")
+        if report_file.exists():
+            assert "PoC Report" in report_file.read_text()
 
     @pytest.mark.asyncio
     async def test_agent_handles_exception(self):
-        """Test error handling when agent invocation fails."""
+        """Test error handling when LLM call fails."""
         state = {
             "project_name": "test",
             "local_clone_path": "/tmp/test",
@@ -176,12 +178,10 @@ class TestPocReportAgent:
             "poc_results": [],
         }
 
-        with patch("autopoc.agents.poc_report.create_react_agent") as mock_create:
-            mock_agent = AsyncMock()
-            mock_agent.ainvoke.side_effect = Exception("LLM timeout")
-            mock_create.return_value = mock_agent
+        mock_llm = AsyncMock()
+        mock_llm.ainvoke.side_effect = Exception("LLM timeout")
 
-            result = await poc_report_agent(state, llm=MagicMock())
+        result = await poc_report_agent(state, llm=mock_llm)
 
         assert result["current_phase"] == PoCPhase.POC_REPORT
         assert "LLM timeout" in result.get("error", "")

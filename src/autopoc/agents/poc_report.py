@@ -3,6 +3,10 @@
 Synthesizes all pipeline results into a structured markdown report
 covering project analysis, infrastructure deployed, test results,
 and recommendations for production readiness.
+
+Non-agentic: uses a one-shot LLM call (no ReAct, no tools). All data
+comes from the pipeline state. The LLM produces markdown which is
+written to disk procedurally.
 """
 
 import json
@@ -11,18 +15,11 @@ from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
-from langgraph.prebuilt import create_react_agent
 
-from autopoc.context import make_context_trimmer
 from autopoc.llm import create_llm
 from autopoc.state import PoCPhase, PoCState
-from autopoc.tools.file_tools import read_file, write_file
 
 logger = logging.getLogger(__name__)
-
-
-# Tools available to the PoC report agent
-POC_REPORT_TOOLS = [write_file, read_file]
 
 
 def _load_system_prompt() -> str:
@@ -134,13 +131,16 @@ def _build_user_message(state: PoCState) -> str:
         parts.append("|----------|--------|----------|---------|")
         for r in poc_results:
             status = r.get("status", "unknown")
-            status_emoji = {"pass": "PASS", "fail": "FAIL", "error": "ERROR", "skip": "SKIP"}.get(
-                status, status.upper()
-            )
+            status_display = {
+                "pass": "PASS",
+                "fail": "FAIL",
+                "error": "ERROR",
+                "skip": "SKIP",
+            }.get(status, status.upper())
             error_msg = r.get("error_message", "")
             detail = error_msg if error_msg else r.get("output", "")[:100]
             parts.append(
-                f"| {r.get('scenario_name', '?')} | {status_emoji} "
+                f"| {r.get('scenario_name', '?')} | {status_display} "
                 f"| {r.get('duration_seconds', 0):.1f}s | {detail} |"
             )
         parts.append("")
@@ -189,9 +189,9 @@ def _build_user_message(state: PoCState) -> str:
     # --- Instructions ---
     parts.append("## Instructions")
     parts.append(
-        f"Write the PoC report to {clone_path}/poc-report.md using the write_file tool. "
-        f"Include ALL the data above in the appropriate sections of the report. "
-        f"Follow the structure defined in your system prompt."
+        "Produce the PoC report as a complete markdown document. "
+        "Include ALL the data above in the appropriate sections of the report. "
+        "Follow the structure defined in your system prompt."
     )
 
     return "\n".join(parts)
@@ -204,8 +204,8 @@ async def poc_report_agent(
 ) -> dict:
     """Generate a comprehensive PoC report.
 
-    This is a LangGraph node function. It runs after PoC execution
-    and synthesizes all pipeline results into a markdown report.
+    Non-agentic: one-shot LLM call (no ReAct, no tools). All data comes from
+    the pipeline state. The LLM produces markdown which is written to disk.
 
     Args:
         state: Current pipeline state with all results populated.
@@ -219,44 +219,35 @@ async def poc_report_agent(
 
     logger.info("Starting PoC report generation for %s", project_name)
 
-    # Set up LLM
     if llm is None:
         llm = create_llm()
 
-    # Load system prompt
     system_prompt = _load_system_prompt()
-
-    # Create the ReAct agent
-    agent = create_react_agent(
-        model=llm,
-        tools=POC_REPORT_TOOLS,
-        pre_model_hook=make_context_trimmer(),
-    )
-
-    # Build user message
     user_message = _build_user_message(state)
 
+    poc_report_path = str(Path(clone_path or ".") / "poc-report.md")
+
     try:
-        # Invoke the agent
-        await agent.ainvoke(
-            {
-                "messages": [
-                    SystemMessage(content=system_prompt),
-                    HumanMessage(content=user_message),
-                ],
-            },
-            config={"recursion_limit": 40},
+        # One-shot LLM call — no ReAct, no tools
+        response = await llm.ainvoke(
+            [
+                SystemMessage(content=system_prompt),
+                HumanMessage(content=user_message),
+            ]
         )
 
-        poc_report_path = str(Path(clone_path or ".") / "poc-report.md")
+        report_content = response.content
+        if isinstance(report_content, list):
+            report_content = "".join(
+                part["text"] if isinstance(part, dict) and "text" in part else str(part)
+                for part in report_content
+            )
 
-        # Verify the report was written
+        # Write report to disk
         report_file = Path(poc_report_path)
-        if report_file.exists():
-            report_size = report_file.stat().st_size
-            logger.info("PoC report written to %s (%d bytes)", poc_report_path, report_size)
-        else:
-            logger.warning("PoC report was not written at %s", poc_report_path)
+        report_file.parent.mkdir(parents=True, exist_ok=True)
+        report_file.write_text(report_content, encoding="utf-8")
+        logger.info("PoC report written to %s (%d chars)", poc_report_path, len(report_content))
 
         return {
             "current_phase": PoCPhase.POC_REPORT,
@@ -265,7 +256,6 @@ async def poc_report_agent(
 
     except Exception as e:
         logger.error("PoC report generation failed: %s", e)
-        poc_report_path = str(Path(clone_path or ".") / "poc-report.md")
         return {
             "current_phase": PoCPhase.POC_REPORT,
             "poc_report_path": poc_report_path,

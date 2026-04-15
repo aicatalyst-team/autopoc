@@ -162,8 +162,8 @@ def _build_user_message(state: PoCState) -> str:
             parts.append(f"- {resource}")
         parts.append("")
 
-    # Namespace info
-    namespace = f"poc-{project_name}"
+    # Namespace — must match what deploy/apply used (project_name, NOT poc-{project_name})
+    namespace = project_name
     parts.append(f"## Kubernetes Namespace: {namespace}")
     parts.append("")
 
