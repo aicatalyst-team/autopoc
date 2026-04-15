@@ -322,6 +322,7 @@ def run(
         "existing_ci_cd": None,
         "poc_plan": "",
         "poc_plan_path": "",
+        "poc_plan_error": None,
         "poc_scenarios": [],
         "poc_infrastructure": {},
         "poc_type": "",

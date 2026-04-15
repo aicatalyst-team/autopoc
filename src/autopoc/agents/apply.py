@@ -145,7 +145,7 @@ async def apply_agent(
 
     system_prompt = APPLY_PROMPT_PATH.read_text()
 
-    # Build user message
+    # Check prerequisites
     project_name = state.get("project_name", "unknown")
     local_clone_path = state.get("local_clone_path", "")
     components = state.get("components", [])
@@ -153,6 +153,18 @@ async def apply_agent(
     previous_error = state.get("error")
     deploy_retries = state.get("deploy_retries", 0)
     poc_infrastructure = state.get("poc_infrastructure")
+
+    if not components and not built_images:
+        logger.error("No components or built images to apply — nothing to deploy")
+        return {
+            "current_phase": PoCPhase.APPLY,
+            "deployed_resources": [],
+            "routes": [],
+            "error": (
+                "No components or built images. "
+                "Check earlier pipeline stages (intake, containerize, build)."
+            ),
+        }
 
     k8s_dir = str(Path(local_clone_path) / "kubernetes")
 

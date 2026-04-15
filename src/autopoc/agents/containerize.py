@@ -240,6 +240,17 @@ async def containerize_agent(
     components = list(state.get("components", []))
     build_error = state.get("error")
 
+    # Check if poc_plan failed — if so, stop early. Proceeding with fallback
+    # defaults would produce wrong Dockerfiles and waste LLM calls.
+    poc_plan_error = state.get("poc_plan_error")
+    if poc_plan_error:
+        logger.error("PoC plan failed, cannot containerize: %s", poc_plan_error)
+        return {
+            "current_phase": PoCPhase.CONTAINERIZE,
+            "components": components,
+            "error": f"PoC plan failed: {poc_plan_error}",
+        }
+
     if not components:
         logger.warning("No components to containerize")
         return {"current_phase": PoCPhase.CONTAINERIZE, "components": components}

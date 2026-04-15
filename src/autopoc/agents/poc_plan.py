@@ -104,10 +104,11 @@ def _parse_poc_plan_output(raw_output: str) -> dict:
 
     logger.warning("Failed to parse PoC plan output as JSON from %d chars of output", len(text))
     logger.debug("Raw output (last 500 chars): %s", text[-500:])
-    # Return a minimal valid structure
+    # Return a minimal structure with a parse failure flag
     return {
         "poc_type": "web-app",
-        "poc_plan_summary": f"Failed to parse PoC plan output from LLM response",
+        "poc_plan_summary": "Failed to parse PoC plan output from LLM response",
+        "_parse_failed": True,
         "infrastructure": {},
         "scenarios": [],
     }
@@ -415,8 +416,11 @@ async def poc_plan_agent(
     # Build the user message
     user_message = _build_user_message(state)
 
-    # Invoke the agent with a recursion limit to prevent context overflow.
-    # Each tool call round-trip is ~2 recursions. Limit of 30 allows ~15 tool calls.
+    # Invoke the agent with a recursion limit.
+    # Each tool call round-trip is ~2 recursions. Limit of 50 allows ~25 tool calls,
+    # which gives the agent enough room to read files AND produce the plan + JSON.
+    # (30 was too tight — the agent would exhaust steps reading files and never
+    # get to write poc-plan.md or output the JSON.)
     result = await agent.ainvoke(
         {
             "messages": [
@@ -424,7 +428,7 @@ async def poc_plan_agent(
                 HumanMessage(content=user_message),
             ],
         },
-        config={"recursion_limit": 30},
+        config={"recursion_limit": 50},
     )
 
     # Extract the final AI message with actual content
@@ -492,19 +496,37 @@ async def poc_plan_agent(
 
     poc_type = parsed.get("poc_type", "web-app")
 
+    # Detect if the plan agent failed to produce valid output
+    parse_failed = parsed.get("_parse_failed", False)
+    plan_error = None
+    if parse_failed:
+        plan_error = (
+            "PoC plan agent failed to produce valid JSON output. "
+            "The LLM may have exhausted its tool call budget before writing "
+            "the plan. The pipeline cannot proceed with default/fallback values."
+        )
+        logger.error("PoC plan failed: %s", plan_error)
+    elif not scenarios:
+        # No scenarios but JSON parsed OK — this is a soft warning, not a failure.
+        # The agent may have produced a plan with no test scenarios.
+        logger.warning("PoC plan produced 0 test scenarios — downstream testing will be limited")
+
     logger.info(
-        "PoC plan complete: type=%s, %d scenarios, profile=%s",
+        "PoC plan complete: type=%s, %d scenarios, profile=%s, error=%s",
         poc_type,
         len(scenarios),
         infrastructure.get("resource_profile", "unknown"),
+        "yes" if plan_error else "no",
     )
 
     # Return partial state update
-    # NOTE: Do not set current_phase here — poc_plan runs in parallel with
-    # fork, and both writing to current_phase would cause a LangGraph conflict.
+    # NOTE: Do not set current_phase or error here — poc_plan runs in parallel
+    # with fork, and both writing to those fields would cause a LangGraph conflict.
+    # Use poc_plan_error (dedicated field) to signal failure to downstream agents.
     return {
         "poc_plan": poc_plan_content,
         "poc_plan_path": poc_plan_path,
+        "poc_plan_error": plan_error,
         "poc_scenarios": scenarios,
         "poc_infrastructure": infrastructure,
         "poc_type": poc_type,

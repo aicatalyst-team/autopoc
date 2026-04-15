@@ -66,11 +66,21 @@ async def deploy_agent(
 
     system_prompt = DEPLOY_PROMPT_PATH.read_text()
 
-    # Build user message with context
+    # Check prerequisites
     components = state.get("components", [])
     built_images = state.get("built_images", [])
     project_name = state.get("project_name", "unknown")
     local_clone_path = state.get("local_clone_path", "")
+
+    if not components and not built_images:
+        logger.error("No components or built images to deploy — cannot generate manifests")
+        return {
+            "current_phase": PoCPhase.DEPLOY,
+            "error": (
+                "No components or built images to deploy. "
+                "Check earlier pipeline stages (intake, containerize, build)."
+            ),
+        }
     previous_error = state.get("error")
     deploy_retries = state.get("deploy_retries", 0)
 
