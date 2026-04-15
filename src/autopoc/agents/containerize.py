@@ -38,6 +38,7 @@ def _build_user_message(
     build_error: str | None = None,
     poc_infrastructure: dict | None = None,  # PoCInfrastructure TypedDict
     poc_type: str | None = None,
+    poc_plan_text: str | None = None,
 ) -> str:
     """Build the user message for the containerize agent.
 
@@ -138,6 +139,37 @@ def _build_user_message(
 
         resource_profile = poc_infrastructure.get("resource_profile", "small")
         parts.append(f"\n**Resource profile:** {resource_profile}")
+
+        # Deployment model — critical for deciding ENTRYPOINT/CMD and EXPOSE
+        deployment_model = poc_infrastructure.get("deployment_model", "deployment")
+        listens_on_port = poc_infrastructure.get("listens_on_port", True)
+        long_running = poc_infrastructure.get("long_running", True)
+        parts.append(f"\n**Deployment model:** {deployment_model}")
+        parts.append(f"**Listens on port:** {listens_on_port}")
+        parts.append(f"**Long-running process:** {long_running}")
+
+        if not listens_on_port:
+            parts.append(
+                "\n**IMPORTANT:** This component does NOT listen on a network port. "
+                "Do NOT add EXPOSE to the Dockerfile."
+            )
+
+        if deployment_model == "cli-only":
+            parts.append(
+                "\n**IMPORTANT:** This is a CLI tool / library. The ENTRYPOINT should be "
+                "the CLI binary. CMD should default to --help or --version. "
+                "Do NOT add EXPOSE. The container will be invoked with explicit commands, "
+                "not run as a long-lived daemon."
+            )
+
+        entrypoint = poc_infrastructure.get("entrypoint_suggestion")
+        if entrypoint:
+            parts.append(f"\n**Suggested entrypoint:** `{entrypoint}`")
+
+    # Include full PoC plan for additional context
+    if poc_plan_text:
+        parts.append("\n## Full PoC Plan (for context)")
+        parts.append(poc_plan_text)
 
     if build_error:
         parts.append(
@@ -266,6 +298,7 @@ async def containerize_agent(
             component_build_error,
             poc_infrastructure=dict(poc_infrastructure) if poc_infrastructure else None,
             poc_type=poc_type,
+            poc_plan_text=state.get("poc_plan"),
         )
 
         # Invoke the agent

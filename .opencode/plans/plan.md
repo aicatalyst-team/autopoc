@@ -215,6 +215,12 @@ class PoCInfrastructure(TypedDict, total=False):
     extra_env_vars: dict[str, str]     # Environment variables for the main container
     odh_components: list[str]          # ODH components needed: "model-mesh", "kserve", etc.
     resource_profile: str              # "small", "medium", "large", "gpu"
+    # Runtime / deployment model — guides containerize + deploy decisions
+    deployment_model: str              # "deployment" | "job" | "cronjob" | "cli-only"
+    listens_on_port: bool              # Whether the app binds to a network port
+    long_running: bool                 # Whether it runs continuously vs exits
+    entrypoint_suggestion: str | None  # Suggested ENTRYPOINT/CMD for Dockerfile
+    test_strategy: str                 # "http" | "cli" | "exec"
 
 class PoCResult(TypedDict, total=False):
     """Result of a single PoC test execution."""
@@ -816,6 +822,7 @@ with ODH/OpenShift AI context. Introduce parallel execution in the graph.
 | 7.15 | Full graph wiring ✅ | Wire `poc_execute → poc_report → END` in graph.py. Update routing functions. |
 | 7.16 | CLI updates ✅ | Display PoC plan summary, test results table, and report path in CLI output. |
 | 7.17 | Integration tests ✅ | End-to-end graph test with all new nodes, including parallel execution. |
+| 7.18 | Deployment model awareness ✅ | Add `deployment_model`, `listens_on_port`, `long_running`, `test_strategy` to `PoCInfrastructure`. Update poc_plan prompt with deployment model reasoning + CLI tool example. Update containerize + deploy prompts and agents to handle non-server workloads (CLI tools, Jobs, workers). Pass full poc-plan.md to downstream agents. |
 
 ---
 

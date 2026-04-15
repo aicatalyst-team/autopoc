@@ -131,6 +131,38 @@ inform your Dockerfile decisions:
 These requirements come from the PoC Plan agent's analysis of what the project needs
 to function as a proof of concept on Open Data Hub / OpenShift AI.
 
+## Runtime Execution Model (CRITICAL — Read deployment_model)
+
+Before writing the Dockerfile, determine HOW this container will actually run based on
+the PoC plan's `deployment_model` field. This affects ENTRYPOINT, CMD, and EXPOSE.
+
+### Long-running server (deployment_model: "deployment", listens_on_port: true)
+- ENTRYPOINT/CMD should start the server process that listens on a port
+- Include `EXPOSE` for the listening port
+- Example: `CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]`
+
+### Worker (deployment_model: "deployment", listens_on_port: false)
+- ENTRYPOINT/CMD should start the worker/consumer process (it runs indefinitely)
+- Do NOT add `EXPOSE` — workers don't listen on ports
+- Example: `CMD ["python", "-m", "celery", "worker"]`
+
+### CLI tool (deployment_model: "cli-only" or "job")
+- ENTRYPOINT should be the CLI binary/command name
+- CMD should be a reasonable default (e.g., `["--help"]` or `["--version"]`)
+- Do NOT add `EXPOSE` — CLI tools don't listen on ports
+- The image is designed to be invoked with explicit commands, not run as a daemon
+- Example: `ENTRYPOINT ["mempalace"]` + `CMD ["--help"]`
+
+### MCP / stdio-based servers
+- These communicate over stdin/stdout, not HTTP
+- Treat them like CLI tools for containerization purposes
+- ENTRYPOINT should be the server command
+- Do NOT add `EXPOSE` — stdio servers don't bind ports
+
+If `listens_on_port` is `false` in the PoC infrastructure requirements, do NOT add
+`EXPOSE` to the Dockerfile. If `entrypoint_suggestion` is provided, use it as the
+basis for your ENTRYPOINT/CMD.
+
 ## Build Context and COPY Paths (CRITICAL for Monorepos!)
 
 **IMPORTANT:** When the Dockerfile is in a subdirectory, understand how `COPY` paths work:

@@ -31,7 +31,7 @@
 | **4. Deploy** | **COMPLETE** | 4/6 | E2E (with --e2e) |
 | **5. Hardening** | Pending | 0/2 | — |
 | **6. Local E2E Harness** | **COMPLETE** | 3/3 | 7 passing (with --e2e) |
-| **7. PoC Intelligence** | **COMPLETE** | 17/17 | 55 passing |
+| **7. PoC Intelligence** | **COMPLETE** | 18/18 | 55 passing |
 
 ---
 
@@ -1703,6 +1703,49 @@ dev = [
 - Full graph traversal works end-to-end with mocked agents
 - Parallel fan-out/fan-in is verified
 - State transitions are correct through all new nodes
+
+---
+
+### Task 57 — Deployment model awareness ✅
+
+**Files:** `src/autopoc/state.py`, `src/autopoc/prompts/poc_plan.md`,
+`src/autopoc/prompts/containerize.md`, `src/autopoc/prompts/deploy.md`,
+`src/autopoc/agents/poc_plan.py`, `src/autopoc/agents/containerize.py`,
+`src/autopoc/agents/deploy.py`
+
+**Depends on:** Tasks 42, 45, 46
+
+**Problem:**
+The pipeline assumed every component is a long-running server that listens on a port.
+CLI tools, batch processors, MCP/stdio servers, and other non-server workloads were
+deployed as Deployments with Services, causing CrashLoopBackOff and nonsensical manifests.
+The PoC plan correctly identified workload types but that understanding was lost by
+the time containerize and deploy ran.
+
+**Work:**
+- Added `deployment_model`, `listens_on_port`, `long_running`, `entrypoint_suggestion`,
+  and `test_strategy` fields to `PoCInfrastructure` TypedDict
+- Updated `poc_plan.md` prompt with deployment model reasoning section, decision criteria,
+  and Example 4 (CLI Tool). Strengthened `## Dockerfile Considerations` and
+  `## Deployment Considerations` template sections with explicit instructions.
+- Updated `containerize.md` prompt with "Runtime Execution Model" section covering
+  servers, CLI tools, workers, and MCP/stdio servers
+- Updated `deploy.md` prompt with "Non-Server Workloads" section including decision
+  matrix, CLI-only pattern, Job pattern, and worker pattern
+- Updated `_validate_infrastructure()` in `poc_plan.py` to handle new fields with
+  backward-compatible defaults
+- Updated `containerize.py` to pass full `poc_plan` text and deployment_model fields
+  to the LLM user message
+- Updated `deploy.py` to pass full `poc_plan` text, deployment_model, listens_on_port,
+  and test_strategy to the LLM user message, with CRITICAL warnings for cli-only and
+  job workloads
+
+**Acceptance criteria:**
+- PoC plan agent outputs deployment_model, listens_on_port, long_running, test_strategy
+- Containerize agent receives and uses deployment model to decide ENTRYPOINT/CMD/EXPOSE
+- Deploy agent creates appropriate K8s resources (or none) based on deployment_model
+- CLI tools get cli-only deployment model, no Deployment, no Service
+- Backward compatible: existing flows default to deployment_model="deployment"
 
 ---
 

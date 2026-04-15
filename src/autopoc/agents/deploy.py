@@ -153,6 +153,40 @@ Components and their built images:
             user_message += f"\n\n**Relevant ODH components:** {', '.join(odh_components)}"
             user_message += "\n(For this PoC, deploy as standard K8s resources. Note the ODH relevance for the report.)"
 
+        # Deployment model — CRITICAL for deciding what K8s resources to create
+        deployment_model = poc_infrastructure.get("deployment_model", "deployment")
+        listens_on_port = poc_infrastructure.get("listens_on_port", True)
+        long_running = poc_infrastructure.get("long_running", True)
+        test_strategy = poc_infrastructure.get("test_strategy", "http")
+        user_message += f"\n\n**Deployment model:** {deployment_model}"
+        user_message += f"\n**Listens on port:** {listens_on_port}"
+        user_message += f"\n**Long-running process:** {long_running}"
+        user_message += f"\n**Test strategy:** {test_strategy}"
+
+        if deployment_model == "cli-only":
+            user_message += (
+                "\n\n**CRITICAL:** This is a CLI tool. Do NOT create a Deployment or Service. "
+                "The container will exit immediately and CrashLoopBackOff if deployed as a Deployment. "
+                "Test the image by running commands via `kubectl run --rm`. "
+                "Create only the namespace, ServiceAccount/RBAC, and any required PVCs."
+            )
+        elif deployment_model == "job":
+            user_message += (
+                "\n\n**CRITICAL:** This should be deployed as a Kubernetes Job, not a Deployment. "
+                "Do NOT create a Service. Set backoffLimit and activeDeadlineSeconds appropriately."
+            )
+        elif not listens_on_port:
+            user_message += (
+                "\n\n**NOTE:** This component does not listen on a port. "
+                "Create a Deployment (it runs continuously) but do NOT create a Service. "
+                "Use exec-based probes instead of HTTP probes."
+            )
+
+    # Include full PoC plan for additional context
+    poc_plan_text = state.get("poc_plan", "")
+    if poc_plan_text:
+        user_message += "\n\n## Full PoC Plan\n" + poc_plan_text
+
     if poc_scenarios:
         user_message += "\n\n## PoC Test Scenarios (deployment must support these)"
         for scenario in poc_scenarios:

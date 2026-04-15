@@ -86,6 +86,13 @@ class PoCInfrastructure(TypedDict, total=False):
     odh_components: list[str]  # ODH components needed: "model-mesh", "kserve", etc.
     resource_profile: str  # "small", "medium", "large", "gpu"
 
+    # Runtime / deployment model — guides containerize + deploy decisions
+    deployment_model: str  # "deployment" | "job" | "cronjob" | "cli-only"
+    listens_on_port: bool  # Whether the app binds to a network port
+    long_running: bool  # Whether it runs continuously (server, worker) vs exits (CLI, batch)
+    entrypoint_suggestion: str | None  # Suggested ENTRYPOINT/CMD for Dockerfile
+    test_strategy: str  # "http" | "cli" | "exec" — how to validate after deploy
+
 
 class PoCResult(TypedDict, total=False):
     """Result of a single PoC test scenario execution."""

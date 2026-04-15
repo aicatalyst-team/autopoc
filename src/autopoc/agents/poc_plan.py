@@ -297,6 +297,12 @@ def _validate_infrastructure(infra: dict) -> PoCInfrastructure:
         extra_env_vars=infra.get("extra_env_vars", {}),
         odh_components=infra.get("odh_components", []),
         resource_profile=infra.get("resource_profile", "small"),
+        # Deployment model fields — default to "deployment" / True for backward compat
+        deployment_model=infra.get("deployment_model", "deployment"),
+        listens_on_port=infra.get("listens_on_port", True),
+        long_running=infra.get("long_running", True),
+        entrypoint_suggestion=infra.get("entrypoint_suggestion"),
+        test_strategy=infra.get("test_strategy", "http"),
     )
 
 

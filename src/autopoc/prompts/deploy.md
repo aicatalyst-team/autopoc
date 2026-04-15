@@ -164,8 +164,16 @@ initialDelaySeconds: 10
 periodSeconds: 5
 ```
 
-**No web server (worker, batch job):**
-Omit probes or use `exec` with a custom command.
+**Worker (no port, but long-running):**
+```yaml
+livenessProbe:
+  exec:
+    command: ["pgrep", "-f", "worker"]
+  periodSeconds: 10
+```
+
+**CLI tool / Job (deployment_model: "cli-only" or "job"):**
+Do NOT add probes. Do NOT create a Deployment. See "Non-Server Workloads" section below.
 
 ### 5. Apply Manifests
 
@@ -261,6 +269,78 @@ Map the resource profile to sizing:
 If the PoC plan specifies extra environment variables:
 - Add them to the container spec `env:` section
 - For variables marked as "required", use a placeholder value or reference a K8s Secret
+
+## Non-Server Workloads (CRITICAL — Check deployment_model)
+
+Not every component should be deployed as a Deployment + Service. The PoC plan provides
+a `deployment_model` field that tells you exactly what kind of K8s workload to create.
+**Read it carefully before generating manifests.**
+
+### CLI Tools (deployment_model: "cli-only")
+- **Do NOT create a Deployment** — the container runs a command, exits, and will
+  CrashLoopBackOff endlessly if deployed as a Deployment with `restartPolicy: Always`
+- **Do NOT create a Service** — CLI tools don't listen on ports
+- **Do NOT add health probes** — there's nothing to probe
+- Instead, create only the namespace, ServiceAccount/RBAC, and any required PVCs
+- Verify the image works by running test commands via `kubectl run`:
+  ```
+  kubectl run --rm -it <name>-test --image=<image> --restart=Never -- <command> <args>
+  ```
+- For PoC test scenarios with type "cli", use `kubectl run --rm` with specific commands
+- Still commit the namespace + RBAC + PVC manifests to `kubernetes/` for reproducibility
+
+### Batch Jobs (deployment_model: "job")
+- Use a Kubernetes **Job** instead of a Deployment:
+  ```yaml
+  apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: {component}-job
+  spec:
+    backoffLimit: 3
+    activeDeadlineSeconds: 600
+    template:
+      spec:
+        containers:
+        - name: {component}
+          image: {image}
+        restartPolicy: Never
+  ```
+- **Do NOT create a Service** — Jobs don't listen on ports
+- Monitor completion: `kubectl wait --for=condition=complete job/<name>`
+
+### Workers (deployment_model: "deployment", listens_on_port: false)
+- Create a Deployment (the process runs continuously) — this is correct
+- **Do NOT create a Service** — there's no port to expose
+- Use exec-based probes instead of HTTP probes:
+  ```yaml
+  livenessProbe:
+    exec:
+      command: ["pgrep", "-f", "worker"]
+    periodSeconds: 10
+  ```
+
+### MCP / stdio-based servers
+- These are invoked by a parent process via stdin/stdout, not by HTTP clients
+- Treat like CLI tools — do NOT deploy as a Deployment, do NOT create a Service
+- Test by running the server command with a timeout via `kubectl run`
+
+### Decision Matrix
+
+| deployment_model | listens_on_port | Create Deployment? | Create Service? | Probes? | Test via |
+|-----------------|-----------------|-------------------|-----------------|---------|----------|
+| deployment | true | Yes | Yes | HTTP | curl/httpie |
+| deployment | false | Yes | No | exec | kubectl exec |
+| job | N/A | Job (not Deployment) | No | No | kubectl wait |
+| cli-only | N/A | No | No | No | kubectl run --rm |
+
+**If deployment_model is "cli-only", you should still:**
+1. Create and apply `kubernetes/namespace.yaml`
+2. Create and apply `kubernetes/rbac.yaml` (ServiceAccount)
+3. Create and apply any PVCs specified in the PoC plan
+4. Skip Deployment and Service entirely
+5. Return `deployed_resources` listing only the namespace + RBAC + PVC resources
+6. Return empty `routes` (there are no URLs to access)
 
 ## Error Handling
 

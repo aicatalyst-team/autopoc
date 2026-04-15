@@ -93,6 +93,35 @@ the intake agent already found. Focus on:
    - Redis (caching, session storage)
    - PostgreSQL (metadata, vector storage with pgvector)
 
+   ### Deployment Model (CRITICAL — affects Dockerfile and Kubernetes manifests)
+
+   Determine how the application should run in Kubernetes. This directly controls
+   whether a Deployment, Job, or no workload at all is created.
+
+   - **`deployment`** — Long-running server that listens on a port (web app, API,
+     inference server) or runs continuously without a port (worker, consumer).
+     Deployed as a Kubernetes Deployment. Gets a Service only if it listens on a port.
+   - **`job`** — Run-to-completion workload (data processing, training, migration).
+     Deployed as a Kubernetes Job. No Service.
+   - **`cronjob`** — Scheduled workload. Deployed as a Kubernetes CronJob. No Service.
+   - **`cli-only`** — CLI tool, library, SDK, or stdio-based server (e.g., MCP protocol).
+     The container is built but NOT deployed as a Deployment. Instead, it is tested
+     by running commands via `kubectl run --rm`. No Deployment, no Service.
+
+   **Decision criteria:**
+   - Does the app listen on a network port (HTTP, gRPC, WebSocket)? → `listens_on_port: true`
+   - Does the process run indefinitely? → `long_running: true`
+   - CLI tools that run a command and exit → `deployment_model: "cli-only"`
+   - MCP servers using stdio (not HTTP) → `deployment_model: "cli-only"`
+   - Batch processing scripts → `deployment_model: "job"`
+   - Web servers, API servers, inference servers → `deployment_model: "deployment"`
+   - Message queue consumers, watchers → `deployment_model: "deployment"`, `listens_on_port: false`
+
+   Also determine the **test strategy**:
+   - `"http"` — Test by sending HTTP requests to deployed endpoints
+   - `"cli"` — Test by running CLI commands via `kubectl run --rm`
+   - `"exec"` — Test by exec-ing into a running pod
+
 5. **Define 2-5 concrete test scenarios** that can be automated:
    Each scenario should be something a script can execute and verify.
 
@@ -140,10 +169,24 @@ What we want to prove:
 ...
 
 ## Dockerfile Considerations
-{Notes for the containerize agent about what to include in the Dockerfile}
+{Explicit instructions for the containerize agent. MUST include:
+- Whether to add EXPOSE (only if listens_on_port is true)
+- What ENTRYPOINT/CMD should be
+- Whether the container runs as a server or as a CLI tool
+- Example: "This is a CLI tool. ENTRYPOINT should be the CLI binary. CMD should
+  default to --help. Do NOT add EXPOSE — there is no port to expose."
+- Example: "This is a FastAPI server. ENTRYPOINT should run uvicorn on port 8080.
+  Add EXPOSE 8080."}
 
 ## Deployment Considerations
-{Notes for the deploy agent about special deployment requirements}
+{Explicit instructions for the deploy agent. MUST include:
+- The deployment model (Deployment, Job, CronJob, or cli-only)
+- Whether to create a Service (only if listens_on_port is true)
+- How to test the deployment (HTTP requests, kubectl run, kubectl exec)
+- Example: "Do NOT deploy as a Deployment — the process exits immediately.
+  Do NOT create a Service — there is no port. Test via kubectl run --rm."
+- Example: "Deploy as a Deployment with 1 replica. Create a Service on port 8080.
+  Test via HTTP GET /health."}
 ```
 
 ### Output 2: Structured JSON
@@ -168,7 +211,12 @@ After writing the poc-plan.md file, respond with a JSON object matching this sch
     "sidecar_containers": [],
     "extra_env_vars": {},
     "odh_components": [],
-    "resource_profile": "small"
+    "resource_profile": "small",
+    "deployment_model": "deployment",
+    "listens_on_port": true,
+    "long_running": true,
+    "entrypoint_suggestion": null,
+    "test_strategy": "http"
   },
   "scenarios": [
     {
@@ -208,7 +256,12 @@ For a repo containing a PyTorch model with FastAPI serving code:
     "sidecar_containers": [],
     "extra_env_vars": {},
     "odh_components": ["kserve"],
-    "resource_profile": "medium"
+    "resource_profile": "medium",
+    "deployment_model": "deployment",
+    "listens_on_port": true,
+    "long_running": true,
+    "entrypoint_suggestion": "uvicorn app:app --host 0.0.0.0 --port 8080",
+    "test_strategy": "http"
   },
   "scenarios": [
     {
@@ -255,7 +308,12 @@ For a repo containing a LangChain RAG pipeline:
     "sidecar_containers": [],
     "extra_env_vars": {"OPENAI_API_KEY": "required"},
     "odh_components": ["model-mesh"],
-    "resource_profile": "medium"
+    "resource_profile": "medium",
+    "deployment_model": "deployment",
+    "listens_on_port": true,
+    "long_running": true,
+    "entrypoint_suggestion": null,
+    "test_strategy": "http"
   },
   "scenarios": [
     {
@@ -311,7 +369,12 @@ For a standard Flask/Node.js web application:
     "sidecar_containers": [],
     "extra_env_vars": {},
     "odh_components": [],
-    "resource_profile": "small"
+    "resource_profile": "small",
+    "deployment_model": "deployment",
+    "listens_on_port": true,
+    "long_running": true,
+    "entrypoint_suggestion": null,
+    "test_strategy": "http"
   },
   "scenarios": [
     {
@@ -335,6 +398,72 @@ For a standard Flask/Node.js web application:
   ]
 }
 ```
+
+### Example 4: CLI Tool / Library
+
+For a repo containing a CLI tool (e.g., a memory/knowledge management tool with
+ChromaDB, MCP server support, and command-line interface):
+
+```json
+{
+  "poc_type": "llm-app",
+  "poc_plan_summary": "Build the CLI tool as a container image and verify its core commands (init, mine, search, status) work correctly inside the container.",
+  "infrastructure": {
+    "needs_inference_server": false,
+    "inference_server_type": null,
+    "needs_vector_db": true,
+    "vector_db_type": "in-memory",
+    "needs_embedding_model": true,
+    "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "needs_gpu": false,
+    "gpu_type": null,
+    "needs_pvc": true,
+    "pvc_size": "1Gi",
+    "sidecar_containers": [],
+    "extra_env_vars": {},
+    "odh_components": [],
+    "resource_profile": "small",
+    "deployment_model": "cli-only",
+    "listens_on_port": false,
+    "long_running": false,
+    "entrypoint_suggestion": "mempalace",
+    "test_strategy": "cli"
+  },
+  "scenarios": [
+    {
+      "name": "init-palace",
+      "description": "Verify the tool initializes its data structures",
+      "type": "cli",
+      "endpoint": null,
+      "input_data": null,
+      "expected_behavior": "Command exits 0, palace directory is created with config files",
+      "timeout_seconds": 30
+    },
+    {
+      "name": "status-check",
+      "description": "Verify the status command reports palace state",
+      "type": "cli",
+      "endpoint": null,
+      "input_data": null,
+      "expected_behavior": "Command exits 0, outputs palace summary with drawer count",
+      "timeout_seconds": 15
+    },
+    {
+      "name": "help-output",
+      "description": "Verify the CLI shows help with available commands",
+      "type": "cli",
+      "endpoint": null,
+      "input_data": null,
+      "expected_behavior": "Command exits 0, outputs usage info listing available subcommands",
+      "timeout_seconds": 10
+    }
+  ]
+}
+```
+
+Note: The key difference is `deployment_model: "cli-only"` and `listens_on_port: false`.
+This tells downstream agents to NOT create a Deployment or Service, and to test via
+`kubectl run --rm` instead of HTTP requests.
 
 ## Critical Instructions — Output Procedure
 
@@ -365,11 +494,17 @@ Follow these steps IN ORDER:
 - If the project has environment variables it needs (API keys, model names, etc.),
   document them in `extra_env_vars`. Use the value "required" for secrets that the
   user must provide.
-- Keep test scenarios simple and automatable. Prefer HTTP-based tests when possible.
+- Keep test scenarios simple and automatable. Prefer HTTP-based tests when the app
+  listens on a port; use CLI-based tests (type: "cli") for CLI tools and libraries.
 - The `resource_profile` should be the minimum needed for the PoC to work.
 - If the project is not ML/AI-related at all, that's fine — classify it as `web-app`,
   `api-service`, or `infrastructure` and create appropriate scenarios.
 - For `odh_components`, only list components that are directly relevant. Leave empty
   if none apply.
+- **CRITICAL:** Always set `deployment_model`, `listens_on_port`, `long_running`, and
+  `test_strategy` in the infrastructure object. These fields directly control how
+  downstream agents build the Dockerfile and create Kubernetes manifests. Getting these
+  wrong leads to CrashLoopBackOff (deploying CLI tools as Deployments) or missing
+  Services (not creating Services for servers).
 - Your final text response after writing the file must contain ONLY the JSON object.
-  No additional text, no markdown fences, just the raw JSON.
+   No additional text, no markdown fences, just the raw JSON.
