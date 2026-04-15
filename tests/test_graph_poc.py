@@ -3,8 +3,9 @@
 Tests the complete graph with all new Phase 7 nodes:
 - Parallel fan-out: intake → [poc_plan ∥ fork]
 - Fan-in: [poc_plan, fork] → containerize
-- PoC tail: deploy → poc_execute → poc_report → END
-- Failure modes: deploy failure skips poc_execute/poc_report
+- Deploy/Apply split: deploy generates manifests, apply runs kubectl
+- PoC tail: apply → poc_execute → poc_report → END
+- Failure modes: apply failure routes back to deploy, exhausted retries → END
 """
 
 import json
@@ -297,13 +298,11 @@ def _mock_build_agent_fail_then_succeed():
 
 
 def _mock_deploy_agent_success():
-    """Mock deploy that creates routes."""
+    """Mock deploy that generates manifests successfully."""
 
     async def _deploy(state, **kwargs):
         return {
             "current_phase": PoCPhase.DEPLOY,
-            "deployed_resources": ["deployment/app", "service/app"],
-            "routes": ["http://10.0.0.1:30080"],
             "error": None,
         }
 
@@ -311,18 +310,45 @@ def _mock_deploy_agent_success():
 
 
 def _mock_deploy_agent_fail():
-    """Mock deploy that always fails."""
+    """Mock deploy that fails manifest generation."""
 
     async def _deploy(state, **kwargs):
         return {
             "current_phase": PoCPhase.DEPLOY,
-            "deployed_resources": [],
-            "routes": [],
-            "error": "Deployment failed: namespace not found",
+            "error": "Manifest generation failed: template error",
             "deploy_retries": state.get("deploy_retries", 0) + 1,
         }
 
     return _deploy
+
+
+def _mock_apply_agent_success():
+    """Mock apply that deploys resources and creates routes."""
+
+    async def _apply(state, **kwargs):
+        return {
+            "current_phase": PoCPhase.APPLY,
+            "deployed_resources": ["deployment/app", "service/app"],
+            "routes": ["http://10.0.0.1:30080"],
+            "error": None,
+        }
+
+    return _apply
+
+
+def _mock_apply_agent_fail():
+    """Mock apply that always fails."""
+
+    async def _apply(state, **kwargs):
+        return {
+            "current_phase": PoCPhase.APPLY,
+            "deployed_resources": [],
+            "routes": [],
+            "error": "Apply failed: namespace not found",
+            "deploy_retries": state.get("deploy_retries", 0) + 1,
+        }
+
+    return _apply
 
 
 def _mock_poc_execute_agent():
@@ -384,12 +410,13 @@ def _build_test_graph(
     containerize_fn,
     build_fn,
     deploy_fn,
+    apply_fn,
     poc_execute_fn,
     poc_report_fn,
 ):
     """Build the full graph with mock agent functions."""
     from langgraph.graph import StateGraph, END
-    from autopoc.graph import route_after_build, route_after_deploy
+    from autopoc.graph import route_after_build, route_after_apply
 
     sg = StateGraph(PoCState)
     sg.add_node("intake", intake_fn)
@@ -398,6 +425,7 @@ def _build_test_graph(
     sg.add_node("containerize", containerize_fn)
     sg.add_node("build", build_fn)
     sg.add_node("deploy", deploy_fn)
+    sg.add_node("apply", apply_fn)
     sg.add_node("poc_execute", poc_execute_fn)
     sg.add_node("poc_report", poc_report_fn)
 
@@ -412,9 +440,10 @@ def _build_test_graph(
         route_after_build,
         {"deploy": "deploy", "containerize": "containerize", "failed": END},
     )
+    sg.add_edge("deploy", "apply")
     sg.add_conditional_edges(
-        "deploy",
-        route_after_deploy,
+        "apply",
+        route_after_apply,
         {"poc_execute": "poc_execute", "deploy": "deploy", "failed": END},
     )
     sg.add_edge("poc_execute", "poc_report")
@@ -445,6 +474,7 @@ class TestGraphPoCCompilation:
             "containerize",
             "build",
             "deploy",
+            "apply",
             "poc_execute",
             "poc_report",
             "__end__",
@@ -492,6 +522,7 @@ class TestGraphPoCHappyPath:
                 containerize_fn=_mock_containerize_agent(),
                 build_fn=_mock_build_agent_success(),
                 deploy_fn=_mock_deploy_agent_success(),
+                apply_fn=_mock_apply_agent_success(),
                 poc_execute_fn=_mock_poc_execute_agent(),
                 poc_report_fn=_mock_poc_report_agent(),
             )
@@ -560,6 +591,7 @@ class TestGraphPoCHappyPath:
                 containerize_fn=_mock_containerize_agent(),
                 build_fn=_mock_build_agent_success(),
                 deploy_fn=_mock_deploy_agent_success(),
+                apply_fn=_mock_apply_agent_success(),
                 poc_execute_fn=_mock_poc_execute_agent(),
                 poc_report_fn=_mock_poc_report_agent(),
             )
@@ -591,6 +623,7 @@ class TestGraphPoCHappyPath:
                 containerize_fn=_capturing_containerize,
                 build_fn=_mock_build_agent_success(),
                 deploy_fn=_mock_deploy_agent_success(),
+                apply_fn=_mock_apply_agent_success(),
                 poc_execute_fn=_mock_poc_execute_agent(),
                 poc_report_fn=_mock_poc_report_agent(),
             )
@@ -622,6 +655,7 @@ class TestGraphPoCBuildRetry:
                 containerize_fn=_mock_containerize_agent(),
                 build_fn=_mock_build_agent_fail_then_succeed(),
                 deploy_fn=_mock_deploy_agent_success(),
+                apply_fn=_mock_apply_agent_success(),
                 poc_execute_fn=_mock_poc_execute_agent(),
                 poc_report_fn=_mock_poc_report_agent(),
             )
@@ -637,17 +671,17 @@ class TestGraphPoCBuildRetry:
         assert result["poc_report_path"] != ""
 
 
-class TestGraphPoCDeployFailure:
-    """Test deploy failure skips PoC execution and report."""
+class TestGraphPoCApplyFailure:
+    """Test apply failure routes back to deploy, then exhausted retries end pipeline."""
 
     @pytest.mark.asyncio
-    async def test_deploy_failure_ends_without_poc(
+    async def test_apply_failure_ends_without_poc(
         self,
         initial_state,
         gitlab_bare,
         env_patch,
     ):
-        """Deploy fails, retries exhausted → END (no poc_execute or poc_report)."""
+        """Apply fails, retries exhausted → END (no poc_execute or poc_report)."""
         with patch.dict(os.environ, env_patch, clear=True):
             graph = _build_test_graph(
                 intake_fn=_mock_intake_agent(),
@@ -655,13 +689,14 @@ class TestGraphPoCDeployFailure:
                 fork_fn=_mock_fork_agent(gitlab_bare),
                 containerize_fn=_mock_containerize_agent(),
                 build_fn=_mock_build_agent_success(),
-                deploy_fn=_mock_deploy_agent_fail(),
+                deploy_fn=_mock_deploy_agent_success(),
+                apply_fn=_mock_apply_agent_fail(),
                 poc_execute_fn=_mock_poc_execute_agent(),
                 poc_report_fn=_mock_poc_report_agent(),
             )
             result = await graph.ainvoke(initial_state)
 
-        # Deploy failed
+        # Apply failed
         assert result["error"] is not None
         assert "namespace not found" in result["error"]
         assert result["deploy_retries"] >= 1
@@ -676,41 +711,41 @@ class TestGraphPoCDeployFailure:
         assert len(result["built_images"]) == 1
 
 
-class TestRouteAfterDeploy:
-    """Test the route_after_deploy function with new routing."""
+class TestRouteAfterApply:
+    """Test the route_after_apply function with new routing."""
 
     def test_success_routes_to_poc_execute(self, env_patch):
-        """On success, route to poc_execute instead of done."""
+        """On success, route to poc_execute."""
         with patch.dict(os.environ, env_patch, clear=True):
-            from autopoc.graph import route_after_deploy
+            from autopoc.graph import route_after_apply
 
             state = PoCState(
                 error=None,
                 routes=["http://10.0.0.1:30080"],
                 deploy_retries=0,
             )
-            assert route_after_deploy(state) == "poc_execute"
+            assert route_after_apply(state) == "poc_execute"
 
     def test_failure_with_retries_routes_to_deploy(self, env_patch):
-        """On failure with retries left, route back to deploy."""
+        """On failure with retries left, route back to deploy to fix manifests."""
         with patch.dict(os.environ, env_patch, clear=True):
-            from autopoc.graph import route_after_deploy
+            from autopoc.graph import route_after_apply
 
             state = PoCState(
-                error="Deployment failed",
+                error="Apply failed",
                 routes=[],
                 deploy_retries=0,
             )
-            assert route_after_deploy(state) == "deploy"
+            assert route_after_apply(state) == "deploy"
 
     def test_failure_exhausted_routes_to_failed(self, env_patch):
         """On failure with retries exhausted, route to failed."""
         with patch.dict(os.environ, env_patch, clear=True):
-            from autopoc.graph import route_after_deploy
+            from autopoc.graph import route_after_apply
 
             state = PoCState(
-                error="Deployment failed",
+                error="Apply failed",
                 routes=[],
                 deploy_retries=10,
             )
-            assert route_after_deploy(state) == "failed"
+            assert route_after_apply(state) == "failed"

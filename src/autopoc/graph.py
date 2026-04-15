@@ -5,7 +5,11 @@ parallel fan-out/fan-in for PoC planning, conditional routing for
 retry loops, and the PoC execution/report tail.
 
 Full graph:
-    intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ poc_execute → poc_report → END
+    intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy → apply ⟲ poc_execute → poc_report → END
+
+The deploy/apply split mirrors containerize/build:
+- containerize generates Dockerfiles, build runs podman
+- deploy generates K8s manifests, apply runs kubectl
 """
 
 import logging
@@ -13,6 +17,7 @@ import logging
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
+from autopoc.agents.apply import apply_agent
 from autopoc.agents.build import build_agent
 from autopoc.agents.containerize import containerize_agent
 from autopoc.agents.deploy import deploy_agent
@@ -59,18 +64,18 @@ def route_after_build(state: PoCState) -> str:
     return "failed"
 
 
-def route_after_deploy(state: PoCState) -> str:
-    """Determine the next step after a deployment attempt.
+def route_after_apply(state: PoCState) -> str:
+    """Determine the next step after an apply attempt.
 
-    If deployment succeeded (routes populated, no error), proceed to PoC execution.
-    If deployment failed but we have retries left, loop back to deploy to fix manifests.
+    If apply succeeded (no error), proceed to PoC execution.
+    If apply failed but we have retries left, loop back to deploy to fix manifests,
+    then re-apply.
     If retries are exhausted, fail.
     """
     error = state.get("error")
-    routes = state.get("routes")
 
-    # Success: no error and routes were generated → proceed to PoC execution
-    if error is None and routes:
+    # Success: no error → proceed to PoC execution
+    if error is None:
         return "poc_execute"
 
     # Failed: check if we can retry
@@ -79,13 +84,13 @@ def route_after_deploy(state: PoCState) -> str:
 
     if retries < config.max_deploy_retries:
         logger.warning(
-            "Deploy failed (retry %d/%d). Looping back to deploy.",
+            "Apply failed (retry %d/%d). Looping back to deploy to fix manifests.",
             retries,
             config.max_deploy_retries,
         )
         return "deploy"
 
-    logger.error("Deploy failed after %d retries. Failing pipeline.", retries)
+    logger.error("Apply failed after %d retries. Failing pipeline.", retries)
     return "failed"
 
 
@@ -93,14 +98,15 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     """Build and compile the AutoPoC pipeline graph.
 
     Full graph:
-        intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ poc_execute → poc_report → END
+        intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy → apply ⟲ poc_execute → poc_report → END
 
     Key features:
     - Parallel fan-out: after intake, poc_plan and fork run concurrently
     - Fan-in: containerize waits for both poc_plan and fork to complete
     - Build retry loop: build failure → containerize → build (up to max_build_retries)
-    - Deploy retry loop: deploy failure → deploy (up to max_deploy_retries)
-    - PoC tail: after successful deploy, execute tests and generate report
+    - Deploy/Apply split: deploy generates manifests, apply runs kubectl
+    - Apply retry loop: apply failure → deploy (fix manifests) → apply (up to max_deploy_retries)
+    - PoC tail: after successful apply, execute tests and generate report
 
     Args:
         checkpointer: Optional LangGraph checkpointer for state persistence.
@@ -118,6 +124,7 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     graph.add_node("containerize", containerize_agent)
     graph.add_node("build", build_agent)
     graph.add_node("deploy", deploy_agent)
+    graph.add_node("apply", apply_agent)
     graph.add_node("poc_execute", poc_execute_agent)
     graph.add_node("poc_report", poc_report_agent)
 
@@ -146,13 +153,16 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
         },
     )
 
-    # Conditional routing after deploy
+    # deploy → apply (deploy generates manifests, apply runs kubectl)
+    graph.add_edge("deploy", "apply")
+
+    # Conditional routing after apply
     graph.add_conditional_edges(
-        "deploy",
-        route_after_deploy,
+        "apply",
+        route_after_apply,
         {
             "poc_execute": "poc_execute",  # success → run PoC tests
-            "deploy": "deploy",  # retry loop
+            "deploy": "deploy",  # retry: go back to deploy to fix manifests
             "failed": END,
         },
     )
@@ -164,7 +174,7 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     # Compile (with optional checkpointer for state persistence)
     compiled = graph.compile(checkpointer=checkpointer)
     logger.info(
-        "Graph compiled: intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ poc_execute → poc_report → END"
+        "Graph compiled: intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy → apply ⟲ poc_execute → poc_report → END"
     )
     if checkpointer is not None:
         logger.info("Checkpointer enabled: %s", type(checkpointer).__name__)

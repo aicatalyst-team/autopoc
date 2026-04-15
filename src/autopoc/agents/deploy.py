@@ -1,8 +1,12 @@
-"""Deploy agent — generates K8s manifests and deploys to cluster.
+"""Deploy agent — generates K8s manifests for each component.
 
-This agent analyzes the built images and creates appropriate Kubernetes
-resources (Deployment, Service) for each component, then applies them
-to the target cluster.
+This agent creates Kubernetes manifests (Deployment, Service, Namespace, etc.)
+based on the built images and PoC plan. It writes the manifests to the
+`kubernetes/` directory, commits them, and pushes to GitLab.
+
+It does NOT apply manifests to a cluster — that's the apply agent's job.
+This mirrors the containerize/build split: containerize generates Dockerfiles,
+build runs podman; deploy generates manifests, apply runs kubectl.
 """
 
 import logging
@@ -16,22 +20,25 @@ from autopoc.config import AutoPoCConfig, load_config
 from autopoc.context import make_context_trimmer
 from autopoc.llm import create_llm
 from autopoc.state import PoCPhase, PoCState
-from autopoc.tools.file_tools import read_file, write_file
+from autopoc.tools.file_tools import list_files, read_file, search_files, write_file
 from autopoc.tools.git_tools import git_commit, git_push
-from autopoc.tools.k8s_tools import (
-    kubectl_apply,
-    kubectl_apply_from_string,
-    kubectl_create_namespace,
-    kubectl_get,
-    kubectl_get_service_url,
-    kubectl_logs,
-    kubectl_wait_for_rollout,
-)
 from autopoc.tools.template_tools import render_template
 
 logger = logging.getLogger(__name__)
 
 DEPLOY_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "deploy.md"
+
+# Tools for manifest generation — file operations + templates + git only.
+# No kubectl tools — that's the apply agent's responsibility.
+DEPLOY_TOOLS = [
+    read_file,
+    write_file,
+    list_files,
+    search_files,
+    render_template,
+    git_commit,
+    git_push,
+]
 
 
 async def deploy_agent(
@@ -39,7 +46,7 @@ async def deploy_agent(
     app_config: AutoPoCConfig | None = None,
     llm: BaseChatModel | None = None,
 ) -> PoCState:
-    """Deploy built images to Kubernetes cluster.
+    """Generate Kubernetes manifests for all components.
 
     Args:
         state: Current pipeline state with built_images populated
@@ -47,54 +54,50 @@ async def deploy_agent(
         llm: Language model (optional, creates default if not provided)
 
     Returns:
-        Updated state with deployed_resources and routes populated
+        Updated state with manifests written to kubernetes/ and committed
     """
-    logger.info("=== Deploy Phase ===")
+    logger.info("=== Deploy Phase (manifest generation) ===")
 
     if not app_config:
         app_config = load_config()
 
-    # NOTE: Create a fresh LLM instance to avoid context overflow.
-    # Each agent starts with a clean message history.
     if not llm:
         llm = create_llm()
 
-    # Load system prompt
     system_prompt = DEPLOY_PROMPT_PATH.read_text()
 
     # Build user message with context
     components = state.get("components", [])
     built_images = state.get("built_images", [])
-    project_name = state["project_name"]
+    project_name = state.get("project_name", "unknown")
     local_clone_path = state.get("local_clone_path", "")
     previous_error = state.get("error")
     deploy_retries = state.get("deploy_retries", 0)
 
-    user_message = f"""Deploy the following components to Kubernetes:
+    user_message = f"""Generate Kubernetes manifests for the following components:
 
 Project: {project_name}
 Namespace: {project_name}
 Repository path: {local_clone_path}
+Write manifests to: {local_clone_path}/kubernetes/
 
 Components and their built images:
 """
 
     for component in components:
         comp_name = component.get("name", "unknown")
-        # Find the matching image from built_images
-        matching_image = next(
-            (img for img in built_images if comp_name in img),
-            None,
-        )
-
+        matching_image = next((img for img in built_images if comp_name in img), None)
         user_message += f"\n- {comp_name}:"
         user_message += f"\n  Language: {component.get('language', 'unknown')}"
         user_message += f"\n  Port: {component.get('port', 'none')}"
         user_message += f"\n  Image: {matching_image or 'NOT FOUND'}"
         user_message += f"\n  ML workload: {component.get('is_ml_workload', False)}"
 
-    user_message += "\n\nGenerate and apply Kubernetes manifests for all components."
-    user_message += "\nCommit the manifests to the repo and return the accessible URLs."
+    user_message += (
+        "\n\nGenerate and write all Kubernetes manifests to the kubernetes/ directory."
+        "\nCommit the manifests and push to GitLab."
+        "\nDo NOT apply manifests to a cluster — that is handled by the apply agent."
+    )
 
     # Include PoC infrastructure requirements if available
     poc_infrastructure = state.get("poc_infrastructure")
@@ -110,7 +113,7 @@ Components and their built images:
 
         if poc_infrastructure.get("sidecar_containers"):
             user_message += "\n\n**Sidecar containers to deploy alongside main application:**"
-            for sidecar in poc_infrastructure["sidecar_containers"]:
+            for sidecar in poc_infrastructure.get("sidecar_containers", []):
                 name = sidecar.get("name", "unknown")
                 image = sidecar.get("image", "unknown")
                 port = sidecar.get("port", "")
@@ -122,22 +125,20 @@ Components and their built images:
             db_type = poc_infrastructure.get("vector_db_type", "in-memory")
             if db_type != "in-memory":
                 user_message += (
-                    f"\n\n**Vector database needed:** Deploy {db_type} as a separate "
-                    f"pod/service in the same namespace."
+                    f"\n\n**Vector database needed:** Include {db_type} manifests "
+                    f"as a separate Deployment+Service in the same namespace."
                 )
 
         if poc_infrastructure.get("needs_pvc"):
             pvc_size = poc_infrastructure.get("pvc_size", "10Gi")
             user_message += (
-                f"\n\n**Persistent storage needed:** Create a PVC with size {pvc_size} "
-                f"for model weights or data."
+                f"\n\n**Persistent storage needed:** Create a PVC manifest with size {pvc_size}."
             )
 
         if poc_infrastructure.get("needs_gpu"):
-            gpu_type = poc_infrastructure.get("gpu_type", "nvidia")
             user_message += (
-                f"\n\n**GPU resources needed:** Add GPU resource requests "
-                f"(nvidia.com/gpu: 1) to the deployment."
+                "\n\n**GPU resources needed:** Add GPU resource requests "
+                "(nvidia.com/gpu: 1) to the deployment manifest."
             )
 
         resource_profile = poc_infrastructure.get("resource_profile", "small")
@@ -152,9 +153,11 @@ Components and their built images:
         odh_components = poc_infrastructure.get("odh_components", [])
         if odh_components:
             user_message += f"\n\n**Relevant ODH components:** {', '.join(odh_components)}"
-            user_message += "\n(For this PoC, deploy as standard K8s resources. Note the ODH relevance for the report.)"
+            user_message += (
+                "\n(Deploy as standard K8s resources. Note ODH relevance for the report.)"
+            )
 
-        # Deployment model — CRITICAL for deciding what K8s resources to create
+        # Deployment model
         deployment_model = poc_infrastructure.get("deployment_model", "deployment")
         listens_on_port = poc_infrastructure.get("listens_on_port", True)
         long_running = poc_infrastructure.get("long_running", True)
@@ -166,24 +169,22 @@ Components and their built images:
 
         if deployment_model == "cli-only":
             user_message += (
-                "\n\n**CRITICAL:** This is a CLI tool. Do NOT create a Deployment or Service. "
-                "The container will exit immediately and CrashLoopBackOff if deployed as a Deployment. "
-                "Test the image by running commands via `kubectl run --rm`. "
-                "Create only the namespace, ServiceAccount/RBAC, and any required PVCs."
+                "\n\n**CRITICAL:** This is a CLI tool. Do NOT create Deployment or Service manifests. "
+                "Create only namespace.yaml and any required PVC/RBAC manifests."
             )
         elif deployment_model == "job":
             user_message += (
-                "\n\n**CRITICAL:** This should be deployed as a Kubernetes Job, not a Deployment. "
-                "Do NOT create a Service. Set backoffLimit and activeDeadlineSeconds appropriately."
+                "\n\n**CRITICAL:** Create a Job manifest instead of a Deployment. "
+                "Do NOT create a Service manifest."
             )
         elif not listens_on_port:
             user_message += (
                 "\n\n**NOTE:** This component does not listen on a port. "
-                "Create a Deployment (it runs continuously) but do NOT create a Service. "
+                "Create a Deployment manifest but do NOT create a Service manifest. "
                 "Use exec-based probes instead of HTTP probes."
             )
 
-    # Include full PoC plan for additional context
+    # Include full PoC plan for context
     poc_plan_text = state.get("poc_plan", "")
     if poc_plan_text:
         user_message += "\n\n## Full PoC Plan\n" + poc_plan_text
@@ -194,31 +195,24 @@ Components and their built images:
             user_message += (
                 f"\n- **{scenario.get('name', '?')}:** {scenario.get('description', '')}"
             )
-            if scenario.get("endpoint"):
-                user_message += f" (endpoint: {scenario['endpoint']})"
+            endpoint = scenario.get("endpoint")
+            if endpoint:
+                user_message += f" (endpoint: {endpoint})"
 
-    # If this is a retry, include the previous error
+    # If this is a retry after apply failure, include the error
     if previous_error and deploy_retries > 0:
-        user_message += f"\n\n**PREVIOUS DEPLOYMENT ATTEMPT FAILED (retry {deploy_retries}):**\n{previous_error}"
-        user_message += "\n\nPlease analyze the error and fix the manifests accordingly."
+        user_message += (
+            f"\n\n**PREVIOUS APPLY ATTEMPT FAILED (retry {deploy_retries}):**\n"
+            f"{previous_error}\n\n"
+            "Please fix the manifests based on this error and re-commit."
+        )
 
-    # Create agent with deployment tools
-    tools = [
-        kubectl_create_namespace,
-        kubectl_apply,
-        kubectl_apply_from_string,
-        kubectl_get,
-        kubectl_logs,
-        kubectl_wait_for_rollout,
-        kubectl_get_service_url,
-        read_file,
-        write_file,
-        render_template,
-        git_commit,
-        git_push,
-    ]
-
-    agent = create_react_agent(model=llm, tools=tools, pre_model_hook=make_context_trimmer())
+    # Create agent with manifest generation tools only
+    agent = create_react_agent(
+        model=llm,
+        tools=DEPLOY_TOOLS,
+        pre_model_hook=make_context_trimmer(),
+    )
 
     logger.info("Invoking deploy agent for %d components", len(components))
 
@@ -230,67 +224,20 @@ Components and their built images:
                     HumanMessage(content=user_message),
                 ]
             },
-            config={"recursion_limit": 40},
+            config={"recursion_limit": 30},
         )
 
-        # Extract deployed resources and routes from agent's response
-        # The agent should have used the tools to deploy and capture this info
-        # For now, we'll extract from the final message or tool calls
+        logger.info("Deploy (manifest generation) complete")
 
-        deployed_resources = []
-        routes = []
-
-        # Parse tool calls to extract deployed resources
-        messages = result.get("messages", [])
-        for msg in messages:
-            # Check tool calls for kubectl_apply or kubectl_wait_for_rollout
-            if hasattr(msg, "tool_calls"):
-                for tool_call in msg.tool_calls:
-                    if tool_call["name"] == "kubectl_apply":
-                        # Extract resource from manifest path
-                        manifest_path = tool_call["args"].get("manifest_path", "")
-                        if manifest_path:
-                            # Infer resource type from filename
-                            if "deployment" in manifest_path:
-                                resource_name = Path(manifest_path).stem.replace("-deployment", "")
-                                deployed_resources.append(f"deployment/{resource_name}")
-                            elif "service" in manifest_path:
-                                resource_name = Path(manifest_path).stem.replace("-service", "")
-                                deployed_resources.append(f"service/{resource_name}")
-
-            # Check for kubectl_get_service_url results
-            if hasattr(msg, "content") and isinstance(msg.content, str):
-                if msg.content.startswith("http://") or msg.content.startswith("https://"):
-                    routes.append(msg.content)
-
-        # If we didn't extract resources from tool calls, infer from components
-        if not deployed_resources:
-            for component in components:
-                comp_name = component.get("name", "")
-                deployed_resources.extend([f"deployment/{comp_name}", f"service/{comp_name}"])
-
-        logger.info(
-            "Deployment complete: %d resources, %d routes", len(deployed_resources), len(routes)
-        )
-
-        # Clear error on success
         return {
             "current_phase": PoCPhase.DEPLOY,
-            "deployed_resources": deployed_resources,
-            "routes": routes,
             "error": None,
         }
 
     except Exception as e:
-        logger.error("Deploy failed: %s", e, exc_info=True)
-
-        # Increment retry counter
-        current_retries = state.get("deploy_retries", 0)
+        logger.error("Deploy (manifest generation) failed: %s", e, exc_info=True)
 
         return {
             "current_phase": PoCPhase.DEPLOY,
-            "deployed_resources": [],
-            "routes": [],
-            "error": f"Deployment failed: {e}",
-            "deploy_retries": current_retries + 1,
+            "error": f"Manifest generation failed: {e}",
         }

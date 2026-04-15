@@ -18,6 +18,7 @@ class PoCPhase(str, Enum):
     CONTAINERIZE = "containerize"
     BUILD = "build"
     DEPLOY = "deploy"
+    APPLY = "apply"
     POC_EXECUTE = "poc_execute"
     POC_REPORT = "poc_report"
     DONE = "done"
