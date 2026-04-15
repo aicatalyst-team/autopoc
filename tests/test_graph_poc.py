@@ -416,7 +416,7 @@ def _build_test_graph(
 ):
     """Build the full graph with mock agent functions."""
     from langgraph.graph import StateGraph, END
-    from autopoc.graph import route_after_build, route_after_apply
+    from autopoc.graph import route_after_intake, route_after_build, route_after_apply
 
     sg = StateGraph(PoCState)
     sg.add_node("intake", intake_fn)
@@ -430,8 +430,11 @@ def _build_test_graph(
     sg.add_node("poc_report", poc_report_fn)
 
     sg.set_entry_point("intake")
-    sg.add_edge("intake", "poc_plan")
-    sg.add_edge("intake", "fork")
+    sg.add_conditional_edges(
+        "intake",
+        route_after_intake,
+        {"poc_plan": "poc_plan", "fork": "fork", "failed": END},
+    )
     sg.add_edge("poc_plan", "containerize")
     sg.add_edge("fork", "containerize")
     sg.add_edge("containerize", "build")
@@ -483,13 +486,14 @@ class TestGraphPoCCompilation:
             assert node in nodes, f"Missing node: {node}"
 
     def test_graph_parallel_edges(self):
-        """Verify intake fans out to both poc_plan and fork."""
+        """Verify intake fans out to both poc_plan and fork (conditional edges)."""
         from autopoc.graph import build_graph
 
         graph = build_graph()
         mermaid = graph.get_graph().draw_mermaid()
-        assert "intake --> poc_plan" in mermaid
-        assert "intake --> fork" in mermaid
+        # Conditional edges use dotted arrows (-.->)
+        assert "intake -.-> poc_plan" in mermaid
+        assert "intake -.-> fork" in mermaid
         assert "poc_plan --> containerize" in mermaid
         assert "fork --> containerize" in mermaid
 

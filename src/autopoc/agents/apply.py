@@ -226,7 +226,7 @@ Components:
                     HumanMessage(content=user_message),
                 ]
             },
-            config={"recursion_limit": 40},
+            config={"recursion_limit": 60},
         )
 
         messages = result.get("messages", [])

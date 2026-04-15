@@ -256,3 +256,8 @@ You have a limited context window. Be extremely selective about which files you 
 6. **Call tools ONE AT A TIME.** Do not batch multiple tool calls in a single
    response. Call one tool, review the result, then decide what to call next.
    This prevents context overflow from multiple large results arriving at once.
+7. **STOP EARLY AND PRODUCE OUTPUT.** After reading 3-5 files, you likely have
+   enough information. Do NOT keep reading more files. Produce your JSON output
+   immediately. It is FAR BETTER to produce a slightly incomplete analysis than
+   to run out of steps without producing any output at all. If you are unsure
+   about a field (e.g., port), set it to null rather than reading more files.

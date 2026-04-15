@@ -234,7 +234,7 @@ Components and their built images:
                     HumanMessage(content=user_message),
                 ]
             },
-            config={"recursion_limit": 30},
+            config={"recursion_limit": 60},
         )
 
         logger.info("Deploy (manifest generation) complete")

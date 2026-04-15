@@ -434,6 +434,11 @@ async def poc_plan_agent(
     # Extract the final AI message with actual content
     raw_output = _extract_final_ai_content(result["messages"])
 
+    # Detect agent step exhaustion
+    steps_exhausted_msg = "Sorry, need more steps to process this request."
+    if steps_exhausted_msg in raw_output:
+        logger.error("PoC plan agent exhausted its step budget without producing output")
+
     # Also try to extract JSON from all messages (the structured output
     # may be in a different message than the final one)
     all_ai_content = _collect_all_ai_content(result["messages"])

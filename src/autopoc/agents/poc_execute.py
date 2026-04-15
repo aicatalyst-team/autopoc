@@ -228,7 +228,7 @@ async def poc_execute_agent(
                     HumanMessage(content=user_message),
                 ],
             },
-            config={"recursion_limit": 40},
+            config={"recursion_limit": 60},
         )
 
         # Extract the final AI message

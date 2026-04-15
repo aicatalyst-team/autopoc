@@ -32,6 +32,21 @@ from autopoc.state import PoCPhase, PoCState
 logger = logging.getLogger(__name__)
 
 
+def route_after_intake(state: PoCState) -> list[str]:
+    """Determine next steps after intake.
+
+    If intake succeeded, fan out to both poc_plan and fork in parallel.
+    If intake failed (e.g., 0 components, step exhaustion), stop the pipeline.
+    """
+    error = state.get("error")
+    if error:
+        logger.error("Intake failed: %s. Stopping pipeline.", error)
+        return ["failed"]
+
+    # Fan-out to both poc_plan and fork
+    return ["poc_plan", "fork"]
+
+
 def route_after_build(state: PoCState) -> str:
     """Determine the next step after a build attempt.
 
@@ -131,9 +146,16 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     # Wire edges
     graph.set_entry_point("intake")
 
-    # Fan-out: intake feeds both poc_plan and fork in parallel
-    graph.add_edge("intake", "poc_plan")
-    graph.add_edge("intake", "fork")
+    # Conditional fan-out after intake: proceed to poc_plan + fork if success, END if failure
+    graph.add_conditional_edges(
+        "intake",
+        route_after_intake,
+        {
+            "poc_plan": "poc_plan",
+            "fork": "fork",
+            "failed": END,
+        },
+    )
 
     # Fan-in: both poc_plan and fork must complete before containerize runs
     graph.add_edge("poc_plan", "containerize")

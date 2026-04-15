@@ -18,6 +18,9 @@ from autopoc.context import make_context_trimmer
 from autopoc.llm import create_llm
 from autopoc.state import ComponentInfo, PoCPhase, PoCState
 from autopoc.tools.file_tools import list_files, read_file, search_files
+
+# LangGraph emits this message when the agent exhausts its recursion budget.
+STEPS_EXHAUSTED_MSG = "Sorry, need more steps to process this request."
 from autopoc.tools.git_tools import git_clone
 
 logger = logging.getLogger(__name__)
@@ -180,9 +183,10 @@ async def intake_agent(
         f"All tool calls should use absolute paths starting with {clone_path}."
     )
 
-    # Invoke the agent with a recursion limit to prevent context overflow.
-    # Each tool call round-trip is ~2 recursions. Limit of 30 allows ~15 tool calls,
-    # which is sufficient for intake analysis of any repo.
+    # Invoke the agent.
+    # Recursion limit of 60 allows ~30 tool calls. The pre_model_hook takes
+    # a step each time, and the LLM needs headroom to produce output after
+    # reading files. Previous limit of 30 was too tight.
     result = await agent.ainvoke(
         {
             "messages": [
@@ -190,17 +194,57 @@ async def intake_agent(
                 HumanMessage(content=user_message),
             ],
         },
-        config={"recursion_limit": 30},
+        config={"recursion_limit": 60},
     )
 
     # Extract the final AI message with actual content
     raw_output = _extract_final_ai_content(result["messages"])
+
+    # Detect agent step exhaustion — LangGraph emits a canonical message
+    # when remaining_steps < 2. If this happened, the agent never produced
+    # its JSON output and we must fail explicitly.
+    if STEPS_EXHAUSTED_MSG in raw_output:
+        logger.error("Intake agent exhausted its step budget without producing output")
+        return {
+            "current_phase": PoCPhase.INTAKE,
+            "local_clone_path": str(clone_path),
+            "repo_summary": "",
+            "components": [],
+            "has_helm_chart": False,
+            "has_kustomize": False,
+            "has_compose": False,
+            "existing_ci_cd": None,
+            "error": (
+                "Intake agent exhausted its step budget before producing analysis. "
+                "The repository may be too large or complex. "
+                "Try running with a simpler repo or increasing the recursion limit."
+            ),
+        }
 
     # Parse the structured output
     parsed = _parse_intake_output(raw_output)
 
     # Validate and build components list
     components = [_validate_component(comp) for comp in parsed.get("components", [])]
+
+    # If we parsed but got 0 components, that's also a failure — intake must
+    # find at least one component for the pipeline to do anything useful.
+    if not components:
+        logger.error("Intake found 0 components — pipeline cannot proceed")
+        return {
+            "current_phase": PoCPhase.INTAKE,
+            "local_clone_path": str(clone_path),
+            "repo_summary": parsed.get("repo_summary", ""),
+            "components": [],
+            "has_helm_chart": parsed.get("has_helm_chart", False),
+            "has_kustomize": parsed.get("has_kustomize", False),
+            "has_compose": parsed.get("has_compose", False),
+            "existing_ci_cd": parsed.get("existing_ci_cd"),
+            "error": (
+                "Intake analysis found 0 components. The repository may use an "
+                "unsupported build system, or the LLM failed to parse the output correctly."
+            ),
+        }
 
     logger.info(
         "Intake complete: found %d component(s): %s",

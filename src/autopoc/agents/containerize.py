@@ -322,7 +322,7 @@ async def containerize_agent(
                     HumanMessage(content=user_message),
                 ],
             },
-            config={"recursion_limit": 30},
+            config={"recursion_limit": 60},
         )
 
         # Extract the final AI message with actual content
