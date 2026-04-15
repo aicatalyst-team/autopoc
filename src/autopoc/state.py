@@ -126,6 +126,7 @@ class PoCState(TypedDict, total=False):
     local_clone_path: str | None
 
     # --- Intake/analysis output ---
+    repo_digest: str  # Pre-generated text digest of the repo (procedural, no LLM)
     repo_summary: str  # LLM-generated summary of the repo
     components: list[ComponentInfo]  # Detected components/apps
     has_helm_chart: bool

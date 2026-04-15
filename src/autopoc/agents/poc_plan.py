@@ -321,6 +321,18 @@ def _build_user_message(state: PoCState) -> str:
     parts.append(f"Repository cloned at: {clone_path}")
     parts.append("")
 
+    # Include repo digest (pre-generated summary of the repo)
+    repo_digest = state.get("repo_digest", "")
+    if repo_digest:
+        parts.append("## Repository Digest (pre-generated)")
+        parts.append(repo_digest)
+        parts.append("")
+        parts.append(
+            "Use this digest as your primary reference. Only call file tools "
+            "if you need specific details not covered above."
+        )
+        parts.append("")
+
     # Include intake results
     repo_summary = state.get("repo_summary", "")
     if repo_summary:

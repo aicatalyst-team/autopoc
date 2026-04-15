@@ -320,6 +320,7 @@ def run(
         "has_kustomize": False,
         "has_compose": False,
         "existing_ci_cd": None,
+        "repo_digest": "",
         "poc_plan": "",
         "poc_plan_path": "",
         "poc_plan_error": None,

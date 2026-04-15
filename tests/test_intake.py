@@ -118,7 +118,7 @@ class TestValidateComponent:
 class TestIntakeAgent:
     """Test the intake agent using mocked LLM responses.
 
-    These tests mock the create_react_agent to avoid real LLM calls
+    These tests mock the one-shot LLM call to avoid real LLM calls
     while still verifying the agent's input/output handling.
     """
 
@@ -185,17 +185,13 @@ class TestIntakeAgent:
             routes=[],
         )
 
-    def _make_mock_agent(self, llm_json_response: dict) -> AsyncMock:
-        """Create a mock for create_react_agent that returns a canned response."""
+    def _make_mock_llm(self, llm_json_response: dict) -> AsyncMock:
+        """Create a mock LLM that returns a canned JSON response."""
         from langchain_core.messages import AIMessage
 
-        mock_agent = AsyncMock()
-        mock_agent.ainvoke.return_value = {
-            "messages": [
-                AIMessage(content=json.dumps(llm_json_response)),
-            ]
-        }
-        return mock_agent
+        mock_llm = AsyncMock()
+        mock_llm.ainvoke.return_value = AIMessage(content=json.dumps(llm_json_response))
+        return mock_llm
 
     @pytest.mark.asyncio
     async def test_flask_app_intake(self, flask_state: PoCState) -> None:
@@ -220,10 +216,14 @@ class TestIntakeAgent:
             "existing_ci_cd": None,
         }
 
-        mock_agent = self._make_mock_agent(llm_response)
+        mock_llm = self._make_mock_llm(llm_response)
 
-        with patch("autopoc.agents.intake.create_react_agent", return_value=mock_agent):
-            result = await intake_agent(flask_state, llm=AsyncMock())
+        with (
+            patch("autopoc.agents.intake.git_clone") as mock_clone,
+            patch("autopoc.agents.intake.build_repo_digest", return_value="# Digest"),
+        ):
+            mock_clone.invoke.return_value = "Cloned to /tmp/test"
+            result = await intake_agent(flask_state, llm=mock_llm)
 
         assert result["current_phase"] == PoCPhase.INTAKE
         assert len(result["components"]) == 1
@@ -268,10 +268,14 @@ class TestIntakeAgent:
             "existing_ci_cd": None,
         }
 
-        mock_agent = self._make_mock_agent(llm_response)
+        mock_llm = self._make_mock_llm(llm_response)
 
-        with patch("autopoc.agents.intake.create_react_agent", return_value=mock_agent):
-            result = await intake_agent(monorepo_state, llm=AsyncMock())
+        with (
+            patch("autopoc.agents.intake.git_clone") as mock_clone,
+            patch("autopoc.agents.intake.build_repo_digest", return_value="# Digest"),
+        ):
+            mock_clone.invoke.return_value = "Cloned to /tmp/test"
+            result = await intake_agent(monorepo_state, llm=mock_llm)
 
         assert len(result["components"]) == 2
         names = [c["name"] for c in result["components"]]
@@ -302,10 +306,14 @@ class TestIntakeAgent:
             "existing_ci_cd": None,
         }
 
-        mock_agent = self._make_mock_agent(llm_response)
+        mock_llm = self._make_mock_llm(llm_response)
 
-        with patch("autopoc.agents.intake.create_react_agent", return_value=mock_agent):
-            result = await intake_agent(ml_state, llm=AsyncMock())
+        with (
+            patch("autopoc.agents.intake.git_clone") as mock_clone,
+            patch("autopoc.agents.intake.build_repo_digest", return_value="# Digest"),
+        ):
+            mock_clone.invoke.return_value = "Cloned to /tmp/test"
+            result = await intake_agent(ml_state, llm=mock_llm)
 
         assert len(result["components"]) == 1
         comp = result["components"][0]
@@ -314,38 +322,54 @@ class TestIntakeAgent:
         assert comp["port"] == 8080
 
     @pytest.mark.asyncio
-    async def test_clone_path_preserved(self, flask_state: PoCState) -> None:
-        """The local_clone_path is preserved in the output state."""
+    async def test_clone_path_set(self, flask_state: PoCState) -> None:
+        """The local_clone_path is set based on config.work_dir and project name."""
         llm_response = {
             "repo_summary": "test",
-            "components": [],
+            "components": [
+                {
+                    "name": "app",
+                    "language": "python",
+                    "build_system": "pip",
+                    "entry_point": "app.py",
+                    "port": 5000,
+                    "existing_dockerfile": None,
+                    "is_ml_workload": False,
+                    "source_dir": ".",
+                }
+            ],
             "has_helm_chart": False,
             "has_kustomize": False,
             "has_compose": False,
             "existing_ci_cd": None,
         }
 
-        mock_agent = self._make_mock_agent(llm_response)
+        mock_llm = self._make_mock_llm(llm_response)
 
-        with patch("autopoc.agents.intake.create_react_agent", return_value=mock_agent):
-            result = await intake_agent(flask_state, llm=AsyncMock())
+        with (
+            patch("autopoc.agents.intake.git_clone") as mock_clone,
+            patch("autopoc.agents.intake.build_repo_digest", return_value="# Digest"),
+        ):
+            mock_clone.invoke.return_value = "Cloned to /tmp/test"
+            result = await intake_agent(flask_state, llm=mock_llm)
 
-        assert result["local_clone_path"] == str(FIXTURES_DIR / "python-flask-app")
+        # Clone path is derived from config.work_dir + project_name
+        assert result["local_clone_path"].endswith("flask-app")
 
     @pytest.mark.asyncio
     async def test_handles_malformed_llm_output(self, flask_state: PoCState) -> None:
         """Agent handles gracefully when LLM returns non-JSON output."""
         from langchain_core.messages import AIMessage
 
-        mock_agent = AsyncMock()
-        mock_agent.ainvoke.return_value = {
-            "messages": [
-                AIMessage(content="I couldn't analyze this repo properly."),
-            ]
-        }
+        mock_llm = AsyncMock()
+        mock_llm.ainvoke.return_value = AIMessage(content="I couldn't analyze this repo properly.")
 
-        with patch("autopoc.agents.intake.create_react_agent", return_value=mock_agent):
-            result = await intake_agent(flask_state, llm=AsyncMock())
+        with (
+            patch("autopoc.agents.intake.git_clone") as mock_clone,
+            patch("autopoc.agents.intake.build_repo_digest", return_value="# Digest"),
+        ):
+            mock_clone.invoke.return_value = "Cloned to /tmp/test"
+            result = await intake_agent(flask_state, llm=mock_llm)
 
         # Should still return a valid state, just with empty components
         assert result["components"] == []

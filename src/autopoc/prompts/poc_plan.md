@@ -509,19 +509,11 @@ Follow these steps IN ORDER:
 - Your final text response after writing the file must contain ONLY the JSON object.
    No additional text, no markdown fences, just the raw JSON.
 
-## CRITICAL — Context Budget
+## Using the Repository Digest
 
-You have a limited context window. The intake agent has already analyzed the repo
-structure and provided its findings above. **Be surgical with file reads:**
-
-1. **Do NOT re-read files the intake agent already analyzed** (README, dependency
-   manifests, etc.) — that information is in the intake results above.
-2. **Read ONLY files you need to answer specific questions** — e.g., the main entry
-   point to understand how to invoke the app, or a config file to find env vars.
-3. **Do NOT read lock files**, benchmark data, test fixtures, or documentation files.
-4. **Use `search_files`** instead of `read_file` when looking for patterns across
-   the codebase (e.g., searching for imports, port bindings, or env var usage).
-5. **Aim for 5-8 `read_file` calls maximum.** You already have the intake results —
-   you need targeted reads, not a full repo scan.
-6. **Call tools ONE AT A TIME.** Do not batch multiple tool calls in a single
-   response. Call one tool, review the result, then decide what to call next.
+The user message includes a pre-generated repository digest with file tree, build
+file content, README, entry points, and existing Dockerfiles. **Use this as your
+primary reference.** Only call `read_file` or `search_files` if you need specific
+details not covered in the digest (e.g., reading a config file for env vars, or
+searching for a specific import pattern). Most repos can be planned from the digest
+alone with 0-3 tool calls.

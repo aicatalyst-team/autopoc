@@ -10,10 +10,9 @@ import re
 from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.prebuilt import create_react_agent
 
-from autopoc.agents.intake import _extract_final_ai_content
 from autopoc.context import make_context_trimmer
 from autopoc.llm import create_llm
 from autopoc.state import ComponentInfo, PoCInfrastructure, PoCPhase, PoCState
@@ -22,6 +21,23 @@ from autopoc.tools.git_tools import git_commit, git_push
 from autopoc.tools.template_tools import render_template
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_final_ai_content(messages: list) -> str:
+    """Extract text content from the last AIMessage with non-empty content."""
+    for msg in reversed(messages):
+        if not isinstance(msg, AIMessage):
+            continue
+        content = msg.content
+        if isinstance(content, list):
+            content = "".join(
+                part["text"] if isinstance(part, dict) and "text" in part else str(part)
+                for part in content
+            )
+        if isinstance(content, str) and content.strip():
+            return content
+    return ""
+
 
 # Tools available to the containerize agent
 CONTAINERIZE_TOOLS = [list_files, read_file, write_file, search_files, render_template]

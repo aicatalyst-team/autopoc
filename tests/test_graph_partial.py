@@ -86,35 +86,27 @@ def initial_state(sample_repo: Path) -> PoCState:
     )
 
 
-def _make_intake_mock_agent(clone_path: str) -> AsyncMock:
-    """Mock agent for intake that returns a canned analysis."""
-    from langchain_core.messages import AIMessage
-
-    response = json.dumps(
-        {
-            "repo_summary": "A simple Flask web application.",
-            "components": [
-                {
-                    "name": "app",
-                    "language": "python",
-                    "build_system": "pip",
-                    "entry_point": "app.py",
-                    "port": 5000,
-                    "existing_dockerfile": None,
-                    "is_ml_workload": False,
-                    "source_dir": ".",
-                }
-            ],
-            "has_helm_chart": False,
-            "has_kustomize": False,
-            "has_compose": False,
-            "existing_ci_cd": None,
-        }
-    )
-
-    mock = AsyncMock()
-    mock.ainvoke.return_value = {"messages": [AIMessage(content=response)]}
-    return mock
+INTAKE_JSON_RESPONSE = json.dumps(
+    {
+        "repo_summary": "A simple Flask web application.",
+        "components": [
+            {
+                "name": "app",
+                "language": "python",
+                "build_system": "pip",
+                "entry_point": "app.py",
+                "port": 5000,
+                "existing_dockerfile": None,
+                "is_ml_workload": False,
+                "source_dir": ".",
+            }
+        ],
+        "has_helm_chart": False,
+        "has_kustomize": False,
+        "has_compose": False,
+        "existing_ci_cd": None,
+    }
+)
 
 
 def _make_containerize_mock_agent() -> AsyncMock:
@@ -173,22 +165,26 @@ class TestGraphPartial:
             "WORK_DIR": str(tmp_path / "work"),
         }
 
-        intake_mock = _make_intake_mock_agent(str(tmp_path / "work" / "sample-app"))
         containerize_mock = _make_containerize_mock_agent()
 
-        # Track which mock to return based on call context
-        create_agent_calls = []
+        # Mock LLM for intake (one-shot, returns AIMessage directly)
+        from langchain_core.messages import AIMessage as AI
+
+        mock_llm = AsyncMock()
+        mock_llm.ainvoke.return_value = AI(content=INTAKE_JSON_RESPONSE)
 
         def mock_create_react_agent(**kwargs):
-            create_agent_calls.append(kwargs)
-            # First call is intake, second is containerize
-            if len(create_agent_calls) == 1:
-                return intake_mock
             return containerize_mock
 
         with (
             patch.dict(os.environ, env_patch, clear=True),
-            patch("autopoc.agents.intake.create_react_agent", side_effect=mock_create_react_agent),
+            # Intake: mock LLM and git_clone (intake no longer uses create_react_agent)
+            patch("autopoc.agents.intake.create_llm", return_value=mock_llm),
+            patch("autopoc.agents.intake.git_clone") as mock_clone,
+            patch(
+                "autopoc.agents.intake.build_repo_digest", return_value="# Digest\nSample flask app"
+            ),
+            # Containerize: still uses create_react_agent
             patch(
                 "autopoc.agents.containerize.create_react_agent",
                 side_effect=mock_create_react_agent,
@@ -200,6 +196,8 @@ class TestGraphPartial:
             patch("autopoc.agents.build.podman_build"),
             patch("autopoc.agents.build.podman_push"),
         ):
+            # Make git_clone return success (the clone_path directory already exists from sample_repo)
+            mock_clone.invoke.return_value = f"Cloned to {tmp_path / 'work' / 'sample-app'}"
             graph = build_graph()
             result = await graph.ainvoke(initial_state)
 
