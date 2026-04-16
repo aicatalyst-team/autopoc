@@ -259,6 +259,37 @@ Dockerfile.ubi to address the issue. Common fixes:
   - Ensure `chgrp -R 0` covers the relevant directory
   - Some operations may need to run as USER 0 before final USER 1001
 
+## Runtime Container Fix (Outer Loop)
+
+Sometimes a container image builds successfully but **fails at runtime** after
+deployment (CrashLoopBackOff, ImportError, wrong entrypoint, missing config file).
+When this happens, the pipeline loops back to you with the runtime error.
+
+Look for the heading **RUNTIME FAILURE — CONTAINER FIX REQUESTED** in the user
+message. It includes:
+- The **action** — either "Fix the Dockerfile" or "Create an experimental variant"
+- The **pod logs / error output** from the crashed container
+
+### Fix the Dockerfile
+The existing Dockerfile.ubi is broken. Read the runtime error carefully, then
+modify the Dockerfile.ubi to fix the issue. Common fixes:
+- Add a missing Python/Node dependency to the install step
+- Fix the ENTRYPOINT or CMD (wrong binary, wrong module path)
+- Add a missing COPY for config files or data
+- Fix file permissions (chgrp / chmod for OpenShift)
+- Install a missing system package via microdnf
+
+### Create an Experimental Variant
+The base Dockerfile.ubi is correct, but this specific deployment needs a slight
+modification. Examples:
+- A different CMD to run a specific subcommand
+- An extra runtime package not in the original requirements
+- A baked-in configuration file
+- A different port binding
+
+Modify the Dockerfile.ubi for this variant. The build system will tag the
+resulting image as `:experiment-N` so the original `:latest` stays clean.
+
 ## Output
 
 Write the Dockerfile.ubi to the component's source directory using `write_file`.

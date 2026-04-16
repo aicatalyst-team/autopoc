@@ -207,7 +207,21 @@ async def build_agent(
             repo_name = f"{project_name}-{comp_name}"
             # Ensure Quay repo exists
             image_ref = quay_client.ensure_repo(app_config.quay_org, repo_name)
-            full_tag = f"{image_ref}:latest"
+
+            # Determine image tag based on container_fix_action
+            container_fix_action = state.get("container_fix_action")
+            if container_fix_action == "experiment":
+                exp_counter = state.get("experiment_tag_counter", 0) + 1
+                tag = f"experiment-{exp_counter}"
+                logger.info(
+                    "Experiment mode: tagging %s as :%s (keeping :latest clean)",
+                    comp_name,
+                    tag,
+                )
+            else:
+                tag = "latest"
+
+            full_tag = f"{image_ref}:{tag}"
 
             if full_tag in built_images:
                 logger.info("Skipping build for %s: already built", comp_name)
@@ -333,12 +347,19 @@ async def build_agent(
                 }
 
         logger.info("All builds completed successfully")
-        return {
+        result_state = {
             "current_phase": PoCPhase.BUILD,
             "error": None,
             "components": components,
             "built_images": built_images,
         }
+        # If we used an experiment tag, update the counter
+        container_fix_action = state.get("container_fix_action")
+        if container_fix_action == "experiment":
+            result_state["experiment_tag_counter"] = state.get("experiment_tag_counter", 0) + 1
+        # Clear the action so deploy picks up the new image cleanly
+        result_state["container_fix_action"] = None
+        return result_state
 
     finally:
         if owns_client:

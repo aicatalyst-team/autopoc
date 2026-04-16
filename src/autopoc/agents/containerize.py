@@ -256,6 +256,36 @@ async def containerize_agent(
     components = list(state.get("components", []))
     build_error = state.get("error")
 
+    # -------------------------------------------------------------------------
+    # Detect outer-loop entry: apply escalated to containerize due to a
+    # container-level runtime failure (CrashLoopBackOff, missing dep, etc.)
+    # -------------------------------------------------------------------------
+    container_fix_error = state.get("container_fix_error")
+    container_fix_action = state.get("container_fix_action")  # "fix-dockerfile" | "experiment"
+    is_container_fix = container_fix_error is not None
+
+    # Extra state to return when we're in the outer loop
+    outer_loop_state: dict = {}
+
+    if is_container_fix:
+        # Increment the outer-loop counter and reset inner counters so the
+        # rebuilt image gets a fresh deploy→apply cycle.
+        prev_fix_retries = state.get("container_fix_retries", 0)
+        outer_loop_state = {
+            "container_fix_retries": prev_fix_retries + 1,
+            "deploy_retries": 0,
+            "build_retries": 0,
+            # Carry the action through so build_agent knows the tagging strategy
+            "container_fix_action": container_fix_action,
+            # Clear the error that triggered the escalation (we're handling it)
+            "container_fix_error": None,
+        }
+        logger.info(
+            "Outer loop: containerize re-entered from apply (action=%s, container_fix_retry=%d)",
+            container_fix_action,
+            prev_fix_retries + 1,
+        )
+
     # Check if poc_plan failed — if so, stop early. Proceeding with fallback
     # defaults would produce wrong Dockerfiles and waste LLM calls.
     poc_plan_error = state.get("poc_plan_error")
@@ -265,11 +295,16 @@ async def containerize_agent(
             "current_phase": PoCPhase.CONTAINERIZE,
             "components": components,
             "error": f"PoC plan failed: {poc_plan_error}",
+            **outer_loop_state,
         }
 
     if not components:
         logger.warning("No components to containerize")
-        return {"current_phase": PoCPhase.CONTAINERIZE, "components": components}
+        return {
+            "current_phase": PoCPhase.CONTAINERIZE,
+            "components": components,
+            **outer_loop_state,
+        }
 
     # Filter to only PoC-relevant components (if poc_plan specified which ones)
     poc_components = state.get("poc_components", [])
@@ -286,7 +321,11 @@ async def containerize_agent(
             )
         if not components:
             logger.warning("No PoC-relevant components after filtering")
-            return {"current_phase": PoCPhase.CONTAINERIZE, "components": components}
+            return {
+                "current_phase": PoCPhase.CONTAINERIZE,
+                "components": components,
+                **outer_loop_state,
+            }
 
     # Get PoC infrastructure requirements (may be absent for older flows)
     poc_infrastructure = state.get("poc_infrastructure")
@@ -311,15 +350,16 @@ async def containerize_agent(
     for component in components:
         comp_name = component.get("name", "unknown")
 
-        # In a retry loop, skip components that already built successfully
-        if retries > 0 and component.get("image_name") in state.get("built_images", []):
-            logger.info("Skipping containerize for %s: already built successfully", comp_name)
-            updated_components.append(component)
-            continue
+        # In a build-retry loop, skip components that already built successfully
+        if retries > 0 and not is_container_fix:
+            if component.get("image_name") in state.get("built_images", []):
+                logger.info("Skipping containerize for %s: already built successfully", comp_name)
+                updated_components.append(component)
+                continue
 
-        # In a retry loop, skip components that haven't failed (they don't need re-generation)
+        # In a build-retry loop, skip components that haven't failed
         component_build_error = None
-        if retries > 0:
+        if retries > 0 and not is_container_fix:
             if not build_error or f"Build failed for component '{comp_name}'" not in build_error:
                 logger.info(
                     "Skipping containerize for %s: no build error for this component", comp_name
@@ -346,6 +386,38 @@ async def containerize_agent(
             poc_type=poc_type,
             poc_plan_text=state.get("poc_plan"),
         )
+
+        # If this is a container-fix from the outer loop, append the runtime
+        # error so the LLM knows what went wrong at deploy time.
+        if is_container_fix and container_fix_error:
+            action_label = (
+                "Create an experimental variant"
+                if container_fix_action == "experiment"
+                else "Fix the Dockerfile"
+            )
+            user_message += (
+                f"\n\n**RUNTIME FAILURE — CONTAINER FIX REQUESTED**\n"
+                f"Action: **{action_label}**\n\n"
+                f"The container was deployed to Kubernetes but failed at runtime. "
+                f"The error below is from the running pod (logs, events, or status).\n"
+                f"```\n{container_fix_error}\n```\n\n"
+            )
+            if container_fix_action == "experiment":
+                user_message += (
+                    "The existing Dockerfile.ubi is considered correct for the base image. "
+                    "Create a **modified variant** that addresses the runtime issue — for "
+                    "example, a different CMD/ENTRYPOINT, an extra runtime dependency, or "
+                    "a baked-in config file. The build system will tag this as an experiment "
+                    "image so the original `:latest` stays clean.\n"
+                )
+            else:
+                user_message += (
+                    "The Dockerfile.ubi has a bug that causes the container to fail at "
+                    "runtime. Fix it so the container starts and runs correctly. Common "
+                    "causes: missing dependency in requirements/package install, wrong "
+                    "ENTRYPOINT/CMD, missing COPY for required files, wrong working "
+                    "directory.\n"
+                )
 
         # Invoke the agent
         result = await agent.ainvoke(
@@ -383,6 +455,11 @@ async def containerize_agent(
         )
 
     # Commit and push the new Dockerfiles
+    commit_msg = (
+        "Fix Dockerfile.ubi (runtime container fix)"
+        if is_container_fix
+        else "Add Dockerfile.ubi files for OpenShift deployment"
+    )
     try:
         dockerfile_files = [
             c["dockerfile_ubi_path"] for c in updated_components if c.get("dockerfile_ubi_path")
@@ -391,7 +468,7 @@ async def containerize_agent(
             git_commit.invoke(
                 {
                     "repo_path": clone_path,
-                    "message": "Add Dockerfile.ubi files for OpenShift deployment",
+                    "message": commit_msg,
                     "files": dockerfile_files,
                 }
             )
@@ -413,5 +490,6 @@ async def containerize_agent(
     return {
         "current_phase": PoCPhase.CONTAINERIZE,
         "components": updated_components,
-        "error": None,  # Clear any previous build error
+        "error": None,  # Clear any previous build/apply error
+        **outer_loop_state,
     }

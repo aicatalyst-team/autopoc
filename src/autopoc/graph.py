@@ -5,11 +5,16 @@ parallel fan-out/fan-in for PoC planning, conditional routing for
 retry loops, and the PoC execution/report tail.
 
 Full graph:
-    intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy → apply ⟲ poc_execute → poc_report → END
+    intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ apply → poc_execute → poc_report → END
+                                       ↑                          │
+                                       └──────────────────────────┘  (outer loop: container fix)
 
 The deploy/apply split mirrors containerize/build:
 - containerize generates Dockerfiles, build runs podman
 - deploy generates K8s manifests, apply runs kubectl
+
+When apply detects a container-level failure (crash, missing dep) rather than
+a manifest issue, it can escalate to containerize via the outer loop.
 """
 
 import logging
@@ -83,9 +88,13 @@ def route_after_apply(state: PoCState) -> str:
     """Determine the next step after an apply attempt.
 
     If apply succeeded (no error), proceed to PoC execution.
-    If apply failed but we have retries left, loop back to deploy to fix manifests,
-    then re-apply.
-    If retries are exhausted, fail.
+    If apply failed, the apply agent's triage classified the error as one of:
+    - fix-manifest  → loop back to deploy (inner loop)
+    - fix-dockerfile / experiment → escalate to containerize (outer loop)
+
+    Each loop has its own retry counter:
+    - deploy_retries for the inner deploy↔apply loop
+    - container_fix_retries for the outer apply→containerize escalation
     """
     error = state.get("error")
 
@@ -93,10 +102,30 @@ def route_after_apply(state: PoCState) -> str:
     if error is None:
         return "poc_execute"
 
-    # Failed: check if we can retry
     config = load_config()
-    retries = state.get("deploy_retries", 0)
+    action = state.get("container_fix_action")
 
+    # Container-level fix: escalate to containerize (outer loop)
+    if action in ("fix-dockerfile", "experiment"):
+        container_fix_retries = state.get("container_fix_retries", 0)
+        if container_fix_retries < config.max_container_fix_retries:
+            logger.warning(
+                "Apply detected container issue (action=%s, retry %d/%d). "
+                "Escalating to containerize.",
+                action,
+                container_fix_retries,
+                config.max_container_fix_retries,
+            )
+            return "containerize"
+        logger.error(
+            "Container fix retries exhausted (%d/%d). Failing pipeline.",
+            container_fix_retries,
+            config.max_container_fix_retries,
+        )
+        return "failed"
+
+    # Manifest-level fix: loop back to deploy (inner loop)
+    retries = state.get("deploy_retries", 0)
     if retries < config.max_deploy_retries:
         logger.warning(
             "Apply failed (retry %d/%d). Looping back to deploy to fix manifests.",
@@ -105,7 +134,23 @@ def route_after_apply(state: PoCState) -> str:
         )
         return "deploy"
 
-    logger.error("Apply failed after %d retries. Failing pipeline.", retries)
+    # Deploy retries exhausted — as a last resort, check if this might be a
+    # container issue that the triage missed (default was fix-manifest)
+    container_fix_retries = state.get("container_fix_retries", 0)
+    if container_fix_retries < config.max_container_fix_retries:
+        logger.warning(
+            "Deploy retries exhausted but container fix available (%d/%d). "
+            "Escalating to containerize as last resort.",
+            container_fix_retries,
+            config.max_container_fix_retries,
+        )
+        return "containerize"
+
+    logger.error(
+        "Apply failed after %d deploy retries and %d container fix retries. Failing pipeline.",
+        retries,
+        container_fix_retries,
+    )
     return "failed"
 
 
@@ -113,14 +158,18 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     """Build and compile the AutoPoC pipeline graph.
 
     Full graph:
-        intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy → apply ⟲ poc_execute → poc_report → END
+        intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ apply → poc_execute → poc_report → END
+                                          ↑                          │
+                                          └──────────────────────────┘  (outer loop)
 
     Key features:
     - Parallel fan-out: after intake, poc_plan and fork run concurrently
     - Fan-in: containerize waits for both poc_plan and fork to complete
     - Build retry loop: build failure → containerize → build (up to max_build_retries)
     - Deploy/Apply split: deploy generates manifests, apply runs kubectl
-    - Apply retry loop: apply failure → deploy (fix manifests) → apply (up to max_deploy_retries)
+    - Apply inner loop: manifest issue → deploy (fix manifests) → apply (up to max_deploy_retries)
+    - Apply outer loop: container issue → containerize → build → deploy → apply
+      (up to max_container_fix_retries, resets deploy_retries on each escalation)
     - PoC tail: after successful apply, execute tests and generate report
 
     Args:
@@ -184,7 +233,8 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
         route_after_apply,
         {
             "poc_execute": "poc_execute",  # success → run PoC tests
-            "deploy": "deploy",  # retry: go back to deploy to fix manifests
+            "deploy": "deploy",  # inner retry: fix manifests
+            "containerize": "containerize",  # outer loop: fix container image
             "failed": END,
         },
     )
@@ -196,7 +246,7 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     # Compile (with optional checkpointer for state persistence)
     compiled = graph.compile(checkpointer=checkpointer)
     logger.info(
-        "Graph compiled: intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy → apply ⟲ poc_execute → poc_report → END"
+        "Graph compiled: intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ apply → poc_execute → poc_report → END"
     )
     if checkpointer is not None:
         logger.info("Checkpointer enabled: %s", type(checkpointer).__name__)

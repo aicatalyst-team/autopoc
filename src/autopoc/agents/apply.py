@@ -4,6 +4,20 @@ This agent is the operational counterpart to the deploy agent. The deploy agent
 generates manifests (like containerize generates Dockerfiles), and this agent
 applies them (like build runs podman build). This separation keeps each agent
 focused and reduces context overflow risk.
+
+When the apply agent detects a failure, it uses an LLM to **triage** the error
+into one of three categories:
+
+- ``fix-manifest`` — The container image is fine, the K8s manifest has a bug
+  (wrong port, missing env var, wrong resource limits). The pipeline loops back
+  to the deploy agent (inner loop).
+- ``fix-dockerfile`` — The container image itself is broken (missing dependency,
+  wrong entrypoint, crash on import). The pipeline escalates to the containerize
+  agent (outer loop) and overwrites ``:latest``.
+- ``experiment`` — The base image is correct but we need a variant for this
+  deployment context (different CMD, extra runtime package). The pipeline
+  escalates to containerize and builds with an ``:experiment-N`` tag so
+  ``:latest`` stays clean.
 """
 
 import json
@@ -31,6 +45,9 @@ from autopoc.tools.k8s_tools import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Valid triage actions returned by _triage_apply_error
+_VALID_TRIAGE_ACTIONS = {"fix-manifest", "fix-dockerfile", "experiment"}
 
 APPLY_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "apply.md"
 
@@ -118,6 +135,71 @@ def _parse_apply_output(raw_output: str, messages: list) -> dict:
         "routes": routes,
         "error": None,
     }
+
+
+async def _triage_apply_error(error_text: str) -> str:
+    """Classify an apply/runtime error to decide where to route the fix.
+
+    Uses a lightweight LLM call to classify the error into one of:
+    - ``fix-manifest``  — K8s manifest issue (wrong port, missing env var, RBAC)
+    - ``fix-dockerfile`` — Container image is broken (missing dep, wrong entrypoint)
+    - ``experiment``    — Image is fine as-is, but needs a variant for this context
+
+    Returns one of the three action strings.
+    """
+    triage_llm = create_llm()
+
+    prompt = (
+        "You are a Kubernetes deployment triage specialist.\n\n"
+        "A container was deployed to Kubernetes and failed. Classify the root cause "
+        "into EXACTLY ONE of these categories. Respond with ONLY the category label "
+        "on a single line — no explanation, no markdown, just the label.\n\n"
+        "Categories:\n"
+        "- **fix-manifest** — The container image itself is fine, but the Kubernetes "
+        "manifest is wrong. Examples: wrong port number in Service, missing environment "
+        "variable in the manifest, wrong resource limits, RBAC / ServiceAccount issue, "
+        "wrong namespace reference, missing ConfigMap or Secret manifest, wrong "
+        "image pull policy.\n"
+        "- **fix-dockerfile** — The container image is broken and needs to be rebuilt. "
+        "Examples: ImportError / ModuleNotFoundError (missing Python dependency), "
+        "missing system library, wrong ENTRYPOINT or CMD, exec format error, "
+        "application crashes on startup due to code/dependency issue, "
+        "missing files that should have been COPY'd into the image.\n"
+        "- **experiment** — The container image works as built but needs a slight "
+        "variant for this deployment context. Examples: need a different CMD to run "
+        "a specific subcommand, need an extra runtime package that isn't strictly "
+        "required, need to bake in a config file, need a different port binding.\n\n"
+        f"Error:\n{error_text[:3000]}\n\n"
+        "Category:"
+    )
+
+    try:
+        response = await triage_llm.ainvoke([HumanMessage(content=prompt)])
+        raw = response.content
+        if isinstance(raw, list):
+            raw = "".join(
+                part["text"] if isinstance(part, dict) and "text" in part else str(part)
+                for part in raw
+            )
+        action = raw.strip().lower().strip("`\"' ")
+
+        # Normalize common variations
+        if "fix-dockerfile" in action or "fix_dockerfile" in action or "dockerfile" in action:
+            action = "fix-dockerfile"
+        elif "experiment" in action:
+            action = "experiment"
+        else:
+            action = "fix-manifest"
+
+        if action not in _VALID_TRIAGE_ACTIONS:
+            action = "fix-manifest"
+
+        logger.info("Triage classified error as: %s", action)
+        return action
+
+    except Exception as e:
+        logger.warning("Triage LLM call failed (%s), defaulting to fix-manifest", e)
+        return "fix-manifest"
 
 
 async def apply_agent(
@@ -255,13 +337,20 @@ Components:
         if error:
             logger.warning("Apply agent reported error: %s", error)
             current_retries = state.get("deploy_retries", 0)
-            return {
+
+            # Triage the error to decide routing (manifest fix vs container fix)
+            triage_action = await _triage_apply_error(error)
+            result_state = {
                 "current_phase": PoCPhase.APPLY,
                 "deployed_resources": deployed_resources,
                 "routes": routes,
                 "error": error,
                 "deploy_retries": current_retries + 1,
+                "container_fix_action": triage_action,
             }
+            if triage_action in ("fix-dockerfile", "experiment"):
+                result_state["container_fix_error"] = error
+            return result_state
 
         logger.info(
             "Apply complete: %d resources, %d routes",
@@ -274,16 +363,25 @@ Components:
             "deployed_resources": deployed_resources,
             "routes": routes,
             "error": None,
+            "container_fix_action": None,
+            "container_fix_error": None,
         }
 
     except Exception as e:
         logger.error("Apply failed: %s", e, exc_info=True)
         current_retries = state.get("deploy_retries", 0)
+        error_msg = f"Apply failed: {e}"
 
-        return {
+        # Triage even on exceptions — the error text may indicate a container issue
+        triage_action = await _triage_apply_error(error_msg)
+        result_state = {
             "current_phase": PoCPhase.APPLY,
             "deployed_resources": [],
             "routes": [],
-            "error": f"Apply failed: {e}",
+            "error": error_msg,
             "deploy_retries": current_retries + 1,
+            "container_fix_action": triage_action,
         }
+        if triage_action in ("fix-dockerfile", "experiment"):
+            result_state["container_fix_error"] = error_msg
+        return result_state

@@ -56,6 +56,13 @@ class AutoPoCConfig(BaseSettings):
     max_build_retries: int = Field(
         default=3, description="Max retry attempts for failed container builds"
     )
+    max_deploy_retries: int = Field(
+        default=2, description="Max retry attempts for failed deployments"
+    )
+    max_container_fix_retries: int = Field(
+        default=2,
+        description="Max times apply can escalate to containerize to fix runtime container issues",
+    )
 
     # Working directory
     work_dir: str = Field(

@@ -154,6 +154,12 @@ class PoCState(TypedDict, total=False):
     routes: list[str]  # Accessible URLs for deployed services
     deploy_retries: int  # Current retry count for deployment failures
 
+    # --- Container fix loop (apply → containerize outer loop) ---
+    container_fix_retries: int  # Counter for apply→containerize escalations
+    container_fix_action: str | None  # Triage result: "fix-dockerfile", "experiment", or None
+    container_fix_error: str | None  # Runtime error from apply that triggered the container fix
+    experiment_tag_counter: int  # Auto-incrementing counter for experiment image tags
+
     # --- PoC Execute output ---
     poc_results: list[PoCResult]  # Test execution results
     poc_script_path: str  # Path to generated test script

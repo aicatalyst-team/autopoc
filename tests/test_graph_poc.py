@@ -337,7 +337,7 @@ def _mock_apply_agent_success():
 
 
 def _mock_apply_agent_fail():
-    """Mock apply that always fails."""
+    """Mock apply that always fails (manifest-level error, no container fix)."""
 
     async def _apply(state, **kwargs):
         return {
@@ -346,6 +346,10 @@ def _mock_apply_agent_fail():
             "routes": [],
             "error": "Apply failed: namespace not found",
             "deploy_retries": state.get("deploy_retries", 0) + 1,
+            # Mark container fix retries as exhausted so the pipeline terminates
+            # instead of escalating to containerize indefinitely.
+            "container_fix_retries": 999,
+            "container_fix_action": None,
         }
 
     return _apply
@@ -447,7 +451,12 @@ def _build_test_graph(
     sg.add_conditional_edges(
         "apply",
         route_after_apply,
-        {"poc_execute": "poc_execute", "deploy": "deploy", "failed": END},
+        {
+            "poc_execute": "poc_execute",
+            "deploy": "deploy",
+            "containerize": "containerize",
+            "failed": END,
+        },
     )
     sg.add_edge("poc_execute", "poc_report")
     sg.add_edge("poc_report", END)
@@ -505,6 +514,15 @@ class TestGraphPoCCompilation:
         mermaid = graph.get_graph().draw_mermaid()
         assert "poc_execute --> poc_report" in mermaid
         assert "poc_report --> __end__" in mermaid
+
+    def test_graph_apply_to_containerize_edge(self):
+        """Verify apply can route to containerize (outer loop)."""
+        from autopoc.graph import build_graph
+
+        graph = build_graph()
+        mermaid = graph.get_graph().draw_mermaid()
+        # Apply should have a conditional edge to containerize
+        assert "apply -.-> containerize" in mermaid
 
 
 class TestGraphPoCHappyPath:
@@ -742,8 +760,8 @@ class TestRouteAfterApply:
             )
             assert route_after_apply(state) == "deploy"
 
-    def test_failure_exhausted_routes_to_failed(self, env_patch):
-        """On failure with retries exhausted, route to failed."""
+    def test_failure_exhausted_routes_to_containerize_as_last_resort(self, env_patch):
+        """On deploy retry exhaustion with container_fix available, escalate to containerize."""
         with patch.dict(os.environ, env_patch, clear=True):
             from autopoc.graph import route_after_apply
 
@@ -751,5 +769,64 @@ class TestRouteAfterApply:
                 error="Apply failed",
                 routes=[],
                 deploy_retries=10,
+                container_fix_retries=0,
+                container_fix_action="fix-manifest",  # triage said manifest, but retries exhausted
+            )
+            assert route_after_apply(state) == "containerize"
+
+    def test_failure_all_retries_exhausted_routes_to_failed(self, env_patch):
+        """On failure with all retries exhausted, route to failed."""
+        with patch.dict(os.environ, env_patch, clear=True):
+            from autopoc.graph import route_after_apply
+
+            state = PoCState(
+                error="Apply failed",
+                routes=[],
+                deploy_retries=10,
+                container_fix_retries=10,
+            )
+            assert route_after_apply(state) == "failed"
+
+    def test_fix_dockerfile_routes_to_containerize(self, env_patch):
+        """When triage says fix-dockerfile, route to containerize."""
+        with patch.dict(os.environ, env_patch, clear=True):
+            from autopoc.graph import route_after_apply
+
+            state = PoCState(
+                error="CrashLoopBackOff: ImportError: No module named 'flask'",
+                routes=[],
+                deploy_retries=0,
+                container_fix_action="fix-dockerfile",
+                container_fix_error="ImportError: No module named 'flask'",
+                container_fix_retries=0,
+            )
+            assert route_after_apply(state) == "containerize"
+
+    def test_experiment_routes_to_containerize(self, env_patch):
+        """When triage says experiment, route to containerize."""
+        with patch.dict(os.environ, env_patch, clear=True):
+            from autopoc.graph import route_after_apply
+
+            state = PoCState(
+                error="Container exited: need different CMD",
+                routes=[],
+                deploy_retries=0,
+                container_fix_action="experiment",
+                container_fix_error="Container exited: need different CMD",
+                container_fix_retries=0,
+            )
+            assert route_after_apply(state) == "containerize"
+
+    def test_container_fix_retries_exhausted_routes_to_failed(self, env_patch):
+        """When container fix retries are exhausted, fail."""
+        with patch.dict(os.environ, env_patch, clear=True):
+            from autopoc.graph import route_after_apply
+
+            state = PoCState(
+                error="Still crashing",
+                routes=[],
+                deploy_retries=0,
+                container_fix_action="fix-dockerfile",
+                container_fix_retries=10,  # way over limit
             )
             assert route_after_apply(state) == "failed"
