@@ -3,8 +3,18 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from langchain_core.messages import AIMessage
 
+from autopoc.agents import build as build_module
 from autopoc.agents.build import build_agent
 from autopoc.state import PoCPhase, PoCState
+
+
+@pytest.fixture(autouse=True)
+def _clear_login_cache():
+    """Reset the module-level login cache between tests."""
+    build_module._logged_in_registries.clear()
+    yield
+    build_module._logged_in_registries.clear()
+
 
 @pytest.fixture
 def initial_state(tmp_path: Path) -> PoCState:
@@ -33,7 +43,7 @@ def initial_state(tmp_path: Path) -> PoCState:
                 "entry_point": "index.js",
                 "port": 3000,
                 "dockerfile_ubi_path": "web/Dockerfile.ubi",
-            }
+            },
         ],
         has_helm_chart=False,
         has_kustomize=False,
@@ -45,6 +55,7 @@ def initial_state(tmp_path: Path) -> PoCState:
         routes=[],
     )
 
+
 @pytest.fixture
 def mock_quay_client():
     client = MagicMock()
@@ -52,12 +63,15 @@ def mock_quay_client():
     client.ensure_repo.side_effect = lambda org, name: f"quay.io/{org}/{name}"
     return client
 
+
 @pytest.fixture
 def mock_app_config():
     config = MagicMock()
     config.quay_org = "my-org"
     config.quay_registry = "quay.io"
+    config.quay_token = "test-token"
     return config
+
 
 @pytest.fixture
 def mock_llm():
@@ -65,12 +79,15 @@ def mock_llm():
     llm.ainvoke.return_value = AIMessage(content="You missed a dependency.")
     return llm
 
+
 @pytest.mark.asyncio
+@patch("autopoc.agents.build.podman_login")
 @patch("autopoc.agents.build.podman_build")
 @patch("autopoc.agents.build.podman_push")
 async def test_build_success(
     mock_push,
     mock_build,
+    mock_login,
     initial_state: PoCState,
     mock_app_config,
     mock_quay_client,
@@ -90,7 +107,7 @@ async def test_build_success(
 
     assert result["current_phase"] == PoCPhase.BUILD
     assert result["error"] is None
-    
+
     # 2 components built
     assert len(result["built_images"]) == 2
     assert "quay.io/my-org/my-project-api:latest" in result["built_images"]
@@ -110,24 +127,33 @@ async def test_build_success(
 
 
 @pytest.mark.asyncio
+@patch("autopoc.agents.build.create_llm")
+@patch("autopoc.agents.build.podman_login")
 @patch("autopoc.agents.build.podman_build")
 @patch("autopoc.agents.build.podman_push")
 async def test_build_partial_failure(
     mock_push,
     mock_build,
+    mock_login,
+    mock_create_llm,
     initial_state: PoCState,
     mock_app_config,
     mock_quay_client,
     mock_llm,
 ):
     """Test when the first component succeeds but the second fails."""
-    
+
+    # The build agent creates a fresh LLM for diagnosis via create_llm()
+    diagnosis_llm = AsyncMock()
+    diagnosis_llm.ainvoke.return_value = AIMessage(content="You missed a dependency.")
+    mock_create_llm.return_value = diagnosis_llm
+
     # Succeeds on first call, fails on second
     def mock_build_side_effect(args):
         if "web/Dockerfile.ubi" in args["dockerfile"]:
             raise RuntimeError("Compilation failed")
         return "Build successful"
-    
+
     mock_build.invoke.side_effect = mock_build_side_effect
     mock_push.invoke.return_value = "Push successful"
 
@@ -142,7 +168,7 @@ async def test_build_partial_failure(
     assert "Build failed for component 'web'" in result["error"]
     assert "Compilation failed" in result["error"]
     assert "You missed a dependency." in result["error"]
-    
+
     # 1 component built, 1 failed
     assert len(result["built_images"]) == 1
     assert "quay.io/my-org/my-project-api:latest" in result["built_images"]
@@ -155,4 +181,4 @@ async def test_build_partial_failure(
     assert mock_push.invoke.call_count == 1  # Only pushed api
 
     # Verify LLM was called for diagnosis
-    assert mock_llm.ainvoke.call_count == 1
+    assert diagnosis_llm.ainvoke.call_count == 1

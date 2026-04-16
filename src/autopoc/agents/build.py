@@ -172,6 +172,27 @@ async def build_agent(
                 "built_images": built_images,
             }
 
+    # Check if any component actually has a Dockerfile to build.
+    # If containerize failed (e.g. poc_plan_error), no component will have a
+    # dockerfile_ubi_path.  Propagate the upstream error instead of silently
+    # declaring success.
+    incoming_error = state.get("error")
+    has_any_dockerfile = any(c.get("dockerfile_ubi_path") for c in components)
+    if not has_any_dockerfile:
+        msg = (
+            incoming_error
+            or "No Dockerfile.ubi files were generated — nothing to build. "
+            "This usually means the containerize phase failed."
+        )
+        logger.error("Build skipped: %s", msg[:200])
+        return {
+            "current_phase": PoCPhase.BUILD,
+            "error": msg,
+            "build_retries": retries,
+            "components": components,
+            "built_images": built_images,
+        }
+
     try:
         for comp in components:
             comp_name = comp["name"]

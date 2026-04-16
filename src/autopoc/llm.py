@@ -12,6 +12,11 @@ from autopoc.config import load_config
 
 DEFAULT_MODEL = "claude-3-5-sonnet-20241022"
 
+# ChatAnthropicVertex defaults max_output_tokens to 1024, which is far too low
+# for agents that produce structured JSON + markdown plans.  16 384 is a safe
+# ceiling for all current Claude models on Vertex.
+DEFAULT_MAX_OUTPUT_TOKENS = 16384
+
 
 def create_llm(model: str | None = None) -> BaseChatModel:
     """Create a ChatAnthropic or ChatAnthropicVertex instance based on config.
@@ -38,10 +43,12 @@ def create_llm(model: str | None = None) -> BaseChatModel:
             location=config.vertex_location,
             model_name=actual_model,
             max_retries=config.llm_max_retries,
+            max_output_tokens=DEFAULT_MAX_OUTPUT_TOKENS,
         )
 
     return ChatAnthropic(
         model_name=actual_model,
         api_key=config.anthropic_api_key,
         max_retries=config.llm_max_retries,
+        max_tokens=DEFAULT_MAX_OUTPUT_TOKENS,
     )  # type: ignore[call-arg]

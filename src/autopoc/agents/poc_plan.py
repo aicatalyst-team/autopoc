@@ -475,6 +475,82 @@ def _process_poc_plan_output(
     return parsed, scenarios, infrastructure, poc_components, poc_plan_content, plan_error
 
 
+def _extract_llm_text(response) -> str:
+    """Extract plain text from an LLM response, handling multi-part content."""
+    raw = response.content
+    if isinstance(raw, list):
+        return "".join(
+            part["text"] if isinstance(part, dict) and "text" in part else str(part) for part in raw
+        )
+    return raw
+
+
+async def _generate_markdown_plan(
+    llm: BaseChatModel,
+    state: PoCState,
+    parsed_json: dict,
+    clone_path: str,
+) -> str:
+    """Generate the poc-plan.md markdown via a dedicated LLM call.
+
+    This is a separate call from the JSON-generation step so that each call
+    gets the full output-token budget.  The JSON (already parsed) is fed back
+    as context so the markdown is consistent.
+    """
+    project_name = state.get("project_name", "unknown")
+    json_block = json.dumps(parsed_json, indent=2)
+
+    user_parts = [
+        f"Generate a detailed poc-plan.md for the project **{project_name}**.\n",
+        "The structured JSON analysis has already been completed. "
+        "Use it as the authoritative source for your markdown plan:\n",
+        f"```json\n{json_block}\n```\n",
+    ]
+
+    # Include repo summary for extra context
+    repo_summary = state.get("repo_summary", "")
+    if repo_summary:
+        user_parts.append("## Repository Summary")
+        user_parts.append(repo_summary)
+        user_parts.append("")
+
+    user_parts.append(
+        "Produce ONLY the full poc-plan.md markdown content (starting with "
+        f"`# PoC Plan: {project_name}`). Follow the poc-plan.md template from "
+        "your system prompt. Do NOT repeat the JSON."
+    )
+
+    system_msg = (
+        "You are a technical writer producing a PoC plan document. "
+        "You will be given a completed JSON analysis of a project. "
+        "Your job is to produce the full poc-plan.md markdown document based on "
+        "that JSON. Follow the template structure: Project Classification, "
+        "PoC Objectives, Infrastructure Requirements, Test Scenarios, "
+        "Dockerfile Considerations, and Deployment Considerations. "
+        "Output ONLY the markdown — no JSON, no commentary."
+    )
+
+    response = await llm.ainvoke(
+        [
+            SystemMessage(content=system_msg),
+            HumanMessage(content="\n".join(user_parts)),
+        ]
+    )
+
+    md_text = _extract_llm_text(response).strip()
+
+    # Strip any accidental markdown fences wrapping the whole response
+    if md_text.startswith("```markdown"):
+        md_text = md_text[len("```markdown") :].strip()
+    if md_text.startswith("```"):
+        md_text = md_text[3:].strip()
+    if md_text.endswith("```"):
+        md_text = md_text[:-3].strip()
+
+    logger.info("Generated poc-plan.md via dedicated LLM call (%d chars)", len(md_text))
+    return md_text
+
+
 async def poc_plan_agent(
     state: PoCState,
     *,
@@ -482,9 +558,15 @@ async def poc_plan_agent(
 ) -> dict:
     """Generate a PoC plan for the repository.
 
-    Two-phase approach:
-    - Phase 1: One-shot LLM call with repo digest (no tools). Handles 90%+ of cases.
-    - Phase 2: ReAct fallback with file tools (only if phase 1 fails to produce scenarios).
+    Three-phase approach:
+    - Phase 1a: One-shot LLM call to produce the structured JSON (no tools).
+    - Phase 1b: One-shot LLM call to produce the poc-plan.md markdown, fed
+      with the JSON from phase 1a.
+    - Phase 2 (fallback): ReAct agent with file tools, only if phase 1a
+      fails to produce scenarios.
+
+    Splitting JSON and markdown into separate calls avoids output-token
+    truncation that previously caused both outputs to be cut short.
 
     This is a LangGraph node function. It runs in parallel with the fork agent.
 
@@ -506,11 +588,11 @@ async def poc_plan_agent(
     system_prompt = _load_system_prompt()
 
     # -------------------------------------------------------------------------
-    # Phase 1: One-shot LLM call (no tools, no ReAct agent)
+    # Phase 1a: One-shot LLM call for structured JSON (no tools)
     # -------------------------------------------------------------------------
     user_message = _build_user_message(state, include_tool_instructions=False)
 
-    logger.info("Phase 1: one-shot PoC plan (no tools)")
+    logger.info("Phase 1a: one-shot PoC plan — JSON only (no tools)")
     response = await llm.ainvoke(
         [
             SystemMessage(content=system_prompt),
@@ -518,12 +600,7 @@ async def poc_plan_agent(
         ]
     )
 
-    raw_output = response.content
-    if isinstance(raw_output, list):
-        raw_output = "".join(
-            part["text"] if isinstance(part, dict) and "text" in part else str(part)
-            for part in raw_output
-        )
+    raw_output = _extract_llm_text(response)
 
     parsed, scenarios, infrastructure, poc_components, poc_plan_content, plan_error = (
         _process_poc_plan_output(raw_output, clone_path or ".")
@@ -531,18 +608,52 @@ async def poc_plan_agent(
 
     poc_type = parsed.get("poc_type", "web-app")
 
-    # If phase 1 produced valid output with scenarios, we're done
+    # If phase 1a produced valid JSON with scenarios, generate the markdown
     if scenarios and not plan_error:
         logger.info(
-            "Phase 1 succeeded: type=%s, %d scenarios, poc_components=%s, profile=%s",
+            "Phase 1a succeeded: type=%s, %d scenarios, poc_components=%s, profile=%s",
             poc_type,
             len(scenarios),
             poc_components,
             infrastructure.get("resource_profile", "unknown"),
         )
+
+        # -----------------------------------------------------------------
+        # Phase 1b: Dedicated LLM call for poc-plan.md markdown
+        # -----------------------------------------------------------------
+        # If phase 1a already yielded usable markdown (>200 chars with a
+        # heading), keep it. Otherwise generate it in a separate call.
+        if len(poc_plan_content) < 200 or "## " not in poc_plan_content:
+            logger.info("Phase 1b: generating poc-plan.md via dedicated LLM call")
+            try:
+                markdown_llm = create_llm()
+                poc_plan_content = await _generate_markdown_plan(
+                    markdown_llm, state, parsed, clone_path
+                )
+            except Exception as e:
+                logger.warning("Phase 1b markdown generation failed: %s", e)
+                # Fall back to whatever we got from phase 1a (may be partial)
+                if not poc_plan_content:
+                    poc_plan_content = parsed.get("poc_plan_summary", "")
+        else:
+            logger.info(
+                "Phase 1a already produced adequate markdown (%d chars), skipping phase 1b",
+                len(poc_plan_content),
+            )
+
+        # Write poc-plan.md to disk
+        poc_plan_path = Path(clone_path or ".") / "poc-plan.md"
+        if poc_plan_content:
+            try:
+                poc_plan_path.parent.mkdir(parents=True, exist_ok=True)
+                poc_plan_path.write_text(poc_plan_content, encoding="utf-8")
+                logger.info("Wrote poc-plan.md (%d chars)", len(poc_plan_content))
+            except Exception as e:
+                logger.warning("Failed to write poc-plan.md: %s", e)
+
         return {
             "poc_plan": poc_plan_content,
-            "poc_plan_path": str(Path(clone_path or ".") / "poc-plan.md"),
+            "poc_plan_path": str(poc_plan_path),
             "poc_plan_error": None,
             "poc_components": poc_components,
             "poc_scenarios": scenarios,
@@ -552,15 +663,15 @@ async def poc_plan_agent(
 
     # -------------------------------------------------------------------------
     # Phase 2: ReAct fallback with file tools
-    # Only triggered when phase 1 didn't produce scenarios.
+    # Only triggered when phase 1a didn't produce scenarios.
     # -------------------------------------------------------------------------
     logger.warning(
-        "Phase 1 produced %d scenarios (parse_failed=%s). Falling back to ReAct agent.",
+        "Phase 1a produced %d scenarios (parse_failed=%s). Falling back to ReAct agent.",
         len(scenarios),
         bool(plan_error),
     )
 
-    # Fresh LLM instance to avoid context carryover from phase 1
+    # Fresh LLM instance to avoid context carryover from phase 1a
     fallback_llm = create_llm()
 
     agent = create_react_agent(
@@ -569,10 +680,10 @@ async def poc_plan_agent(
         pre_model_hook=make_context_trimmer(),
     )
 
-    # Build user message with tool instructions + phase 1 context
+    # Build user message with tool instructions + phase 1a context
     fallback_message = _build_user_message(state, include_tool_instructions=True)
 
-    # Include phase 1's partial result to avoid re-doing work
+    # Include phase 1a's partial result to avoid re-doing work
     if not plan_error and parsed.get("poc_type"):
         fallback_message += (
             f"\n\n## Previous Analysis Attempt\n"
@@ -604,7 +715,7 @@ async def poc_plan_agent(
             plan_error_2,
         ) = _process_poc_plan_output(raw_output_2, clone_path or ".", result["messages"])
 
-        # Use phase 2 results if better, otherwise keep phase 1
+        # Use phase 2 results if better, otherwise keep phase 1a
         if scenarios_2 or (not scenarios and not plan_error_2):
             scenarios = scenarios_2
             infrastructure = infrastructure_2
@@ -615,9 +726,35 @@ async def poc_plan_agent(
 
     except Exception as e:
         logger.error("Phase 2 (ReAct fallback) failed: %s", e)
-        # Keep phase 1 results (possibly partial) rather than failing completely
+        # Keep phase 1a results (possibly partial) rather than failing completely
         if not plan_error:
             plan_error = f"ReAct fallback failed: {e}"
+
+    # If phase 2 produced JSON but markdown is still inadequate, try phase 1b
+    if (
+        not plan_error
+        and scenarios
+        and (len(poc_plan_content) < 200 or "## " not in poc_plan_content)
+    ):
+        logger.info("Phase 2 JSON ok but markdown inadequate; generating markdown separately")
+        try:
+            md_llm = create_llm()
+            final_parsed = parsed_2 if scenarios_2 else parsed
+            poc_plan_content = await _generate_markdown_plan(
+                md_llm, state, final_parsed, clone_path
+            )
+        except Exception as e:
+            logger.warning("Post-phase-2 markdown generation failed: %s", e)
+
+    # Write poc-plan.md to disk (if we have content and it wasn't already written)
+    poc_plan_path = Path(clone_path or ".") / "poc-plan.md"
+    if poc_plan_content and not poc_plan_path.exists():
+        try:
+            poc_plan_path.parent.mkdir(parents=True, exist_ok=True)
+            poc_plan_path.write_text(poc_plan_content, encoding="utf-8")
+            logger.info("Wrote poc-plan.md (%d chars)", len(poc_plan_content))
+        except Exception as e:
+            logger.warning("Failed to write poc-plan.md: %s", e)
 
     logger.info(
         "PoC plan complete: type=%s, %d scenarios, profile=%s, error=%s",
@@ -629,7 +766,7 @@ async def poc_plan_agent(
 
     return {
         "poc_plan": poc_plan_content,
-        "poc_plan_path": str(Path(clone_path or ".") / "poc-plan.md"),
+        "poc_plan_path": str(poc_plan_path),
         "poc_plan_error": plan_error,
         "poc_components": poc_components,
         "poc_scenarios": scenarios,
