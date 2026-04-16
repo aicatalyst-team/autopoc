@@ -116,8 +116,10 @@ class TestForkAgent:
         mock_gitlab_client.get_project.assert_called_once_with("test-project")
         mock_gitlab_client.create_project.assert_called_once_with("test-project")
 
-        # State was updated
-        assert result["current_phase"] == PoCPhase.FORK
+        # State was updated (fork does NOT set current_phase because it runs
+        # in parallel with poc_plan — both writing to current_phase would
+        # cause a LangGraph state conflict)
+        assert "current_phase" not in result
         assert result["gitlab_repo_url"] is not None
         assert result["local_clone_path"] is not None
         assert Path(result["local_clone_path"]).is_dir()
@@ -148,7 +150,7 @@ class TestForkAgent:
         mock_gitlab_client.create_project.assert_not_called()
 
         # But should still push
-        assert result["current_phase"] == PoCPhase.FORK
+        assert "current_phase" not in result
         assert result["gitlab_repo_url"] is not None
 
     @pytest.mark.asyncio
