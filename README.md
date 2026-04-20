@@ -1,52 +1,55 @@
 # AutoPoC
 
-A multi-agent system that automates proof-of-concept deployments on OpenShift AI / Open Data Hub. Given a GitHub repository URL, AutoPoC analyzes the project, generates a PoC plan, containerizes it with UBI-based images, deploys to Kubernetes, runs test scenarios, and produces a report.
+**Automated proof-of-concept deployments on OpenShift AI / Open Data Hub.**
 
-Built with [LangGraph](https://github.com/langchain-ai/langgraph) and Claude.
+Given a GitHub repository URL, AutoPoC analyzes the project, generates a PoC plan, containerizes it with UBI-based images, deploys to Kubernetes, runs test scenarios, and produces a report -- all without human intervention.
 
-## What It Does
+Built with [LangGraph](https://github.com/langchain-ai/langgraph) and [Claude](https://www.anthropic.com/claude).
 
-```
+## How It Works
+
+```bash
 autopoc run --name mempalace --repo https://github.com/MemPalace/mempalace
 ```
 
-AutoPoC runs a pipeline of specialized agents:
+AutoPoC runs a pipeline of 9 specialized agents. Some are procedural (no LLM), some use a single LLM call, and some are full ReAct agents with tools:
 
 ```
-intake -> [poc_plan || fork] -> containerize <-> build -> deploy -> apply <-> poc_execute -> poc_report
+intake --> [poc_plan || fork] --> containerize <-> build --> deploy <-> apply --> poc_execute --> poc_report
 ```
 
-1. **Intake** -- Clones the repo and produces a structured analysis (languages, build systems, components, ports, ML workloads). Uses a procedural repo digest + one-shot LLM call.
+| Agent | Type | What it does |
+|-------|------|-------------|
+| **Intake** | Procedural + one-shot LLM | Clones the repo, builds a structural digest, identifies components (languages, ports, build systems, ML workloads) |
+| **PoC Plan** | One-shot + ReAct fallback | Classifies the project (model-serving, RAG, web-app, etc.), identifies infrastructure needs, defines test scenarios, writes `poc-plan.md` |
+| **Fork** | Procedural (no LLM) | Creates a project on self-hosted GitLab, pushes all branches and tags. Runs in parallel with PoC Plan |
+| **Containerize** | ReAct agent | Generates `Dockerfile.ubi` files using Red Hat Universal Base Images. Handles Python, Node.js, Go, Java, multi-stage builds |
+| **Build** | Procedural + LLM diagnosis | Builds images with Podman, pushes to Quay. On failure, uses the LLM to diagnose build logs |
+| **Deploy** | ReAct agent | Generates Kubernetes manifests (Deployments, Services, Jobs, PVCs, Secrets). Does NOT apply them |
+| **Apply** | ReAct agent | Applies manifests via kubectl, waits for rollouts, verifies pods, extracts service URLs |
+| **PoC Execute** | ReAct agent | Runs the test scenarios from the PoC plan against the deployed application |
+| **PoC Report** | One-shot (no tools) | Generates a markdown report with pass/fail results, logs, and recommendations |
 
-2. **PoC Plan** -- Determines what constitutes a meaningful proof of concept. Classifies the project (model-serving, RAG, training, web-app, llm-app), identifies infrastructure needs (GPU, vector DB, PVC), and defines test scenarios.
+### Retry loops
 
-3. **Fork** -- Pushes the repo to a self-hosted GitLab instance (runs in parallel with PoC Plan).
+The pipeline is not linear -- it has feedback loops:
 
-4. **Containerize** -- Generates `Dockerfile.ubi` files using Red Hat Universal Base Images. Handles Python, Node.js, Go, Java, and multi-stage builds.
-
-5. **Build** -- Builds container images with Podman and pushes to a Quay registry. Includes LLM-assisted build error diagnosis and retry.
-
-6. **Deploy** -- Generates Kubernetes manifests (Deployments, Services, Jobs, PVCs, namespace, RBAC). Understands deployment models: long-running servers, CLI tools, batch jobs.
-
-7. **Apply** -- Applies manifests via kubectl, waits for rollouts, verifies pods, and extracts service URLs.
-
-8. **PoC Execute** -- Runs the test scenarios defined in the PoC plan against the deployed application.
-
-9. **PoC Report** -- Generates a markdown report summarizing results, including pass/fail status, logs, and recommendations.
+- **Build failure** routes back to **Containerize** to fix the Dockerfile, then retries the build (up to 3 attempts).
+- **Apply failure** routes back to **Deploy** to fix manifests (up to 2 attempts), or escalates to **Containerize** if the container itself is the problem (up to 2 attempts).
 
 ## Quickstart
 
 ### Prerequisites
 
 - Python 3.12+
-- [Podman](https://podman.io/) (for building container images)
+- [Podman](https://podman.io/) for building container images
 - Access to a GitLab instance, Quay registry, and Kubernetes/OpenShift cluster
-- An Anthropic API key or Google Cloud Vertex AI project
+- An Anthropic API key or Google Cloud Vertex AI project with Claude access
 
 ### Install
 
 ```bash
-git clone https://github.com/your-org/autopoc.git
+git clone https://github.com/aicatalyst-team/autopoc.git
 cd autopoc
 pip install -e .
 
@@ -61,32 +64,38 @@ cp .env.example .env
 # Edit .env with your credentials
 ```
 
-Required configuration:
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ANTHROPIC_API_KEY` | Yes* | Anthropic API key |
+| `VERTEX_PROJECT` | Yes* | Google Cloud project ID (alternative to Anthropic key) |
+| `VERTEX_LOCATION` | No | Vertex AI region (default: `us-east5`) |
+| `LLM_MODEL` | No | Model override (default: `claude-3-5-sonnet-20241022`) |
+| `GITLAB_URL` | Yes | Self-hosted GitLab URL |
+| `GITLAB_TOKEN` | Yes | GitLab personal access token (api + read/write_repository scopes) |
+| `GITLAB_GROUP` | Yes | GitLab group for forked repos (e.g. `poc-demos`) |
+| `QUAY_REGISTRY` | Yes | Container registry URL (e.g. `quay.io` or `http://localhost:8080`) |
+| `QUAY_ORG` | Yes | Registry organization/namespace |
+| `QUAY_TOKEN` | Yes | Registry OAuth token |
+| `OPENSHIFT_API_URL` | Yes | Kubernetes/OpenShift API server URL |
+| `OPENSHIFT_TOKEN` | Yes | Kubernetes auth token |
+| `OPENSHIFT_NAMESPACE_PREFIX` | No | Namespace prefix (default: `poc`) |
+| `MAX_BUILD_RETRIES` | No | Build retry limit (default: `3`) |
+| `MAX_DEPLOY_RETRIES` | No | Deploy/apply retry limit (default: `2`) |
+| `MAX_CONTAINER_FIX_RETRIES` | No | Container fix escalation limit (default: `2`) |
+| `WORK_DIR` | No | Local working directory (default: `/tmp/autopoc`) |
 
-| Variable | Description |
-|----------|-------------|
-| `ANTHROPIC_API_KEY` | Anthropic API key (or use `VERTEX_PROJECT` + `VERTEX_LOCATION` for Vertex AI) |
-| `GITLAB_URL` | Self-hosted GitLab URL |
-| `GITLAB_TOKEN` | GitLab personal access token |
-| `GITLAB_GROUP` | GitLab group for forked repos |
-| `QUAY_REGISTRY` | Container registry hostname |
-| `QUAY_ORG` | Registry organization/namespace |
-| `QUAY_TOKEN` | Registry auth token |
-| `OPENSHIFT_API_URL` | Kubernetes/OpenShift API URL |
-| `OPENSHIFT_TOKEN` | Kubernetes auth token |
+*One of `ANTHROPIC_API_KEY` or `VERTEX_PROJECT` is required.
 
 ### Run
 
 ```bash
-source .env
-
 # Run the full pipeline
 autopoc run --name my-project --repo https://github.com/org/repo
 
 # Verbose output (shows LLM calls, tool usage, timing)
 autopoc run --name my-project --repo https://github.com/org/repo --verbose
 
-# Skip credential validation
+# Skip credential validation at startup
 autopoc run --name my-project --repo https://github.com/org/repo --skip-validation
 
 # Override the LLM model
@@ -96,18 +105,20 @@ autopoc run --name my-project --repo https://github.com/org/repo --model claude-
 ## CLI Reference
 
 ```
-autopoc run       --name NAME --repo URL [-v] [--skip-validation] [--model MODEL]
-autopoc resume    --thread-id ID [-v]
+autopoc run       --name NAME --repo URL [--verbose] [--skip-validation] [--model MODEL]
+autopoc resume    --thread-id ID [--verbose]
 autopoc status    --thread-id ID
 autopoc graph     [--format mermaid|ascii]
 ```
 
-- **`run`** -- Run the full pipeline. Prints a thread ID for resume/status.
-- **`resume`** -- Resume an interrupted pipeline from its last checkpoint (requires `langgraph-checkpoint-sqlite`).
-- **`status`** -- Show the current state of a pipeline run (phase, components, images, routes, errors).
-- **`graph`** -- Print the pipeline graph structure in Mermaid or ASCII format.
+| Command | Description |
+|---------|-------------|
+| `run` | Run the full pipeline. Prints a thread ID for resume/status. |
+| `resume` | Resume an interrupted pipeline from its last checkpoint. Requires `pip install -e ".[checkpoint]"`. |
+| `status` | Show the current state of a pipeline run (phase, components, images, routes, errors). |
+| `graph` | Print the pipeline graph structure in Mermaid or ASCII format. |
 
-## Pipeline Architecture
+## Architecture
 
 ```mermaid
 graph TD;
@@ -121,88 +132,120 @@ graph TD;
     build -->|permanent failure| END;
     deploy --> apply;
     apply -->|success| poc_execute;
-    apply -->|retry| deploy;
+    apply -->|fix manifest| deploy;
+    apply -->|fix container| containerize;
     poc_execute --> poc_report;
     poc_report --> END;
 ```
 
-Key design decisions:
+Design decisions:
 
-- **Parallel fan-out**: `poc_plan` and `fork` run concurrently after intake.
-- **Retry loops**: Build failures route back to containerize (to fix the Dockerfile). Apply failures route back to deploy (to fix manifests).
-- **Separation of concerns**: `containerize` generates Dockerfiles, `build` runs Podman. `deploy` generates manifests, `apply` runs kubectl. Each agent has a focused tool set.
-- **Procedural pre-processing**: Intake uses a deterministic repo digest (no LLM) + one-shot LLM analysis. PoC Plan tries a one-shot approach first, falling back to a ReAct agent with file tools only when needed.
-- **Context management**: Agents that use ReAct (containerize, deploy, apply) have a `pre_model_hook` that compacts tool results to prevent token overflow.
+- **Parallel fan-out**: `poc_plan` and `fork` run concurrently after intake -- the plan doesn't depend on the GitLab fork, and both can take 30+ seconds.
+- **Retry with escalation**: Apply failures first try fixing manifests (deploy retry). If that doesn't work, the pipeline escalates to fixing the container image (containerize retry).
+- **Separation of concerns**: `containerize` generates Dockerfiles, `build` runs Podman. `deploy` generates manifests, `apply` runs kubectl. Each agent has a focused tool set and can be debugged independently.
+- **Procedural pre-processing**: Intake builds a deterministic repo digest (~10KB text summary) without any LLM calls. This digest feeds into all downstream agents, ensuring consistent context.
+- **Context management**: ReAct agents have a `pre_model_hook` that compacts conversation history when it approaches 120K estimated tokens. Older tool results are truncated to summaries, preserving the most recent context.
+
+See [`docs/architecture.md`](docs/architecture.md) for detailed agent-by-agent documentation.
 
 ## Project Structure
 
 ```
 src/autopoc/
-  agents/           # Agent implementations (one per pipeline node)
-    intake.py       # Repo analysis (procedural digest + one-shot LLM)
-    poc_plan.py     # PoC planning (one-shot + ReAct fallback)
-    fork.py         # GitLab fork
-    containerize.py # Dockerfile generation (ReAct agent)
-    build.py        # Podman build + push
-    deploy.py       # K8s manifest generation (ReAct agent)
-    apply.py        # kubectl apply + verify (ReAct agent)
-    poc_execute.py  # Test scenario execution (ReAct agent)
-    poc_report.py   # Report generation (ReAct agent)
-  tools/            # LangChain tools for agents
-    repo_digest.py  # Procedural repo summarizer
-    file_tools.py   # read_file, write_file, list_files, search_files
-    git_tools.py    # git_clone, git_commit, git_push
-    gitlab_tools.py # GitLab API client
-    podman_tools.py # podman_build, podman_push, podman_login
-    quay_tools.py   # Quay registry API client
-    k8s_tools.py    # kubectl_apply, kubectl_get, kubectl_logs, etc.
-    script_tools.py # Script generation and execution
-    template_tools.py # Jinja2 template rendering
-  prompts/          # System prompts for each agent
-  templates/        # Jinja2 templates (Dockerfile.ubi, deployment.yaml, etc.)
-  graph.py          # LangGraph pipeline definition
-  state.py          # PoCState TypedDict (shared state schema)
-  config.py         # Configuration loading from env vars
-  context.py        # Token budget management for ReAct agents
-  cli.py            # Typer CLI application
-  credentials.py    # Startup credential validation
-  llm.py            # LLM provider factory
-  logging_config.py # Rich logging setup
+  agents/             # Agent implementations (one per pipeline node)
+    intake.py         #   Repo analysis (procedural digest + one-shot LLM)
+    poc_plan.py       #   PoC planning (one-shot + ReAct fallback)
+    fork.py           #   GitLab fork (procedural, no LLM)
+    containerize.py   #   Dockerfile generation (ReAct)
+    build.py          #   Podman build + push (procedural + LLM diagnosis)
+    deploy.py         #   K8s manifest generation (ReAct)
+    apply.py          #   kubectl apply + verify (ReAct)
+    poc_execute.py    #   Test scenario execution (ReAct)
+    poc_report.py     #   Report generation (one-shot, no tools)
+  tools/              # LangChain tools for agents
+    repo_digest.py    #   Procedural repo summarizer (no LLM)
+    file_tools.py     #   read_file, write_file, list_files, search_files
+    git_tools.py      #   git clone, commit, push, branch
+    gitlab_tools.py   #   GitLab API client
+    podman_tools.py   #   podman build, push, login
+    quay_tools.py     #   Quay registry API client
+    k8s_tools.py      #   kubectl apply, get, logs, wait
+    script_tools.py   #   Python script execution
+    template_tools.py #   Jinja2 template rendering
+  prompts/            # System prompts for each agent (markdown)
+  templates/          # Jinja2 templates (Dockerfile.ubi, deployment.yaml, etc.)
+  graph.py            # LangGraph pipeline definition
+  state.py            # PoCState TypedDict (shared state schema)
+  config.py           # Pydantic Settings configuration
+  context.py          # Token budget management for ReAct agents
+  cli.py              # Typer CLI application
+  credentials.py      # Startup credential validation
+  llm.py              # LLM provider factory (Anthropic / Vertex AI)
+  logging_config.py   # Rich logging setup
 scripts/
-  setup-e2e.sh      # Set up E2E test infrastructure (GitLab + Quay + K8s)
-  teardown-e2e.sh   # Tear down E2E infrastructure
-  setup-local-k8s.sh    # Set up local kind cluster
-  teardown-local-k8s.sh # Tear down local kind cluster
+  setup-e2e.sh            # Provision E2E infrastructure (GitLab + Quay)
+  teardown-e2e.sh         # Tear down E2E infrastructure
+  setup-local-k8s.sh      # Create local kind/k3d cluster
+  teardown-local-k8s.sh   # Delete local cluster
+  cleanup-project.sh      # Delete a single project's resources across all systems
+  renew-quay-token.sh     # Regenerate Quay OAuth token
 ```
 
-## E2E Testing
+## Local E2E Testing
 
-AutoPoC includes scripts for setting up a full local E2E environment:
+AutoPoC includes scripts for spinning up a complete local environment with GitLab, Quay, and Kubernetes -- no external services required.
+
+### Setup
 
 ```bash
-# Set up GitLab CE + Project Quay + kind cluster
+# 1. Start GitLab CE + Project Quay (takes 3-5 minutes for GitLab to initialize)
 ./scripts/setup-e2e.sh
 
-# Credentials are written to .env.test
-source .env.test
+# 2. Start a local Kubernetes cluster (kind or k3d)
+./scripts/setup-local-k8s.sh
 
-# Run against a test repo
+# Credentials are auto-written to .env.test
+# AutoPoC uses .env.test automatically when it exists
+```
+
+### Run
+
+```bash
+# Run against a real repo using local infrastructure
 autopoc run --name test-app --repo https://github.com/some/repo
 
-# Tear down
+# Run the E2E test suite
+pip install -e ".[dev]"
+pytest tests/e2e/ --e2e -v
+```
+
+### Cleanup
+
+```bash
+# Remove a single project's resources (GitLab project, Quay images, K8s namespace, work dir)
+./scripts/cleanup-project.sh my-project
+
+# Preview what would be deleted
+./scripts/cleanup-project.sh my-project --dry-run
+
+# Tear down all infrastructure
+./scripts/teardown-local-k8s.sh
 ./scripts/teardown-e2e.sh
 ```
 
-The E2E setup provisions:
-- **GitLab CE** (Docker) with a PAT and `poc-demos` group
-- **Project Quay** (Docker) with an OAuth token and org
-- **kind cluster** (local K8s) for deployment testing
+### What gets provisioned
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| GitLab CE | `http://localhost:8929` | Git hosting, stores forked repos and generated Dockerfiles/manifests |
+| Project Quay | `http://localhost:8080` | Container image registry |
+| kind/k3d | `https://localhost:6443` | Local Kubernetes cluster for deployment testing |
 
 ## Debugging
 
-### LangSmith Tracing
+### LangSmith tracing
 
-Set these in your `.env` to trace LLM calls:
+Set these environment variables to trace all LLM calls and tool invocations:
 
 ```bash
 LANGCHAIN_TRACING_V2=true
@@ -212,9 +255,9 @@ LANGCHAIN_PROJECT=autopoc
 
 ### LangGraph Studio
 
-A `langgraph.json` config is included for [LangGraph Studio](https://github.com/langchain-ai/langgraph-studio). Open the project directory in Studio to visualize and debug pipeline runs.
+A `langgraph.json` config is included for [LangGraph Studio](https://github.com/langchain-ai/langgraph-studio). Open the project directory in Studio to visualize and step through pipeline runs.
 
-### Verbose Mode
+### Verbose mode
 
 ```bash
 autopoc run --name test --repo https://github.com/... --verbose
@@ -225,9 +268,10 @@ Shows INFO-level logs with timestamps, agent phases, tool calls, and context com
 ## Development
 
 ```bash
+# Install with dev dependencies
 pip install -e ".[dev]"
 
-# Run tests (excluding E2E)
+# Run unit tests
 pytest tests/ --ignore=tests/e2e
 
 # Lint
@@ -239,4 +283,4 @@ autopoc graph --format mermaid
 
 ## License
 
-See [LICENSE](LICENSE).
+[MIT](LICENSE)

@@ -127,11 +127,11 @@ On failure, returns the error (with pod logs) and the pipeline routes back to de
 
 Runs the test scenarios defined by the PoC plan. Generates and executes test scripts using `curl`, `kubectl run`, or `kubectl exec` depending on the test strategy.
 
-### PoC Report (ReAct agent)
+### PoC Report (one-shot, no tools)
 
 **File:** `agents/poc_report.py`
 
-Generates a markdown report summarizing the PoC results. Includes pass/fail status, deployment details, and recommendations.
+Non-agentic. All data comes from pipeline state -- the LLM receives the full context (components, images, manifests, test results, logs) and produces a structured markdown report in a single call. The report is written to disk procedurally.
 
 ## Routing and Retry Logic
 
@@ -149,7 +149,9 @@ route_after_build(state):
 
 route_after_apply(state):
     if error is None: return "poc_execute"
-    if retries < max: return "deploy"        # fix manifests, re-apply
+    if container_fix_action == "fix-dockerfile":
+        if container_fix_retries < max: return "containerize"  # outer loop
+    if retries < max: return "deploy"        # inner loop: fix manifests
     return "failed"                          # -> END
 ```
 
