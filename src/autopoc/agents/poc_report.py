@@ -18,6 +18,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from autopoc.llm import create_llm
 from autopoc.state import PoCPhase, PoCState
+from autopoc.tools.git_tools import commit_to_artifacts_branch
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +249,14 @@ async def poc_report_agent(
         report_file.parent.mkdir(parents=True, exist_ok=True)
         report_file.write_text(report_content, encoding="utf-8")
         logger.info("PoC report written to %s (%d chars)", poc_report_path, len(report_content))
+
+        # Commit poc-report.md to the artifacts branch and push to GitLab
+        if clone_path:
+            commit_to_artifacts_branch(
+                clone_path,
+                files=["poc-report.md"],
+                message="Add PoC report (poc-report.md)",
+            )
 
         return {
             "current_phase": PoCPhase.POC_REPORT,

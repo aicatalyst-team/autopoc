@@ -4,10 +4,13 @@ Provides clone, remote management, commit, push, and branch operations
 by shelling out to the git CLI.
 """
 
+import logging
 import subprocess
 from pathlib import Path
 
 from langchain_core.tools import tool
+
+logger = logging.getLogger(__name__)
 
 # Timeout for git operations (seconds)
 GIT_TIMEOUT = 120
@@ -197,3 +200,67 @@ def git_checkout_branch(
 
     output = _run_git(args, cwd=repo_path)
     return output or f"Checked out branch '{branch}'"
+
+
+# ---------------------------------------------------------------------------
+# Shared utility: commit files to a dedicated branch and push
+# ---------------------------------------------------------------------------
+
+ARTIFACTS_BRANCH = "autopoc-artifacts"
+
+
+def commit_to_artifacts_branch(
+    clone_path: str,
+    files: list[str],
+    message: str,
+) -> None:
+    """Commit files to the autopoc-artifacts branch and push to origin.
+
+    Creates the branch from the current HEAD if it doesn't exist, switches to
+    it, commits the specified files, pushes, then switches back to the original
+    branch so downstream agents are unaffected.
+
+    This is a best-effort operation -- failures are logged as warnings and never
+    propagate. The pipeline should not break because an artifact push failed.
+    """
+    original_ref = None
+    try:
+        # Remember the current branch/ref so we can switch back
+        original_ref = _run_git(
+            ["rev-parse", "--abbrev-ref", "HEAD"], cwd=clone_path
+        )
+
+        # Create or switch to the artifacts branch
+        try:
+            _run_git(["checkout", ARTIFACTS_BRANCH], cwd=clone_path)
+        except RuntimeError:
+            # Branch doesn't exist yet -- create it from current HEAD
+            _run_git(["checkout", "-b", ARTIFACTS_BRANCH], cwd=clone_path)
+
+        # Stage and commit
+        for f in files:
+            _run_git(["add", f], cwd=clone_path)
+        _run_git(["commit", "-m", message], cwd=clone_path)
+
+        # Push to origin (which points to GitLab after fork agent runs)
+        try:
+            _run_git(["push", "origin", ARTIFACTS_BRANCH], cwd=clone_path)
+            logger.info(
+                "Pushed %s to origin/%s", ", ".join(files), ARTIFACTS_BRANCH
+            )
+        except RuntimeError as push_err:
+            logger.warning(
+                "Failed to push %s branch: %s", ARTIFACTS_BRANCH, push_err
+            )
+
+    except Exception as e:
+        logger.warning(
+            "Failed to commit artifacts to %s: %s", ARTIFACTS_BRANCH, e
+        )
+    finally:
+        # Always switch back to the original branch
+        if original_ref:
+            try:
+                _run_git(["checkout", original_ref], cwd=clone_path)
+            except Exception:
+                pass
