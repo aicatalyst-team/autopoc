@@ -1,0 +1,20 @@
+SERVER_HOSTNAME: "localhost:8080"
+SETUP_COMPLETE: true
+DB_URI: "postgresql://quay:quaypassword@autopoc-quay-db:5432/quay"
+REDIS_URL: "redis://autopoc-quay-redis:6379"
+
+# Generate a SECRET_KEY
+SECRET_KEY: "supersecret-autopoc-e2e-key-for-local-testing-only"
+
+# Disable features for local
+FEATURE_ACTION_LOG: false
+FEATURE_USER_CREATION: true
+FEATURE_REQUIRE_ENCRYPTED_BASIC_AUTH: false
+FEATURE_GITHUB_LOGIN: false
+FEATURE_DIRECT_LOGIN: true
+FEATURE_MAILING: false
+FEATURE_SUPER_USERS: true
+FEATURE_USER_INITIALIZE: true
+
+# The config must contain a superuser
+SUPER_USERS: ["quayadmin"]

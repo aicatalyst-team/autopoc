@@ -98,6 +98,16 @@ async def fork_agent(
                 _run_git(["remote", "add", "origin", gitlab_url], cwd=clone_str)
 
             logger.info("Set remote 'origin' -> GitLab (%s)", gitlab_url)
+
+            # Also add a 'gitlab' alias so that both `git push origin` and
+            # `git push gitlab` work.  The LLM instructions and the
+            # containerize agent both reference the 'gitlab' remote by name.
+            try:
+                _run_git(["remote", "get-url", "gitlab"], cwd=clone_str)
+                _run_git(["remote", "set-url", "gitlab", gitlab_url], cwd=clone_str)
+            except RuntimeError:
+                _run_git(["remote", "add", "gitlab", gitlab_url], cwd=clone_str)
+            logger.info("Added remote 'gitlab' alias -> GitLab (%s)", gitlab_url)
         except Exception as e:
             logger.warning("Failed to reconfigure remotes, falling back to 'gitlab' remote: %s", e)
             # Fallback: add gitlab as a separate remote

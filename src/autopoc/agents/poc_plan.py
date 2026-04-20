@@ -18,12 +18,58 @@ from autopoc.context import make_context_trimmer
 from autopoc.llm import create_llm
 from autopoc.state import PoCInfrastructure, PoCPhase, PoCScenario, PoCState
 from autopoc.tools.file_tools import list_files, read_file, search_files, write_file
+from autopoc.tools.git_tools import _run_git
 
 logger = logging.getLogger(__name__)
+
+ARTIFACTS_BRANCH = "autopoc-artifacts"
 
 
 # Tools available to the PoC plan agent
 POC_PLAN_TOOLS = [list_files, read_file, search_files, write_file]
+
+
+def _commit_plan_to_branch(clone_path: str, files: list[str], message: str) -> None:
+    """Commit artifact files to the autopoc-artifacts branch and push to GitLab.
+
+    Creates the branch from the current HEAD if it doesn't exist, switches to it,
+    commits the files, pushes, then switches back to the original branch so
+    downstream agents are unaffected.
+    """
+    try:
+        # Remember the current branch/ref so we can switch back
+        original_ref = _run_git(
+            ["rev-parse", "--abbrev-ref", "HEAD"], cwd=clone_path
+        )
+
+        # Create or switch to the artifacts branch
+        try:
+            _run_git(["checkout", ARTIFACTS_BRANCH], cwd=clone_path)
+        except RuntimeError:
+            # Branch doesn't exist yet — create it from current HEAD
+            _run_git(["checkout", "-b", ARTIFACTS_BRANCH], cwd=clone_path)
+
+        # Stage and commit
+        for f in files:
+            _run_git(["add", f], cwd=clone_path)
+        _run_git(["commit", "-m", message], cwd=clone_path)
+
+        # Push to origin (which points to GitLab after fork agent runs)
+        try:
+            _run_git(["push", "origin", ARTIFACTS_BRANCH], cwd=clone_path)
+            logger.info("Pushed %s to origin/%s", ", ".join(files), ARTIFACTS_BRANCH)
+        except RuntimeError as push_err:
+            logger.warning("Failed to push %s branch: %s", ARTIFACTS_BRANCH, push_err)
+
+    except Exception as e:
+        logger.warning("Failed to commit artifacts to %s: %s", ARTIFACTS_BRANCH, e)
+    finally:
+        # Always switch back to the original branch
+        try:
+            _run_git(["checkout", original_ref], cwd=clone_path)
+        except Exception:
+            # original_ref may not be set if the very first command failed
+            pass
 
 
 def _load_system_prompt() -> str:
@@ -283,8 +329,24 @@ def _validate_scenario(scenario: dict) -> PoCScenario:
     )
 
 
+def _normalize_sidecar(entry: dict | str) -> dict:
+    """Normalize a sidecar entry from LLM output.
+
+    The LLM sometimes returns bare image strings (e.g. ``"postgres:18-alpine"``)
+    instead of ``{"name": "postgres", "image": "postgres:18-alpine"}``.
+    """
+    if isinstance(entry, str):
+        # Derive a name from the image string (strip tag and registry prefix)
+        name = entry.split("/")[-1].split(":")[0]
+        return {"name": name, "image": entry}
+    return entry
+
+
 def _validate_infrastructure(infra: dict) -> PoCInfrastructure:
     """Validate and normalize an infrastructure dict from LLM output."""
+    raw_sidecars = infra.get("sidecar_containers", [])
+    sidecars = [_normalize_sidecar(s) for s in raw_sidecars]
+
     return PoCInfrastructure(
         needs_inference_server=infra.get("needs_inference_server", False),
         inference_server_type=infra.get("inference_server_type"),
@@ -296,7 +358,7 @@ def _validate_infrastructure(infra: dict) -> PoCInfrastructure:
         gpu_type=infra.get("gpu_type"),
         needs_pvc=infra.get("needs_pvc", False),
         pvc_size=infra.get("pvc_size"),
-        sidecar_containers=infra.get("sidecar_containers", []),
+        sidecar_containers=sidecars,
         extra_env_vars=infra.get("extra_env_vars", {}),
         odh_components=infra.get("odh_components", []),
         resource_profile=infra.get("resource_profile", "small"),
@@ -651,6 +713,14 @@ async def poc_plan_agent(
             except Exception as e:
                 logger.warning("Failed to write poc-plan.md: %s", e)
 
+        # Commit poc-plan.md to a dedicated branch and push to GitLab
+        if clone_path and poc_plan_content:
+            _commit_plan_to_branch(
+                clone_path,
+                files=["poc-plan.md"],
+                message="Add PoC plan (poc-plan.md)",
+            )
+
         return {
             "poc_plan": poc_plan_content,
             "poc_plan_path": str(poc_plan_path),
@@ -755,6 +825,14 @@ async def poc_plan_agent(
             logger.info("Wrote poc-plan.md (%d chars)", len(poc_plan_content))
         except Exception as e:
             logger.warning("Failed to write poc-plan.md: %s", e)
+
+    # Commit poc-plan.md to a dedicated branch and push to GitLab
+    if clone_path and poc_plan_content:
+        _commit_plan_to_branch(
+            clone_path,
+            files=["poc-plan.md"],
+            message="Add PoC plan (poc-plan.md)",
+        )
 
     logger.info(
         "PoC plan complete: type=%s, %d scenarios, profile=%s, error=%s",

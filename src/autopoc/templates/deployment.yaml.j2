@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ name }}
+  namespace: {{ namespace }}
+  labels:
+    app: {{ name }}
+    autopoc.io/project: {{ project_name }}
+spec:
+  replicas: {{ replicas | default(1) }}
+  selector:
+    matchLabels:
+      app: {{ name }}
+  template:
+    metadata:
+      labels:
+        app: {{ name }}
+    spec:
+      containers:
+      - name: {{ name }}
+        image: {{ image }}
+        imagePullPolicy: {{ image_pull_policy | default('IfNotPresent') }}
+        {% if port %}
+        ports:
+        - containerPort: {{ port }}
+          protocol: TCP
+        {% endif %}
+        {% if env_vars %}
+        env:
+        {% for key, value in env_vars.items() %}
+        - name: {{ key }}
+          value: "{{ value }}"
+        {% endfor %}
+        {% endif %}
+        {% if resources %}
+        resources:
+          {% if resources.requests %}
+          requests:
+            {% if resources.requests.memory %}
+            memory: {{ resources.requests.memory }}
+            {% endif %}
+            {% if resources.requests.cpu %}
+            cpu: {{ resources.requests.cpu }}
+            {% endif %}
+          {% endif %}
+          {% if resources.limits %}
+          limits:
+            {% if resources.limits.memory %}
+            memory: {{ resources.limits.memory }}
+            {% endif %}
+            {% if resources.limits.cpu %}
+            cpu: {{ resources.limits.cpu }}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        {% if readiness_probe %}
+        readinessProbe:
+          {{ readiness_probe | indent(10) }}
+        {% endif %}
+        {% if liveness_probe %}
+        livenessProbe:
+          {{ liveness_probe | indent(10) }}
+        {% endif %}
+        securityContext:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL

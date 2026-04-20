@@ -1,6 +1,7 @@
 # Secrets
 .env
 .env.test
+.env.test.backup
 
 # Python
 __pycache__/
@@ -18,6 +19,24 @@ build/
 .vscode/
 *.swp
 *.swo
+
+# AI agent config
+.claude/
+.opencode/
+CLAUDE.md
+
+# Scratch docs
+CONTEXT_OVERFLOW_FIX.md
+E2E_AUTO_CONFIG.md
+ERROR_LOG_TRUNCATION_FIX.md
+FIXES.md
+LOCAL_K8S_SETUP.md
+MONOREPO_COPY_FIX.md
+
+# Runtime artifacts
+*.log
+quay_login.py
+quay_setup.py
 
 # pytest
 .pytest_cache/

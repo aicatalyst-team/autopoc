@@ -214,7 +214,10 @@ with app.app_context():
     # 1. Ensure user exists
     u = user.get_user("autopoc")
     if not u:
-        u = user.create_user("autopoc", "password", "test@autopoc.com")
+        u = user.create_user("autopoc", "password", "test@autopoc.com", auto_verify=True)
+    elif not u.verified:
+        u.verified = True
+        u.save()
 
     # 2. Ensure org exists
     org = user.get_namespace_user("autopoc-test")
@@ -290,8 +293,18 @@ info "Root password: $GITLAB_ROOT_PASSWORD"
 info "API token: $TOKEN_VALUE"
 info "Group: $GITLAB_GROUP"
 echo ""
+info "Quay Registry is running at: http://localhost:8080"
+info "Quay Org: autopoc-test"
+info "Quay Token: $QUAY_TOKEN"
+echo ""
+info "✅ Credentials written to .env.test"
+info "   AutoPoC will automatically use these when .env.test exists!"
+echo ""
+info "To use AutoPoC with local E2E infrastructure:"
+info "  autopoc run --name myproject --repo https://github.com/user/repo"
+info "  (Will use .env.test credentials automatically)"
+echo ""
 info "To run E2E tests:"
-info "  source .venv/bin/activate"
 info "  pytest tests/e2e/ --e2e -v"
 echo ""
 info "To tear down:"

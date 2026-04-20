@@ -9,3 +9,5 @@
 > 2. `.opencode/plans/plan.md` - Add `✅` to the completed task in the phase tables.
 >
 > Do not wait for the user to ask you to do this. Update the tracking files in the same response/commit as the task completion itself.
+
+> Whenever you complete a phase or a significant change requested by user, git commit.
