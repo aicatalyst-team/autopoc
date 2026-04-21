@@ -16,6 +16,7 @@
 | **5. Hardening** | 35–36 | Logging, tracing, credential validation, CLI polish, checkpointing |
 | **6. Local E2E Harness** | 37–39 | Docker-compose test infra with GitLab CE/Quay, E2E test suite |
 | **7. PoC Intelligence** | 40–56 | PoC plan agent, parallel graph, containerize/deploy PoC-awareness, PoC execute, PoC report |
+| **8. GitHub Fork Target** | 57–66 | GitHub API client, fork agent refactor, push safety, downstream agent updates, CLI, tests |
 
 **Critical path:** 1 → 2 → 4 → 6,7 → 9 → 13,18 → 20 → 25 → 27 → 33 → 34 → 40 → 42 → 44 → 45,46 → 49 → 54
 
@@ -32,6 +33,7 @@
 | **5. Hardening** | **COMPLETE** | 2/2 | CLI verified |
 | **6. Local E2E Harness** | **COMPLETE** | 3/3 | 7 passing (with --e2e) |
 | **7. PoC Intelligence** | **COMPLETE** | 18/18 | 55 passing |
+| **8. GitHub Fork Target** | **COMPLETE** | 10/10 | 25 passing |
 
 ---
 
@@ -1806,3 +1808,234 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 | E: Wiring + CLI | 54, 55, 56 | Full graph, CLI updates, integration tests | 2 days |
 
 **Critical path for Phase 7:** A → B → C → E (Stream D can run in parallel with C)
+
+---
+
+## Phase 8: GitHub Fork Target
+
+### Task 58 — Config: Add GitHub and fork_target fields ✅
+
+**Files:** `src/autopoc/config.py`, `tests/test_config.py`
+
+**Depends on:** Phase 7 complete
+
+**Work:**
+- Add new fields to `AutoPoCConfig`:
+  - `fork_target: str` (default `"gitlab"`) — `"gitlab"` or `"github"`
+  - `github_token: str | None` (default `None`) — GitHub personal access token
+  - `github_org: str | None` (default `None`) — GitHub organization for forks (optional)
+- Make `gitlab_url`, `gitlab_token`, `gitlab_group` optional (default `None`)
+- Add `model_validator` to enforce:
+  - `fork_target` is `"gitlab"` or `"github"`
+  - `fork_target == "github"` requires `github_token`
+  - `fork_target == "gitlab"` requires `gitlab_url`, `gitlab_token`, `gitlab_group`
+- Add `github_token` to `secret_fields` in `masked_summary()`
+- Update tests for new config fields and validation rules
+
+**Acceptance criteria:**
+- Default `fork_target` is `"gitlab"` (backward compatible)
+- GitHub target validates `github_token` is set
+- GitLab fields optional when `fork_target == "github"`
+- Existing tests still pass
+
+---
+
+### Task 59 — State: Generalize fork output fields ✅
+
+**Files:** `src/autopoc/state.py`
+
+**Depends on:** nothing
+
+**Work:**
+- Add new fields to `PoCState`:
+  - `fork_repo_url: str | None` — URL of the fork (GitHub or GitLab)
+  - `fork_target: str | None` — `"github"` or `"gitlab"` — which platform was used
+- Keep `gitlab_repo_url` for backward compatibility
+- `fork_repo_url` is the canonical field going forward
+
+**Acceptance criteria:**
+- New fields importable and usable
+- Existing tests pass unchanged
+
+---
+
+### Task 60 — GitHub API Client ✅
+
+**Files:** `src/autopoc/tools/github_tools.py`, `tests/test_github_tools.py`
+
+**Depends on:** Task 58
+
+**Work:**
+- Create `GitHubClient` class using `httpx` (same pattern as `GitLabClient`):
+  - `fork_repo(owner, repo)` — `POST /repos/{owner}/{repo}/forks` with optional `organization`
+  - `wait_for_fork(owner, repo, timeout=300)` — Poll until fork is ready (async operation)
+  - `get_fork(owner, repo)` — Check if fork already exists under our org/user
+  - `get_clone_url(repo_data)` — Extract clone URL with embedded token
+  - `get_authenticated_user()` — `GET /user` for credential validation
+  - `close()`, `__enter__`, `__exit__`
+- Helper: `parse_github_url(url) -> (owner, repo)` — Extract from GitHub URLs
+- Tests with mocked HTTP: fork creation, polling, existing fork detection, URL parsing
+
+**Acceptance criteria:**
+- All GitHub API methods work against mocked responses
+- URL parsing handles various GitHub URL formats
+- Token is properly embedded in clone URLs
+- All tests pass
+
+---
+
+### Task 61 — Credential validation for GitHub ✅
+
+**Files:** `src/autopoc/credentials.py`
+
+**Depends on:** Task 58
+
+**Work:**
+- Add `check_github(config, timeout)` — `GET https://api.github.com/user` with Bearer token
+- Update `validate_credentials()`:
+  - If `fork_target == "github"`: run `check_github` instead of `check_gitlab`
+  - If `fork_target == "gitlab"`: run `check_gitlab` (unchanged)
+  - Always run `check_anthropic` and `check_quay`
+
+**Acceptance criteria:**
+- GitHub credentials validated at startup when target is GitHub
+- GitLab validation skipped when target is GitHub
+- Backward compatible when target is GitLab
+
+---
+
+### Task 62 — Fork agent: GitHub fork path ✅
+
+**Files:** `src/autopoc/agents/fork.py`
+
+**Depends on:** Tasks 58, 59, 60
+
+**Work:**
+- Refactor `fork_agent` to branch based on `fork_target`:
+  - `_fork_to_gitlab()` — Extract existing GitLab logic, set both `gitlab_repo_url` and `fork_repo_url`
+  - `_fork_to_github()` — New path:
+    1. Parse source URL to get `(owner, repo)`
+    2. Check if fork already exists
+    3. If not, create fork via API (optionally to org)
+    4. Wait for fork to be ready (poll)
+    5. Get clone URL with embedded token
+    6. Clone from fork or reconfigure remotes (remove source remote entirely)
+    7. Set `origin` to fork URL
+    8. Return `fork_repo_url`, `fork_target`, `local_clone_path`
+- Accept optional `github_client` parameter for testing
+
+**Acceptance criteria:**
+- GitLab path unchanged (backward compatible)
+- GitHub path: fork created, remotes configured, source remote removed
+- No explicit push for GitHub (fork copies automatically)
+- Tests pass for both paths
+
+---
+
+### Task 63 — Git tools: Update push safety ✅
+
+**Files:** `src/autopoc/tools/git_tools.py`
+
+**Depends on:** Task 62
+
+**Work:**
+- Remove `github.com` from `_BLOCKED_PUSH_HOSTS` (rely on source remote removal instead)
+- Update error message in `git_push` to be target-agnostic (remove "push to the 'gitlab' remote")
+- `commit_to_artifacts_branch` already pushes to `origin` — no change needed
+
+**Acceptance criteria:**
+- `git_push` allows pushes to github.com (for our fork)
+- Still blocks pushes to `gitlab.com`, `bitbucket.org`, `codeberg.org`
+- Error messages are platform-agnostic
+
+---
+
+### Task 64 — Downstream agents: Generalize remote references ✅
+
+**Files:** `src/autopoc/agents/containerize.py`, `src/autopoc/prompts/deploy.md`
+
+**Depends on:** Task 62
+
+**Work:**
+- `containerize.py` (lines 476-485):
+  - Change `remote="gitlab"` to `remote="origin"` in `git_push` call
+  - Update condition from `state.get("gitlab_repo_url")` to `state.get("fork_repo_url") or state.get("gitlab_repo_url")`
+  - Update log message from "GitLab" to "fork"
+- `deploy.md` (line 141):
+  - Change `git_push(repo_path, remote="gitlab")` to `git_push(repo_path, remote="origin")`
+
+**Acceptance criteria:**
+- Containerize and deploy push to `origin` (works for both GitLab and GitHub)
+- No hardcoded `"gitlab"` remote references remain in push paths
+- Existing functionality preserved (origin points to correct target)
+
+---
+
+### Task 65 — CLI: Add --target flag ✅
+
+**Files:** `src/autopoc/cli.py`
+
+**Depends on:** Tasks 58, 59
+
+**Work:**
+- Add `--target / -t` option to `run` command (overrides `FORK_TARGET` env var)
+- Override `config.fork_target` when flag is provided
+- Update initial state to include `fork_target` and `fork_repo_url`
+- Update `_print_results` to display `fork_repo_url` with target platform label
+- Backward compatible: existing output unchanged when target is GitLab
+
+**Acceptance criteria:**
+- `autopoc run --target github --name test --repo ...` selects GitHub target
+- CLI output shows fork target and URL
+- Default behavior unchanged
+
+---
+
+### Task 66 — Update .env.example ✅
+
+**Files:** `.env.example`
+
+**Depends on:** Task 58
+
+**Work:**
+- Add `FORK_TARGET` documentation
+- Add `GITHUB_TOKEN` documentation
+- Add `GITHUB_ORG` documentation
+- Mark GitLab fields as required only when `FORK_TARGET=gitlab`
+
+**Acceptance criteria:**
+- All new env vars documented with descriptions and examples
+
+---
+
+### Task 67 — Tests ✅
+
+**Files:** `tests/test_github_tools.py` (new), `tests/test_fork_github.py` (new),
+`tests/test_config.py` (update), `tests/test_fork.py` (update)
+
+**Depends on:** Tasks 60, 62, 58
+
+**Work:**
+- `test_github_tools.py`:
+  - Test fork creation (202 response), wait polling (404 then 200)
+  - Test get_fork (existing vs missing)
+  - Test clone URL with embedded token
+  - Test parse_github_url with various formats
+  - Test credential validation (get_authenticated_user)
+- `test_fork_github.py`:
+  - Test happy path: fork created, remotes configured, source remote removed
+  - Test fork already exists: skip creation, reconfigure remotes
+  - Test fork to org vs user account
+  - Test wait_for_fork timeout handling
+- `test_config.py` updates:
+  - Test `fork_target` defaults to `"gitlab"`
+  - Test GitHub config valid when target is `"github"`
+  - Test validation error when target is `"github"` but token missing
+  - Test GitLab fields optional when target is `"github"`
+- `test_fork.py` updates:
+  - Ensure existing tests pass with refactored fork agent
+
+**Acceptance criteria:**
+- All new tests pass
+- All existing tests pass (no regressions)
+- Good coverage of GitHub fork flow edge cases

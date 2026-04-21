@@ -67,9 +67,102 @@ class TestAutoPoCConfig:
             with pytest.raises(ValidationError) as exc_info:
                 AutoPoCConfig(_env_file=None)  # type: ignore[call-arg]
             error_str = str(exc_info.value)
-            assert "gitlab_url" in error_str
-            assert "gitlab_token" in error_str
+            # quay_org and openshift fields are always required at field level
             assert "quay_org" in error_str
+            assert "openshift_api_url" in error_str
+
+    def test_gitlab_target_requires_gitlab_fields(self) -> None:
+        """fork_target=gitlab requires GITLAB_URL, GITLAB_TOKEN, GITLAB_GROUP."""
+        env = {
+            "ANTHROPIC_API_KEY": "sk-ant-key",
+            "QUAY_ORG": "org",
+            "QUAY_TOKEN": "tok",
+            "OPENSHIFT_API_URL": "https://api.example.com:6443",
+            "OPENSHIFT_TOKEN": "tok",
+            # FORK_TARGET defaults to "gitlab", but no GitLab fields set
+        }
+        with patch.dict(os.environ, env, clear=True):
+            with pytest.raises(ValidationError) as exc_info:
+                AutoPoCConfig(_env_file=None)  # type: ignore[call-arg]
+            error_str = str(exc_info.value)
+            assert "GITLAB_URL" in error_str
+            assert "GITLAB_TOKEN" in error_str
+            assert "GITLAB_GROUP" in error_str
+
+    def test_github_target_requires_github_token(self) -> None:
+        """fork_target=github requires GITHUB_TOKEN."""
+        env = {
+            "ANTHROPIC_API_KEY": "sk-ant-key",
+            "FORK_TARGET": "github",
+            "QUAY_ORG": "org",
+            "QUAY_TOKEN": "tok",
+            "OPENSHIFT_API_URL": "https://api.example.com:6443",
+            "OPENSHIFT_TOKEN": "tok",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            with pytest.raises(ValidationError) as exc_info:
+                AutoPoCConfig(_env_file=None)  # type: ignore[call-arg]
+            assert "GITHUB_TOKEN" in str(exc_info.value)
+
+    def test_github_target_valid_config(self) -> None:
+        """fork_target=github works when GITHUB_TOKEN is set; GitLab fields not required."""
+        env = {
+            "ANTHROPIC_API_KEY": "sk-ant-key",
+            "FORK_TARGET": "github",
+            "GITHUB_TOKEN": "ghp_test-token-12345",
+            "GITHUB_ORG": "my-org",
+            "QUAY_ORG": "org",
+            "QUAY_TOKEN": "tok",
+            "OPENSHIFT_API_URL": "https://api.example.com:6443",
+            "OPENSHIFT_TOKEN": "tok",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            config = AutoPoCConfig(_env_file=None)  # type: ignore[call-arg]
+            assert config.fork_target == "github"
+            assert config.github_token == "ghp_test-token-12345"
+            assert config.github_org == "my-org"
+            # GitLab fields are None (not required for github target)
+            assert config.gitlab_url is None
+            assert config.gitlab_token is None
+            assert config.gitlab_group is None
+
+    def test_github_target_without_org(self) -> None:
+        """fork_target=github works without GITHUB_ORG (forks to user account)."""
+        env = {
+            "ANTHROPIC_API_KEY": "sk-ant-key",
+            "FORK_TARGET": "github",
+            "GITHUB_TOKEN": "ghp_test-token",
+            "QUAY_ORG": "org",
+            "QUAY_TOKEN": "tok",
+            "OPENSHIFT_API_URL": "https://api.example.com:6443",
+            "OPENSHIFT_TOKEN": "tok",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            config = AutoPoCConfig(_env_file=None)  # type: ignore[call-arg]
+            assert config.fork_target == "github"
+            assert config.github_org is None
+
+    def test_invalid_fork_target(self) -> None:
+        """Invalid fork_target raises ValidationError."""
+        env = {
+            "ANTHROPIC_API_KEY": "sk-ant-key",
+            "FORK_TARGET": "bitbucket",
+            "QUAY_ORG": "org",
+            "QUAY_TOKEN": "tok",
+            "OPENSHIFT_API_URL": "https://api.example.com:6443",
+            "OPENSHIFT_TOKEN": "tok",
+        }
+        with patch.dict(os.environ, env, clear=True):
+            with pytest.raises(ValidationError) as exc_info:
+                AutoPoCConfig(_env_file=None)  # type: ignore[call-arg]
+            assert "gitlab" in str(exc_info.value).lower() or "github" in str(
+                exc_info.value
+            ).lower()
+
+    def test_fork_target_defaults_to_gitlab(self, env_vars: dict[str, str]) -> None:
+        """Default fork_target is 'gitlab'."""
+        config = AutoPoCConfig(_env_file=None)  # type: ignore[call-arg]
+        assert config.fork_target == "gitlab"
 
     def test_max_build_retries_is_int(self, env_vars: dict[str, str]) -> None:
         """max_build_retries is parsed as an integer from env string."""

@@ -138,7 +138,7 @@ livenessProbe:
 After writing all manifests:
 
 1. Commit: `git_commit(repo_path, "Add Kubernetes manifests", files=["kubernetes/"])`
-2. Push: `git_push(repo_path, remote="gitlab")`
+2. Push: `git_push(repo_path, remote="origin")`
 
 ## Non-Server Workloads (CRITICAL — Check deployment_model)
 

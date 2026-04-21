@@ -473,17 +473,17 @@ async def containerize_agent(
                 }
             )
 
-            # Push to GitLab if remote exists
-            gitlab_url = state.get("gitlab_repo_url")
-            if gitlab_url:
+            # Push to fork if remote exists
+            fork_url = state.get("fork_repo_url") or state.get("gitlab_repo_url")
+            if fork_url:
                 git_push.invoke(
                     {
                         "repo_path": clone_path,
-                        "remote": "gitlab",
+                        "remote": "origin",
                         "ref": "HEAD",
                     }
                 )
-                logger.info("Pushed Dockerfile.ubi files to GitLab")
+                logger.info("Pushed Dockerfile.ubi files to fork")
     except Exception as e:
         logger.warning("Failed to commit/push Dockerfiles: %s", e)
 

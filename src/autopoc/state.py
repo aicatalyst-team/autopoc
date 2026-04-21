@@ -122,7 +122,9 @@ class PoCState(TypedDict, total=False):
     messages: Annotated[list, add_messages]  # LangGraph message history
 
     # --- Fork phase output ---
-    gitlab_repo_url: str | None
+    gitlab_repo_url: str | None  # Deprecated — use fork_repo_url
+    fork_repo_url: str | None  # URL of the fork (GitHub or GitLab)
+    fork_target: str | None  # "github" or "gitlab" — which platform was used
     local_clone_path: str | None
 
     # --- Intake/analysis output ---

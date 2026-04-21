@@ -101,9 +101,11 @@ def git_add_remote(repo_path: str, name: str, url: str) -> str:
 
 
 # Public source code hosts that we must NEVER push to.
-# The fork agent renames origin to "github" and sets origin to GitLab,
-# but this is a safety net in case the remote wasn't reconfigured.
-_BLOCKED_PUSH_HOSTS = {"github.com", "gitlab.com", "bitbucket.org", "codeberg.org"}
+# Note: github.com is NOT in this list because when fork_target=github,
+# we legitimately push to our GitHub fork. The fork agent ensures safety
+# by removing the source remote entirely, so there is no path to push
+# to the upstream repo.
+_BLOCKED_PUSH_HOSTS = {"gitlab.com", "bitbucket.org", "codeberg.org"}
 
 
 @tool
@@ -132,8 +134,8 @@ def git_push(repo_path: str, remote: str = "origin", ref: str = "main") -> str:
                 raise RuntimeError(
                     f"BLOCKED: refusing to push to {remote} ({remote_url}). "
                     f"This points to a public host ({host}). "
-                    f"Push to the 'gitlab' remote or reconfigure 'origin' to point to "
-                    f"your internal GitLab instance."
+                    f"Push to 'origin' (which should point to your fork) or "
+                    f"reconfigure the remote to point to your target instance."
                 )
     except RuntimeError as e:
         if "BLOCKED" in str(e):
