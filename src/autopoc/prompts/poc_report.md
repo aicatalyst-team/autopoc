@@ -6,7 +6,10 @@ structured, and useful for both technical and management audiences.
 
 ## Instructions
 
-Generate a markdown file called `poc-report.md` in the repository root using `write_file`.
+Your response must be ONLY the markdown content of the report — nothing else.
+Do NOT include any preamble, commentary, or explanation before or after the report.
+Do NOT wrap the report in a code fence. Do NOT call any tools.
+Start your response directly with the first markdown heading (e.g., `# PoC Report: ...`).
 
 The report MUST include ALL of the following sections:
 
@@ -100,10 +103,10 @@ Based on the PoC results, provide:
 
 ## Important Notes
 
-- Write the report using the `write_file` tool to the repository root as `poc-report.md`
+- Your entire response IS the report content — it will be written to `poc-report.md` directly
 - Base all content on the actual pipeline data provided, not hypotheticals
 - If some data is missing (e.g., no test results because execution failed), note this
   and explain why
 - Be objective in your assessment — if the PoC failed, say so clearly and explain why
-- Do not output any JSON — this agent produces ONLY the markdown report file
-- After writing the report, confirm you've written it with the file path
+- Do not output any JSON — produce ONLY the markdown report
+- Do NOT include any text before or after the report (no "Here is the report..." preamble)

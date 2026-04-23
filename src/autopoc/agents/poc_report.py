@@ -198,6 +198,34 @@ def _build_user_message(state: PoCState) -> str:
     return "\n".join(parts)
 
 
+def _strip_preamble(content: str) -> str:
+    """Strip LLM preamble text that appears before the actual markdown report.
+
+    LLMs sometimes prepend conversational text like "I'll generate a report..."
+    before the actual markdown content. This function finds the first markdown
+    heading (# ...) and discards everything before it.
+
+    Also strips any trailing commentary after the report ends.
+    """
+    # Find the first markdown heading (line starting with #)
+    lines = content.split("\n")
+    start_idx = 0
+    for i, line in enumerate(lines):
+        if line.strip().startswith("#"):
+            start_idx = i
+            break
+
+    if start_idx > 0:
+        stripped = lines[:start_idx]
+        logger.debug(
+            "Stripped %d lines of LLM preamble from report: %s",
+            start_idx,
+            stripped[0][:80] if stripped else "",
+        )
+
+    return "\n".join(lines[start_idx:]).strip() + "\n"
+
+
 async def poc_report_agent(
     state: PoCState,
     *,
@@ -243,6 +271,10 @@ async def poc_report_agent(
                 part["text"] if isinstance(part, dict) and "text" in part else str(part)
                 for part in report_content
             )
+
+        # Strip any LLM preamble before the actual markdown report.
+        # The report should start with a markdown heading (# ...).
+        report_content = _strip_preamble(report_content)
 
         # Write report to disk
         report_file = Path(poc_report_path)
