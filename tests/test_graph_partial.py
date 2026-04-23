@@ -155,6 +155,7 @@ class TestGraphPartial:
         # Set up env vars so load_config doesn't fail
         env_patch = {
             "ANTHROPIC_API_KEY": "sk-test",
+            "FORK_TARGET": "gitlab",
             "GITLAB_URL": "https://gitlab.test",
             "GITLAB_TOKEN": "tok",
             "GITLAB_GROUP": "poc",

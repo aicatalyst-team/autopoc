@@ -274,7 +274,35 @@ Components and their built images:
         }
 
     except Exception as e:
+        error_str = str(e)
         logger.error("Deploy (manifest generation) failed: %s", e, exc_info=True)
+
+        # Detect no-progress: if this is a retry and the git commit failed because
+        # nothing changed, the deploy agent produced identical manifests. Continuing
+        # to loop would hit the same apply error. Flag this as a no-progress error
+        # so the pipeline can escalate or fail instead of looping forever.
+        if deploy_retries > 0 and "nothing added to commit" in error_str:
+            logger.warning(
+                "No-progress detected: deploy agent produced identical manifests on retry %d. "
+                "Escalating — the manifests are not the problem.",
+                deploy_retries,
+            )
+            return {
+                "current_phase": PoCPhase.DEPLOY,
+                "error": (
+                    f"Deploy agent failed to produce different manifests on retry {deploy_retries}. "
+                    f"Original error: {previous_error or 'unknown'}. "
+                    f"The manifests may be correct but the cluster state prevents apply "
+                    f"(e.g., pre-existing immutable resources). "
+                    f"Consider deleting the namespace and re-running."
+                ),
+                # Signal that this is not a manifest issue — escalate to container fix
+                "container_fix_action": "experiment",
+                "container_fix_error": (
+                    f"Deploy agent cannot fix this via manifests. "
+                    f"Original apply error: {previous_error or error_str}"
+                ),
+            }
 
         return {
             "current_phase": PoCPhase.DEPLOY,

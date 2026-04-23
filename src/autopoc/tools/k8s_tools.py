@@ -53,6 +53,75 @@ def _run_kubectl(args: list[str], timeout: int = 60, check: bool = True) -> str:
     return output.strip()
 
 
+def _check_skip_on_exists(manifest_path: str, namespace: str) -> str | None:
+    """Check if a manifest has skip-on-exists / apply-once annotations.
+
+    If the manifest has annotations indicating it should not be re-applied when
+    the resource already exists, check the cluster and skip if appropriate.
+
+    Args:
+        manifest_path: Path to the YAML manifest file.
+        namespace: Target namespace.
+
+    Returns:
+        A skip message if the resource should be skipped, None otherwise.
+    """
+    try:
+        import yaml
+
+        manifest_file = Path(manifest_path)
+        if not manifest_file.exists():
+            return None
+
+        content = manifest_file.read_text()
+
+        # Handle multi-document YAML — check first document only
+        docs = list(yaml.safe_load_all(content))
+        if not docs:
+            return None
+
+        doc = docs[0]
+        if not isinstance(doc, dict):
+            return None
+
+        metadata = doc.get("metadata", {})
+        annotations = metadata.get("annotations", {})
+
+        skip_on_exists = annotations.get("autopoc.io/skip-on-exists", "").lower() == "true"
+        apply_once = annotations.get("autopoc.io/apply-once", "").lower() == "true"
+
+        if not (skip_on_exists or apply_once):
+            return None
+
+        # Check if the resource already exists on the cluster
+        kind = doc.get("kind", "")
+        name = metadata.get("name", "")
+        resource_ns = metadata.get("namespace", namespace)
+
+        if not kind or not name:
+            return None
+
+        try:
+            _run_kubectl(["get", kind, name, "-n", resource_ns], check=True)
+            # Resource exists — skip it
+            logger.info(
+                "Skipping %s/%s in %s (already exists, annotation: %s)",
+                kind,
+                name,
+                resource_ns,
+                "skip-on-exists" if skip_on_exists else "apply-once",
+            )
+            return f"{kind}/{name} already exists — skipped (apply-once/skip-on-exists)"
+        except RuntimeError:
+            # Resource doesn't exist — proceed with apply
+            return None
+
+    except Exception as e:
+        # If anything goes wrong parsing annotations, proceed with normal apply
+        logger.debug("Failed to check skip-on-exists annotations: %s", e)
+        return None
+
+
 @tool
 def kubectl_apply(manifest_path: str, namespace: str) -> str:
     """Apply a Kubernetes manifest file.
@@ -68,14 +137,23 @@ def kubectl_apply(manifest_path: str, namespace: str) -> str:
     Returns:
         kubectl apply output
     """
+    # Check for skip-on-exists / apply-once annotations
+    skip_result = _check_skip_on_exists(manifest_path, namespace)
+    if skip_result is not None:
+        return skip_result
+
     try:
         return _run_kubectl(["apply", "-f", manifest_path, "-n", namespace])
     except RuntimeError as e:
         error_msg = str(e).lower()
-        # Detect immutable field errors (common with Jobs, which can't be updated)
-        if "field is immutable" in error_msg or "is invalid" in error_msg:
+        # Detect immutable/forbidden field errors (common with Jobs and PVCs)
+        if (
+            "field is immutable" in error_msg
+            or "is invalid" in error_msg
+            or "is forbidden" in error_msg
+        ):
             logger.info(
-                "Apply failed due to immutable field, deleting and re-applying: %s",
+                "Apply failed due to immutable/forbidden field, deleting and re-applying: %s",
                 manifest_path,
             )
             # Delete existing resource(s) defined in the manifest, then re-apply
@@ -107,13 +185,23 @@ def kubectl_apply_from_string(manifest: str, namespace: str) -> str:
         temp_path = f.name
 
     try:
+        # Check for skip-on-exists / apply-once annotations
+        skip_result = _check_skip_on_exists(temp_path, namespace)
+        if skip_result is not None:
+            return skip_result
+
         try:
             return _run_kubectl(["apply", "-f", temp_path, "-n", namespace])
         except RuntimeError as e:
             error_msg = str(e).lower()
-            if "field is immutable" in error_msg or "is invalid" in error_msg:
+            if (
+                "field is immutable" in error_msg
+                or "is invalid" in error_msg
+                or "is forbidden" in error_msg
+            ):
                 logger.info(
-                    "Apply from string failed due to immutable field, deleting and re-applying"
+                    "Apply from string failed due to immutable/forbidden field, "
+                    "deleting and re-applying"
                 )
                 _run_kubectl(
                     ["delete", "-f", temp_path, "-n", namespace, "--ignore-not-found=true"],

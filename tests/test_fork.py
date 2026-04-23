@@ -25,6 +25,7 @@ def fork_config(tmp_path: Path) -> AutoPoCConfig:
         openshift_api_url="https://api.example.com:6443",
         openshift_token="tok",
         work_dir=str(tmp_path / "work"),
+        _env_file=None,
     )
 
 
