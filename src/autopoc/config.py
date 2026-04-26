@@ -33,10 +33,27 @@ class AutoPoCConfig(BaseSettings):
         description="Max retries for LLM API calls (default 0 to fail fast on rate limits)",
     )
 
-    # GitLab
-    gitlab_url: str = Field(description="GitLab instance URL (e.g. https://gitlab.example.com)")
-    gitlab_token: str = Field(description="GitLab personal access token")
-    gitlab_group: str = Field(description="GitLab group/namespace for forked repos")
+    # Fork target
+    fork_target: str = Field(
+        default="gitlab",
+        description="Where to fork repos: 'gitlab' or 'github'",
+    )
+
+    # GitLab (required when fork_target=gitlab)
+    gitlab_url: str | None = Field(
+        default=None, description="GitLab instance URL (e.g. https://gitlab.example.com)"
+    )
+    gitlab_token: str | None = Field(default=None, description="GitLab personal access token")
+    gitlab_group: str | None = Field(
+        default=None, description="GitLab group/namespace for forked repos"
+    )
+
+    # GitHub (required when fork_target=github)
+    github_token: str | None = Field(default=None, description="GitHub personal access token")
+    github_org: str | None = Field(
+        default=None,
+        description="GitHub organization for forks (if unset, forks to authenticated user)",
+    )
 
     # Quay
     quay_registry: str = Field(default="quay.io", description="Quay registry hostname")
@@ -79,6 +96,32 @@ class AutoPoCConfig(BaseSettings):
             self.vertex_location = "us-east5"
         return self
 
+    @model_validator(mode="after")
+    def validate_fork_target(self) -> "AutoPoCConfig":
+        """Validate fork target and its required credentials."""
+        if self.fork_target not in ("gitlab", "github"):
+            raise ValueError(
+                f"FORK_TARGET must be 'gitlab' or 'github', got '{self.fork_target}'"
+            )
+        if self.fork_target == "gitlab":
+            missing = []
+            if not self.gitlab_url:
+                missing.append("GITLAB_URL")
+            if not self.gitlab_token:
+                missing.append("GITLAB_TOKEN")
+            if not self.gitlab_group:
+                missing.append("GITLAB_GROUP")
+            if missing:
+                raise ValueError(
+                    f"FORK_TARGET=gitlab requires: {', '.join(missing)}"
+                )
+        elif self.fork_target == "github":
+            if not self.github_token:
+                raise ValueError(
+                    "FORK_TARGET=github requires GITHUB_TOKEN to be set"
+                )
+        return self
+
     def masked_summary(self) -> dict[str, str]:
         """Return config as a dict with secrets masked for display."""
 
@@ -87,7 +130,13 @@ class AutoPoCConfig(BaseSettings):
                 return "****"
             return value[:4] + "****" + value[-4:]
 
-        secret_fields = {"anthropic_api_key", "gitlab_token", "quay_token", "openshift_token"}
+        secret_fields = {
+            "anthropic_api_key",
+            "gitlab_token",
+            "github_token",
+            "quay_token",
+            "openshift_token",
+        }
         result = {}
         for field_name in self.__class__.model_fields:
             value = getattr(self, field_name)

@@ -7,10 +7,13 @@ def test_verbose_exception():
     import autopoc.cli
     
     class MockGraph:
-        async def ainvoke(self, state):
+        async def ainvoke(self, state, config=None):
             raise ValueError("Test generic error")
+
+        def get_graph(self):
+            return self
             
-    def mock_build_graph(*args):
+    def mock_build_graph(*args, **kwargs):
         return MockGraph()
         
     autopoc.cli.build_graph = mock_build_graph
@@ -25,7 +28,7 @@ def test_verbose_exception():
     os.environ["OPENSHIFT_API_URL"] = "https://api"
     os.environ["OPENSHIFT_TOKEN"] = "token"
     
-    result = runner.invoke(app, ["--name", "test", "--repo", "https://github/test", "-v"])
+    result = runner.invoke(app, ["run", "--name", "test", "--repo", "https://github/test", "-v", "--skip-validation"])
     assert result.exit_code == 1
     assert "Test generic error" in result.stdout
     assert "Traceback" in result.stdout
