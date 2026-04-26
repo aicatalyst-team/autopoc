@@ -3,6 +3,7 @@
 # Targets:
 #   make build      - Build a single-file executable (shiv zipapp)
 #   make install    - pip install in editable mode with dev extras
+#   make lock       - Regenerate requirements.lock from pyproject.toml
 #   make test       - Run unit/integration tests
 #   make test-e2e   - Run end-to-end tests (requires infra)
 #   make lint       - Lint with ruff
@@ -14,7 +15,7 @@ PYTHON   ?= python
 PIP      ?= pip
 SHIV     ?= shiv
 NAME      = autopoc
-VERSION  := $(shell $(PYTHON) -c "from autopoc import __version__; print(__version__)" 2>/dev/null || echo 0.1.0)
+VERSION   = $(shell $(PYTHON) -c "from autopoc import __version__; print(__version__)" 2>/dev/null || echo 0.1.0)
 DIST_DIR  = dist
 BINARY    = $(DIST_DIR)/$(NAME)
 
@@ -42,7 +43,12 @@ $(BINARY): pyproject.toml src/autopoc/**/*.py src/autopoc/prompts/*.md src/autop
 
 .PHONY: install
 install: ## Install in editable mode with dev extras
-	$(PIP) install -e ".[dev,checkpoint]"
+	$(PIP) install -r requirements.lock
+	$(PIP) install -e ".[dev,checkpoint]" --no-deps
+
+.PHONY: lock
+lock: ## Regenerate requirements.lock from pyproject.toml
+	pip-compile --generate-hashes --output-file=requirements.lock pyproject.toml
 
 .PHONY: test
 test: ## Run unit and integration tests
