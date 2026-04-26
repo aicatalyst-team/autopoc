@@ -1,10 +1,7 @@
 """Tests for the script execution tool."""
 
-import os
-import stat
 import textwrap
 
-import pytest
 
 from autopoc.tools.script_tools import run_script
 
