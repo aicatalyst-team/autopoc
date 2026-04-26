@@ -43,6 +43,13 @@ packages = ["src/autopoc"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 norecursedirs = ["tests/fixtures"]
+filterwarnings = [
+    "error",
+    "ignore:Core Pydantic V1 functionality:UserWarning:langchain_core",
+    "ignore:Support for google-cloud-storage:FutureWarning:google.cloud.aiplatform",
+    "ignore:'_UnionGenericAlias' is deprecated:DeprecationWarning:google.genai",
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+]
 
 [tool.ruff]
 target-version = "py312"
