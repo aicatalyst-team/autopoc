@@ -1,7 +1,7 @@
 """Tests for the PoC Plan agent."""
 
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -12,7 +12,6 @@ from autopoc.agents.poc_plan import (
     _validate_scenario,
     poc_plan_agent,
 )
-from autopoc.state import PoCPhase, PoCScenario, PoCInfrastructure
 
 
 # --- Tests for _parse_poc_plan_output ---

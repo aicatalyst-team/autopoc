@@ -32,7 +32,7 @@ from autopoc.agents.poc_execute import poc_execute_agent
 from autopoc.agents.poc_plan import poc_plan_agent
 from autopoc.agents.poc_report import poc_report_agent
 from autopoc.config import load_config
-from autopoc.state import PoCPhase, PoCState
+from autopoc.state import PoCState
 
 logger = logging.getLogger(__name__)
 

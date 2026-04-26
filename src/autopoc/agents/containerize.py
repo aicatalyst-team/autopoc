@@ -15,7 +15,7 @@ from langgraph.prebuilt import create_react_agent
 
 from autopoc.context import make_context_trimmer
 from autopoc.llm import create_llm
-from autopoc.state import ComponentInfo, PoCInfrastructure, PoCPhase, PoCState
+from autopoc.state import ComponentInfo, PoCPhase, PoCState
 from autopoc.tools.file_tools import list_files, read_file, search_files, write_file
 from autopoc.tools.git_tools import git_commit, git_push
 from autopoc.tools.template_tools import render_template
@@ -124,8 +124,8 @@ def _build_user_message(
             db_type = poc_infrastructure.get("vector_db_type", "in-memory")
             if db_type == "in-memory":
                 parts.append(
-                    f"\n**In-memory vector DB needed:** Include the vector DB library "
-                    f"(e.g., ChromaDB, FAISS) in the Python dependencies."
+                    "\n**In-memory vector DB needed:** Include the vector DB library "
+                    "(e.g., ChromaDB, FAISS) in the Python dependencies."
                 )
 
         if poc_infrastructure.get("needs_embedding_model"):
@@ -137,10 +137,9 @@ def _build_user_message(
             )
 
         if poc_infrastructure.get("needs_gpu"):
-            gpu_type = poc_infrastructure.get("gpu_type", "nvidia")
             parts.append(
-                f"\n**GPU support needed:** Consider using a CUDA-capable base image "
-                f"such as `nvcr.io/nvidia/cuda:12.x-runtime-ubi9`."
+                "\n**GPU support needed:** Consider using a CUDA-capable base image "
+                "such as `nvcr.io/nvidia/cuda:12.x-runtime-ubi9`."
             )
 
         extra_env = poc_infrastructure.get("extra_env_vars", {})

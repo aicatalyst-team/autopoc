@@ -150,7 +150,7 @@ def _print_results(result: dict, verbose: bool = False) -> None:
         else:
             preview = _extract_plan_preview(poc_plan_content)
             if preview:
-                console.print(f"\n[bold]PoC Plan Summary:[/bold]")
+                console.print("\n[bold]PoC Plan Summary:[/bold]")
                 console.print(preview)
 
     if poc_plan_path:
@@ -219,7 +219,7 @@ def _print_results(result: dict, verbose: bool = False) -> None:
         console.print(f"\n[bold]GitLab:[/bold] {result['gitlab_repo_url']}")
 
     if result.get("routes"):
-        console.print(f"\n[bold]Routes:[/bold]")
+        console.print("\n[bold]Routes:[/bold]")
         for route in result["routes"]:
             console.print(f"  - {route}")
 
