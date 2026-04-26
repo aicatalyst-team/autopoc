@@ -1,5 +1,7 @@
 # AutoPoC
 
+[![CI](https://github.com/aicatalyst-team/autopoc/actions/workflows/ci.yml/badge.svg)](https://github.com/aicatalyst-team/autopoc/actions/workflows/ci.yml)
+
 **Automated proof-of-concept deployments on OpenShift AI / Open Data Hub.**
 
 Given a source URL (GitHub repo or HuggingFace model), AutoPoC analyzes the project, generates a PoC plan, containerizes it with UBI-based images, deploys to Kubernetes, runs test scenarios, and produces a report -- all without human intervention.
