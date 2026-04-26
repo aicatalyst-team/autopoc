@@ -169,7 +169,7 @@ def _build_user_message(state: PoCState) -> str:
     # --- GitLab ---
     gitlab_url = state.get("gitlab_repo_url", "")
     if gitlab_url:
-        parts.append(f"## GitLab Repository")
+        parts.append("## GitLab Repository")
         parts.append(f"`{gitlab_url}`")
         parts.append("")
 

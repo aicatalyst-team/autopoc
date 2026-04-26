@@ -23,7 +23,6 @@ from dataclasses import dataclass, field
 from langchain_core.messages import (
     AIMessage,
     HumanMessage,
-    SystemMessage,
     ToolMessage,
 )
 
@@ -245,27 +244,7 @@ def make_context_trimmer(token_budget: int = DEFAULT_TOKEN_BUDGET):
         # --- Pass 3: Truncate protected tail if still over budget ---
         total_tokens = sum(_estimate_message_tokens(m) for m in result)
         if total_tokens > token_budget:
-            # Calculate how much room the tail gets after head + note messages
-            head_tokens = sum(
-                _estimate_message_tokens(m)
-                for m in result
-                if not (
-                    isinstance(m, ToolMessage)
-                    and _is_in_tail(m, result, protected_tail_start, messages)
-                )
-            )
-            # Simpler approach: find all ToolMessages in result that came from
-            # the tail, and truncate them to fit the remaining budget.
-            tail_budget_chars = max(
-                1000,  # absolute minimum
-                int((token_budget - head_tokens) * CHARS_PER_TOKEN),
-            )
-            # Distribute budget equally across tail ToolMessages
-            tail_tool_indices = [
-                i
-                for i, m in enumerate(result)
-                if isinstance(m, ToolMessage) and len(_message_text(m)) > TAIL_TOOL_RESULT_MAX_CHARS
-            ]
+            # Truncate large ToolMessages in the tail to fit the remaining budget.
             # Only truncate the large ones in the tail region
             # Tail region in result = messages from protected_tail_start onward
             # Find where tail starts in result

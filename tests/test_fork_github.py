@@ -132,7 +132,7 @@ def initial_state(source_repo: Path) -> PoCState:
     """Initial state for fork agent."""
     return PoCState(
         project_name="test-project",
-        source_repo_url=f"https://github.com/octocat/test-project",
+        source_repo_url="https://github.com/octocat/test-project",
         current_phase=PoCPhase.INTAKE,
         local_clone_path=None,
         error=None,
@@ -161,7 +161,7 @@ def initial_state_with_clone(source_repo: Path) -> PoCState:
     )
     return PoCState(
         project_name="test-project",
-        source_repo_url=f"https://github.com/octocat/test-project",
+        source_repo_url="https://github.com/octocat/test-project",
         current_phase=PoCPhase.INTAKE,
         local_clone_path=str(clone_dir),
         error=None,

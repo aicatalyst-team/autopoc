@@ -115,7 +115,7 @@ Components and their built images:
     poc_scenarios = state.get("poc_scenarios", [])
 
     if poc_type:
-        user_message += f"\n\n## PoC Context"
+        user_message += "\n\n## PoC Context"
         user_message += f"\n**Project type:** {poc_type}"
 
     if poc_infrastructure:
@@ -256,7 +256,7 @@ Components and their built images:
     logger.info("Invoking deploy agent for %d components", len(components))
 
     try:
-        result = await agent.ainvoke(
+        await agent.ainvoke(
             {
                 "messages": [
                     SystemMessage(content=system_prompt),

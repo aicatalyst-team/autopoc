@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 
 from autopoc.llm import create_llm
 from autopoc.state import ComponentInfo, PoCPhase, PoCState

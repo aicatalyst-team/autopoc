@@ -16,7 +16,7 @@ from langgraph.prebuilt import create_react_agent
 
 from autopoc.context import make_context_trimmer
 from autopoc.llm import create_llm
-from autopoc.state import PoCInfrastructure, PoCPhase, PoCScenario, PoCState
+from autopoc.state import PoCInfrastructure, PoCScenario, PoCState
 from autopoc.tools.file_tools import list_files, read_file, search_files, write_file
 from autopoc.tools.git_tools import commit_to_artifacts_branch
 
@@ -339,7 +339,7 @@ def _build_user_message(state: PoCState, *, include_tool_instructions: bool = Tr
     project_name = state.get("project_name", "unknown")
     clone_path = state.get("local_clone_path", "")
 
-    parts.append(f"Analyze this project and create a PoC plan.\n")
+    parts.append("Analyze this project and create a PoC plan.\n")
     parts.append(f"Project name: {project_name}")
     parts.append(f"Source URL: {state.get('source_repo_url', '')}")
     parts.append(f"Repository cloned at: {clone_path}")
@@ -355,7 +355,7 @@ def _build_user_message(state: PoCState, *, include_tool_instructions: bool = Tr
     # Include intake results
     repo_summary = state.get("repo_summary", "")
     if repo_summary:
-        parts.append(f"## Repository Summary (from intake analysis)")
+        parts.append("## Repository Summary (from intake analysis)")
         parts.append(repo_summary)
         parts.append("")
 
@@ -372,7 +372,7 @@ def _build_user_message(state: PoCState, *, include_tool_instructions: bool = Tr
             if comp.get("entry_point"):
                 parts.append(f"  - Entry point: {comp['entry_point']}")
             if comp.get("is_ml_workload"):
-                parts.append(f"  - **ML workload: yes**")
+                parts.append("  - **ML workload: yes**")
             if comp.get("existing_dockerfile"):
                 parts.append(f"  - Has Dockerfile: {comp['existing_dockerfile']}")
             if comp.get("source_dir") and comp["source_dir"] != ".":
@@ -391,7 +391,7 @@ def _build_user_message(state: PoCState, *, include_tool_instructions: bool = Tr
         existing.append(f"CI/CD ({state['existing_ci_cd']})")
 
     if existing:
-        parts.append(f"## Existing Deployment Artifacts")
+        parts.append("## Existing Deployment Artifacts")
         parts.append(", ".join(existing))
         parts.append("")
 
