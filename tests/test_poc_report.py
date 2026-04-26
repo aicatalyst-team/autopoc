@@ -1,8 +1,7 @@
 """Tests for the PoC Report agent."""
 
-import json
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -137,7 +136,6 @@ class TestPocReportAgent:
     @pytest.mark.asyncio
     async def test_agent_returns_report_path(self):
         """Test that the agent returns the report file path."""
-        from langchain_core.messages import AIMessage
 
         state = {
             "project_name": "test",

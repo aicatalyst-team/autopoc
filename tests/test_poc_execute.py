@@ -11,7 +11,7 @@ from autopoc.agents.poc_execute import (
     _build_user_message,
     poc_execute_agent,
 )
-from autopoc.state import PoCPhase, PoCResult
+from autopoc.state import PoCPhase
 
 
 # --- Tests for _parse_poc_results ---

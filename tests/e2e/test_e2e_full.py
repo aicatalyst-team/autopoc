@@ -237,12 +237,11 @@ class TestFullPipeline:
             f"Quay repo {quay_repo_name} should exist"
 
         # Verify deployment was attempted
-        deployed_resources = result.get("deployed_resources", [])
         # Note: Deployment may fail in some test environments, so we check attempt was made
-        # In a more stable E2E environment, we'd assert len(deployed_resources) > 0
+        # In a more stable E2E environment, we'd assert len(result.get("deployed_resources", [])) > 0
 
         # Verify namespace was created
-        ns_check = subprocess.run(
+        subprocess.run(
             ["kubectl", "get", "namespace", unique_project_name],
             capture_output=True,
         )

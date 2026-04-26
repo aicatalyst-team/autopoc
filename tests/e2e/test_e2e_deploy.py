@@ -172,7 +172,7 @@ class TestDeployAgentE2E:
         # assert len(result["routes"]) > 0
 
         # Verify namespace was created
-        ns_check = subprocess.run(
+        subprocess.run(
             ["kubectl", "get", "namespace", unique_project_name],
             capture_output=True,
         )
