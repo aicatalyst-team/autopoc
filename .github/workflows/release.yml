@@ -34,7 +34,7 @@ jobs:
         run: |
           pip install -r requirements.lock
           pip install -e . --no-deps
-          pip install shiv==1.0.8
+          pip install ruff==0.15.11 shiv==1.0.8
 
       - name: Lint
         run: make lint
