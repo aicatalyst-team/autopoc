@@ -241,7 +241,9 @@ class PoCState(TypedDict, total=False):
     messages: Annotated[list, add_messages]  # LangGraph message history
 
     # Fork phase output
-    gitlab_repo_url: str | None
+    gitlab_repo_url: str | None        # Deprecated — use fork_repo_url
+    fork_repo_url: str | None          # URL of the fork (GitHub or GitLab)
+    fork_target: str | None            # "github" or "gitlab"
     local_clone_path: str | None
 
     # Intake/analysis output
@@ -317,23 +319,36 @@ builds, what components it has, and what deployment patterns already exist.
 
 ### Agent 2: Fork Agent (`agents/fork.py`)
 
-**Purpose:** Fork the GitHub repo to the internal self-hosted GitLab instance under the
-designated organization/group.
+**Purpose:** Fork the GitHub repo to either an internal self-hosted GitLab instance or
+to a GitHub organization/user account, depending on the configured `fork_target`.
 
-**Inputs:** `source_repo_url`, `project_name`
+**Inputs:** `source_repo_url`, `project_name`, `fork_target` (from config)
 
 **Tools available:**
-- `gitlab_create_project` — Create a new project in the target GitLab group (via API)
+- **GitLab target:** `gitlab_create_project` — Create a new project in the target GitLab group (via API)
+- **GitHub target:** `github_fork_repo` — Fork via GitHub API (`POST /repos/{owner}/{repo}/forks`)
 - `git_clone` — Clone from GitHub
-- `git_push_remote` — Add GitLab as remote and push
+- `git_push_remote` — Add remote and push (GitLab only; GitHub fork copies automatically)
 
 **Logic (mostly deterministic, minimal LLM needed):**
+
+**GitLab target (default):**
 1. Create a new project on GitLab under the configured group.
 2. Clone from GitHub (if not already cloned by intake).
-3. Add the GitLab repo as the `origin` remote (or `gitlab` remote).
+3. Rename `origin` to `github`, set `origin` to GitLab URL, add `gitlab` alias.
 4. Push all branches and tags to GitLab.
 
-**Output:** `gitlab_repo_url`, `local_clone_path`
+**GitHub target:**
+1. Parse `source_repo_url` to extract `{owner}/{repo}`.
+2. Fork via GitHub API — optionally to a configured organization.
+3. Wait for fork to be ready (async operation, poll until available).
+4. Clone from the fork if not already cloned, or reconfigure remotes.
+5. Remove the source remote entirely (safety: no path to push upstream).
+6. Set `origin` to the fork URL with embedded token.
+7. No explicit push needed — GitHub fork copies all branches/tags automatically.
+
+**Output:** `fork_repo_url`, `fork_target`, `local_clone_path`
+(Also sets `gitlab_repo_url` for backward compatibility when target is GitLab.)
 
 **Note:** This agent is largely procedural. LLM reasoning is minimal — mainly for error
 handling and edge cases (e.g., repo already exists, name conflicts).
@@ -697,10 +712,17 @@ graph.add_edge("poc_report", END)
 # LLM
 ANTHROPIC_API_KEY=sk-ant-...
 
-# GitLab
+# Fork target — where to push the forked repo
+FORK_TARGET=gitlab              # "gitlab" (default) or "github"
+
+# GitLab (required when FORK_TARGET=gitlab)
 GITLAB_URL=https://gitlab.internal.example.com
 GITLAB_TOKEN=glpat-...
 GITLAB_GROUP=poc-demos          # Target group/org for forked repos
+
+# GitHub (required when FORK_TARGET=github)
+# GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# GITHUB_ORG=my-org             # Optional — if unset, forks to authenticated user
 
 # Quay
 QUAY_REGISTRY=quay.io           # or internal Quay
@@ -823,6 +845,25 @@ with ODH/OpenShift AI context. Introduce parallel execution in the graph.
 | 7.16 | CLI updates ✅ | Display PoC plan summary, test results table, and report path in CLI output. |
 | 7.17 | Integration tests ✅ | End-to-end graph test with all new nodes, including parallel execution. |
 | 7.18 | Deployment model awareness ✅ | Add `deployment_model`, `listens_on_port`, `long_running`, `test_strategy` to `PoCInfrastructure`. Update poc_plan prompt with deployment model reasoning + CLI tool example. Update containerize + deploy prompts and agents to handle non-server workloads (CLI tools, Jobs, workers). Pass full poc-plan.md to downstream agents. |
+
+### Phase 8: GitHub Fork Target Support
+
+**Goal:** Add the ability to fork source repos to GitHub (in addition to GitLab). Uses the
+GitHub API's fork endpoint to establish a true parent-child relationship. All downstream
+agents push to the fork (whichever platform) instead of hardcoding GitLab.
+
+| # | Task | Details |
+|---|------|---------|
+| 8.1 | Config updates ✅ | Add `fork_target`, `github_token`, `github_org` to `AutoPoCConfig`. Make GitLab fields optional when target is GitHub. Conditional validation. |
+| 8.2 | State updates ✅ | Add `fork_repo_url` and `fork_target` to `PoCState`. Generalize away from `gitlab_repo_url`. |
+| 8.3 | GitHub API client ✅ | `tools/github_tools.py` — `GitHubClient` class: `fork_repo`, `wait_for_fork`, `get_fork`, `get_clone_url`, `get_authenticated_user`. URL parser. |
+| 8.4 | Credential validation ✅ | Add `check_github()` to `credentials.py`. Conditionally validate based on target. |
+| 8.5 | Fork agent refactor ✅ | Branch fork agent by target: `_fork_to_github()` (API fork, wait, configure remotes, remove source remote) vs `_fork_to_gitlab()` (existing logic). |
+| 8.6 | Git tools safety update ✅ | Remove `github.com` from `_BLOCKED_PUSH_HOSTS` (source remote removed instead). Update error messages to be target-agnostic. |
+| 8.7 | Downstream agent updates ✅ | Change `containerize.py` and `deploy.md` from `remote="gitlab"` to `remote="origin"`. |
+| 8.8 | CLI --target flag ✅ | Add `--target` option to `autopoc run`. Display fork target in output. |
+| 8.9 | .env.example update ✅ | Document new GitHub env vars. |
+| 8.10 | Tests ✅ | `test_github_tools.py`, `test_fork_github.py`, config test updates. |
 
 ---
 

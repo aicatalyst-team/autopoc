@@ -262,7 +262,26 @@ async def containerize_agent(
     # -------------------------------------------------------------------------
     container_fix_error = state.get("container_fix_error")
     container_fix_action = state.get("container_fix_action")  # "fix-dockerfile" | "experiment"
+
+    # Detect outer-loop entry. This happens in two ways:
+    # 1. Explicit: apply triage classified as "fix-dockerfile" / "experiment"
+    #    and container_fix_error was set.
+    # 2. Last-resort: deploy retries exhausted with a "fix-manifest" triage,
+    #    the router escalated to containerize as a hail-mary. In this case,
+    #    container_fix_error is NOT set, but state has an error and
+    #    deploy_retries is at the max. We must still increment the counter
+    #    and reset deploy_retries, otherwise we loop forever.
     is_container_fix = container_fix_error is not None
+    if not is_container_fix and state.get("error") and state.get("deploy_retries", 0) > 0:
+        # Last-resort escalation: deploy retries were exhausted and the router
+        # sent us here even though triage said "fix-manifest".
+        is_container_fix = True
+        container_fix_error = state.get("error")
+        logger.info(
+            "Detected last-resort escalation from apply (deploy_retries=%d, action=%s)",
+            state.get("deploy_retries", 0),
+            container_fix_action,
+        )
 
     # Extra state to return when we're in the outer loop
     outer_loop_state: dict = {}
@@ -473,17 +492,17 @@ async def containerize_agent(
                 }
             )
 
-            # Push to GitLab if remote exists
-            gitlab_url = state.get("gitlab_repo_url")
-            if gitlab_url:
+            # Push to fork if remote exists
+            fork_url = state.get("fork_repo_url") or state.get("gitlab_repo_url")
+            if fork_url:
                 git_push.invoke(
                     {
                         "repo_path": clone_path,
-                        "remote": "gitlab",
+                        "remote": "origin",
                         "ref": "HEAD",
                     }
                 )
-                logger.info("Pushed Dockerfile.ubi files to GitLab")
+                logger.info("Pushed Dockerfile.ubi files to fork")
     except Exception as e:
         logger.warning("Failed to commit/push Dockerfiles: %s", e)
 

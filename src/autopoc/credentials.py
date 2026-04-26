@@ -82,6 +82,38 @@ def check_quay(config: AutoPoCConfig, timeout: float = 10.0) -> CredentialStatus
         return CredentialStatus("Quay", False, str(e))
 
 
+def check_github(config: AutoPoCConfig, timeout: float = 10.0) -> CredentialStatus:
+    """Validate GitHub token by calling GET /user."""
+    url = "https://api.github.com/user"
+    try:
+        resp = httpx.get(
+            url,
+            headers={
+                "Authorization": f"Bearer {config.github_token}",
+                "Accept": "application/vnd.github+json",
+            },
+            timeout=timeout,
+            follow_redirects=True,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            username = data.get("login", "unknown")
+            org_info = f", org={config.github_org}" if config.github_org else ", user account"
+            return CredentialStatus("GitHub", True, f"authenticated as {username}{org_info}")
+        elif resp.status_code == 401:
+            return CredentialStatus("GitHub", False, "token is invalid or expired (401)")
+        elif resp.status_code == 403:
+            return CredentialStatus("GitHub", False, "token lacks required permissions (403)")
+        else:
+            return CredentialStatus("GitHub", False, f"unexpected HTTP {resp.status_code}")
+    except httpx.ConnectError:
+        return CredentialStatus("GitHub", False, "cannot connect to api.github.com")
+    except httpx.TimeoutException:
+        return CredentialStatus("GitHub", False, "timeout connecting to api.github.com")
+    except Exception as e:
+        return CredentialStatus("GitHub", False, str(e))
+
+
 def check_anthropic(config: AutoPoCConfig) -> CredentialStatus:
     """Validate Anthropic/Vertex AI credentials.
 
@@ -138,9 +170,15 @@ def validate_credentials(
 
     checks = [
         check_anthropic(config),
-        check_gitlab(config),
-        check_quay(config),
     ]
+
+    # Validate git hosting credentials based on fork target
+    if config.fork_target == "github":
+        checks.append(check_github(config))
+    else:
+        checks.append(check_gitlab(config))
+
+    checks.append(check_quay(config))
 
     table = Table(
         title="Credential Validation",

@@ -212,7 +212,10 @@ def _print_results(result: dict, verbose: bool = False) -> None:
                 f"\n[bold]PoC Report:[/bold] {poc_report_path} [yellow](not written)[/yellow]"
             )
 
-    if result.get("gitlab_repo_url"):
+    if result.get("fork_repo_url"):
+        fork_target = result.get("fork_target", "unknown")
+        console.print(f"\n[bold]Fork ({fork_target}):[/bold] {result['fork_repo_url']}")
+    elif result.get("gitlab_repo_url"):
         console.print(f"\n[bold]GitLab:[/bold] {result['gitlab_repo_url']}")
 
     if result.get("routes"):
@@ -256,6 +259,14 @@ def run(
     model: Annotated[
         str | None, typer.Option("--model", "-m", help="LLM model name to override config")
     ] = None,
+    target: Annotated[
+        str | None,
+        typer.Option(
+            "--target",
+            "-t",
+            help="Fork target: 'gitlab' or 'github' (overrides FORK_TARGET env var)",
+        ),
+    ] = None,
     verbose: Annotated[
         bool, typer.Option("--verbose", "-v", help="Enable verbose logging")
     ] = False,
@@ -274,6 +285,8 @@ def run(
         config = load_config()
         if model:
             config.llm_model = model
+        if target:
+            config.fork_target = target
     except ValidationError as e:
         console.print("[bold red]Configuration error:[/bold red]")
         for error in e.errors():
@@ -313,6 +326,8 @@ def run(
         "error": None,
         "messages": [],
         "gitlab_repo_url": None,
+        "fork_repo_url": None,
+        "fork_target": None,
         "local_clone_path": None,
         "repo_summary": "",
         "components": [],
