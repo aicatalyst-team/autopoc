@@ -155,9 +155,9 @@ class TestAutoPoCConfig:
         with patch.dict(os.environ, env, clear=True):
             with pytest.raises(ValidationError) as exc_info:
                 AutoPoCConfig(_env_file=None)  # type: ignore[call-arg]
-            assert "gitlab" in str(exc_info.value).lower() or "github" in str(
-                exc_info.value
-            ).lower()
+            assert (
+                "gitlab" in str(exc_info.value).lower() or "github" in str(exc_info.value).lower()
+            )
 
     def test_fork_target_defaults_to_gitlab(self, env_vars: dict[str, str]) -> None:
         """Default fork_target is 'gitlab'."""

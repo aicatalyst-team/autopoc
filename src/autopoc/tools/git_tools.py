@@ -228,9 +228,7 @@ def commit_to_artifacts_branch(
     original_ref = None
     try:
         # Remember the current branch/ref so we can switch back
-        original_ref = _run_git(
-            ["rev-parse", "--abbrev-ref", "HEAD"], cwd=clone_path
-        )
+        original_ref = _run_git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=clone_path)
 
         # Create or switch to the artifacts branch
         try:
@@ -247,18 +245,12 @@ def commit_to_artifacts_branch(
         # Push to origin (which points to GitLab after fork agent runs)
         try:
             _run_git(["push", "origin", ARTIFACTS_BRANCH], cwd=clone_path)
-            logger.info(
-                "Pushed %s to origin/%s", ", ".join(files), ARTIFACTS_BRANCH
-            )
+            logger.info("Pushed %s to origin/%s", ", ".join(files), ARTIFACTS_BRANCH)
         except RuntimeError as push_err:
-            logger.warning(
-                "Failed to push %s branch: %s", ARTIFACTS_BRANCH, push_err
-            )
+            logger.warning("Failed to push %s branch: %s", ARTIFACTS_BRANCH, push_err)
 
     except Exception as e:
-        logger.warning(
-            "Failed to commit artifacts to %s: %s", ARTIFACTS_BRANCH, e
-        )
+        logger.warning("Failed to commit artifacts to %s: %s", ARTIFACTS_BRANCH, e)
     finally:
         # Always switch back to the original branch
         if original_ref:

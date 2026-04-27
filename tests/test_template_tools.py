@@ -1,6 +1,5 @@
 """Tests for autopoc.tools.template_tools module."""
 
-
 from autopoc.tools.template_tools import get_available_templates, render_template
 
 
