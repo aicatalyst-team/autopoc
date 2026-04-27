@@ -254,8 +254,24 @@ def graph(
 
 @app.command()
 def run(
-    name: Annotated[str, typer.Option("--name", "-n", help="Project name for the PoC")],
-    repo: Annotated[str, typer.Option("--repo", "-r", help="GitHub repository URL")],
+    name: Annotated[
+        str | None,
+        typer.Option(
+            "--name",
+            "-n",
+            envvar="AUTOPOC_PROJECT_NAME",
+            help="Project name (or set AUTOPOC_PROJECT_NAME env var)",
+        ),
+    ] = None,
+    repo: Annotated[
+        str | None,
+        typer.Option(
+            "--repo",
+            "-r",
+            envvar="AUTOPOC_REPO_URL",
+            help="GitHub repo URL (or set AUTOPOC_REPO_URL env var)",
+        ),
+    ] = None,
     model: Annotated[
         str | None, typer.Option("--model", "-m", help="LLM model name to override config")
     ] = None,
@@ -276,6 +292,20 @@ def run(
     ] = False,
 ) -> None:
     """Run the full AutoPoC pipeline: intake, fork, containerize, build, deploy."""
+
+    # Validate required inputs (CLI args or env vars)
+    if not name:
+        console.print(
+            "[bold red]Error:[/bold red] --name is required "
+            "(or set AUTOPOC_PROJECT_NAME env var)"
+        )
+        raise typer.Exit(code=1)
+    if not repo:
+        console.print(
+            "[bold red]Error:[/bold red] --repo is required "
+            "(or set AUTOPOC_REPO_URL env var)"
+        )
+        raise typer.Exit(code=1)
 
     # Set up centralized logging
     setup_logging(verbose=verbose, console=console)
