@@ -100,9 +100,7 @@ class AutoPoCConfig(BaseSettings):
     def validate_fork_target(self) -> "AutoPoCConfig":
         """Validate fork target and its required credentials."""
         if self.fork_target not in ("gitlab", "github"):
-            raise ValueError(
-                f"FORK_TARGET must be 'gitlab' or 'github', got '{self.fork_target}'"
-            )
+            raise ValueError(f"FORK_TARGET must be 'gitlab' or 'github', got '{self.fork_target}'")
         if self.fork_target == "gitlab":
             missing = []
             if not self.gitlab_url:
@@ -112,14 +110,10 @@ class AutoPoCConfig(BaseSettings):
             if not self.gitlab_group:
                 missing.append("GITLAB_GROUP")
             if missing:
-                raise ValueError(
-                    f"FORK_TARGET=gitlab requires: {', '.join(missing)}"
-                )
+                raise ValueError(f"FORK_TARGET=gitlab requires: {', '.join(missing)}")
         elif self.fork_target == "github":
             if not self.github_token:
-                raise ValueError(
-                    "FORK_TARGET=github requires GITHUB_TOKEN to be set"
-                )
+                raise ValueError("FORK_TARGET=github requires GITHUB_TOKEN to be set")
         return self
 
     def masked_summary(self) -> dict[str, str]:

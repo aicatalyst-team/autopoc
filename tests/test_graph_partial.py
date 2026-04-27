@@ -177,6 +177,18 @@ class TestGraphPartial:
         def mock_create_react_agent(**kwargs):
             return containerize_mock
 
+        # Generic mock agent for downstream nodes (poc_plan, deploy, etc.)
+        # Returns minimal valid state so the graph can proceed through each node.
+        generic_mock_agent = AsyncMock()
+        generic_mock_agent.ainvoke.return_value = {"messages": [AI(content="{}")]}
+
+        def mock_create_react_agent_generic(**kwargs):
+            return generic_mock_agent
+
+        # Generic mock LLM for any agent that calls create_llm() directly
+        generic_mock_llm = AsyncMock()
+        generic_mock_llm.ainvoke.return_value = AI(content="{}")
+
         with (
             patch.dict(os.environ, env_patch, clear=True),
             # Intake: mock LLM and git_clone (intake no longer uses create_react_agent)
@@ -185,7 +197,7 @@ class TestGraphPartial:
             patch(
                 "autopoc.agents.intake.build_repo_digest", return_value="# Digest\nSample flask app"
             ),
-            # Containerize: still uses create_react_agent
+            # Containerize: uses create_react_agent
             patch(
                 "autopoc.agents.containerize.create_react_agent",
                 side_effect=mock_create_react_agent,
@@ -196,6 +208,25 @@ class TestGraphPartial:
             patch("autopoc.agents.build.QuayClient"),
             patch("autopoc.agents.build.podman_build"),
             patch("autopoc.agents.build.podman_push"),
+            # Mock create_llm for all remaining agents so no real API calls are made
+            patch("autopoc.agents.poc_plan.create_llm", return_value=generic_mock_llm),
+            patch("autopoc.agents.build.create_llm", return_value=generic_mock_llm),
+            patch("autopoc.agents.deploy.create_llm", return_value=generic_mock_llm),
+            patch("autopoc.agents.poc_execute.create_llm", return_value=generic_mock_llm),
+            patch("autopoc.agents.poc_report.create_llm", return_value=generic_mock_llm),
+            # Mock create_react_agent for all remaining agents that use it
+            patch(
+                "autopoc.agents.poc_plan.create_react_agent",
+                side_effect=mock_create_react_agent_generic,
+            ),
+            patch(
+                "autopoc.agents.deploy.create_react_agent",
+                side_effect=mock_create_react_agent_generic,
+            ),
+            patch(
+                "autopoc.agents.poc_execute.create_react_agent",
+                side_effect=mock_create_react_agent_generic,
+            ),
         ):
             # Make git_clone return success (the clone_path directory already exists from sample_repo)
             mock_clone.invoke.return_value = f"Cloned to {tmp_path / 'work' / 'sample-app'}"
