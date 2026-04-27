@@ -47,3 +47,4 @@ quay_setup.py
 # OS
 .DS_Store
 Thumbs.db
+nohup.out

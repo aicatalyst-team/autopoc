@@ -3,22 +3,24 @@ from typer.testing import CliRunner
 
 runner = CliRunner()
 
+
 def test_verbose_exception():
     import autopoc.cli
-    
+
     class MockGraph:
         async def ainvoke(self, state, config=None):
             raise ValueError("Test generic error")
 
         def get_graph(self):
             return self
-            
+
     def mock_build_graph(*args, **kwargs):
         return MockGraph()
-        
+
     autopoc.cli.build_graph = mock_build_graph
-    
+
     import os
+
     os.environ["ANTHROPIC_API_KEY"] = "sk-test"
     os.environ["GITLAB_URL"] = "https://gitlab"
     os.environ["GITLAB_TOKEN"] = "token"
@@ -27,10 +29,13 @@ def test_verbose_exception():
     os.environ["QUAY_TOKEN"] = "token"
     os.environ["OPENSHIFT_API_URL"] = "https://api"
     os.environ["OPENSHIFT_TOKEN"] = "token"
-    
-    result = runner.invoke(app, ["run", "--name", "test", "--repo", "https://github/test", "-v", "--skip-validation"])
+
+    result = runner.invoke(
+        app, ["run", "--name", "test", "--repo", "https://github/test", "-v", "--skip-validation"]
+    )
     assert result.exit_code == 1
     assert "Test generic error" in result.stdout
     assert "Traceback" in result.stdout
+
 
 test_verbose_exception()

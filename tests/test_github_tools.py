@@ -111,9 +111,7 @@ class TestGitHubClient:
                 "clone_url": "https://github.com/test-org/Hello-World.git",
                 "fork": True,
             },
-            request=httpx.Request(
-                "POST", "https://api.github.com/repos/octocat/Hello-World/forks"
-            ),
+            request=httpx.Request("POST", "https://api.github.com/repos/octocat/Hello-World/forks"),
         )
 
         with GitHubClient(github_config) as client:
@@ -136,9 +134,7 @@ class TestGitHubClient:
                 "full_name": "testuser/Hello-World",
                 "clone_url": "https://github.com/testuser/Hello-World.git",
             },
-            request=httpx.Request(
-                "POST", "https://api.github.com/repos/octocat/Hello-World/forks"
-            ),
+            request=httpx.Request("POST", "https://api.github.com/repos/octocat/Hello-World/forks"),
         )
 
         with GitHubClient(github_config_no_org) as client:
@@ -162,9 +158,7 @@ class TestGitHubClient:
                 "fork": True,
                 "parent": {"full_name": "octocat/Hello-World"},
             },
-            request=httpx.Request(
-                "GET", "https://api.github.com/repos/test-org/Hello-World"
-            ),
+            request=httpx.Request("GET", "https://api.github.com/repos/test-org/Hello-World"),
         )
 
         with GitHubClient(github_config) as client:
@@ -180,9 +174,7 @@ class TestGitHubClient:
         mock_response = httpx.Response(
             404,
             json={"message": "Not Found"},
-            request=httpx.Request(
-                "GET", "https://api.github.com/repos/test-org/Hello-World"
-            ),
+            request=httpx.Request("GET", "https://api.github.com/repos/test-org/Hello-World"),
         )
 
         with GitHubClient(github_config) as client:
@@ -200,9 +192,7 @@ class TestGitHubClient:
                 "full_name": "test-org/Hello-World",
                 "fork": False,  # Not a fork
             },
-            request=httpx.Request(
-                "GET", "https://api.github.com/repos/test-org/Hello-World"
-            ),
+            request=httpx.Request("GET", "https://api.github.com/repos/test-org/Hello-World"),
         )
 
         with GitHubClient(github_config) as client:
@@ -221,9 +211,7 @@ class TestGitHubClient:
                 "fork": True,
                 "parent": {"full_name": "other-owner/Hello-World"},
             },
-            request=httpx.Request(
-                "GET", "https://api.github.com/repos/test-org/Hello-World"
-            ),
+            request=httpx.Request("GET", "https://api.github.com/repos/test-org/Hello-World"),
         )
 
         with GitHubClient(github_config) as client:
@@ -242,9 +230,7 @@ class TestGitHubClient:
                 "pushed_at": "2024-01-01T00:00:00Z",
                 "size": 100,
             },
-            request=httpx.Request(
-                "GET", "https://api.github.com/repos/test-org/Hello-World"
-            ),
+            request=httpx.Request("GET", "https://api.github.com/repos/test-org/Hello-World"),
         )
 
         with GitHubClient(github_config) as client:
@@ -259,9 +245,7 @@ class TestGitHubClient:
         not_ready = httpx.Response(
             404,
             json={"message": "Not Found"},
-            request=httpx.Request(
-                "GET", "https://api.github.com/repos/test-org/Hello-World"
-            ),
+            request=httpx.Request("GET", "https://api.github.com/repos/test-org/Hello-World"),
         )
         ready = httpx.Response(
             200,
@@ -270,9 +254,7 @@ class TestGitHubClient:
                 "pushed_at": "2024-01-01T00:00:00Z",
                 "size": 100,
             },
-            request=httpx.Request(
-                "GET", "https://api.github.com/repos/test-org/Hello-World"
-            ),
+            request=httpx.Request("GET", "https://api.github.com/repos/test-org/Hello-World"),
         )
 
         with GitHubClient(github_config) as client:
@@ -291,9 +273,7 @@ class TestGitHubClient:
         not_ready = httpx.Response(
             404,
             json={"message": "Not Found"},
-            request=httpx.Request(
-                "GET", "https://api.github.com/repos/test-org/Hello-World"
-            ),
+            request=httpx.Request("GET", "https://api.github.com/repos/test-org/Hello-World"),
         )
 
         with GitHubClient(github_config) as client:
@@ -305,15 +285,11 @@ class TestGitHubClient:
                     # Simulate time passing beyond timeout
                     mock_time.side_effect = [0, 0, 100, 100, 400]
                     with pytest.raises(TimeoutError, match="not ready"):
-                        client.wait_for_fork(
-                            "test-org", "Hello-World", timeout=10
-                        )
+                        client.wait_for_fork("test-org", "Hello-World", timeout=10)
 
     def test_get_clone_url_embeds_token(self, github_config: AutoPoCConfig) -> None:
         """get_clone_url embeds token in the URL."""
-        repo_data = {
-            "clone_url": "https://github.com/test-org/Hello-World.git"
-        }
+        repo_data = {"clone_url": "https://github.com/test-org/Hello-World.git"}
 
         with GitHubClient(github_config) as client:
             url = client.get_clone_url(repo_data)

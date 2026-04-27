@@ -105,7 +105,6 @@ def cleanup_gitlab_project(gitlab_client: GitLabClient):
         try:
             project = gitlab_client.get_project(name)
             if project:
-
                 gitlab_client._client.delete(f"/projects/{project['id']}")
         except Exception:
             pass  # Best effort cleanup
