@@ -11,3 +11,5 @@
 > Do not wait for the user to ask you to do this. Update the tracking files in the same response/commit as the task completion itself.
 
 > Whenever you complete a phase or a significant change requested by user, git commit.
+
+> **NEVER push directly to master/main.** Always create a feature/fix branch, push to that branch, and ask the user before merging. Do not push to the default branch without explicit user approval.

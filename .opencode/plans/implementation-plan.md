@@ -17,6 +17,7 @@
 | **6. Local E2E Harness** | 37–39 | Docker-compose test infra with GitLab CE/Quay, E2E test suite |
 | **7. PoC Intelligence** | 40–56 | PoC plan agent, parallel graph, containerize/deploy PoC-awareness, PoC execute, PoC report |
 | **8. GitHub Fork Target** | 57–66 | GitHub API client, fork agent refactor, push safety, downstream agent updates, CLI, tests |
+| **9. K8s Deployment** | — | Containerize agent, env var input, build strategy abstraction, Job manifests. See [k8s-deployment-plan.md](./k8s-deployment-plan.md) |
 
 **Critical path:** 1 → 2 → 4 → 6,7 → 9 → 13,18 → 20 → 25 → 27 → 33 → 34 → 40 → 42 → 44 → 45,46 → 49 → 54
 
