@@ -195,9 +195,7 @@ def kind_load_image(image: str, cluster_name: str = "autopoc-e2e") -> str:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
 
         if result.returncode != 0:
-            raise RuntimeError(
-                f"kind load failed: {result.stdout}\n{result.stderr}"
-            )
+            raise RuntimeError(f"kind load failed: {result.stdout}\n{result.stderr}")
 
         logger.info("Successfully loaded %s into kind cluster %s", image, cluster_name)
         return f"Image {image} loaded into kind cluster {cluster_name}"

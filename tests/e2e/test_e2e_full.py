@@ -46,7 +46,14 @@ def cleanup_namespace(namespace: str) -> None:
     """Delete a Kubernetes namespace."""
     try:
         subprocess.run(
-            ["kubectl", "delete", "namespace", namespace, "--ignore-not-found=true", "--timeout=60s"],
+            [
+                "kubectl",
+                "delete",
+                "namespace",
+                namespace,
+                "--ignore-not-found=true",
+                "--timeout=60s",
+            ],
             capture_output=True,
             timeout=70,
         )
@@ -198,8 +205,9 @@ class TestFullPipeline:
 
         # Verify the pipeline completed successfully
         final_phase = result.get("current_phase")
-        assert final_phase in [PoCPhase.DEPLOY, PoCPhase.DONE], \
+        assert final_phase in [PoCPhase.DEPLOY, PoCPhase.DONE], (
             f"Pipeline did not reach deploy/done phase, got: {final_phase}"
+        )
 
         # Verify no fatal errors
         error = result.get("error")
@@ -209,8 +217,9 @@ class TestFullPipeline:
         # Verify intake detected the component
         components = result.get("components", [])
         assert len(components) > 0, "Intake should have detected at least one component"
-        assert any(c.get("language") == "python" for c in components), \
+        assert any(c.get("language") == "python" for c in components), (
             "Should have detected Python component"
+        )
 
         # Verify GitLab fork was created
         gitlab_url = result.get("gitlab_repo_url")
@@ -233,8 +242,9 @@ class TestFullPipeline:
         # Extract component name from first component
         first_component = components[0]["name"]
         quay_repo_name = f"{unique_project_name}-{first_component}"
-        assert quay_client.repo_exists(e2e_config.quay_org, quay_repo_name), \
+        assert quay_client.repo_exists(e2e_config.quay_org, quay_repo_name), (
             f"Quay repo {quay_repo_name} should exist"
+        )
 
         # Verify deployment was attempted
         # Note: Deployment may fail in some test environments, so we check attempt was made
@@ -251,8 +261,7 @@ class TestFullPipeline:
         routes = result.get("routes", [])
         if routes:
             # Routes should be URLs
-            assert all(r.startswith("http") for r in routes), \
-                "Routes should be HTTP URLs"
+            assert all(r.startswith("http") for r in routes), "Routes should be HTTP URLs"
 
     @pytest.mark.asyncio
     async def test_pipeline_with_build_retry(
@@ -313,5 +322,6 @@ CMD ["python", "app.py"]
         # With a mock, it might fail immediately
 
         # Verify we didn't exceed max retries
-        assert retries <= e2e_config.max_build_retries, \
+        assert retries <= e2e_config.max_build_retries, (
             f"Should not exceed max retries ({e2e_config.max_build_retries})"
+        )

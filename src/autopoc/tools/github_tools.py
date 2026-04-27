@@ -42,22 +42,17 @@ def parse_github_url(url: str) -> tuple[str, str]:
         ValueError: If the URL cannot be parsed as a GitHub URL.
     """
     # HTTPS format: https://github.com/owner/repo[.git]
-    https_match = re.match(
-        r"https?://github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$", url
-    )
+    https_match = re.match(r"https?://github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$", url)
     if https_match:
         return https_match.group(1), https_match.group(2)
 
     # SSH format: git@github.com:owner/repo.git
-    ssh_match = re.match(
-        r"git@github\.com:([^/]+)/([^/]+?)(?:\.git)?$", url
-    )
+    ssh_match = re.match(r"git@github\.com:([^/]+)/([^/]+?)(?:\.git)?$", url)
     if ssh_match:
         return ssh_match.group(1), ssh_match.group(2)
 
     raise ValueError(
-        f"Cannot parse GitHub URL: {url}. "
-        f"Expected format: https://github.com/owner/repo"
+        f"Cannot parse GitHub URL: {url}. Expected format: https://github.com/owner/repo"
     )
 
 
