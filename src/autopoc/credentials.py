@@ -53,11 +53,71 @@ def check_gitlab(config: AutoPoCConfig, timeout: float = 10.0) -> CredentialStat
 
 
 def check_quay(config: AutoPoCConfig, timeout: float = 10.0) -> CredentialStatus:
-    """Validate Quay token by calling GET /api/v1/user/."""
+    """Validate Quay credentials.
+
+    Supports two authentication modes:
+    - Robot account: QUAY_USERNAME is set (e.g. 'myuser+robotname').
+      Validates via the Docker v2 token endpoint since robot accounts
+      cannot authenticate to the Quay REST API.
+    - OAuth token: QUAY_USERNAME is unset, validates via GET /api/v1/user/.
+    """
     # Quay registry may be a URL (http://localhost:8080) or just a hostname (quay.io)
     registry = config.quay_registry
     if not registry.startswith("http"):
         registry = f"https://{registry}"
+
+    if config.quay_username:
+        return _check_quay_robot(config, registry, timeout)
+    else:
+        return _check_quay_oauth(config, registry, timeout)
+
+
+def _check_quay_robot(
+    config: AutoPoCConfig, registry: str, timeout: float
+) -> CredentialStatus:
+    """Validate robot account credentials via Docker v2 token endpoint."""
+    # Robot accounts can only authenticate via the Docker registry protocol,
+    # not the Quay REST API. We validate by requesting a v2 token.
+    url = f"{registry.rstrip('/')}/v2/auth"
+    params = {
+        "service": registry.split("://", 1)[1].rstrip("/"),
+        "scope": f"repository:{config.quay_org}/probe:pull",
+    }
+    try:
+        resp = httpx.get(
+            url,
+            auth=(config.quay_username, config.quay_token),
+            params=params,
+            timeout=timeout,
+            follow_redirects=True,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            if "token" in data:
+                return CredentialStatus(
+                    "Quay",
+                    True,
+                    f"authenticated as {config.quay_username} (robot account)",
+                )
+            return CredentialStatus("Quay", False, "unexpected response from v2 auth")
+        elif resp.status_code == 401:
+            return CredentialStatus(
+                "Quay", False, "robot account credentials are invalid (401)"
+            )
+        else:
+            return CredentialStatus("Quay", False, f"unexpected HTTP {resp.status_code}")
+    except httpx.ConnectError:
+        return CredentialStatus("Quay", False, f"cannot connect to {config.quay_registry}")
+    except httpx.TimeoutException:
+        return CredentialStatus("Quay", False, f"timeout connecting to {config.quay_registry}")
+    except Exception as e:
+        return CredentialStatus("Quay", False, str(e))
+
+
+def _check_quay_oauth(
+    config: AutoPoCConfig, registry: str, timeout: float
+) -> CredentialStatus:
+    """Validate OAuth token via GET /api/v1/user/."""
     url = f"{registry.rstrip('/')}/api/v1/user/"
     try:
         resp = httpx.get(
@@ -69,7 +129,7 @@ def check_quay(config: AutoPoCConfig, timeout: float = 10.0) -> CredentialStatus
         if resp.status_code == 200:
             data = resp.json()
             username = data.get("username", "unknown")
-            return CredentialStatus("Quay", True, f"authenticated as {username}")
+            return CredentialStatus("Quay", True, f"authenticated as {username} (OAuth token)")
         elif resp.status_code == 401:
             return CredentialStatus("Quay", False, "token is invalid or expired (401)")
         else:

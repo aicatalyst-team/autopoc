@@ -154,7 +154,22 @@ def route_after_apply(state: PoCState) -> str:
     return "failed"
 
 
-def build_graph(checkpointer=None) -> CompiledStateGraph:
+# Ordered list of pipeline phases for --stop-after validation.
+# This matches the logical pipeline order (not the graph topology).
+PIPELINE_PHASES = [
+    "intake",
+    "poc_plan",
+    "fork",
+    "containerize",
+    "build",
+    "deploy",
+    "apply",
+    "poc_execute",
+    "poc_report",
+]
+
+
+def build_graph(checkpointer=None, *, stop_after: str | None = None) -> CompiledStateGraph:
     """Build and compile the AutoPoC pipeline graph.
 
     Full graph:
@@ -175,79 +190,162 @@ def build_graph(checkpointer=None) -> CompiledStateGraph:
     Args:
         checkpointer: Optional LangGraph checkpointer for state persistence.
             Enables resuming interrupted runs. Pass a SqliteSaver or MemorySaver.
+        stop_after: Optional phase name to stop after (e.g. "build").
+            The pipeline will end after this phase completes instead of
+            continuing to the next phase. Valid values: see PIPELINE_PHASES.
 
     Returns:
         Compiled LangGraph ready for invocation.
     """
+    if stop_after and stop_after not in PIPELINE_PHASES:
+        raise ValueError(
+            f"Invalid --stop-after value: '{stop_after}'. "
+            f"Valid phases: {', '.join(PIPELINE_PHASES)}"
+        )
+
+    def _is_active(phase: str) -> bool:
+        """Check if a phase should be included in the graph."""
+        if stop_after is None:
+            return True
+        return PIPELINE_PHASES.index(phase) <= PIPELINE_PHASES.index(stop_after)
+
     graph = StateGraph(PoCState)
 
-    # Add nodes
+    # Add nodes — only include phases up to and including stop_after
     graph.add_node("intake", intake_agent)
-    graph.add_node("poc_plan", poc_plan_agent)
-    graph.add_node("fork", fork_agent)
-    graph.add_node("containerize", containerize_agent)
-    graph.add_node("build", build_agent)
-    graph.add_node("deploy", deploy_agent)
-    graph.add_node("apply", apply_agent)
-    graph.add_node("poc_execute", poc_execute_agent)
-    graph.add_node("poc_report", poc_report_agent)
+    if _is_active("poc_plan"):
+        graph.add_node("poc_plan", poc_plan_agent)
+    if _is_active("fork"):
+        graph.add_node("fork", fork_agent)
+    if _is_active("containerize"):
+        graph.add_node("containerize", containerize_agent)
+    if _is_active("build"):
+        graph.add_node("build", build_agent)
+    if _is_active("deploy"):
+        graph.add_node("deploy", deploy_agent)
+    if _is_active("apply"):
+        graph.add_node("apply", apply_agent)
+    if _is_active("poc_execute"):
+        graph.add_node("poc_execute", poc_execute_agent)
+    if _is_active("poc_report"):
+        graph.add_node("poc_report", poc_report_agent)
 
     # Wire edges
     graph.set_entry_point("intake")
 
-    # Conditional fan-out after intake: proceed to poc_plan + fork if success, END if failure
-    graph.add_conditional_edges(
-        "intake",
-        route_after_intake,
-        {
-            "poc_plan": "poc_plan",
-            "fork": "fork",
-            "failed": END,
-        },
-    )
+    if stop_after == "intake":
+        # Stop immediately after intake
+        graph.add_edge("intake", END)
+    else:
+        # Conditional fan-out after intake: proceed to poc_plan + fork if success, END if failure
+        if stop_after in ("poc_plan", "fork"):
+            # Only fan out to the phases that are active
+            targets = {}
+            if _is_active("poc_plan"):
+                targets["poc_plan"] = "poc_plan"
+            if _is_active("fork"):
+                targets["fork"] = "fork"
+            targets["failed"] = END
 
-    # Fan-in: both poc_plan and fork must complete before containerize runs
-    graph.add_edge("poc_plan", "containerize")
-    graph.add_edge("fork", "containerize")
+            graph.add_conditional_edges("intake", route_after_intake, targets)
 
-    # containerize → build
-    graph.add_edge("containerize", "build")
+            # Stop after the active phase(s)
+            if _is_active("poc_plan"):
+                graph.add_edge("poc_plan", END)
+            if _is_active("fork"):
+                graph.add_edge("fork", END)
+        else:
+            # Normal fan-out
+            graph.add_conditional_edges(
+                "intake",
+                route_after_intake,
+                {
+                    "poc_plan": "poc_plan",
+                    "fork": "fork",
+                    "failed": END,
+                },
+            )
 
-    # Conditional routing after build
-    graph.add_conditional_edges(
-        "build",
-        route_after_build,
-        {
-            "deploy": "deploy",
-            "containerize": "containerize",  # retry loop
-            "failed": END,
-        },
-    )
+            # Fan-in: both poc_plan and fork must complete before containerize runs
+            graph.add_edge("poc_plan", "containerize")
+            graph.add_edge("fork", "containerize")
 
-    # deploy → apply (deploy generates manifests, apply runs kubectl)
-    graph.add_edge("deploy", "apply")
+            if stop_after == "containerize":
+                graph.add_edge("containerize", END)
+            else:
+                # containerize → build
+                graph.add_edge("containerize", "build")
 
-    # Conditional routing after apply
-    graph.add_conditional_edges(
-        "apply",
-        route_after_apply,
-        {
-            "poc_execute": "poc_execute",  # success → run PoC tests
-            "deploy": "deploy",  # inner retry: fix manifests
-            "containerize": "containerize",  # outer loop: fix container image
-            "failed": END,
-        },
-    )
+                if stop_after == "build":
+                    # Stop after build — route success to END, but still allow retry loop
+                    graph.add_conditional_edges(
+                        "build",
+                        route_after_build,
+                        {
+                            "deploy": END,  # success → stop instead of deploying
+                            "containerize": "containerize",  # retry loop still works
+                            "failed": END,
+                        },
+                    )
+                else:
+                    # Normal build routing
+                    graph.add_conditional_edges(
+                        "build",
+                        route_after_build,
+                        {
+                            "deploy": "deploy",
+                            "containerize": "containerize",
+                            "failed": END,
+                        },
+                    )
 
-    # PoC execution → report → END
-    graph.add_edge("poc_execute", "poc_report")
-    graph.add_edge("poc_report", END)
+                    if stop_after == "deploy":
+                        graph.add_edge("deploy", END)
+                    else:
+                        # deploy → apply
+                        graph.add_edge("deploy", "apply")
+
+                        if stop_after == "apply":
+                            # Stop after apply — route success to END, keep retry loops
+                            graph.add_conditional_edges(
+                                "apply",
+                                route_after_apply,
+                                {
+                                    "poc_execute": END,  # success → stop
+                                    "deploy": "deploy",
+                                    "containerize": "containerize",
+                                    "failed": END,
+                                },
+                            )
+                        else:
+                            # Normal apply routing
+                            graph.add_conditional_edges(
+                                "apply",
+                                route_after_apply,
+                                {
+                                    "poc_execute": "poc_execute",
+                                    "deploy": "deploy",
+                                    "containerize": "containerize",
+                                    "failed": END,
+                                },
+                            )
+
+                            if stop_after == "poc_execute":
+                                graph.add_edge("poc_execute", END)
+                            else:
+                                # Full pipeline
+                                graph.add_edge("poc_execute", "poc_report")
+                                graph.add_edge("poc_report", END)
 
     # Compile (with optional checkpointer for state persistence)
     compiled = graph.compile(checkpointer=checkpointer)
-    logger.info(
-        "Graph compiled: intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ apply → poc_execute → poc_report → END"
-    )
+
+    if stop_after:
+        logger.info("Graph compiled with --stop-after=%s", stop_after)
+    else:
+        logger.info(
+            "Graph compiled: intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ apply → poc_execute → poc_report → END"
+        )
     if checkpointer is not None:
         logger.info("Checkpointer enabled: %s", type(checkpointer).__name__)
 
