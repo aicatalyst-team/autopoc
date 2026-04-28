@@ -122,7 +122,7 @@ class QuayClient:
             json={
                 "namespace": org,
                 "repository": name,
-                "visibility": "private",
+                "visibility": "public",
                 "description": "AutoPoC created repository",
             },
         )
