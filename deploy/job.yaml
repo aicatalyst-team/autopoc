@@ -1,0 +1,248 @@
+# AutoPoC Kubernetes Job
+#
+# Runs the AutoPoC pipeline as a one-shot Kubernetes Job.
+# The project to PoC is specified via environment variables.
+#
+# Usage:
+#   1. Create the credentials Secret first:
+#      kubectl apply -f deploy/secret.yaml
+#
+#   2. Run the Job (replace PROJECT_NAME and REPO_URL):
+#      export PROJECT_NAME=my-project
+#      export REPO_URL=https://github.com/org/repo
+#      envsubst < deploy/job.yaml | kubectl apply -f -
+#
+#   3. Follow the logs:
+#      kubectl logs -f job/autopoc-${PROJECT_NAME} -n autopoc
+#
+# The Job uses the autopoc container image and reads credentials
+# from the 'autopoc-credentials' Secret. See deploy/secret.yaml.example
+# for the required keys.
+#
+# To stop after a specific phase (e.g. build only, no deploy):
+#   Add "--stop-after", "build" to the args list below.
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: autopoc-${PROJECT_NAME}
+  namespace: autopoc
+  labels:
+    app: autopoc
+    autopoc.io/project: ${PROJECT_NAME}
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400  # Clean up completed Jobs after 24h
+  template:
+    metadata:
+      labels:
+        app: autopoc
+        autopoc.io/project: ${PROJECT_NAME}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: autopoc-runner
+
+      containers:
+        - name: autopoc
+          image: quay.io/autopoc/autopoc:latest
+          args:
+            - "run"
+            - "--stop-after"
+            - "build"
+          env:
+            # --- Project configuration (set per-Job) ---
+            - name: AUTOPOC_PROJECT_NAME
+              value: "${PROJECT_NAME}"
+            - name: AUTOPOC_REPO_URL
+              value: "${REPO_URL}"
+
+            # --- Build strategy ---
+            - name: BUILD_STRATEGY
+              value: "openshift"
+
+            # --- LLM provider (choose one) ---
+            # Option A: Anthropic API key
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: ANTHROPIC_API_KEY
+                  optional: true
+            # Option B: Google Vertex AI (uncomment if using Vertex)
+            # - name: VERTEX_PROJECT
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: autopoc-credentials
+            #       key: VERTEX_PROJECT
+            #       optional: true
+            # - name: VERTEX_LOCATION
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: autopoc-credentials
+            #       key: VERTEX_LOCATION
+            #       optional: true
+
+            # --- Fork target ---
+            - name: FORK_TARGET
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: FORK_TARGET
+                  optional: true
+
+            # GitHub fork credentials
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: GITHUB_TOKEN
+                  optional: true
+            - name: GITHUB_ORG
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: GITHUB_ORG
+                  optional: true
+
+            # GitLab fork credentials (if FORK_TARGET=gitlab)
+            - name: GITLAB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: GITLAB_URL
+                  optional: true
+            - name: GITLAB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: GITLAB_TOKEN
+                  optional: true
+            - name: GITLAB_GROUP
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: GITLAB_GROUP
+                  optional: true
+
+            # --- Quay registry ---
+            - name: QUAY_REGISTRY
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: QUAY_REGISTRY
+                  optional: true
+            - name: QUAY_ORG
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: QUAY_ORG
+            - name: QUAY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: QUAY_TOKEN
+            - name: QUAY_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: QUAY_USERNAME
+                  optional: true
+
+            # --- OpenShift ---
+            - name: OPENSHIFT_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: OPENSHIFT_API_URL
+            - name: OPENSHIFT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: OPENSHIFT_TOKEN
+            - name: OPENSHIFT_NAMESPACE_PREFIX
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: OPENSHIFT_NAMESPACE_PREFIX
+                  optional: true
+
+            # --- Working directory ---
+            - name: WORK_DIR
+              value: "/workspace"
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "2"
+
+          volumeMounts:
+            - name: work
+              mountPath: /workspace
+
+      volumes:
+        - name: work
+          emptyDir: {}
+---
+# ServiceAccount for the autopoc Job.
+# Needs permissions to create BuildConfigs, Builds, Secrets, and
+# Namespaces if using BUILD_STRATEGY=openshift.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: autopoc-runner
+  namespace: autopoc
+---
+# ClusterRole with permissions needed by the autopoc agent.
+# BuildConfig/Build for OpenShift builds; Namespace for creating
+# project namespaces; standard workload resources for deployment.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: autopoc-runner
+  labels:
+    app: autopoc
+rules:
+  # OpenShift Build resources
+  - apiGroups: ["build.openshift.io"]
+    resources: ["buildconfigs", "builds", "builds/log"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  - apiGroups: ["build.openshift.io"]
+    resources: ["buildconfigs/instantiatebinary"]
+    verbs: ["create"]
+  # Namespace management
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "create"]
+  # Workload resources (for deploy/apply phases)
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "secrets", "configmaps",
+                "persistentvolumeclaims", "serviceaccounts"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+---
+# Bind the ClusterRole to the ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: autopoc-runner
+  labels:
+    app: autopoc
+subjects:
+  - kind: ServiceAccount
+    name: autopoc-runner
+    namespace: autopoc
+roleRef:
+  kind: ClusterRole
+  name: autopoc-runner
+  apiGroup: rbac.authorization.k8s.io
