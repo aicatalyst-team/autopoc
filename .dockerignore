@@ -1,0 +1,44 @@
+# Version control
+.git
+
+# Secrets — NEVER include in image
+.env
+.env.*
+
+# Build artifacts (rebuilt inside container)
+dist/
+build/
+*.egg-info
+
+# Python caches
+__pycache__
+.pytest_cache
+.ruff_cache
+
+# Tests (not needed in runtime image)
+tests/
+
+# Documentation and planning
+*.md
+!README.md
+docs/
+.opencode/
+
+# IDE and editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+nohup.out
+
+# CI/CD (not needed in image)
+.github/
+
+# Misc scratch files
+*.log
+quay_login.py
+quay_setup.py

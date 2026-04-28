@@ -11,6 +11,7 @@ def mock_config():
     config = MagicMock(spec=AutoPoCConfig)
     config.quay_registry = "quay.io"
     config.quay_token = "secret"
+    config.quay_username = None
     return config
 
 
