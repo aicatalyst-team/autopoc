@@ -46,12 +46,12 @@ to OpenShift/Kubernetes, with project input coming from environment variables
 
 | Phase | Status | Tasks Done |
 |-------|--------|------------|
-| **1. Containerize** | PENDING | 0/3 |
-| **2. Env Var Input** | PENDING | 0/1 |
-| **3. run-sheet Stub** | PENDING | 0/1 |
-| **4. Build Strategy** | PENDING | 0/5 |
-| **5. K8s Manifests** | PENDING | 0/2 |
-| **6. Tests** | PENDING | 0/4 |
+| **1. Containerize** | ✅ DONE | 3/3 |
+| **2. Env Var Input** | ✅ DONE | 1/1 |
+| **3. run-sheet Stub** | CANCELLED | — (not needed) |
+| **4. Build Strategy** | ✅ DONE | 5/5 (+ robot account support, --stop-after, build history limits) |
+| **5. K8s Manifests** | ✅ DONE | 2/2 |
+| **6. Tests** | ✅ DONE | 3/4 (build strategy tests, CLI tests, lint/test pass; image verified locally) |
 
 ---
 
