@@ -39,9 +39,7 @@ def base_state(tmp_path: Path) -> PoCState:
 
 
 @pytest.mark.asyncio
-@patch("autopoc.agents.build.podman_push")
 async def test_retry_loop_success(
-    mock_push,
     base_state: PoCState,
     tmp_path: Path,
 ):
