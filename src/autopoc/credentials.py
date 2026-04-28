@@ -53,23 +53,39 @@ def check_gitlab(config: AutoPoCConfig, timeout: float = 10.0) -> CredentialStat
 
 
 def check_quay(config: AutoPoCConfig, timeout: float = 10.0) -> CredentialStatus:
-    """Validate Quay token by calling GET /api/v1/user/."""
+    """Validate Quay credentials by calling GET /api/v1/user/.
+
+    Supports two authentication modes:
+    - Robot account: QUAY_USERNAME is set (e.g. 'myuser+robotname'), uses Basic auth.
+    - OAuth token: QUAY_USERNAME is unset, uses Bearer auth.
+    """
     # Quay registry may be a URL (http://localhost:8080) or just a hostname (quay.io)
     registry = config.quay_registry
     if not registry.startswith("http"):
         registry = f"https://{registry}"
     url = f"{registry.rstrip('/')}/api/v1/user/"
+
+    # Use Basic auth for robot accounts, Bearer for OAuth tokens
+    if config.quay_username:
+        auth = (config.quay_username, config.quay_token)
+        headers = {}
+    else:
+        auth = None
+        headers = {"Authorization": f"Bearer {config.quay_token}"}
+
     try:
         resp = httpx.get(
             url,
-            headers={"Authorization": f"Bearer {config.quay_token}"},
+            auth=auth,
+            headers=headers,
             timeout=timeout,
             follow_redirects=True,
         )
         if resp.status_code == 200:
             data = resp.json()
             username = data.get("username", "unknown")
-            return CredentialStatus("Quay", True, f"authenticated as {username}")
+            auth_type = "robot account" if config.quay_username else "OAuth token"
+            return CredentialStatus("Quay", True, f"authenticated as {username} ({auth_type})")
         elif resp.status_code == 401:
             return CredentialStatus("Quay", False, "token is invalid or expired (401)")
         else:

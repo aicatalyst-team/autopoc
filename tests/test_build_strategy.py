@@ -229,6 +229,7 @@ class TestBuildStrategyConfig:
                 build_strategy="docker",
             )
 
+    @patch.dict("os.environ", {}, clear=True)
     def test_default_is_podman(self):
         """Config defaults to build_strategy='podman'."""
         from autopoc.config import AutoPoCConfig
@@ -242,5 +243,6 @@ class TestBuildStrategyConfig:
             gitlab_url="https://gitlab.test",
             gitlab_token="tok",
             gitlab_group="poc",
+            _env_file=None,
         )
         assert config.build_strategy == "podman"

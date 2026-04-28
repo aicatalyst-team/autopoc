@@ -163,11 +163,13 @@ async def build_agent(
             logger.info("Logging in to registry: %s", registry_host)
             tls_verify = not registry_url.startswith("http://")
 
-            # Login to the registry using the Quay token
-            # Quay OAuth tokens use '$oauthtoken' as username and the token as password
+            # Login to the registry
+            # Robot accounts use their username (e.g. 'myuser+robotname')
+            # OAuth tokens use '$oauthtoken' as the username (Quay convention)
+            registry_username = app_config.quay_username or "$oauthtoken"
             build_strategy.login(
                 registry=registry_host,
-                username="$oauthtoken",
+                username=registry_username,
                 password=app_config.quay_token,
                 tls_verify=tls_verify,
             )
