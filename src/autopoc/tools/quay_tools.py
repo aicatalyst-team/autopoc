@@ -20,6 +20,10 @@ QUAY_TIMEOUT = 30
 class QuayClient:
     """Client for interacting with the Quay API.
 
+    Supports two authentication modes:
+    - Robot account: config.quay_username is set (e.g. 'myuser+robotname'), uses Basic auth.
+    - OAuth token: config.quay_username is unset, uses Bearer auth.
+
     Args:
         config: AutoPoC configuration with Quay token and registry.
     """
@@ -34,9 +38,20 @@ class QuayClient:
             self.registry = raw_registry.rstrip("/")
 
         self.token = config.quay_token
+        self.username = config.quay_username
+
+        # Use Basic auth for robot accounts, Bearer for OAuth tokens
+        if self.username:
+            auth = (self.username, self.token)
+            headers = {}
+        else:
+            auth = None
+            headers = {"Authorization": f"Bearer {self.token}"}
+
         self._client = httpx.Client(
             base_url=f"{self.base_url}/api/v1",
-            headers={"Authorization": f"Bearer {self.token}"},
+            auth=auth,
+            headers=headers,
             timeout=QUAY_TIMEOUT,
             follow_redirects=True,
         )
