@@ -69,12 +69,27 @@ class QuayClient:
         response = self._client.get(f"/repository/{org}/{name}")
         if response.status_code == 404:
             return False
+        if response.status_code == 401:
+            # Robot accounts can't query the REST API — assume the repo
+            # may or may not exist and let the push create it on first use.
+            logger.debug(
+                "Cannot check if %s/%s exists (401 — likely robot account). "
+                "Assuming it will be created on first push.",
+                org,
+                name,
+            )
+            return False
 
         response.raise_for_status()
         return True
 
     def ensure_repo(self, org: str, name: str) -> str:
         """Check if a Quay repo exists. If not, create it.
+
+        For robot accounts (which cannot use the Quay REST API), this
+        method skips the API check and returns the image reference
+        directly. Quay.io auto-creates repositories on first push if
+        the account has permission.
 
         Args:
             org: Organization namespace.
@@ -84,9 +99,19 @@ class QuayClient:
             The image reference string for the repository (e.g. quay.io/org/name).
 
         Raises:
-            httpx.HTTPStatusError: If creation fails.
+            httpx.HTTPStatusError: If creation fails (OAuth tokens only).
         """
         repo_ref = f"{self.registry}/{org}/{name}"
+
+        # Robot accounts can't use the REST API — skip the check and rely
+        # on Quay's auto-create-on-push behavior.
+        if self.username:
+            logger.info(
+                "Robot account detected — skipping REST API repo check for %s. "
+                "Repository will be created on first push if it doesn't exist.",
+                repo_ref,
+            )
+            return repo_ref
 
         if self.repo_exists(org, name):
             logger.info("Quay repository %s already exists.", repo_ref)
