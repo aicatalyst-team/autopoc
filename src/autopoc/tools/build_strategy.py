@@ -310,6 +310,8 @@ class OpenShiftBuildStrategy(BuildStrategy):
                         "name": self._push_secret_name,
                     },
                 },
+                "successfulBuildsHistoryLimit": 3,
+                "failedBuildsHistoryLimit": 3,
             },
         }
 
