@@ -6,6 +6,7 @@ from langchain_core.messages import AIMessage
 from autopoc.agents import build as build_module
 from autopoc.agents.build import build_agent
 from autopoc.state import PoCPhase, PoCState
+from autopoc.tools.build_strategy import PodmanBuildStrategy
 
 
 @pytest.fixture(autouse=True)
@@ -70,6 +71,7 @@ def mock_app_config():
     config.quay_org = "my-org"
     config.quay_registry = "quay.io"
     config.quay_token = "test-token"
+    config.build_strategy = "podman"
     return config
 
 
@@ -80,28 +82,30 @@ def mock_llm():
     return llm
 
 
+@pytest.fixture
+def mock_strategy():
+    """Mock BuildStrategy that succeeds for all operations."""
+    strategy = MagicMock(spec=PodmanBuildStrategy)
+    strategy.login.return_value = "Login successful"
+    strategy.build.return_value = "Build successful"
+    strategy.push.return_value = "Push successful"
+    return strategy
+
+
 @pytest.mark.asyncio
-@patch("autopoc.agents.build.podman_login")
-@patch("autopoc.agents.build.podman_build")
-@patch("autopoc.agents.build.podman_push")
 async def test_build_success(
-    mock_push,
-    mock_build,
-    mock_login,
     initial_state: PoCState,
     mock_app_config,
     mock_quay_client,
     mock_llm,
+    mock_strategy,
 ):
     """Test successful build of all components."""
-    # Podman succeeds for both components
-    mock_build.invoke.return_value = "Build successful"
-    mock_push.invoke.return_value = "Push successful"
-
     result = await build_agent(
         initial_state,
         app_config=mock_app_config,
         quay_client=mock_quay_client,
+        build_strategy=mock_strategy,
         llm=mock_llm,
     )
 
@@ -116,9 +120,9 @@ async def test_build_success(
     assert result["components"][0]["image_name"] == "quay.io/my-org/my-project-api:latest"
     assert result["components"][1]["image_name"] == "quay.io/my-org/my-project-web:latest"
 
-    # Verify podman calls
-    assert mock_build.invoke.call_count == 2
-    assert mock_push.invoke.call_count == 2
+    # Verify strategy calls
+    assert mock_strategy.build.call_count == 2
+    assert mock_strategy.push.call_count == 2
 
     # Verify Quay repo created
     assert mock_quay_client.ensure_repo.call_count == 2
@@ -128,18 +132,13 @@ async def test_build_success(
 
 @pytest.mark.asyncio
 @patch("autopoc.agents.build.create_llm")
-@patch("autopoc.agents.build.podman_login")
-@patch("autopoc.agents.build.podman_build")
-@patch("autopoc.agents.build.podman_push")
 async def test_build_partial_failure(
-    mock_push,
-    mock_build,
-    mock_login,
     mock_create_llm,
     initial_state: PoCState,
     mock_app_config,
     mock_quay_client,
     mock_llm,
+    mock_strategy,
 ):
     """Test when the first component succeeds but the second fails."""
 
@@ -149,18 +148,19 @@ async def test_build_partial_failure(
     mock_create_llm.return_value = diagnosis_llm
 
     # Succeeds on first call, fails on second
-    def mock_build_side_effect(args):
-        if "web/Dockerfile.ubi" in args["dockerfile"]:
+    def mock_build_side_effect(*, context_path, dockerfile, tag, tls_verify=True):
+        if "web/Dockerfile.ubi" in dockerfile:
             raise RuntimeError("Compilation failed")
         return "Build successful"
 
-    mock_build.invoke.side_effect = mock_build_side_effect
-    mock_push.invoke.return_value = "Push successful"
+    mock_strategy.build.side_effect = mock_build_side_effect
+    mock_strategy.push.return_value = "Push successful"
 
     result = await build_agent(
         initial_state,
         app_config=mock_app_config,
         quay_client=mock_quay_client,
+        build_strategy=mock_strategy,
         llm=mock_llm,
     )
 
@@ -176,9 +176,9 @@ async def test_build_partial_failure(
     # Retries incremented
     assert result["build_retries"] == 1
 
-    # Verify podman calls
-    assert mock_build.invoke.call_count == 2
-    assert mock_push.invoke.call_count == 1  # Only pushed api
+    # Verify strategy calls
+    assert mock_strategy.build.call_count == 2
+    assert mock_strategy.push.call_count == 1  # Only pushed api
 
     # Verify LLM was called for diagnosis
     assert diagnosis_llm.ainvoke.call_count == 1

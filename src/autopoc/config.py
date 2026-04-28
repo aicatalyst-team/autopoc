@@ -69,7 +69,13 @@ class AutoPoCConfig(BaseSettings):
         default="poc", description="Prefix for created namespaces (e.g. poc-myproject)"
     )
 
-    # Build
+    # Build strategy
+    build_strategy: str = Field(
+        default="podman",
+        description="Container build strategy: 'podman' (local CLI) or 'openshift' (on-cluster builds)",
+    )
+
+    # Build retries
     max_build_retries: int = Field(
         default=3, description="Max retry attempts for failed container builds"
     )
@@ -94,6 +100,15 @@ class AutoPoCConfig(BaseSettings):
         if self.vertex_project and not self.vertex_location:
             # Default to us-east5 (where Claude is supported) if project is provided but location is not
             self.vertex_location = "us-east5"
+        return self
+
+    @model_validator(mode="after")
+    def validate_build_strategy(self) -> "AutoPoCConfig":
+        """Validate build strategy."""
+        if self.build_strategy not in ("podman", "openshift"):
+            raise ValueError(
+                f"BUILD_STRATEGY must be 'podman' or 'openshift', got '{self.build_strategy}'"
+            )
         return self
 
     @model_validator(mode="after")
