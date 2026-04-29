@@ -206,8 +206,7 @@ class TestGraphPartial:
             patch("autopoc.agents.containerize.git_commit"),
             patch("autopoc.agents.containerize.git_push"),
             patch("autopoc.agents.build.QuayClient"),
-            patch("autopoc.agents.build.podman_build"),
-            patch("autopoc.agents.build.podman_push"),
+            patch("autopoc.agents.build.get_build_strategy"),
             # Mock create_llm for all remaining agents so no real API calls are made
             patch("autopoc.agents.poc_plan.create_llm", return_value=generic_mock_llm),
             patch("autopoc.agents.build.create_llm", return_value=generic_mock_llm),
@@ -225,6 +224,10 @@ class TestGraphPartial:
             ),
             patch(
                 "autopoc.agents.poc_execute.create_react_agent",
+                side_effect=mock_create_react_agent_generic,
+            ),
+            patch(
+                "autopoc.agents.apply.create_react_agent",
                 side_effect=mock_create_react_agent_generic,
             ),
         ):

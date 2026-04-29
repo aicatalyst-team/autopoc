@@ -254,8 +254,24 @@ def graph(
 
 @app.command()
 def run(
-    name: Annotated[str, typer.Option("--name", "-n", help="Project name for the PoC")],
-    repo: Annotated[str, typer.Option("--repo", "-r", help="GitHub repository URL")],
+    name: Annotated[
+        str | None,
+        typer.Option(
+            "--name",
+            "-n",
+            envvar="AUTOPOC_PROJECT_NAME",
+            help="Project name (or set AUTOPOC_PROJECT_NAME env var)",
+        ),
+    ] = None,
+    repo: Annotated[
+        str | None,
+        typer.Option(
+            "--repo",
+            "-r",
+            envvar="AUTOPOC_REPO_URL",
+            help="GitHub repo URL (or set AUTOPOC_REPO_URL env var)",
+        ),
+    ] = None,
     model: Annotated[
         str | None, typer.Option("--model", "-m", help="LLM model name to override config")
     ] = None,
@@ -274,8 +290,41 @@ def run(
         bool,
         typer.Option("--skip-validation", help="Skip credential validation at startup"),
     ] = False,
+    stop_after: Annotated[
+        str | None,
+        typer.Option(
+            "--stop-after",
+            help="Stop pipeline after this phase (e.g. 'build', 'deploy'). "
+            "Valid: intake, poc_plan, fork, containerize, build, deploy, apply, poc_execute, poc_report",
+        ),
+    ] = None,
 ) -> None:
     """Run the full AutoPoC pipeline: intake, fork, containerize, build, deploy."""
+
+    # Validate required inputs (CLI args or env vars)
+    if not name:
+        console.print(
+            "[bold red]Error:[/bold red] --name is required "
+            "(or set AUTOPOC_PROJECT_NAME env var)"
+        )
+        raise typer.Exit(code=1)
+    if not repo:
+        console.print(
+            "[bold red]Error:[/bold red] --repo is required "
+            "(or set AUTOPOC_REPO_URL env var)"
+        )
+        raise typer.Exit(code=1)
+
+    # Validate --stop-after
+    if stop_after:
+        from autopoc.graph import PIPELINE_PHASES
+
+        if stop_after not in PIPELINE_PHASES:
+            console.print(
+                f"[bold red]Error:[/bold red] invalid --stop-after value: '{stop_after}'\n"
+                f"Valid phases: {', '.join(PIPELINE_PHASES)}"
+            )
+            raise typer.Exit(code=1)
 
     # Set up centralized logging
     setup_logging(verbose=verbose, console=console)
@@ -365,9 +414,12 @@ def run(
 
     # Build and run the graph with checkpointer
     checkpointer = _get_checkpointer(config.work_dir)
-    compiled_graph = build_graph(checkpointer=checkpointer)
+    compiled_graph = build_graph(checkpointer=checkpointer, stop_after=stop_after)
 
-    console.print("[bold cyan]Starting pipeline...[/bold cyan]")
+    if stop_after:
+        console.print(f"[bold cyan]Starting pipeline (stopping after {stop_after})...[/bold cyan]")
+    else:
+        console.print("[bold cyan]Starting pipeline...[/bold cyan]")
     start_time = time.time()
 
     try:

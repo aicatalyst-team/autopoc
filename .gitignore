@@ -2,6 +2,7 @@
 .env
 .env.test
 .env.test.backup
+deploy/secret.yaml
 
 # Python
 __pycache__/

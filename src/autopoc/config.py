@@ -57,8 +57,13 @@ class AutoPoCConfig(BaseSettings):
 
     # Quay
     quay_registry: str = Field(default="quay.io", description="Quay registry hostname")
-    quay_org: str = Field(description="Quay organization for pushed images")
-    quay_token: str = Field(description="Quay robot account token for push access")
+    quay_org: str = Field(description="Quay organization or username for pushed images")
+    quay_token: str = Field(description="Quay token (robot account token or OAuth token)")
+    quay_username: str | None = Field(
+        default=None,
+        description="Quay username for registry auth (e.g. 'myuser+robotname' for robot accounts). "
+        "If unset, defaults to '$oauthtoken' (OAuth token auth).",
+    )
 
     # OpenShift
     openshift_api_url: str = Field(
@@ -69,7 +74,13 @@ class AutoPoCConfig(BaseSettings):
         default="poc", description="Prefix for created namespaces (e.g. poc-myproject)"
     )
 
-    # Build
+    # Build strategy
+    build_strategy: str = Field(
+        default="podman",
+        description="Container build strategy: 'podman' (local CLI) or 'openshift' (on-cluster builds)",
+    )
+
+    # Build retries
     max_build_retries: int = Field(
         default=3, description="Max retry attempts for failed container builds"
     )
@@ -94,6 +105,15 @@ class AutoPoCConfig(BaseSettings):
         if self.vertex_project and not self.vertex_location:
             # Default to us-east5 (where Claude is supported) if project is provided but location is not
             self.vertex_location = "us-east5"
+        return self
+
+    @model_validator(mode="after")
+    def validate_build_strategy(self) -> "AutoPoCConfig":
+        """Validate build strategy."""
+        if self.build_strategy not in ("podman", "openshift"):
+            raise ValueError(
+                f"BUILD_STRATEGY must be 'podman' or 'openshift', got '{self.build_strategy}'"
+            )
         return self
 
     @model_validator(mode="after")

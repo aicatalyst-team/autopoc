@@ -12,5 +12,4 @@
 
 > Whenever you complete a phase or a significant change requested by user, git commit.
 
-## Journal Plugin
-This project uses journal-plugin for session logging. Run `/log` to capture insights.
+> **NEVER push directly to master/main.** Always create a feature/fix branch, push to that branch, and ask the user before merging. Do not push to the default branch without explicit user approval.
