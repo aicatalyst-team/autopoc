@@ -1,6 +1,7 @@
 """CLI integration tests for the `autopoc run-sheet` command."""
 
 import os
+import re
 from unittest.mock import patch
 
 from typer.testing import CliRunner
@@ -8,6 +9,11 @@ from typer.testing import CliRunner
 from autopoc.cli import app
 
 runner = CliRunner()
+
+
+def _strip_ansi(text: str) -> str:
+    """Remove ANSI escape codes from text for assertion matching."""
+    return re.sub(r"\x1b\[[0-9;]*m", "", text)
 
 # Minimal env vars to satisfy config validation (for tests that get past
 # the sheet-specific arg checks).
@@ -76,12 +82,13 @@ class TestRunSheetArgs:
         """run-sheet --help shows all expected options."""
         result = runner.invoke(app, ["run-sheet", "--help"])
         assert result.exit_code == 0
-        assert "sheet-id" in result.stdout
-        assert "credentials" in result.stdout
-        assert "AUTOPOC_SHEET_ID" in result.stdout
-        assert "AUTOPOC_SHEET_CREDENTIALS" in result.stdout
-        assert "stop-after" in result.stdout
-        assert "verbose" in result.stdout
+        output = _strip_ansi(result.stdout)
+        assert "sheet-id" in output
+        assert "credentials" in output
+        assert "AUTOPOC_SHEET_ID" in output
+        assert "AUTOPOC_SHEET_CREDENTIALS" in output
+        assert "stop-after" in output
+        assert "verbose" in output
 
 
 class TestRunSheetFlow:
