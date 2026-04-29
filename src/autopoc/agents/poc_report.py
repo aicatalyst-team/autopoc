@@ -159,6 +159,14 @@ def _build_user_message(state: PoCState) -> str:
         parts.append(f"**Test Script:** `{poc_script_path}`")
         parts.append("")
 
+    poc_test_output_dir = state.get("poc_test_output_dir", "")
+    if poc_test_output_dir:
+        parts.append(
+            "**Raw Test Output:** Full test output (stdout/stderr) is available "
+            "in `poc-test-output/` on the `autopoc-artifacts` branch."
+        )
+        parts.append("")
+
     # --- Errors ---
     error = state.get("error")
     if error:

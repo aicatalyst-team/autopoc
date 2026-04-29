@@ -17,6 +17,7 @@
 | **6. Local E2E Harness** | 37–39 | Docker-compose test infra with GitLab CE/Quay, E2E test suite |
 | **7. PoC Intelligence** | 40–56 | PoC plan agent, parallel graph, containerize/deploy PoC-awareness, PoC execute, PoC report |
 | **8. GitHub Fork Target** | 57–66 | GitHub API client, fork agent refactor, push safety, downstream agent updates, CLI, tests |
+| **9. Raw Test Output** | 67–72 | Raw output capture, truncation, log formatting, artifact commit. See [raw-test-output-impl.md](./raw-test-output-impl.md) |
 
 **Critical path:** 1 → 2 → 4 → 6,7 → 9 → 13,18 → 20 → 25 → 27 → 33 → 34 → 40 → 42 → 44 → 45,46 → 49 → 54
 
@@ -34,6 +35,7 @@
 | **6. Local E2E Harness** | **COMPLETE** | 3/3 | 7 passing (with --e2e) |
 | **7. PoC Intelligence** | **COMPLETE** | 18/18 | 55 passing |
 | **8. GitHub Fork Target** | **COMPLETE** | 10/10 | 25 passing |
+| **9. Raw Test Output** | **COMPLETE** | 6/6 | 23 passing |
 
 ---
 

@@ -6,11 +6,74 @@ output capture, for use by the LLM-powered PoC Execute agent.
 
 import logging
 import subprocess
+import time
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 from langchain_core.tools import tool
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Raw output capture — records full subprocess output before truncation
+# ---------------------------------------------------------------------------
+
+MAX_SCENARIO_OUTPUT_BYTES = 102_400  # 100KB per stdout/stderr block
+
+
+@dataclass
+class RawRunRecord:
+    """Raw output from a single run_script invocation."""
+
+    script_path: str
+    timestamp: str  # ISO 8601
+    stdout_raw: str  # Full stdout (no truncation)
+    stderr_raw: str  # Full stderr (no truncation)
+    exit_code: int  # -1 for timeout
+    duration_seconds: float
+    timed_out: bool = False
+
+
+# Module-level buffer — populated by run_script, consumed by poc_execute_agent
+_raw_run_log: list[RawRunRecord] = []
+
+
+def get_raw_run_log() -> list[RawRunRecord]:
+    """Return and clear the raw run log buffer."""
+    log = list(_raw_run_log)
+    _raw_run_log.clear()
+    return log
+
+
+def clear_raw_run_log() -> None:
+    """Clear the raw run log buffer (for test isolation)."""
+    _raw_run_log.clear()
+
+
+def truncate_output(text: str, max_bytes: int = MAX_SCENARIO_OUTPUT_BYTES) -> str:
+    """Tail-truncate text to fit within *max_bytes* (UTF-8).
+
+    If the text exceeds *max_bytes*, keep the **last** *max_bytes* bytes and
+    prepend a truncation marker.  This preserves error messages which are
+    typically at the end of output.
+
+    Returns the text unchanged if it fits within the limit.
+    """
+    encoded = text.encode("utf-8")
+    if len(encoded) <= max_bytes:
+        return text
+
+    total_size = len(encoded)
+    # Take the tail, then decode safely (errors="ignore" drops split chars)
+    tail = encoded[-max_bytes:].decode("utf-8", errors="ignore")
+
+    marker = (
+        f"... [truncated — showing last {max_bytes // 1024}KB "
+        f"of {total_size // 1024}KB total] ...\n"
+    )
+    return marker + tail
 
 
 @tool
@@ -52,6 +115,8 @@ def run_script(
 
     logger.info("Executing script: %s (timeout=%ds)", script_path, timeout)
 
+    start_time = time.monotonic()
+
     try:
         result = subprocess.run(
             cmd,
@@ -59,6 +124,20 @@ def run_script(
             text=True,
             timeout=timeout,
             cwd=str(path.parent),
+        )
+
+        elapsed = round(time.monotonic() - start_time, 2)
+
+        # Capture raw output BEFORE truncation
+        _raw_run_log.append(
+            RawRunRecord(
+                script_path=str(path),
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                stdout_raw=result.stdout or "",
+                stderr_raw=result.stderr or "",
+                exit_code=result.returncode,
+                duration_seconds=elapsed,
+            )
         )
 
         output_parts = [
@@ -90,7 +169,22 @@ def run_script(
         return output
 
     except subprocess.TimeoutExpired:
+        elapsed = round(time.monotonic() - start_time, 2)
         logger.warning("Script timed out after %ds: %s", timeout, script_path)
+
+        # Capture timeout in raw log
+        _raw_run_log.append(
+            RawRunRecord(
+                script_path=str(path),
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                stdout_raw="",
+                stderr_raw="",
+                exit_code=-1,
+                duration_seconds=elapsed,
+                timed_out=True,
+            )
+        )
+
         return (
             f"EXIT_CODE: -1\n\n"
             f"ERROR: Script timed out after {timeout} seconds.\n"
