@@ -12,6 +12,15 @@ from autopoc.agents.poc_execute import (
     poc_execute_agent,
 )
 from autopoc.state import PoCPhase
+from autopoc.tools.script_tools import clear_raw_run_log
+
+
+@pytest.fixture(autouse=True)
+def _isolate_raw_log():
+    """Ensure the raw run log buffer is clean for each test."""
+    clear_raw_run_log()
+    yield
+    clear_raw_run_log()
 
 
 # --- Tests for _parse_poc_results ---

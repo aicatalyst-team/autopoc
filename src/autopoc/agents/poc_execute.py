@@ -17,7 +17,8 @@ from autopoc.llm import create_llm
 from autopoc.state import PoCPhase, PoCResult, PoCState
 from autopoc.tools.file_tools import read_file, write_file
 from autopoc.tools.k8s_tools import kubectl_get, kubectl_logs
-from autopoc.tools.script_tools import run_script
+from autopoc.tools.git_tools import commit_to_artifacts_branch
+from autopoc.tools.script_tools import get_raw_run_log, run_script, truncate_output
 
 logger = logging.getLogger(__name__)
 
@@ -180,6 +181,101 @@ def _build_user_message(state: PoCState) -> str:
     return "\n".join(parts)
 
 
+def _write_raw_test_output(
+    clone_path: str,
+    project_name: str,
+    poc_results: list[PoCResult],
+) -> str | None:
+    """Write raw test output to ``poc-test-output/`` directory.
+
+    Collects the raw (pre-truncation) stdout/stderr captured by
+    :func:`run_script` and formats them into a structured log file.
+    Also copies the generated test script so reviewers can see exactly
+    what was executed.
+
+    Returns the output directory path, or ``None`` if nothing was captured.
+    """
+    raw_log = get_raw_run_log()
+    if not raw_log:
+        logger.warning("No raw run log captured — skipping test output write")
+        return None
+
+    output_dir = Path(clone_path) / "poc-test-output"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # ----- format the log file -----
+    lines: list[str] = []
+    lines.append("=" * 80)
+    lines.append(f"AutoPoC Test Run — {project_name}")
+    lines.append(f"Date: {raw_log[0].timestamp}")
+    lines.append(f"Total run_script invocations: {len(raw_log)}")
+    lines.append("=" * 80)
+    lines.append("")
+
+    for i, record in enumerate(raw_log, 1):
+        lines.append("=" * 80)
+        lines.append(f"RUN #{i}: {record.script_path}")
+        lines.append(f"STARTED: {record.timestamp}")
+        lines.append(f"EXIT CODE: {record.exit_code}")
+        lines.append(f"DURATION: {record.duration_seconds}s")
+        if record.timed_out:
+            lines.append("STATUS: TIMED OUT")
+        lines.append("=" * 80)
+        lines.append("")
+
+        lines.append("--- STDOUT ---")
+        stdout = truncate_output(record.stdout_raw) if record.stdout_raw else "(empty)"
+        lines.append(stdout)
+        lines.append("")
+
+        lines.append("--- STDERR ---")
+        stderr = truncate_output(record.stderr_raw) if record.stderr_raw else "(empty)"
+        lines.append(stderr)
+        lines.append("")
+
+    # ----- summary from parsed results -----
+    lines.append("=" * 80)
+    lines.append("PARSED RESULTS SUMMARY")
+    lines.append("=" * 80)
+    if poc_results:
+        total = len(poc_results)
+        passed = sum(1 for r in poc_results if r.get("status") == "pass")
+        failed = sum(1 for r in poc_results if r.get("status") == "fail")
+        errored = sum(1 for r in poc_results if r.get("status") == "error")
+        skipped = sum(1 for r in poc_results if r.get("status") == "skip")
+        lines.append(
+            f"Total: {total} | Pass: {passed} | Fail: {failed} "
+            f"| Error: {errored} | Skip: {skipped}"
+        )
+        lines.append("")
+        for r in poc_results:
+            status = r.get("status", "?").upper()
+            name = r.get("scenario_name", "?")
+            duration = r.get("duration_seconds", 0)
+            lines.append(f"  [{status:5s}] {name} ({duration:.1f}s)")
+            if r.get("error_message"):
+                lines.append(f"         Error: {r['error_message']}")
+    else:
+        lines.append("No structured results were parsed from test output.")
+    lines.append("")
+
+    # ----- write log file -----
+    log_path = output_dir / "test-run.log"
+    log_path.write_text("\n".join(lines), encoding="utf-8")
+    logger.info(
+        "Raw test output written to %s (%d bytes)", log_path, log_path.stat().st_size
+    )
+
+    # ----- copy the test script -----
+    test_script = Path(clone_path) / "poc_test.py"
+    if test_script.exists():
+        dest = output_dir / "poc_test.py"
+        dest.write_text(test_script.read_text(encoding="utf-8"), encoding="utf-8")
+        logger.info("Test script copied to %s", dest)
+
+    return str(output_dir)
+
+
 async def poc_execute_agent(
     state: PoCState,
     *,
@@ -261,14 +357,46 @@ async def poc_execute_agent(
             sum(1 for r in poc_results if r.get("status") == "error"),
         )
 
+        # Write raw test output and commit to artifacts branch
+        poc_test_output_dir = ""
+        if clone_path:
+            poc_test_output_dir = (
+                _write_raw_test_output(clone_path, project_name, poc_results) or ""
+            )
+            if poc_test_output_dir:
+                files_to_commit = ["poc-test-output/test-run.log"]
+                if (Path(clone_path) / "poc-test-output" / "poc_test.py").exists():
+                    files_to_commit.append("poc-test-output/poc_test.py")
+                commit_to_artifacts_branch(
+                    clone_path,
+                    files=files_to_commit,
+                    message="Add raw test output and test script (poc-test-output/)",
+                )
+
         return {
             "current_phase": PoCPhase.POC_EXECUTE,
             "poc_results": poc_results,
             "poc_script_path": poc_script_path,
+            "poc_test_output_dir": poc_test_output_dir,
         }
 
     except Exception as e:
         logger.error("PoC execution failed: %s", e)
+
+        # Still try to capture raw output even on agent failure
+        poc_test_output_dir = ""
+        if clone_path:
+            poc_test_output_dir = _write_raw_test_output(clone_path, project_name, []) or ""
+            if poc_test_output_dir:
+                files_to_commit = ["poc-test-output/test-run.log"]
+                if (Path(clone_path) / "poc-test-output" / "poc_test.py").exists():
+                    files_to_commit.append("poc-test-output/poc_test.py")
+                commit_to_artifacts_branch(
+                    clone_path,
+                    files=files_to_commit,
+                    message="Add raw test output (agent failed) (poc-test-output/)",
+                )
+
         return {
             "current_phase": PoCPhase.POC_EXECUTE,
             "poc_results": [
@@ -281,5 +409,6 @@ async def poc_execute_agent(
                 )
             ],
             "poc_script_path": "",
+            "poc_test_output_dir": poc_test_output_dir,
             "error": f"PoC execution failed: {e}",
         }

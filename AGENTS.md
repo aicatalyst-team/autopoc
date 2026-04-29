@@ -11,3 +11,6 @@
 > Do not wait for the user to ask you to do this. Update the tracking files in the same response/commit as the task completion itself.
 
 > Whenever you complete a phase or a significant change requested by user, git commit.
+
+## Journal Plugin
+This project uses journal-plugin for session logging. Run `/log` to capture insights.
