@@ -211,8 +211,16 @@ class OpenShiftBuildStrategy(BuildStrategy):
                 timeout=timeout,
             )
             if stdin_data is not None:
-                stdout = result.stdout.decode("utf-8", errors="replace") if isinstance(result.stdout, bytes) else result.stdout
-                stderr = result.stderr.decode("utf-8", errors="replace") if isinstance(result.stderr, bytes) else result.stderr
+                stdout = (
+                    result.stdout.decode("utf-8", errors="replace")
+                    if isinstance(result.stdout, bytes)
+                    else result.stdout
+                )
+                stderr = (
+                    result.stderr.decode("utf-8", errors="replace")
+                    if isinstance(result.stderr, bytes)
+                    else result.stderr
+                )
             else:
                 stdout = result.stdout
                 stderr = result.stderr
@@ -224,9 +232,7 @@ class OpenShiftBuildStrategy(BuildStrategy):
                 )
             return output
         except subprocess.TimeoutExpired:
-            raise RuntimeError(
-                f"{self._oc} {' '.join(args[:3])}... timed out after {timeout}s"
-            )
+            raise RuntimeError(f"{self._oc} {' '.join(args[:3])}... timed out after {timeout}s")
 
     def _ensure_namespace(self) -> None:
         """Create the build namespace if it doesn't exist."""
@@ -247,22 +253,33 @@ class OpenShiftBuildStrategy(BuildStrategy):
 
         # Delete existing secret if present (idempotent update)
         try:
-            self._run([
-                "delete", "secret", self._push_secret_name,
-                "-n", self.namespace,
-                "--ignore-not-found=true",
-            ])
+            self._run(
+                [
+                    "delete",
+                    "secret",
+                    self._push_secret_name,
+                    "-n",
+                    self.namespace,
+                    "--ignore-not-found=true",
+                ]
+            )
         except RuntimeError:
             pass  # Ignore if it doesn't exist
 
         # Create the docker-registry secret
-        self._run([
-            "create", "secret", "docker-registry", self._push_secret_name,
-            f"--docker-server={registry}",
-            f"--docker-username={username}",
-            f"--docker-password={password}",
-            "-n", self.namespace,
-        ])
+        self._run(
+            [
+                "create",
+                "secret",
+                "docker-registry",
+                self._push_secret_name,
+                f"--docker-server={registry}",
+                f"--docker-username={username}",
+                f"--docker-password={password}",
+                "-n",
+                self.namespace,
+            ]
+        )
 
         logger.info(
             "Created registry push secret '%s' in namespace '%s' for %s",
@@ -351,11 +368,13 @@ class OpenShiftBuildStrategy(BuildStrategy):
         # --wait blocks until the build finishes
         output = self._run(
             [
-                "start-build", bc_name,
+                "start-build",
+                bc_name,
                 f"--from-dir={context_path}",
                 "--follow",
                 "--wait",
-                "-n", self.namespace,
+                "-n",
+                self.namespace,
             ],
             timeout=BUILD_TIMEOUT,
         )
@@ -369,13 +388,19 @@ class OpenShiftBuildStrategy(BuildStrategy):
             Dict with 'phase' (Complete, Failed, Running, etc.) and 'message'.
         """
         try:
-            output = self._run([
-                "get", "builds",
-                "-l", f"buildconfig={bc_name}",
-                "--sort-by=.metadata.creationTimestamp",
-                "-o", "jsonpath={.items[-1].status.phase}",
-                "-n", self.namespace,
-            ])
+            output = self._run(
+                [
+                    "get",
+                    "builds",
+                    "-l",
+                    f"buildconfig={bc_name}",
+                    "--sort-by=.metadata.creationTimestamp",
+                    "-o",
+                    "jsonpath={.items[-1].status.phase}",
+                    "-n",
+                    self.namespace,
+                ]
+            )
             return {"phase": output.strip(), "message": ""}
         except RuntimeError as e:
             return {"phase": "Unknown", "message": str(e)}
@@ -440,8 +465,7 @@ class OpenShiftBuildStrategy(BuildStrategy):
         a push secret, so the build controller pushes automatically.
         """
         logger.debug(
-            "push() is a no-op for OpenShift builds — image %s was "
-            "pushed during the build step",
+            "push() is a no-op for OpenShift builds — image %s was pushed during the build step",
             image,
         )
         return f"Image {image} was pushed during the OpenShift build"
@@ -497,6 +521,5 @@ def get_build_strategy(config) -> BuildStrategy:
         return OpenShiftBuildStrategy(namespace=namespace)
     else:
         raise ValueError(
-            f"Unknown build strategy: '{strategy_name}'. "
-            f"Valid options are 'podman' or 'openshift'."
+            f"Unknown build strategy: '{strategy_name}'. Valid options are 'podman' or 'openshift'."
         )

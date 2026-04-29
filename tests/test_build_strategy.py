@@ -134,9 +134,7 @@ class TestOpenShiftBuildStrategy:
     @patch("shutil.which", return_value="/usr/bin/oc")
     @patch("subprocess.run")
     def test_build_creates_buildconfig_and_starts_build(self, mock_run, mock_which):
-        mock_run.return_value = MagicMock(
-            returncode=0, stdout="Build complete", stderr=""
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="Build complete", stderr="")
         strategy = OpenShiftBuildStrategy(namespace="test-builds")
 
         result = strategy.build(

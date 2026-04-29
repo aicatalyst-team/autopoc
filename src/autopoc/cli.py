@@ -529,14 +529,12 @@ def run(
     # Validate required inputs (CLI args or env vars)
     if not name:
         console.print(
-            "[bold red]Error:[/bold red] --name is required "
-            "(or set AUTOPOC_PROJECT_NAME env var)"
+            "[bold red]Error:[/bold red] --name is required (or set AUTOPOC_PROJECT_NAME env var)"
         )
         raise typer.Exit(code=1)
     if not repo:
         console.print(
-            "[bold red]Error:[/bold red] --repo is required "
-            "(or set AUTOPOC_REPO_URL env var)"
+            "[bold red]Error:[/bold red] --repo is required (or set AUTOPOC_REPO_URL env var)"
         )
         raise typer.Exit(code=1)
 
