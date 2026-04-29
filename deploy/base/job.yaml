@@ -136,11 +136,13 @@ spec:
                 secretKeyRef:
                   name: autopoc-credentials
                   key: OPENSHIFT_API_URL
+                  optional: true
             - name: OPENSHIFT_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: autopoc-credentials
                   key: OPENSHIFT_TOKEN
+                  optional: true
             - name: OPENSHIFT_NAMESPACE_PREFIX
               valueFrom:
                 secretKeyRef:

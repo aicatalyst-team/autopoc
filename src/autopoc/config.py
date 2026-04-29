@@ -74,10 +74,16 @@ class AutoPoCConfig(BaseSettings):
     )
 
     # OpenShift
-    openshift_api_url: str = Field(
-        description="OpenShift API URL (e.g. https://api.cluster.example.com:6443)"
+    openshift_api_url: str | None = Field(
+        default=None,
+        description="OpenShift API URL (e.g. https://api.cluster.example.com:6443). "
+        "Not required when running in-cluster (uses ServiceAccount auth).",
     )
-    openshift_token: str = Field(description="OpenShift bearer token")
+    openshift_token: str | None = Field(
+        default=None,
+        description="OpenShift bearer token. "
+        "Not required when running in-cluster (uses ServiceAccount auth).",
+    )
     openshift_namespace_prefix: str = Field(
         default="poc", description="Prefix for created namespaces (e.g. poc-myproject)"
     )
