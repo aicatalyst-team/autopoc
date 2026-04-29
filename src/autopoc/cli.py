@@ -13,7 +13,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from autopoc.config import load_config
+from autopoc.config import AutoPoCConfig, load_config
 from autopoc.credentials import validate_credentials
 from autopoc.graph import build_graph
 from autopoc.logging_config import setup_logging
@@ -227,109 +227,20 @@ def _print_results(result: dict, verbose: bool = False) -> None:
         console.print(f"\n[bold red]Error:[/bold red] {result['error']}")
 
 
-@app.command()
-def graph(
-    format: Annotated[
-        str, typer.Option("--format", "-f", help="Output format: mermaid or ascii")
-    ] = "mermaid",
-) -> None:
-    """Print the AutoPoC LangGraph state graph structure."""
-    import warnings
+def _load_and_configure(
+    *,
+    model: str | None = None,
+    target: str | None = None,
+    verbose: bool = False,
+    skip_validation: bool = False,
+) -> AutoPoCConfig:
+    """Load config, apply overrides, display summary, and validate credentials.
 
-    warnings.filterwarnings("ignore", category=UserWarning, module="langchain_core")
-
-    graph_obj = build_graph()
-    compiled_graph = graph_obj.get_graph()
-
-    if format == "mermaid":
-        mermaid_data = compiled_graph.draw_mermaid()
-        mermaid_data = mermaid_data.replace("&nbsp;", " ")
-        console.print(mermaid_data)
-    elif format == "ascii":
-        console.print(compiled_graph.draw_ascii())
-    else:
-        console.print(f"[bold red]Unsupported format:[/bold red] {format}")
-        raise typer.Exit(code=1)
-
-
-@app.command()
-def run(
-    name: Annotated[
-        str | None,
-        typer.Option(
-            "--name",
-            "-n",
-            envvar="AUTOPOC_PROJECT_NAME",
-            help="Project name (or set AUTOPOC_PROJECT_NAME env var)",
-        ),
-    ] = None,
-    repo: Annotated[
-        str | None,
-        typer.Option(
-            "--repo",
-            "-r",
-            envvar="AUTOPOC_REPO_URL",
-            help="GitHub repo URL (or set AUTOPOC_REPO_URL env var)",
-        ),
-    ] = None,
-    model: Annotated[
-        str | None, typer.Option("--model", "-m", help="LLM model name to override config")
-    ] = None,
-    target: Annotated[
-        str | None,
-        typer.Option(
-            "--target",
-            "-t",
-            help="Fork target: 'gitlab' or 'github' (overrides FORK_TARGET env var)",
-        ),
-    ] = None,
-    verbose: Annotated[
-        bool, typer.Option("--verbose", "-v", help="Enable verbose logging")
-    ] = False,
-    skip_validation: Annotated[
-        bool,
-        typer.Option("--skip-validation", help="Skip credential validation at startup"),
-    ] = False,
-    stop_after: Annotated[
-        str | None,
-        typer.Option(
-            "--stop-after",
-            help="Stop pipeline after this phase (e.g. 'build', 'deploy'). "
-            "Valid: intake, poc_plan, fork, containerize, build, deploy, apply, poc_execute, poc_report",
-        ),
-    ] = None,
-) -> None:
-    """Run the full AutoPoC pipeline: intake, fork, containerize, build, deploy."""
-
-    # Validate required inputs (CLI args or env vars)
-    if not name:
-        console.print(
-            "[bold red]Error:[/bold red] --name is required "
-            "(or set AUTOPOC_PROJECT_NAME env var)"
-        )
-        raise typer.Exit(code=1)
-    if not repo:
-        console.print(
-            "[bold red]Error:[/bold red] --repo is required "
-            "(or set AUTOPOC_REPO_URL env var)"
-        )
-        raise typer.Exit(code=1)
-
-    # Validate --stop-after
-    if stop_after:
-        from autopoc.graph import PIPELINE_PHASES
-
-        if stop_after not in PIPELINE_PHASES:
-            console.print(
-                f"[bold red]Error:[/bold red] invalid --stop-after value: '{stop_after}'\n"
-                f"Valid phases: {', '.join(PIPELINE_PHASES)}"
-            )
-            raise typer.Exit(code=1)
-
-    # Set up centralized logging
+    Shared by ``run`` and ``run_sheet``.  Calls ``typer.Exit(code=1)`` on
+    configuration or validation failures.
+    """
     setup_logging(verbose=verbose, console=console)
 
-    # Load and validate config
     try:
         config = load_config()
         if model:
@@ -361,8 +272,34 @@ def run(
                 "\n[bold yellow]Warning:[/bold yellow] Some credential checks failed. "
                 "The pipeline may fail mid-run. Use --skip-validation to bypass."
             )
-            # Don't hard-fail — let the user decide. Cred checks can fail
-            # for non-critical reasons (e.g., Quay on localhost without TLS).
+
+    return config
+
+
+def _run_pipeline(
+    name: str,
+    repo: str,
+    config: AutoPoCConfig,
+    *,
+    verbose: bool = False,
+    stop_after: str | None = None,
+) -> None:
+    """Build initial state, compile the graph, invoke, and print results.
+
+    Shared by ``run`` and ``run_sheet``.  This contains the pipeline
+    invocation logic that is identical regardless of how the project
+    name and repo URL were obtained.
+    """
+    # Validate --stop-after
+    if stop_after:
+        from autopoc.graph import PIPELINE_PHASES
+
+        if stop_after not in PIPELINE_PHASES:
+            console.print(
+                f"[bold red]Error:[/bold red] invalid --stop-after value: '{stop_after}'\n"
+                f"Valid phases: {', '.join(PIPELINE_PHASES)}"
+            )
+            raise typer.Exit(code=1)
 
     # Generate thread ID for checkpointing
     thread_id = _generate_thread_id(name)
@@ -462,6 +399,244 @@ def run(
     _print_results(result, verbose=verbose)
 
     console.print(f"\n[dim]Thread ID: {thread_id}[/dim]")
+
+
+@app.command()
+def graph(
+    format: Annotated[
+        str, typer.Option("--format", "-f", help="Output format: mermaid or ascii")
+    ] = "mermaid",
+) -> None:
+    """Print the AutoPoC LangGraph state graph structure."""
+    import warnings
+
+    warnings.filterwarnings("ignore", category=UserWarning, module="langchain_core")
+
+    graph_obj = build_graph()
+    compiled_graph = graph_obj.get_graph()
+
+    if format == "mermaid":
+        mermaid_data = compiled_graph.draw_mermaid()
+        mermaid_data = mermaid_data.replace("&nbsp;", " ")
+        console.print(mermaid_data)
+    elif format == "ascii":
+        try:
+            console.print(compiled_graph.draw_ascii())
+        except ImportError:
+            console.print(
+                "[bold red]Error:[/bold red] ASCII graph rendering requires the "
+                "[bold]grandalf[/bold] package.\n"
+                'Install it with: [cyan]pip install "autopoc[dev]"[/cyan] '
+                "or [cyan]pip install grandalf[/cyan]"
+            )
+            raise typer.Exit(code=1)
+    else:
+        console.print(f"[bold red]Unsupported format:[/bold red] {format}")
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def run(
+    name: Annotated[
+        str | None,
+        typer.Option(
+            "--name",
+            "-n",
+            envvar="AUTOPOC_PROJECT_NAME",
+            help="Project name (or set AUTOPOC_PROJECT_NAME env var)",
+        ),
+    ] = None,
+    repo: Annotated[
+        str | None,
+        typer.Option(
+            "--repo",
+            "-r",
+            envvar="AUTOPOC_REPO_URL",
+            help="GitHub repo URL (or set AUTOPOC_REPO_URL env var)",
+        ),
+    ] = None,
+    model: Annotated[
+        str | None, typer.Option("--model", "-m", help="LLM model name to override config")
+    ] = None,
+    target: Annotated[
+        str | None,
+        typer.Option(
+            "--target",
+            "-t",
+            help="Fork target: 'gitlab' or 'github' (overrides FORK_TARGET env var)",
+        ),
+    ] = None,
+    verbose: Annotated[
+        bool, typer.Option("--verbose", "-v", help="Enable verbose logging")
+    ] = False,
+    skip_validation: Annotated[
+        bool,
+        typer.Option("--skip-validation", help="Skip credential validation at startup"),
+    ] = False,
+    stop_after: Annotated[
+        str | None,
+        typer.Option(
+            "--stop-after",
+            help="Stop pipeline after this phase (e.g. 'build', 'deploy'). "
+            "Valid: intake, poc_plan, fork, containerize, build, deploy, apply, poc_execute, poc_report",
+        ),
+    ] = None,
+) -> None:
+    """Run the full AutoPoC pipeline: intake, fork, containerize, build, deploy."""
+
+    # Validate required inputs (CLI args or env vars)
+    if not name:
+        console.print(
+            "[bold red]Error:[/bold red] --name is required "
+            "(or set AUTOPOC_PROJECT_NAME env var)"
+        )
+        raise typer.Exit(code=1)
+    if not repo:
+        console.print(
+            "[bold red]Error:[/bold red] --repo is required "
+            "(or set AUTOPOC_REPO_URL env var)"
+        )
+        raise typer.Exit(code=1)
+
+    config = _load_and_configure(
+        model=model,
+        target=target,
+        verbose=verbose,
+        skip_validation=skip_validation,
+    )
+
+    _run_pipeline(name, repo, config, verbose=verbose, stop_after=stop_after)
+
+
+@app.command("run-sheet")
+def run_sheet(
+    sheet_id: Annotated[
+        str | None,
+        typer.Option(
+            "--sheet-id",
+            envvar="AUTOPOC_SHEET_ID",
+            help="Google Sheet ID (or set AUTOPOC_SHEET_ID env var)",
+        ),
+    ] = None,
+    credentials: Annotated[
+        str | None,
+        typer.Option(
+            "--credentials",
+            envvar="GOOGLE_APPLICATION_CREDENTIALS",
+            help="Path to Google SA credentials JSON (or set GOOGLE_APPLICATION_CREDENTIALS)",
+        ),
+    ] = None,
+    model: Annotated[
+        str | None, typer.Option("--model", "-m", help="LLM model name to override config")
+    ] = None,
+    target: Annotated[
+        str | None,
+        typer.Option(
+            "--target",
+            "-t",
+            help="Fork target: 'gitlab' or 'github' (overrides FORK_TARGET env var)",
+        ),
+    ] = None,
+    verbose: Annotated[
+        bool, typer.Option("--verbose", "-v", help="Enable verbose logging")
+    ] = False,
+    skip_validation: Annotated[
+        bool,
+        typer.Option("--skip-validation", help="Skip credential validation at startup"),
+    ] = False,
+    stop_after: Annotated[
+        str | None,
+        typer.Option(
+            "--stop-after",
+            help="Stop pipeline after this phase (e.g. 'build', 'deploy'). "
+            "Valid: intake, poc_plan, fork, containerize, build, deploy, apply, poc_execute, poc_report",
+        ),
+    ] = None,
+) -> None:
+    """Run AutoPoC for the top project from a Google Sheet.
+
+    Reads a POC Explorer spreadsheet, filters to approved GitHub repos,
+    selects the first one, and runs the full pipeline.
+    """
+    # Validate required sheet inputs
+    if not sheet_id:
+        console.print(
+            "[bold red]Error:[/bold red] --sheet-id is required "
+            "(or set AUTOPOC_SHEET_ID env var)"
+        )
+        raise typer.Exit(code=1)
+    if not credentials:
+        console.print(
+            "[bold red]Error:[/bold red] --credentials is required "
+            "(or set GOOGLE_APPLICATION_CREDENTIALS env var)"
+        )
+        raise typer.Exit(code=1)
+
+    # Validate credentials file exists
+    credentials_path = Path(credentials).expanduser()
+    if not credentials_path.is_file():
+        console.print(
+            f"[bold red]Error:[/bold red] Credentials file not found: {credentials_path}"
+        )
+        raise typer.Exit(code=1)
+
+    config = _load_and_configure(
+        model=model,
+        target=target,
+        verbose=verbose,
+        skip_validation=skip_validation,
+    )
+
+    # Read and filter the sheet
+    from autopoc.sheet import filter_projects, read_sheet, select_project
+
+    console.print(
+        Panel(
+            f"[bold]Sheet ID:[/bold]    {sheet_id}\n"
+            f"[bold]Credentials:[/bold] {credentials_path}",
+            title="Google Sheet Ingestion",
+            border_style="cyan",
+        )
+    )
+
+    try:
+        console.print("[bold cyan]Reading sheet...[/bold cyan]")
+        rows = read_sheet(str(credentials_path), sheet_id)
+        console.print(f"  Rows read: {len(rows)}")
+
+        filtered = filter_projects(rows)
+        github_count = sum(1 for r in rows if "github.com" in r.get("link", ""))
+        console.print(f"  GitHub repos: {github_count}")
+        console.print(f"  After filters: {len(filtered)}")
+
+        project = select_project(filtered)
+    except ValueError as e:
+        console.print(f"\n[bold red]Sheet error:[/bold red] {e}")
+        raise typer.Exit(code=1)
+    except Exception as e:
+        console.print(f"\n[bold red]Failed to read sheet:[/bold red] {e}")
+        if verbose:
+            console.print_exception(show_locals=True)
+        raise typer.Exit(code=1)
+
+    console.print(
+        Panel(
+            f"[bold]Selected:[/bold]  {project.name}\n"
+            f"[bold]Repo:[/bold]      {project.repo_url}\n"
+            f"[bold]Category:[/bold]  {project.category}\n"
+            f"[bold]Sheet row:[/bold] {project.row_index}",
+            title="Project Selected",
+            border_style="green",
+        )
+    )
+
+    _run_pipeline(
+        project.name,
+        project.repo_url,
+        config,
+        verbose=verbose,
+        stop_after=stop_after,
+    )
 
 
 @app.command()

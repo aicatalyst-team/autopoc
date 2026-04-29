@@ -35,7 +35,7 @@ to OpenShift/Kubernetes, with project input coming from environment variables
 |-------|-------|---------|
 | **1. Containerize** | 1.1–1.3 | Dockerfile, .dockerignore, Makefile image targets |
 | **2. Env Var Input** | 2.1 | CLI fallback from --name/--repo to env vars |
-| **3. run-sheet Stub** | 3.1 | Stub subcommand for future Google Sheet integration |
+| **3. run-sheet Stub** | 3.1 | ~~Stub subcommand~~ — **Superseded** by [google-sheet-ingestion-plan.md](./google-sheet-ingestion-plan.md) |
 | **4. Build Strategy** | 4.1–4.5 | Abstract build strategy, podman impl, OpenShift stub, config, agent refactor |
 | **5. K8s Manifests** | 5.1–5.2 | Job manifest, example Secret |
 | **6. Tests** | 6.1–6.4 | CLI env var tests, build strategy tests, lint, image build |
@@ -48,7 +48,7 @@ to OpenShift/Kubernetes, with project input coming from environment variables
 |-------|--------|------------|
 | **1. Containerize** | ✅ DONE | 3/3 |
 | **2. Env Var Input** | ✅ DONE | 1/1 |
-| **3. run-sheet Stub** | CANCELLED | — (not needed) |
+| **3. run-sheet Stub** | **SUPERSEDED** | — (see [google-sheet-ingestion-plan.md](./google-sheet-ingestion-plan.md)) |
 | **4. Build Strategy** | ✅ DONE | 5/5 (+ robot account support, --stop-after, build history limits) |
 | **5. K8s Manifests** | ✅ DONE | 2/2 |
 | **6. Tests** | ✅ DONE | 3/4 (build strategy tests, CLI tests, lint/test pass; image verified locally) |
@@ -181,48 +181,13 @@ This way:
 
 ---
 
-## Phase 3: `run-sheet` Stub Command
+## Phase 3: `run-sheet` Stub Command — SUPERSEDED
 
-### Task 3.1 — Add `autopoc run-sheet` subcommand
-
-**File:** `src/autopoc/cli.py` (modified)
-
-Add a new Typer command:
-
-```python
-@app.command("run-sheet")
-def run_sheet(
-    sheet_id: Annotated[str | None, typer.Option(
-        "--sheet-id",
-        help="Google Sheet ID containing projects to PoC",
-    )] = None,
-    credentials: Annotated[str | None, typer.Option(
-        "--credentials",
-        help="Path to Google service account credentials JSON",
-    )] = None,
-    verbose: Annotated[bool, typer.Option("--verbose", "-v")] = False,
-) -> None:
-    """Run AutoPoC for projects listed in a Google Sheet.
-
-    This command reads project names and repository URLs from a Google Cloud
-    Sheet and runs the full pipeline for each project. Intended for use as
-    a Kubernetes CronJob.
-
-    NOT YET IMPLEMENTED — see project roadmap for tracking.
-    """
-    console.print(
-        "[yellow]The 'run-sheet' command is not yet implemented.[/yellow]\n"
-        "This will read projects from a Google Sheet and run the PoC pipeline "
-        "for each one.\n"
-        "See the project roadmap for implementation tracking."
-    )
-    raise typer.Exit(code=1)
-```
-
-This establishes:
-- The CLI contract (`autopoc run-sheet --sheet-id XXXX --credentials /path/to/sa.json`)
-- A clear "not implemented" message with exit code 1
-- The parameter interface for future implementation
+> **This phase has been superseded by the full Google Sheet ingestion
+> implementation.** See
+> [google-sheet-ingestion-plan.md](./google-sheet-ingestion-plan.md) for
+> the complete plan including sheet reading, filtering, project selection,
+> and CLI integration.
 
 ---
 
@@ -477,7 +442,7 @@ These items are explicitly **out of scope** for this plan:
 | Item | Description | Depends On |
 |------|-------------|------------|
 | **OpenShift Build implementation** | Implement `OpenShiftBuildStrategy.build()` and `.push()` using `oc start-build` / `BuildConfig`. Requires designing how to create BuildConfigs, handle image streams, and stream build logs. | Phase 4 (strategy interface) |
-| **`autopoc run-sheet` implementation** | Google Sheets API integration — read project list from a sheet, iterate over rows, run pipeline for each. Requires Google service account, Sheets API client, error handling for partial failures. | Phase 3 (stub command) |
+| **`autopoc run-sheet` implementation** | **No longer deferred** — see [google-sheet-ingestion-plan.md](./google-sheet-ingestion-plan.md). | Phase 3 (stub command) |
 | **CronJob manifest** | `deploy/cronjob.yaml` — scheduled runs using `run-sheet`. | `run-sheet` implementation |
 | **Image signing / attestation** | Sign container images with cosign / Sigstore for supply chain security. | Phase 1 (container image) |
 | **Helm chart** | Package Job/CronJob/Secret/RBAC as a Helm chart for easier deployment. | Phase 5 (manifests) |

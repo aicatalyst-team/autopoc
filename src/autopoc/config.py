@@ -92,6 +92,18 @@ class AutoPoCConfig(BaseSettings):
         description="Max times apply can escalate to containerize to fix runtime container issues",
     )
 
+    # Google Sheet integration (for `run-sheet` command)
+    google_credentials_file: str | None = Field(
+        default=None,
+        validation_alias="GOOGLE_APPLICATION_CREDENTIALS",
+        description="Path to Google service account credentials JSON file",
+    )
+    sheet_id: str | None = Field(
+        default=None,
+        validation_alias="AUTOPOC_SHEET_ID",
+        description="Google Sheet ID containing PoC candidate projects",
+    )
+
     # Working directory
     work_dir: str = Field(
         default="/tmp/autopoc", description="Directory for cloned repos and temp files"
