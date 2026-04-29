@@ -12,6 +12,7 @@ dependencies = [
     "langgraph>=0.2",
     "langchain-anthropic>=0.3",
     "langchain-google-vertexai>=1.0",
+    "langchain-openai>=0.3",
     "langchain-core>=0.3",
     "typer>=0.12",
     "python-dotenv>=1.0",
