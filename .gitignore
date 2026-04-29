@@ -26,6 +26,9 @@ build/
 .opencode/
 CLAUDE.md
 
+# Journal
+journal/
+
 # Scratch docs
 CONTEXT_OVERFLOW_FIX.md
 E2E_AUTO_CONFIG.md
