@@ -165,6 +165,7 @@ class PoCState(TypedDict, total=False):
     # --- PoC Execute output ---
     poc_results: list[PoCResult]  # Test execution results
     poc_script_path: str  # Path to generated test script
+    poc_test_output_dir: str  # Path to poc-test-output/ with raw test logs
 
     # --- PoC Report output ---
     poc_report_path: str  # Path to poc-report.md in the repo
