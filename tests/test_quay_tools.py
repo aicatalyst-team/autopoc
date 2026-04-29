@@ -71,7 +71,7 @@ def test_quay_ensure_repo_creates(mock_config, mock_httpx_client):
         json={
             "namespace": "my-org",
             "repository": "new-repo",
-            "visibility": "private",
+            "visibility": "public",
             "description": "AutoPoC created repository",
         },
     )

@@ -244,8 +244,7 @@ def _write_raw_test_output(
         errored = sum(1 for r in poc_results if r.get("status") == "error")
         skipped = sum(1 for r in poc_results if r.get("status") == "skip")
         lines.append(
-            f"Total: {total} | Pass: {passed} | Fail: {failed} "
-            f"| Error: {errored} | Skip: {skipped}"
+            f"Total: {total} | Pass: {passed} | Fail: {failed} | Error: {errored} | Skip: {skipped}"
         )
         lines.append("")
         for r in poc_results:
@@ -262,9 +261,7 @@ def _write_raw_test_output(
     # ----- write log file -----
     log_path = output_dir / "test-run.log"
     log_path.write_text("\n".join(lines), encoding="utf-8")
-    logger.info(
-        "Raw test output written to %s (%d bytes)", log_path, log_path.stat().st_size
-    )
+    logger.info("Raw test output written to %s (%d bytes)", log_path, log_path.stat().st_size)
 
     # ----- copy the test script -----
     test_script = Path(clone_path) / "poc_test.py"
