@@ -21,16 +21,20 @@ dependencies = [
     "rich>=13.0",
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
+    "google-api-python-client>=2.0",
+    "google-auth>=2.0",
 ]
 
 [project.optional-dependencies]
 checkpoint = [
     "langgraph-checkpoint-sqlite>=2.0",
+    "aiosqlite>=0.20",
 ]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
     "ruff>=0.6",
+    "grandalf>=0.8",
 ]
 
 [project.scripts]

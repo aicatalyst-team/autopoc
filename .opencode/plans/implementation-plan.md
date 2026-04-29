@@ -19,6 +19,7 @@
 | **8. GitHub Fork Target** | 57–66 | GitHub API client, fork agent refactor, push safety, downstream agent updates, CLI, tests |
 | **9. K8s Deployment** | — | Containerize agent, env var input, build strategy abstraction, Job manifests. See [k8s-deployment-plan.md](./k8s-deployment-plan.md) |
 | **10. Raw Test Output** | 67–72 | Raw output capture, truncation, log formatting, artifact commit. See [raw-test-output-impl.md](./raw-test-output-impl.md) |
+| **11. Google Sheet Ingestion** | — | Read projects from Google Sheet, filter, select, run pipeline. See [google-sheet-ingestion-plan.md](./google-sheet-ingestion-plan.md) |
 
 **Critical path:** 1 → 2 → 4 → 6,7 → 9 → 13,18 → 20 → 25 → 27 → 33 → 34 → 40 → 42 → 44 → 45,46 → 49 → 54
 
@@ -36,7 +37,9 @@
 | **6. Local E2E Harness** | **COMPLETE** | 3/3 | 7 passing (with --e2e) |
 | **7. PoC Intelligence** | **COMPLETE** | 18/18 | 55 passing |
 | **8. GitHub Fork Target** | **COMPLETE** | 10/10 | 25 passing |
-| **9. Raw Test Output** | **COMPLETE** | 6/6 | 23 passing |
+| **9. K8s Deployment** | **IN PROGRESS** | | |
+| **10. Raw Test Output** | **COMPLETE** | 6/6 | 23 passing |
+| **11. Google Sheet Ingestion** | **COMPLETE** | 9/9 | 59 passing |
 
 ---
 

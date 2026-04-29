@@ -13,10 +13,11 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from autopoc.config import load_config
+from autopoc.config import AutoPoCConfig, load_config
 from autopoc.credentials import validate_credentials
 from autopoc.graph import build_graph
 from autopoc.logging_config import setup_logging
+from autopoc.sheet import filter_projects, read_sheet, select_project
 from autopoc.state import PoCPhase, PoCState
 
 app = typer.Typer(
@@ -92,22 +93,64 @@ def _get_checkpoint_dir(work_dir: str) -> Path:
     return checkpoint_dir
 
 
-def _get_checkpointer(work_dir: str):
-    """Create a SQLite checkpointer for state persistence.
-
-    Returns None if langgraph-checkpoint-sqlite is not installed.
-    """
+def _has_async_sqlite() -> bool:
+    """Check if the async SQLite checkpointer is available."""
     try:
-        from langgraph.checkpoint.sqlite import SqliteSaver
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver  # noqa: F401
+        import aiosqlite  # noqa: F401
+
+        return True
+    except ImportError:
+        return False
+
+
+def _get_sync_checkpointer():
+    """Return a MemorySaver for commands that don't need async (e.g. status).
+
+    For pipeline invocation, use ``_invoke_graph_async`` which creates
+    an ``AsyncSqliteSaver`` inside the event loop.
+    """
+    from langgraph.checkpoint.memory import MemorySaver
+
+    return MemorySaver()
+
+
+async def _invoke_graph_async(
+    compiled_graph,
+    initial_state,
+    thread_id: str,
+    work_dir: str,
+    *,
+    stop_after: str | None = None,
+) -> dict:
+    """Invoke the pipeline graph with an async-capable checkpointer.
+
+    Creates an ``AsyncSqliteSaver`` inside the event loop so the
+    ``aiosqlite`` connection is bound to the running loop.  Falls back
+    to ``MemorySaver`` if the async SQLite packages are not installed.
+    """
+    if _has_async_sqlite():
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
         db_path = _get_checkpoint_dir(work_dir) / "autopoc.db"
-        return SqliteSaver.from_conn_string(str(db_path))
-    except ImportError:
-        # Fall back to MemorySaver (no persistence across runs)
+        async with AsyncSqliteSaver.from_conn_string(str(db_path)) as checkpointer:
+            graph = build_graph(checkpointer=checkpointer, stop_after=stop_after)
+            return await graph.ainvoke(
+                initial_state,
+                config={"configurable": {"thread_id": thread_id}},
+            )
+    else:
         from langgraph.checkpoint.memory import MemorySaver
 
-        logger.debug("langgraph-checkpoint-sqlite not installed, using in-memory checkpointer")
-        return MemorySaver()
+        logger.debug(
+            "langgraph-checkpoint-sqlite / aiosqlite not installed, "
+            "using in-memory checkpointer"
+        )
+        graph = build_graph(checkpointer=MemorySaver(), stop_after=stop_after)
+        return await graph.ainvoke(
+            initial_state,
+            config={"configurable": {"thread_id": thread_id}},
+        )
 
 
 def _print_results(result: dict, verbose: bool = False) -> None:
@@ -227,6 +270,179 @@ def _print_results(result: dict, verbose: bool = False) -> None:
         console.print(f"\n[bold red]Error:[/bold red] {result['error']}")
 
 
+def _load_and_configure(
+    *,
+    model: str | None = None,
+    target: str | None = None,
+    verbose: bool = False,
+    skip_validation: bool = False,
+) -> AutoPoCConfig:
+    """Load config, apply overrides, display summary, and validate credentials.
+
+    Shared by ``run`` and ``run_sheet``.  Calls ``typer.Exit(code=1)`` on
+    configuration or validation failures.
+    """
+    setup_logging(verbose=verbose, console=console)
+
+    try:
+        config = load_config()
+        if model:
+            config.llm_model = model
+        if target:
+            config.fork_target = target
+    except ValidationError as e:
+        console.print("[bold red]Configuration error:[/bold red]")
+        for error in e.errors():
+            field = ".".join(str(loc) for loc in error["loc"])
+            console.print(f"  - {field}: {error['msg']}")
+        raise typer.Exit(code=1)
+
+    # Display config summary
+    console.print("\n[bold]AutoPoC Configuration[/bold]")
+    config_table = Table(show_header=True, header_style="bold cyan")
+    config_table.add_column("Setting", style="dim")
+    config_table.add_column("Value")
+    for key, value in config.masked_summary().items():
+        config_table.add_row(key, value)
+    console.print(config_table)
+
+    # Validate credentials (fail-fast)
+    if not skip_validation:
+        console.print()
+        all_ok = validate_credentials(config, console=console, fail_fast=False)
+        if not all_ok:
+            console.print(
+                "\n[bold yellow]Warning:[/bold yellow] Some credential checks failed. "
+                "The pipeline may fail mid-run. Use --skip-validation to bypass."
+            )
+
+    return config
+
+
+def _run_pipeline(
+    name: str,
+    repo: str,
+    config: AutoPoCConfig,
+    *,
+    verbose: bool = False,
+    stop_after: str | None = None,
+) -> None:
+    """Build initial state, compile the graph, invoke, and print results.
+
+    Shared by ``run`` and ``run_sheet``.  This contains the pipeline
+    invocation logic that is identical regardless of how the project
+    name and repo URL were obtained.
+    """
+    # Validate --stop-after
+    if stop_after:
+        from autopoc.graph import PIPELINE_PHASES
+
+        if stop_after not in PIPELINE_PHASES:
+            console.print(
+                f"[bold red]Error:[/bold red] invalid --stop-after value: '{stop_after}'\n"
+                f"Valid phases: {', '.join(PIPELINE_PHASES)}"
+            )
+            raise typer.Exit(code=1)
+
+    # Generate thread ID for checkpointing
+    thread_id = _generate_thread_id(name)
+
+    # Build initial state
+    initial_state: PoCState = {
+        "project_name": name,
+        "source_repo_url": repo,
+        "current_phase": PoCPhase.INTAKE,
+        "error": None,
+        "messages": [],
+        "gitlab_repo_url": None,
+        "fork_repo_url": None,
+        "fork_target": None,
+        "local_clone_path": None,
+        "repo_summary": "",
+        "components": [],
+        "has_helm_chart": False,
+        "has_kustomize": False,
+        "has_compose": False,
+        "existing_ci_cd": None,
+        "repo_digest": "",
+        "poc_plan": "",
+        "poc_plan_path": "",
+        "poc_plan_error": None,
+        "poc_components": [],
+        "poc_scenarios": [],
+        "poc_infrastructure": {},
+        "poc_type": "",
+        "built_images": [],
+        "build_retries": 0,
+        "deployed_resources": [],
+        "routes": [],
+        "deploy_retries": 0,
+        "poc_results": [],
+        "poc_script_path": "",
+        "poc_report_path": "",
+    }
+
+    console.print(
+        Panel(
+            f"[bold]Project:[/bold] {name}\n"
+            f"[bold]Source:[/bold]  {repo}\n"
+            f"[bold]Thread:[/bold] {thread_id}",
+            title="AutoPoC Run",
+            border_style="green",
+        )
+    )
+
+    if stop_after:
+        console.print(f"[bold cyan]Starting pipeline (stopping after {stop_after})...[/bold cyan]")
+    else:
+        console.print("[bold cyan]Starting pipeline...[/bold cyan]")
+    start_time = time.time()
+
+    try:
+        result = asyncio.run(
+            _invoke_graph_async(
+                None,
+                initial_state,
+                thread_id,
+                config.work_dir,
+                stop_after=stop_after,
+            )
+        )
+    except Exception as e:
+        elapsed = time.time() - start_time
+        console.print(f"\n[bold red]Pipeline failed[/bold red] after {elapsed:.1f}s: {e}")
+        if verbose:
+            console.print_exception(show_locals=True)
+        else:
+            console.print("Run with --verbose to see the full traceback.")
+        console.print(f"[dim]Thread ID: {thread_id}[/dim]")
+        raise typer.Exit(code=1)
+
+    elapsed = time.time() - start_time
+
+    # Print results
+    phase = result.get("current_phase", "unknown")
+    if result.get("error"):
+        console.print(
+            Panel(
+                f"[bold red]Pipeline finished with error[/bold red] ({elapsed:.1f}s)\n"
+                f"Phase: {phase}",
+                border_style="red",
+            )
+        )
+    else:
+        console.print(
+            Panel(
+                f"[bold green]Pipeline complete[/bold green] ({elapsed:.1f}s)\nPhase: {phase}",
+                border_style="green",
+            )
+        )
+
+    _print_results(result, verbose=verbose)
+
+    console.print(f"\n[dim]Thread ID: {thread_id}[/dim]")
+
+
 @app.command()
 def graph(
     format: Annotated[
@@ -246,7 +462,16 @@ def graph(
         mermaid_data = mermaid_data.replace("&nbsp;", " ")
         console.print(mermaid_data)
     elif format == "ascii":
-        console.print(compiled_graph.draw_ascii())
+        try:
+            console.print(compiled_graph.draw_ascii())
+        except ImportError:
+            console.print(
+                "[bold red]Error:[/bold red] ASCII graph rendering requires the "
+                "[bold]grandalf[/bold] package.\n"
+                'Install it with: [cyan]pip install "autopoc[dev]"[/cyan] '
+                "or [cyan]pip install grandalf[/cyan]"
+            )
+            raise typer.Exit(code=1)
     else:
         console.print(f"[bold red]Unsupported format:[/bold red] {format}")
         raise typer.Exit(code=1)
@@ -315,153 +540,143 @@ def run(
         )
         raise typer.Exit(code=1)
 
-    # Validate --stop-after
-    if stop_after:
-        from autopoc.graph import PIPELINE_PHASES
+    config = _load_and_configure(
+        model=model,
+        target=target,
+        verbose=verbose,
+        skip_validation=skip_validation,
+    )
 
-        if stop_after not in PIPELINE_PHASES:
-            console.print(
-                f"[bold red]Error:[/bold red] invalid --stop-after value: '{stop_after}'\n"
-                f"Valid phases: {', '.join(PIPELINE_PHASES)}"
-            )
-            raise typer.Exit(code=1)
+    _run_pipeline(name, repo, config, verbose=verbose, stop_after=stop_after)
 
-    # Set up centralized logging
-    setup_logging(verbose=verbose, console=console)
 
-    # Load and validate config
-    try:
-        config = load_config()
-        if model:
-            config.llm_model = model
-        if target:
-            config.fork_target = target
-    except ValidationError as e:
-        console.print("[bold red]Configuration error:[/bold red]")
-        for error in e.errors():
-            field = ".".join(str(loc) for loc in error["loc"])
-            console.print(f"  - {field}: {error['msg']}")
+@app.command("run-sheet")
+def run_sheet(
+    sheet_id: Annotated[
+        str | None,
+        typer.Option(
+            "--sheet-id",
+            envvar="AUTOPOC_SHEET_ID",
+            help="Google Sheet ID (or set AUTOPOC_SHEET_ID env var)",
+        ),
+    ] = None,
+    credentials: Annotated[
+        str | None,
+        typer.Option(
+            "--credentials",
+            envvar="AUTOPOC_SHEET_CREDENTIALS",
+            help="Path to Google SA credentials JSON (or set AUTOPOC_SHEET_CREDENTIALS)",
+        ),
+    ] = None,
+    model: Annotated[
+        str | None, typer.Option("--model", "-m", help="LLM model name to override config")
+    ] = None,
+    target: Annotated[
+        str | None,
+        typer.Option(
+            "--target",
+            "-t",
+            help="Fork target: 'gitlab' or 'github' (overrides FORK_TARGET env var)",
+        ),
+    ] = None,
+    verbose: Annotated[
+        bool, typer.Option("--verbose", "-v", help="Enable verbose logging")
+    ] = False,
+    skip_validation: Annotated[
+        bool,
+        typer.Option("--skip-validation", help="Skip credential validation at startup"),
+    ] = False,
+    stop_after: Annotated[
+        str | None,
+        typer.Option(
+            "--stop-after",
+            help="Stop pipeline after this phase (e.g. 'build', 'deploy'). "
+            "Valid: intake, poc_plan, fork, containerize, build, deploy, apply, poc_execute, poc_report",
+        ),
+    ] = None,
+) -> None:
+    """Run AutoPoC for the top project from a Google Sheet.
+
+    Reads a POC Explorer spreadsheet, filters to approved GitHub repos,
+    selects the first one, and runs the full pipeline.
+    """
+    # Validate required sheet inputs
+    if not sheet_id:
+        console.print(
+            "[bold red]Error:[/bold red] --sheet-id is required "
+            "(or set AUTOPOC_SHEET_ID env var)"
+        )
+        raise typer.Exit(code=1)
+    if not credentials:
+        console.print(
+            "[bold red]Error:[/bold red] --credentials is required "
+            "(or set AUTOPOC_SHEET_CREDENTIALS env var)"
+        )
         raise typer.Exit(code=1)
 
-    # Display config summary
-    console.print("\n[bold]AutoPoC Configuration[/bold]")
-    config_table = Table(show_header=True, header_style="bold cyan")
-    config_table.add_column("Setting", style="dim")
-    config_table.add_column("Value")
-    for key, value in config.masked_summary().items():
-        config_table.add_row(key, value)
-    console.print(config_table)
+    # Validate credentials file exists
+    credentials_path = Path(credentials).expanduser()
+    if not credentials_path.is_file():
+        console.print(
+            f"[bold red]Error:[/bold red] Credentials file not found: {credentials_path}"
+        )
+        raise typer.Exit(code=1)
 
-    # Validate credentials (fail-fast)
-    if not skip_validation:
-        console.print()
-        all_ok = validate_credentials(config, console=console, fail_fast=False)
-        if not all_ok:
-            console.print(
-                "\n[bold yellow]Warning:[/bold yellow] Some credential checks failed. "
-                "The pipeline may fail mid-run. Use --skip-validation to bypass."
-            )
-            # Don't hard-fail — let the user decide. Cred checks can fail
-            # for non-critical reasons (e.g., Quay on localhost without TLS).
+    config = _load_and_configure(
+        model=model,
+        target=target,
+        verbose=verbose,
+        skip_validation=skip_validation,
+    )
 
-    # Generate thread ID for checkpointing
-    thread_id = _generate_thread_id(name)
+    # Read and filter the sheet
+    console.print(
+        Panel(
+            f"[bold]Sheet ID:[/bold]    {sheet_id}\n"
+            f"[bold]Credentials:[/bold] {credentials_path}",
+            title="Google Sheet Ingestion",
+            border_style="cyan",
+        )
+    )
 
-    # Build initial state
-    initial_state: PoCState = {
-        "project_name": name,
-        "source_repo_url": repo,
-        "current_phase": PoCPhase.INTAKE,
-        "error": None,
-        "messages": [],
-        "gitlab_repo_url": None,
-        "fork_repo_url": None,
-        "fork_target": None,
-        "local_clone_path": None,
-        "repo_summary": "",
-        "components": [],
-        "has_helm_chart": False,
-        "has_kustomize": False,
-        "has_compose": False,
-        "existing_ci_cd": None,
-        "repo_digest": "",
-        "poc_plan": "",
-        "poc_plan_path": "",
-        "poc_plan_error": None,
-        "poc_components": [],
-        "poc_scenarios": [],
-        "poc_infrastructure": {},
-        "poc_type": "",
-        "built_images": [],
-        "build_retries": 0,
-        "deployed_resources": [],
-        "routes": [],
-        "deploy_retries": 0,
-        "poc_results": [],
-        "poc_script_path": "",
-        "poc_report_path": "",
-    }
+    try:
+        console.print("[bold cyan]Reading sheet...[/bold cyan]")
+        rows = read_sheet(str(credentials_path), sheet_id)
+        console.print(f"  Rows read: {len(rows)}")
+
+        filtered = filter_projects(rows)
+        github_count = sum(1 for r in rows if "github.com" in r.get("link", ""))
+        console.print(f"  GitHub repos: {github_count}")
+        console.print(f"  After filters: {len(filtered)}")
+
+        project = select_project(filtered)
+    except ValueError as e:
+        console.print(f"\n[bold red]Sheet error:[/bold red] {e}")
+        raise typer.Exit(code=1)
+    except Exception as e:
+        console.print(f"\n[bold red]Failed to read sheet:[/bold red] {e}")
+        if verbose:
+            console.print_exception(show_locals=True)
+        raise typer.Exit(code=1)
 
     console.print(
         Panel(
-            f"[bold]Project:[/bold] {name}\n"
-            f"[bold]Source:[/bold]  {repo}\n"
-            f"[bold]Thread:[/bold] {thread_id}",
-            title="AutoPoC Run",
+            f"[bold]Selected:[/bold]  {project.name}\n"
+            f"[bold]Repo:[/bold]      {project.repo_url}\n"
+            f"[bold]Category:[/bold]  {project.category}\n"
+            f"[bold]Sheet row:[/bold] {project.row_index}",
+            title="Project Selected",
             border_style="green",
         )
     )
 
-    # Build and run the graph with checkpointer
-    checkpointer = _get_checkpointer(config.work_dir)
-    compiled_graph = build_graph(checkpointer=checkpointer, stop_after=stop_after)
-
-    if stop_after:
-        console.print(f"[bold cyan]Starting pipeline (stopping after {stop_after})...[/bold cyan]")
-    else:
-        console.print("[bold cyan]Starting pipeline...[/bold cyan]")
-    start_time = time.time()
-
-    try:
-        result = asyncio.run(
-            compiled_graph.ainvoke(
-                initial_state,
-                config={"configurable": {"thread_id": thread_id}},
-            )
-        )
-    except Exception as e:
-        elapsed = time.time() - start_time
-        console.print(f"\n[bold red]Pipeline failed[/bold red] after {elapsed:.1f}s: {e}")
-        if verbose:
-            console.print_exception(show_locals=True)
-        else:
-            console.print("Run with --verbose to see the full traceback.")
-        console.print(f"[dim]Thread ID: {thread_id}[/dim]")
-        raise typer.Exit(code=1)
-
-    elapsed = time.time() - start_time
-
-    # Print results
-    phase = result.get("current_phase", "unknown")
-    if result.get("error"):
-        console.print(
-            Panel(
-                f"[bold red]Pipeline finished with error[/bold red] ({elapsed:.1f}s)\n"
-                f"Phase: {phase}",
-                border_style="red",
-            )
-        )
-    else:
-        console.print(
-            Panel(
-                f"[bold green]Pipeline complete[/bold green] ({elapsed:.1f}s)\nPhase: {phase}",
-                border_style="green",
-            )
-        )
-
-    _print_results(result, verbose=verbose)
-
-    console.print(f"\n[dim]Thread ID: {thread_id}[/dim]")
+    _run_pipeline(
+        project.name,
+        project.repo_url,
+        config,
+        verbose=verbose,
+        stop_after=stop_after,
+    )
 
 
 @app.command()
@@ -486,45 +701,49 @@ def resume(
             console.print(f"  - {field}: {error['msg']}")
         raise typer.Exit(code=1)
 
-    checkpointer = _get_checkpointer(config.work_dir)
-
-    # Check if we can actually resume (requires SqliteSaver)
-    from langgraph.checkpoint.memory import MemorySaver
-
-    if isinstance(checkpointer, MemorySaver):
+    if not _has_async_sqlite():
         console.print(
             "[bold red]Cannot resume:[/bold red] No persistent checkpointer available.\n"
-            "Install langgraph-checkpoint-sqlite: pip install langgraph-checkpoint-sqlite"
+            "Install with: [cyan]pip install \"autopoc[checkpoint]\"[/cyan]"
         )
         raise typer.Exit(code=1)
 
-    compiled_graph = build_graph(checkpointer=checkpointer)
+    async def _do_resume() -> dict:
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
-    # Try to get the latest state for this thread
-    checkpoint_config = {"configurable": {"thread_id": thread_id}}
-    state = compiled_graph.get_state(checkpoint_config)
+        db_path = _get_checkpoint_dir(config.work_dir) / "autopoc.db"
+        async with AsyncSqliteSaver.from_conn_string(str(db_path)) as checkpointer:
+            compiled_graph = build_graph(checkpointer=checkpointer)
+            checkpoint_config = {"configurable": {"thread_id": thread_id}}
+            state = await compiled_graph.aget_state(checkpoint_config)
 
-    if state is None or not state.values:
-        console.print(f"[bold red]No checkpoint found for thread ID:[/bold red] {thread_id}")
-        raise typer.Exit(code=1)
+            if state is None or not state.values:
+                console.print(
+                    f"[bold red]No checkpoint found for thread ID:[/bold red] {thread_id}"
+                )
+                raise typer.Exit(code=1)
 
-    current_phase = state.values.get("current_phase", "unknown")
-    project_name = state.values.get("project_name", "unknown")
+            current_phase = state.values.get("current_phase", "unknown")
+            project_name = state.values.get("project_name", "unknown")
 
-    console.print(
-        Panel(
-            f"[bold]Resuming:[/bold] {project_name}\n"
-            f"[bold]Thread:[/bold]  {thread_id}\n"
-            f"[bold]Phase:[/bold]   {current_phase}",
-            title="AutoPoC Resume",
-            border_style="yellow",
-        )
-    )
+            console.print(
+                Panel(
+                    f"[bold]Resuming:[/bold] {project_name}\n"
+                    f"[bold]Thread:[/bold]  {thread_id}\n"
+                    f"[bold]Phase:[/bold]   {current_phase}",
+                    title="AutoPoC Resume",
+                    border_style="yellow",
+                )
+            )
+
+            return await compiled_graph.ainvoke(None, config=checkpoint_config)
 
     start_time = time.time()
 
     try:
-        result = asyncio.run(compiled_graph.ainvoke(None, config=checkpoint_config))
+        result = asyncio.run(_do_resume())
+    except typer.Exit:
+        raise
     except Exception as e:
         elapsed = time.time() - start_time
         console.print(f"\n[bold red]Resumed pipeline failed[/bold red] after {elapsed:.1f}s: {e}")
@@ -559,18 +778,24 @@ def show_status(
             console.print(f"  - {field}: {error['msg']}")
         raise typer.Exit(code=1)
 
-    checkpointer = _get_checkpointer(config.work_dir)
-    from langgraph.checkpoint.memory import MemorySaver
-
-    if isinstance(checkpointer, MemorySaver):
+    if not _has_async_sqlite():
         console.print(
             "[bold red]No persistent checkpointer available.[/bold red]\n"
-            "Install langgraph-checkpoint-sqlite: pip install langgraph-checkpoint-sqlite"
+            "Install with: [cyan]pip install \"autopoc[checkpoint]\"[/cyan]"
         )
         raise typer.Exit(code=1)
 
-    compiled_graph = build_graph(checkpointer=checkpointer)
-    state = compiled_graph.get_state({"configurable": {"thread_id": thread_id}})
+    async def _get_state():
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+        db_path = _get_checkpoint_dir(config.work_dir) / "autopoc.db"
+        async with AsyncSqliteSaver.from_conn_string(str(db_path)) as checkpointer:
+            compiled_graph = build_graph(checkpointer=checkpointer)
+            return await compiled_graph.aget_state(
+                {"configurable": {"thread_id": thread_id}}
+            )
+
+    state = asyncio.run(_get_state())
 
     if state is None or not state.values:
         console.print(f"[bold red]No checkpoint found for thread ID:[/bold red] {thread_id}")
