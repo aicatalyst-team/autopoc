@@ -230,7 +230,7 @@ def select_project(
     row_index = data_start_row + 1  # 1-based
 
     project = SheetProject(
-        name=row["title"],
+        name=_derive_project_name(row["link"], row["title"]),
         repo_url=row["link"],
         category=row.get("category", ""),
         row_index=row_index,
@@ -244,6 +244,60 @@ def select_project(
     )
 
     return project
+
+
+def _derive_project_name(repo_url: str, title: str) -> str:
+    """Derive a clean, filesystem/registry-safe project name.
+
+    The sheet ``title`` column is typically in ``owner/repo`` format
+    (e.g. ``microsoft/TRELLIS.2``).  Slashes, uppercase, and special
+    characters cause problems downstream (Quay repo names, directory
+    paths, thread IDs).
+
+    Strategy:
+    1. Try to extract the repo name from the GitHub URL path
+       (``https://github.com/owner/repo`` → ``repo``).
+    2. Fall back to the title with the owner prefix stripped.
+    3. Lowercase the result and replace any remaining unsafe characters.
+
+    Args:
+        repo_url: The GitHub repository URL.
+        title: The raw title from the sheet.
+
+    Returns:
+        A lowercase, slash-free project name safe for use in paths,
+        Quay repo names, and thread IDs.
+    """
+    name = ""
+
+    # Try to extract from URL path: /owner/repo -> repo
+    try:
+        path = urlparse(repo_url).path.strip("/")
+        parts = path.split("/")
+        if len(parts) >= 2:
+            name = parts[1]
+    except Exception:
+        pass
+
+    # Fall back to title
+    if not name:
+        # Strip owner/ prefix if present
+        if "/" in title:
+            name = title.rsplit("/", 1)[1]
+        else:
+            name = title
+
+    # Clean up: lowercase, strip .git suffix, replace unsafe chars
+    name = name.lower().removesuffix(".git").strip()
+    # Replace characters that are unsafe in file paths, Quay repo names,
+    # or Kubernetes resource names with hyphens.
+    name = "".join(c if c.isalnum() or c in ".-_" else "-" for c in name)
+    # Collapse multiple hyphens and strip leading/trailing hyphens
+    while "--" in name:
+        name = name.replace("--", "-")
+    name = name.strip("-")
+
+    return name or "unknown-project"
 
 
 def _is_github_url(url: str) -> bool:

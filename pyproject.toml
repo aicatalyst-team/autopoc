@@ -28,6 +28,7 @@ dependencies = [
 [project.optional-dependencies]
 checkpoint = [
     "langgraph-checkpoint-sqlite>=2.0",
+    "aiosqlite>=0.20",
 ]
 dev = [
     "pytest>=8.0",

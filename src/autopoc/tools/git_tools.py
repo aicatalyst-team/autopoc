@@ -222,20 +222,30 @@ def commit_to_artifacts_branch(
     it, commits the specified files, pushes, then switches back to the original
     branch so downstream agents are unaffected.
 
+    Stashes any uncommitted work before switching branches and restores it
+    afterwards, so this is safe to call with a dirty working tree.
+
     This is a best-effort operation -- failures are logged as warnings and never
     propagate. The pipeline should not break because an artifact push failed.
     """
     original_ref = None
+    stashed = False
     try:
         # Remember the current branch/ref so we can switch back
         original_ref = _run_git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=clone_path)
 
+        # Stash any dirty state so we can safely switch branches
+        status = _run_git(["status", "--porcelain"], cwd=clone_path)
+        if status.strip():
+            _run_git(["stash", "push", "-u", "-m", "autopoc-artifacts-temp"], cwd=clone_path)
+            stashed = True
+
         # Create or switch to the artifacts branch
         try:
-            _run_git(["checkout", ARTIFACTS_BRANCH], cwd=clone_path)
-        except RuntimeError:
-            # Branch doesn't exist yet -- create it from current HEAD
             _run_git(["checkout", "-b", ARTIFACTS_BRANCH], cwd=clone_path)
+        except RuntimeError:
+            # Branch already exists -- switch to it
+            _run_git(["checkout", ARTIFACTS_BRANCH], cwd=clone_path)
 
         # Stage and commit
         for f in files:
@@ -252,9 +262,14 @@ def commit_to_artifacts_branch(
     except Exception as e:
         logger.warning("Failed to commit artifacts to %s: %s", ARTIFACTS_BRANCH, e)
     finally:
-        # Always switch back to the original branch
+        # Always switch back to the original branch and restore stashed work
         if original_ref:
             try:
                 _run_git(["checkout", original_ref], cwd=clone_path)
             except Exception:
                 pass
+        if stashed:
+            # Don't pop — dirty state is likely leftover from a previous
+            # interrupted run.  Leave it stashed; recoverable via
+            # `git stash list` if needed.
+            logger.debug("Stashed dirty state left in stash (not popped)")

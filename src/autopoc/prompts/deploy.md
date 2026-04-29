@@ -267,5 +267,33 @@ env:
 - Always create `kubernetes/namespace.yaml` first
 - Use the full image reference from the user message's "Image:" field
 - Set `imagePullPolicy: Never` for images with `localhost:` in the tag (local E2E)
-- Security context: `runAsNonRoot: true`, drop all capabilities
 - Commit ALL manifests to the repo so they're versioned and reproducible
+
+## Security Context (CRITICAL — OpenShift Compatibility)
+
+We deploy to **OpenShift**, which uses Security Context Constraints (SCCs).
+The default `restricted-v2` SCC assigns a **random UID** from the namespace's
+allocated range. This means:
+
+- **NEVER set `runAsUser`** in any manifest — not at pod level, not at
+  container level. OpenShift will reject the pod or override the value.
+  The Dockerfile may set `USER 1001` (which is fine as a default for local
+  runs), but the Kubernetes manifest must not pin a UID.
+- **NEVER set `fsGroup`** to a fixed value — OpenShift assigns supplemental
+  groups from the namespace range.
+- **ALWAYS set** at the container level:
+  ```yaml
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+  ```
+- **Do NOT set `runAsNonRoot: true`** at the pod level — some upstream
+  images (Redis, MongoDB, Neo4j) start as root and then drop privileges
+  via su-exec / gosu. Setting `runAsNonRoot` at the pod level will prevent
+  those containers from starting. The `restricted-v2` SCC already enforces
+  non-root at the platform level.
+- For the **application container** (our UBI-based image), you MAY set
+  `runAsNonRoot: true` at the container level since our Dockerfiles always
+  set a non-root `USER`.

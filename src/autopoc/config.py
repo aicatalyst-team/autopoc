@@ -93,10 +93,10 @@ class AutoPoCConfig(BaseSettings):
     )
 
     # Google Sheet integration (for `run-sheet` command)
-    google_credentials_file: str | None = Field(
+    sheet_credentials: str | None = Field(
         default=None,
-        validation_alias="GOOGLE_APPLICATION_CREDENTIALS",
-        description="Path to Google service account credentials JSON file",
+        validation_alias="AUTOPOC_SHEET_CREDENTIALS",
+        description="Path to Google service account credentials JSON for sheet access",
     )
     sheet_id: str | None = Field(
         default=None,
