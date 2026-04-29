@@ -39,7 +39,7 @@
 | **8. GitHub Fork Target** | **COMPLETE** | 10/10 | 25 passing |
 | **9. K8s Deployment** | **IN PROGRESS** | | |
 | **10. Raw Test Output** | **COMPLETE** | 6/6 | 23 passing |
-| **11. Google Sheet Ingestion** | PENDING | 0/9 | — |
+| **11. Google Sheet Ingestion** | **COMPLETE** | 9/9 | 59 passing |
 
 ---
 

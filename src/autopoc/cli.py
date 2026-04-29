@@ -17,6 +17,7 @@ from autopoc.config import AutoPoCConfig, load_config
 from autopoc.credentials import validate_credentials
 from autopoc.graph import build_graph
 from autopoc.logging_config import setup_logging
+from autopoc.sheet import filter_projects, read_sheet, select_project
 from autopoc.state import PoCPhase, PoCState
 
 app = typer.Typer(
@@ -92,22 +93,64 @@ def _get_checkpoint_dir(work_dir: str) -> Path:
     return checkpoint_dir
 
 
-def _get_checkpointer(work_dir: str):
-    """Create a SQLite checkpointer for state persistence.
-
-    Returns None if langgraph-checkpoint-sqlite is not installed.
-    """
+def _has_async_sqlite() -> bool:
+    """Check if the async SQLite checkpointer is available."""
     try:
-        from langgraph.checkpoint.sqlite import SqliteSaver
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver  # noqa: F401
+        import aiosqlite  # noqa: F401
+
+        return True
+    except ImportError:
+        return False
+
+
+def _get_sync_checkpointer():
+    """Return a MemorySaver for commands that don't need async (e.g. status).
+
+    For pipeline invocation, use ``_invoke_graph_async`` which creates
+    an ``AsyncSqliteSaver`` inside the event loop.
+    """
+    from langgraph.checkpoint.memory import MemorySaver
+
+    return MemorySaver()
+
+
+async def _invoke_graph_async(
+    compiled_graph,
+    initial_state,
+    thread_id: str,
+    work_dir: str,
+    *,
+    stop_after: str | None = None,
+) -> dict:
+    """Invoke the pipeline graph with an async-capable checkpointer.
+
+    Creates an ``AsyncSqliteSaver`` inside the event loop so the
+    ``aiosqlite`` connection is bound to the running loop.  Falls back
+    to ``MemorySaver`` if the async SQLite packages are not installed.
+    """
+    if _has_async_sqlite():
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
         db_path = _get_checkpoint_dir(work_dir) / "autopoc.db"
-        return SqliteSaver.from_conn_string(str(db_path))
-    except ImportError:
-        # Fall back to MemorySaver (no persistence across runs)
+        async with AsyncSqliteSaver.from_conn_string(str(db_path)) as checkpointer:
+            graph = build_graph(checkpointer=checkpointer, stop_after=stop_after)
+            return await graph.ainvoke(
+                initial_state,
+                config={"configurable": {"thread_id": thread_id}},
+            )
+    else:
         from langgraph.checkpoint.memory import MemorySaver
 
-        logger.debug("langgraph-checkpoint-sqlite not installed, using in-memory checkpointer")
-        return MemorySaver()
+        logger.debug(
+            "langgraph-checkpoint-sqlite / aiosqlite not installed, "
+            "using in-memory checkpointer"
+        )
+        graph = build_graph(checkpointer=MemorySaver(), stop_after=stop_after)
+        return await graph.ainvoke(
+            initial_state,
+            config={"configurable": {"thread_id": thread_id}},
+        )
 
 
 def _print_results(result: dict, verbose: bool = False) -> None:
@@ -349,10 +392,6 @@ def _run_pipeline(
         )
     )
 
-    # Build and run the graph with checkpointer
-    checkpointer = _get_checkpointer(config.work_dir)
-    compiled_graph = build_graph(checkpointer=checkpointer, stop_after=stop_after)
-
     if stop_after:
         console.print(f"[bold cyan]Starting pipeline (stopping after {stop_after})...[/bold cyan]")
     else:
@@ -361,9 +400,12 @@ def _run_pipeline(
 
     try:
         result = asyncio.run(
-            compiled_graph.ainvoke(
+            _invoke_graph_async(
+                None,
                 initial_state,
-                config={"configurable": {"thread_id": thread_id}},
+                thread_id,
+                config.work_dir,
+                stop_after=stop_after,
             )
         )
     except Exception as e:
@@ -522,8 +564,8 @@ def run_sheet(
         str | None,
         typer.Option(
             "--credentials",
-            envvar="GOOGLE_APPLICATION_CREDENTIALS",
-            help="Path to Google SA credentials JSON (or set GOOGLE_APPLICATION_CREDENTIALS)",
+            envvar="AUTOPOC_SHEET_CREDENTIALS",
+            help="Path to Google SA credentials JSON (or set AUTOPOC_SHEET_CREDENTIALS)",
         ),
     ] = None,
     model: Annotated[
@@ -568,7 +610,7 @@ def run_sheet(
     if not credentials:
         console.print(
             "[bold red]Error:[/bold red] --credentials is required "
-            "(or set GOOGLE_APPLICATION_CREDENTIALS env var)"
+            "(or set AUTOPOC_SHEET_CREDENTIALS env var)"
         )
         raise typer.Exit(code=1)
 
@@ -588,8 +630,6 @@ def run_sheet(
     )
 
     # Read and filter the sheet
-    from autopoc.sheet import filter_projects, read_sheet, select_project
-
     console.print(
         Panel(
             f"[bold]Sheet ID:[/bold]    {sheet_id}\n"
@@ -661,45 +701,49 @@ def resume(
             console.print(f"  - {field}: {error['msg']}")
         raise typer.Exit(code=1)
 
-    checkpointer = _get_checkpointer(config.work_dir)
-
-    # Check if we can actually resume (requires SqliteSaver)
-    from langgraph.checkpoint.memory import MemorySaver
-
-    if isinstance(checkpointer, MemorySaver):
+    if not _has_async_sqlite():
         console.print(
             "[bold red]Cannot resume:[/bold red] No persistent checkpointer available.\n"
-            "Install langgraph-checkpoint-sqlite: pip install langgraph-checkpoint-sqlite"
+            "Install with: [cyan]pip install \"autopoc[checkpoint]\"[/cyan]"
         )
         raise typer.Exit(code=1)
 
-    compiled_graph = build_graph(checkpointer=checkpointer)
+    async def _do_resume() -> dict:
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
-    # Try to get the latest state for this thread
-    checkpoint_config = {"configurable": {"thread_id": thread_id}}
-    state = compiled_graph.get_state(checkpoint_config)
+        db_path = _get_checkpoint_dir(config.work_dir) / "autopoc.db"
+        async with AsyncSqliteSaver.from_conn_string(str(db_path)) as checkpointer:
+            compiled_graph = build_graph(checkpointer=checkpointer)
+            checkpoint_config = {"configurable": {"thread_id": thread_id}}
+            state = await compiled_graph.aget_state(checkpoint_config)
 
-    if state is None or not state.values:
-        console.print(f"[bold red]No checkpoint found for thread ID:[/bold red] {thread_id}")
-        raise typer.Exit(code=1)
+            if state is None or not state.values:
+                console.print(
+                    f"[bold red]No checkpoint found for thread ID:[/bold red] {thread_id}"
+                )
+                raise typer.Exit(code=1)
 
-    current_phase = state.values.get("current_phase", "unknown")
-    project_name = state.values.get("project_name", "unknown")
+            current_phase = state.values.get("current_phase", "unknown")
+            project_name = state.values.get("project_name", "unknown")
 
-    console.print(
-        Panel(
-            f"[bold]Resuming:[/bold] {project_name}\n"
-            f"[bold]Thread:[/bold]  {thread_id}\n"
-            f"[bold]Phase:[/bold]   {current_phase}",
-            title="AutoPoC Resume",
-            border_style="yellow",
-        )
-    )
+            console.print(
+                Panel(
+                    f"[bold]Resuming:[/bold] {project_name}\n"
+                    f"[bold]Thread:[/bold]  {thread_id}\n"
+                    f"[bold]Phase:[/bold]   {current_phase}",
+                    title="AutoPoC Resume",
+                    border_style="yellow",
+                )
+            )
+
+            return await compiled_graph.ainvoke(None, config=checkpoint_config)
 
     start_time = time.time()
 
     try:
-        result = asyncio.run(compiled_graph.ainvoke(None, config=checkpoint_config))
+        result = asyncio.run(_do_resume())
+    except typer.Exit:
+        raise
     except Exception as e:
         elapsed = time.time() - start_time
         console.print(f"\n[bold red]Resumed pipeline failed[/bold red] after {elapsed:.1f}s: {e}")
@@ -734,18 +778,24 @@ def show_status(
             console.print(f"  - {field}: {error['msg']}")
         raise typer.Exit(code=1)
 
-    checkpointer = _get_checkpointer(config.work_dir)
-    from langgraph.checkpoint.memory import MemorySaver
-
-    if isinstance(checkpointer, MemorySaver):
+    if not _has_async_sqlite():
         console.print(
             "[bold red]No persistent checkpointer available.[/bold red]\n"
-            "Install langgraph-checkpoint-sqlite: pip install langgraph-checkpoint-sqlite"
+            "Install with: [cyan]pip install \"autopoc[checkpoint]\"[/cyan]"
         )
         raise typer.Exit(code=1)
 
-    compiled_graph = build_graph(checkpointer=checkpointer)
-    state = compiled_graph.get_state({"configurable": {"thread_id": thread_id}})
+    async def _get_state():
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+        db_path = _get_checkpoint_dir(config.work_dir) / "autopoc.db"
+        async with AsyncSqliteSaver.from_conn_string(str(db_path)) as checkpointer:
+            compiled_graph = build_graph(checkpointer=checkpointer)
+            return await compiled_graph.aget_state(
+                {"configurable": {"thread_id": thread_id}}
+            )
+
+    state = asyncio.run(_get_state())
 
     if state is None or not state.values:
         console.print(f"[bold red]No checkpoint found for thread ID:[/bold red] {thread_id}")

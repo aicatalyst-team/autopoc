@@ -69,7 +69,7 @@ autopoc run-sheet
 | Where sheet parsing lives | CLI layer (`cli.py` + `sheet.py` module) | Sheet is a project source, not a pipeline phase. Graph stays unchanged. |
 | Graph modification | None | `run-sheet` feeds `name`+`repo` into the same graph entry point (`intake`) |
 | Google Sheets library | `google-api-python-client` + `google-auth` | Official Google SDK, lightweight, well-maintained |
-| SA credentials | `GOOGLE_APPLICATION_CREDENTIALS` env var (path to JSON file) | Standard GCP pattern, works with K8s Secret volume mounts |
+| SA credentials | `AUTOPOC_SHEET_CREDENTIALS` env var (path to JSON file) | Avoids colliding with `GOOGLE_APPLICATION_CREDENTIALS` which would hijack Vertex AI auth |
 | Sheet ID | `AUTOPOC_SHEET_ID` env var with CLI `--sheet-id` override | Permanent sheet, config-driven |
 | Tab selection | First tab (index 0) | Simple, matches current workflow where latest tab is first |
 | Link filtering | GitHub only (`github.com` domain) | Only git-cloneable repos supported; HuggingFace not yet implemented |
@@ -95,11 +95,11 @@ autopoc run-sheet
 
 | Phase | Status | Tasks Done |
 |-------|--------|------------|
-| **1. Dependencies & Config** | PENDING | 0/2 |
-| **2. Sheet Reader** | PENDING | 0/1 |
-| **3. CLI Integration** | PENDING | 0/1 |
-| **4. Testing** | PENDING | 0/3 |
-| **5. Docs & Plan Updates** | PENDING | 0/2 |
+| **1. Dependencies & Config** | **COMPLETE** | 2/2 |
+| **2. Sheet Reader** | **COMPLETE** | 1/1 |
+| **3. CLI Integration** | **COMPLETE** | 1/1 |
+| **4. Testing** | **COMPLETE** | 3/3 |
+| **5. Docs & Plan Updates** | **COMPLETE** | 2/2 |
 
 ---
 
@@ -114,7 +114,7 @@ manually (the agent can guide through each step):
 3. **Spreadsheet sharing**: The target spreadsheet must be shared with the
    SA's email address (viewer / read-only access is sufficient).
 4. **Environment variables**:
-   - `GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa-key.json`
+   - `AUTOPOC_SHEET_CREDENTIALS=/path/to/sa-key.json`
    - `AUTOPOC_SHEET_ID=<spreadsheet-id-from-url>`
 
 The spreadsheet ID is the long alphanumeric string in the Google Sheets URL:
@@ -149,8 +149,8 @@ The spreadsheet ID is the long alphanumeric string in the Google Sheets URL:
 # Google Sheet integration
 google_credentials_file: str | None = Field(
     default=None,
-    alias="GOOGLE_APPLICATION_CREDENTIALS",
-    description="Path to Google service account credentials JSON file",
+    validation_alias="AUTOPOC_SHEET_CREDENTIALS",
+    description="Path to Google service account credentials JSON for sheet access",
 )
 sheet_id: str | None = Field(
     default=None,
@@ -158,7 +158,7 @@ sheet_id: str | None = Field(
 )
 ```
 
-Env vars: `GOOGLE_APPLICATION_CREDENTIALS`, `AUTOPOC_SHEET_ID`.
+Env vars: `AUTOPOC_SHEET_CREDENTIALS`, `AUTOPOC_SHEET_ID`.
 
 **Notes:**
 - These fields are optional — `autopoc run` must continue to work without
@@ -280,8 +280,8 @@ def run_sheet(
     )] = None,
     credentials: Annotated[str | None, typer.Option(
         "--credentials",
-        envvar="GOOGLE_APPLICATION_CREDENTIALS",
-        help="Path to Google SA credentials JSON (or set GOOGLE_APPLICATION_CREDENTIALS)",
+        envvar="AUTOPOC_SHEET_CREDENTIALS",
+        help="Path to Google SA credentials JSON (or set AUTOPOC_SHEET_CREDENTIALS)",
     )] = None,
     model: Annotated[str | None, typer.Option("--model", "-m")] = None,
     target: Annotated[str | None, typer.Option("--target", "-t")] = None,
@@ -356,7 +356,7 @@ The command body:
 **Test cases:**
 - `run-sheet` without `--sheet-id` or `AUTOPOC_SHEET_ID` → exit code 1
   with error message.
-- `run-sheet` without `--credentials` or `GOOGLE_APPLICATION_CREDENTIALS`
+- `run-sheet` without `--credentials` or `AUTOPOC_SHEET_CREDENTIALS`
   → exit code 1 with error message.
 - With mocked `read_sheet` returning test data, command selects the correct
   project and attempts pipeline invocation.
@@ -383,7 +383,7 @@ Run `make lint && make test`. All checks must pass with the new code.
 **Work:** Add:
 ```bash
 # Google Sheet integration (for `autopoc run-sheet`)
-# GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+# AUTOPOC_SHEET_CREDENTIALS=/path/to/service-account-key.json
 # AUTOPOC_SHEET_ID=your-spreadsheet-id-here
 ```
 

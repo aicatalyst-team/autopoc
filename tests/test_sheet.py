@@ -8,6 +8,7 @@ import pytest
 
 from autopoc.sheet import (
     SheetProject,
+    _derive_project_name,
     _is_github_url,
     _parse_rows,
     filter_projects,
@@ -278,6 +279,57 @@ class TestFilterProjects:
 
 
 # ---------------------------------------------------------------------------
+# _derive_project_name
+# ---------------------------------------------------------------------------
+
+
+class TestDeriveProjectName:
+    def test_github_url_extracts_repo(self) -> None:
+        """Extracts repo name from a standard GitHub URL."""
+        assert _derive_project_name("https://github.com/microsoft/TRELLIS.2", "microsoft/TRELLIS.2") == "trellis.2"
+
+    def test_github_url_with_trailing_slash(self) -> None:
+        assert _derive_project_name("https://github.com/org/repo/", "org/repo") == "repo"
+
+    def test_github_url_with_git_suffix(self) -> None:
+        assert _derive_project_name("https://github.com/org/repo.git", "org/repo") == "repo"
+
+    def test_owner_slash_repo_title(self) -> None:
+        """Falls back to title when URL parsing fails."""
+        assert _derive_project_name("not-a-url", "microsoft/TRELLIS.2") == "trellis.2"
+
+    def test_simple_title_no_slash(self) -> None:
+        assert _derive_project_name("not-a-url", "my-project") == "my-project"
+
+    def test_lowercase(self) -> None:
+        assert _derive_project_name("https://github.com/Org/CyberVerse", "Org/CyberVerse") == "cyberverse"
+
+    def test_unsafe_chars_replaced(self) -> None:
+        """Characters unsafe for paths/registries are replaced with hyphens."""
+        assert _derive_project_name("https://github.com/org/my repo!", "org/my repo!") == "my-repo"
+
+    def test_no_double_hyphens(self) -> None:
+        assert _derive_project_name("https://github.com/org/a--b", "org/a--b") == "a-b"
+
+    def test_empty_fallback(self) -> None:
+        assert _derive_project_name("", "") == "unknown-project"
+
+    def test_real_csv_names(self) -> None:
+        """Verify all GitHub titles from the reference CSV produce clean names."""
+        cases = [
+            ("https://github.com/microsoft/TRELLIS.2", "microsoft/TRELLIS.2", "trellis.2"),
+            ("https://github.com/dsd2077/CyberVerse", "dsd2077/CyberVerse", "cyberverse"),
+            ("https://github.com/hpennington/agentswift", "hpennington/agentswift", "agentswift"),
+            ("https://github.com/vishalmdi/ai-native-pm-os", "vishalmdi/ai-native-pm-os", "ai-native-pm-os"),
+            ("https://github.com/Growth-Circle/cadis", "Growth-Circle/cadis", "cadis"),
+            ("https://github.com/larksuite/aamp", "larksuite/aamp", "aamp"),
+        ]
+        for url, title, expected in cases:
+            result = _derive_project_name(url, title)
+            assert result == expected, f"{url} -> {result!r}, expected {expected!r}"
+
+
+# ---------------------------------------------------------------------------
 # select_project
 # ---------------------------------------------------------------------------
 
@@ -286,12 +338,12 @@ class TestSelectProject:
     def test_selects_first_row(self) -> None:
         """Returns a SheetProject from the first row."""
         rows = [
-            {"title": "Project A", "link": "https://github.com/org/a", "category": "rag"},
-            {"title": "Project B", "link": "https://github.com/org/b", "category": "agents"},
+            {"title": "org/project-a", "link": "https://github.com/org/project-a", "category": "rag"},
+            {"title": "org/project-b", "link": "https://github.com/org/project-b", "category": "agents"},
         ]
         project = select_project(rows)
-        assert project.name == "Project A"
-        assert project.repo_url == "https://github.com/org/a"
+        assert project.name == "project-a"
+        assert project.repo_url == "https://github.com/org/project-a"
         assert project.category == "rag"
 
     def test_empty_rows_raises(self) -> None:
@@ -435,7 +487,7 @@ class TestEndToEndCSV:
         assert len(filtered) >= 1
 
         project = select_project(filtered)
-        assert project.name == "microsoft/TRELLIS.2"
+        assert project.name == "trellis.2"
         assert project.repo_url == "https://github.com/microsoft/TRELLIS.2"
         assert isinstance(project, SheetProject)
 
