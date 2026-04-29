@@ -1,6 +1,6 @@
 # AutoPoC Kubernetes Job template.
-# PROJECT_NAME and REPO_URL are substituted at apply time via envsubst.
-# Credentials come from the autopoc-credentials Secret (created separately).
+# Credentials come from the autopoc-credentials Secret.
+# The command (run vs run-sheet) and args are set via overlay patches.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -25,7 +25,7 @@ spec:
           args:
             - "run"
           env:
-            # --- Project configuration ---
+            # --- Project configuration (for 'run' command) ---
             - name: AUTOPOC_PROJECT_NAME
               value: "PLACEHOLDER_PROJECT"
             - name: AUTOPOC_REPO_URL
@@ -35,8 +35,17 @@ spec:
             - name: WORK_DIR
               value: "/workspace"
 
-            # --- All credentials from Secret ---
-            # LLM providers (configure one)
+            # --- Google Sheet configuration (for 'run-sheet' command) ---
+            - name: AUTOPOC_SHEET_ID
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: AUTOPOC_SHEET_ID
+                  optional: true
+            - name: AUTOPOC_SHEET_CREDENTIALS
+              value: "/etc/autopoc/google-sa/credentials.json"
+
+            # --- LLM providers (configure one) ---
             - name: ANTHROPIC_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -73,6 +82,8 @@ spec:
                   name: autopoc-credentials
                   key: LLM_MODEL
                   optional: true
+
+            # --- Fork target ---
             - name: FORK_TARGET
               valueFrom:
                 secretKeyRef:
@@ -109,6 +120,8 @@ spec:
                   name: autopoc-credentials
                   key: GITLAB_GROUP
                   optional: true
+
+            # --- Quay registry ---
             - name: QUAY_REGISTRY
               valueFrom:
                 secretKeyRef:
@@ -131,6 +144,8 @@ spec:
                   name: autopoc-credentials
                   key: QUAY_USERNAME
                   optional: true
+
+            # --- OpenShift ---
             - name: OPENSHIFT_API_URL
               valueFrom:
                 secretKeyRef:
@@ -161,7 +176,14 @@ spec:
           volumeMounts:
             - name: work
               mountPath: /workspace
+            - name: google-sa
+              mountPath: /etc/autopoc/google-sa
+              readOnly: true
 
       volumes:
         - name: work
           emptyDir: {}
+        - name: google-sa
+          secret:
+            secretName: autopoc-google-sa
+            optional: true
