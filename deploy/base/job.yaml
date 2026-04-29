@@ -1,0 +1,146 @@
+# AutoPoC Kubernetes Job template.
+# PROJECT_NAME and REPO_URL are substituted at apply time via envsubst.
+# Credentials come from the autopoc-credentials Secret (created separately).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: autopoc-JOB_SUFFIX
+  namespace: autopoc
+  labels:
+    app: autopoc
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: autopoc
+    spec:
+      restartPolicy: Never
+      serviceAccountName: autopoc-runner
+
+      containers:
+        - name: autopoc
+          image: quay.io/autopoc/autopoc:latest
+          args:
+            - "run"
+          env:
+            # --- Project configuration ---
+            - name: AUTOPOC_PROJECT_NAME
+              value: "PLACEHOLDER_PROJECT"
+            - name: AUTOPOC_REPO_URL
+              value: "PLACEHOLDER_REPO"
+            - name: BUILD_STRATEGY
+              value: "openshift"
+            - name: WORK_DIR
+              value: "/workspace"
+
+            # --- All credentials from Secret ---
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: ANTHROPIC_API_KEY
+                  optional: true
+            - name: VERTEX_PROJECT
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: VERTEX_PROJECT
+                  optional: true
+            - name: VERTEX_LOCATION
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: VERTEX_LOCATION
+                  optional: true
+            - name: FORK_TARGET
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: FORK_TARGET
+                  optional: true
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: GITHUB_TOKEN
+                  optional: true
+            - name: GITHUB_ORG
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: GITHUB_ORG
+                  optional: true
+            - name: GITLAB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: GITLAB_URL
+                  optional: true
+            - name: GITLAB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: GITLAB_TOKEN
+                  optional: true
+            - name: GITLAB_GROUP
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: GITLAB_GROUP
+                  optional: true
+            - name: QUAY_REGISTRY
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: QUAY_REGISTRY
+                  optional: true
+            - name: QUAY_ORG
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: QUAY_ORG
+            - name: QUAY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: QUAY_TOKEN
+            - name: QUAY_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: QUAY_USERNAME
+                  optional: true
+            - name: OPENSHIFT_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: OPENSHIFT_API_URL
+            - name: OPENSHIFT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: OPENSHIFT_TOKEN
+            - name: OPENSHIFT_NAMESPACE_PREFIX
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: OPENSHIFT_NAMESPACE_PREFIX
+                  optional: true
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "2"
+
+          volumeMounts:
+            - name: work
+              mountPath: /workspace
+
+      volumes:
+        - name: work
+          emptyDir: {}

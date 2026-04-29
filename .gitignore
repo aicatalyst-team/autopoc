@@ -2,7 +2,10 @@
 .env
 .env.test
 .env.test.backup
+# Deploy secrets — never commit real credentials
 deploy/secret.yaml
+deploy/overlays/*/secret.yaml
+deploy/lab/
 
 # Python
 __pycache__/

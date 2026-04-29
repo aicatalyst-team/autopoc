@@ -1,0 +1,58 @@
+# ServiceAccount for the autopoc Job.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: autopoc-runner
+  namespace: autopoc
+---
+# ClusterRole with permissions needed by the autopoc agent.
+# BuildConfig/Build for OpenShift builds; Namespace for creating
+# project namespaces; standard workload resources for deployment.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: autopoc-runner
+  labels:
+    app: autopoc
+rules:
+  # OpenShift Build resources
+  - apiGroups: ["build.openshift.io"]
+    resources: ["buildconfigs", "builds", "builds/log"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  - apiGroups: ["build.openshift.io"]
+    resources: ["buildconfigs/instantiatebinary"]
+    verbs: ["create"]
+  # Namespace management
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "create"]
+  # Workload resources (for deploy/apply phases)
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "secrets", "configmaps",
+                "persistentvolumeclaims", "serviceaccounts"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+---
+# Bind the ClusterRole to the ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: autopoc-runner
+  labels:
+    app: autopoc
+subjects:
+  - kind: ServiceAccount
+    name: autopoc-runner
+    namespace: autopoc
+roleRef:
+  kind: ClusterRole
+  name: autopoc-runner
+  apiGroup: rbac.authorization.k8s.io
