@@ -101,9 +101,7 @@ class TestRawRunRecordCapture:
         script = tmp_path / "hang.py"
         script.write_text("import time; time.sleep(60)\n")
 
-        result = run_script.invoke(
-            {"script_path": str(script), "timeout": 1}
-        )
+        result = run_script.invoke({"script_path": str(script), "timeout": 1})
         assert "timed out" in result.lower()
 
         log = get_raw_run_log()
