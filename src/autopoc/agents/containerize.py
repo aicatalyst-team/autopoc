@@ -300,6 +300,9 @@ def _fixup_dockerfile(dockerfile_path: Path) -> None:
 
     - Package manager mismatch: UBI9 full images use dnf, UBI9 minimal
       images use microdnf. LLMs often confuse the two.
+    - Permission errors: commands like chgrp/chmod or npm run build need
+      correct USER context. Ensure operations that require root run as
+      USER 0, and fix ownership before switching to non-root.
     """
     content = dockerfile_path.read_text(encoding="utf-8")
     original = content
@@ -321,8 +324,76 @@ def _fixup_dockerfile(dockerfile_path: Path) -> None:
             dockerfile_path.name,
         )
 
+    # Fix permission issues: ensure chgrp/chmod runs as root
+    content = _fixup_permissions(content, dockerfile_path.name)
+
     if content != original:
         dockerfile_path.write_text(content, encoding="utf-8")
+
+
+def _fixup_permissions(content: str, filename: str) -> str:
+    """Fix permission-related issues in Dockerfiles.
+
+    Handles two common patterns:
+    1. chgrp/chmod without USER 0: insert USER 0 before and restore USER after.
+    2. npm install as root then USER switch before npm run build:
+       add chown to fix node_modules ownership before the USER switch.
+    """
+    lines = content.split("\n")
+    fixed_lines = []
+    current_user = None  # Track the current USER directive
+    npm_installed_as_root = False
+    applied_fix = False
+
+    for i, line in enumerate(lines):
+        stripped = line.strip().upper()
+
+        # Track USER directives
+        if stripped.startswith("USER "):
+            user_val = line.strip()[5:].strip()
+            # Detect USER switch from root to non-root
+            if (
+                current_user in ("0", "root")
+                and user_val not in ("0", "root")
+                and npm_installed_as_root
+            ):
+                # Insert chown before the USER switch so non-root can write to node_modules
+                fixed_lines.append(
+                    "RUN chown -R %s:0 /opt/app-root/src/node_modules || true" % user_val
+                )
+                logger.info(
+                    "Dockerfile fixup: added chown for node_modules before USER %s in %s",
+                    user_val,
+                    filename,
+                )
+                applied_fix = True
+                npm_installed_as_root = False
+            current_user = user_val
+
+        # Detect npm install/ci running as root
+        if stripped.startswith("RUN ") and current_user in ("0", "root"):
+            if any(cmd in stripped for cmd in ("NPM INSTALL", "NPM CI", "BUN INSTALL")):
+                npm_installed_as_root = True
+
+        # Detect chgrp/chmod without being root
+        if stripped.startswith("RUN ") and current_user not in ("0", "root", None):
+            if "CHGRP " in stripped or "CHMOD " in stripped:
+                # Insert USER 0 before, will restore after
+                fixed_lines.append("USER 0")
+                fixed_lines.append(line)
+                fixed_lines.append("USER %s" % (current_user or "1001"))
+                logger.info(
+                    "Dockerfile fixup: wrapped chgrp/chmod with USER 0 in %s",
+                    filename,
+                )
+                applied_fix = True
+                continue
+
+        fixed_lines.append(line)
+
+    if applied_fix:
+        return "\n".join(fixed_lines)
+    return content
 
 
 def _parse_containerize_output(raw_output: str, component_path: str) -> dict:
