@@ -19,6 +19,13 @@ def _clear_login_cache():
 
 @pytest.fixture
 def initial_state(tmp_path: Path) -> PoCState:
+    # Create stub Dockerfiles so the build agent's existence check passes
+    repo = tmp_path / "repo"
+    (repo / "api").mkdir(parents=True)
+    (repo / "api" / "Dockerfile.ubi").write_text("FROM ubi9\n")
+    (repo / "web").mkdir(parents=True)
+    (repo / "web" / "Dockerfile.ubi").write_text("FROM ubi9\n")
+
     return PoCState(
         project_name="my-project",
         source_repo_url="https://github.com/my-org/my-repo",
@@ -26,7 +33,7 @@ def initial_state(tmp_path: Path) -> PoCState:
         error=None,
         messages=[],
         gitlab_repo_url="https://gitlab.example.com/my-org/my-repo",
-        local_clone_path=str(tmp_path / "repo"),
+        local_clone_path=str(repo),
         repo_summary="Test repo",
         components=[
             {

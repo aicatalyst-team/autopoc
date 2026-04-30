@@ -247,10 +247,31 @@ async def build_agent(
                 # If the registry is HTTP (like local E2E), disable TLS verify
                 tls_verify = not app_config.quay_registry.startswith("http://")
 
+                # Verify the Dockerfile exists before attempting the build
+                dockerfile_path = repo_dir / dockerfile
+                if not dockerfile_path.exists():
+                    # Log what files are actually in the directory for debugging
+                    existing = [
+                        str(p.relative_to(repo_dir))
+                        for p in repo_dir.rglob("Dockerfile*")
+                    ]
+                    logger.error(
+                        "Dockerfile not found at %s. "
+                        "Dockerfiles in repo: %s",
+                        dockerfile_path,
+                        existing or "(none)",
+                    )
+                    raise RuntimeError(
+                        f"Dockerfile not found: {dockerfile_path}\n"
+                        f"The containerize agent may have failed to write it, "
+                        f"or a git operation (stash/branch switch) removed it.\n"
+                        f"Dockerfiles found in repo: {existing or '(none)'}"
+                    )
+
                 # Build the image
                 build_strategy.build(
                     context_path=str(repo_dir),
-                    dockerfile=str(repo_dir / dockerfile),
+                    dockerfile=str(dockerfile_path),
                     tag=full_tag,
                     tls_verify=tls_verify,
                 )

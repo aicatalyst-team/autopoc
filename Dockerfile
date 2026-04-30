@@ -37,11 +37,23 @@ LABEL io.k8s.description="AutoPoC — automated proof-of-concept pipeline agent"
       io.openshift.tags="autopoc,langgraph,ai-agent" \
       maintainer="aicatalyst-team"
 
-# Install kubectl (requires root for /usr/local/bin)
 USER 0
-ARG KUBECTL_VERSION=v1.31.4
+
+# Apply security patches and remove unnecessary packages
+RUN dnf update -y --security && \
+    dnf remove -y vim-minimal vim-filesystem rsync && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf
+
+# Install kubectl and oc
+ARG KUBECTL_VERSION=v1.36.0
 RUN curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl && \
     chmod +x /usr/local/bin/kubectl
+
+ARG OC_VERSION=4.21.11
+RUN curl -fsSL "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OC_VERSION}/openshift-client-linux.tar.gz" \
+    | tar xzf - -C /usr/local/bin oc && \
+    chmod +x /usr/local/bin/oc
 
 # Copy the shiv binary from builder
 COPY --from=builder /build/dist/autopoc /usr/local/bin/autopoc

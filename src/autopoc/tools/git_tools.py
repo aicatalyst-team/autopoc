@@ -234,6 +234,20 @@ def commit_to_artifacts_branch(
         # Remember the current branch/ref so we can switch back
         original_ref = _run_git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=clone_path)
 
+        # Read file contents before stashing so we can write them on the artifacts branch
+        file_contents: dict[str, str] = {}
+        clone = Path(clone_path)
+        for f in files:
+            fpath = clone / f
+            if fpath.exists():
+                file_contents[f] = fpath.read_text(encoding="utf-8")
+            else:
+                logger.warning("Artifact file %s does not exist, skipping", fpath)
+
+        if not file_contents:
+            logger.warning("No artifact files found to commit")
+            return
+
         # Stash any dirty state so we can safely switch branches
         status = _run_git(["status", "--porcelain"], cwd=clone_path)
         if status.strip():
@@ -247,8 +261,11 @@ def commit_to_artifacts_branch(
             # Branch already exists -- switch to it
             _run_git(["checkout", ARTIFACTS_BRANCH], cwd=clone_path)
 
-        # Stage and commit
-        for f in files:
+        # Write files to the artifacts branch and stage them
+        for f, content in file_contents.items():
+            fpath = clone / f
+            fpath.parent.mkdir(parents=True, exist_ok=True)
+            fpath.write_text(content, encoding="utf-8")
             _run_git(["add", f], cwd=clone_path)
         _run_git(["commit", "-m", message], cwd=clone_path)
 
@@ -269,7 +286,8 @@ def commit_to_artifacts_branch(
             except Exception:
                 pass
         if stashed:
-            # Don't pop — dirty state is likely leftover from a previous
-            # interrupted run.  Leave it stashed; recoverable via
-            # `git stash list` if needed.
-            logger.debug("Stashed dirty state left in stash (not popped)")
+            try:
+                _run_git(["stash", "pop"], cwd=clone_path)
+                logger.debug("Restored stashed working tree state")
+            except Exception as stash_err:
+                logger.warning("Failed to pop stash: %s", stash_err)
