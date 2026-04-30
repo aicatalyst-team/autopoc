@@ -672,7 +672,7 @@ async def containerize_agent(
                 }
             )
 
-            # Push to fork if remote exists
+            # Force-push to fork so re-runs overwrite previous Dockerfiles
             fork_url = state.get("fork_repo_url") or state.get("gitlab_repo_url")
             if fork_url:
                 git_push.invoke(
@@ -680,6 +680,7 @@ async def containerize_agent(
                         "repo_path": clone_path,
                         "remote": "origin",
                         "ref": "HEAD",
+                        "force": True,
                     }
                 )
                 logger.info("Pushed Dockerfile.ubi files to fork")

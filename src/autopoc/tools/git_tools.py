@@ -109,7 +109,12 @@ _BLOCKED_PUSH_HOSTS = {"gitlab.com", "bitbucket.org", "codeberg.org"}
 
 
 @tool
-def git_push(repo_path: str, remote: str = "origin", ref: str = "main") -> str:
+def git_push(
+    repo_path: str,
+    remote: str = "origin",
+    ref: str = "main",
+    force: bool = False,
+) -> str:
     """Push to a remote repository.
 
     Args:
@@ -117,6 +122,7 @@ def git_push(repo_path: str, remote: str = "origin", ref: str = "main") -> str:
         remote: Remote name to push to (default: "origin").
         ref: Branch name or ref to push, or "--all" for all branches,
              or "--tags" for all tags.
+        force: If True, use --force-with-lease to overwrite remote.
 
     Returns:
         Git push output.
@@ -143,7 +149,10 @@ def git_push(repo_path: str, remote: str = "origin", ref: str = "main") -> str:
         # If we can't resolve the remote URL, proceed cautiously
         pass
 
-    args = ["push", remote]
+    args = ["push"]
+    if force:
+        args.append("--force-with-lease")
+    args.append(remote)
     if ref in ("--all", "--tags"):
         args.append(ref)
     else:
@@ -269,9 +278,11 @@ def commit_to_artifacts_branch(
             _run_git(["add", f], cwd=clone_path)
         _run_git(["commit", "-m", message], cwd=clone_path)
 
-        # Push to origin (which points to GitLab after fork agent runs)
+        # Force-push to origin so re-runs overwrite previous artifacts
         try:
-            _run_git(["push", "origin", ARTIFACTS_BRANCH], cwd=clone_path)
+            _run_git(
+                ["push", "--force-with-lease", "origin", ARTIFACTS_BRANCH], cwd=clone_path
+            )
             logger.info("Pushed %s to origin/%s", ", ".join(files), ARTIFACTS_BRANCH)
         except RuntimeError as push_err:
             logger.warning("Failed to push %s branch: %s", ARTIFACTS_BRANCH, push_err)
