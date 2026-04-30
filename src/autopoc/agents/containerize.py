@@ -616,13 +616,28 @@ async def containerize_agent(
         # Verify the Dockerfile was actually written to disk.
         # If the LLM didn't use the write_file tool (common with weaker models),
         # try to extract the Dockerfile content from the response and write it ourselves.
+        #
+        # On retry (component_build_error is set), ALWAYS try to extract and
+        # overwrite — the LLM was asked to fix the Dockerfile, so its output
+        # should replace the old broken version even if the file exists.
         abs_dockerfile = Path(clone_path) / dockerfile_path
-        if not abs_dockerfile.exists():
-            logger.warning(
-                "Dockerfile not found at %s after agent run — "
-                "attempting to extract from LLM response",
-                abs_dockerfile,
-            )
+        is_retry = component_build_error is not None
+        should_extract = not abs_dockerfile.exists() or is_retry
+
+        if should_extract:
+            if not abs_dockerfile.exists():
+                logger.warning(
+                    "Dockerfile not found at %s after agent run — "
+                    "attempting to extract from LLM response",
+                    abs_dockerfile,
+                )
+            else:
+                logger.info(
+                    "Build retry: attempting to extract updated Dockerfile "
+                    "from LLM response for %s",
+                    comp_name,
+                )
+
             dockerfile_content = _extract_dockerfile_from_response(raw_output)
             if dockerfile_content:
                 abs_dockerfile.parent.mkdir(parents=True, exist_ok=True)
@@ -632,7 +647,7 @@ async def containerize_agent(
                     len(dockerfile_content),
                     abs_dockerfile,
                 )
-            else:
+            elif not abs_dockerfile.exists():
                 logger.error(
                     "Could not extract Dockerfile content from LLM response for %s",
                     comp_name,
