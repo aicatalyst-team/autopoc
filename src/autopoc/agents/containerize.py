@@ -332,12 +332,18 @@ def _fixup_dockerfile(dockerfile_path: Path) -> None:
 
 
 def _fixup_permissions(content: str, filename: str) -> str:
-    """Fix permission-related issues in Dockerfiles.
+    """Fix permission-related issues in Dockerfiles for OpenShift.
 
-    Handles two common patterns:
-    1. chgrp/chmod without USER 0: insert USER 0 before and restore USER after.
-    2. npm install as root then USER switch before npm run build:
-       add chown to fix node_modules ownership before the USER switch.
+    OpenShift runs containers with an arbitrary UID (e.g. 1000620000) but
+    always in GID 0. The correct pattern for file permissions is:
+        chgrp -R 0 <path> && chmod -R g=u <path>
+    This must run as USER 0 (root).
+
+    Handles two common LLM mistakes:
+    1. chgrp/chmod without USER 0: wrap with USER 0 before, restore after.
+    2. npm/bun install as root creates node_modules owned by root, then
+       USER switch to non-root breaks npm run build. Fix by adding
+       chgrp/chmod g=u for node_modules before the USER switch (still as root).
     """
     lines = content.split("\n")
     fixed_lines = []
@@ -357,12 +363,16 @@ def _fixup_permissions(content: str, filename: str) -> str:
                 and user_val not in ("0", "root")
                 and npm_installed_as_root
             ):
-                # Insert chown before the USER switch so non-root can write to node_modules
+                # Fix node_modules permissions using OpenShift-safe pattern:
+                # chgrp to GID 0 + chmod g=u, so any arbitrary UID in GID 0 can write.
+                # This runs before the USER switch, so we're still root.
                 fixed_lines.append(
-                    "RUN chown -R %s:0 /opt/app-root/src/node_modules || true" % user_val
+                    "RUN chgrp -R 0 /opt/app-root/src/node_modules && "
+                    "chmod -R g=u /opt/app-root/src/node_modules || true"
                 )
                 logger.info(
-                    "Dockerfile fixup: added chown for node_modules before USER %s in %s",
+                    "Dockerfile fixup: added chgrp/chmod g=u for node_modules "
+                    "before USER %s in %s",
                     user_val,
                     filename,
                 )
@@ -375,10 +385,12 @@ def _fixup_permissions(content: str, filename: str) -> str:
             if any(cmd in stripped for cmd in ("NPM INSTALL", "NPM CI", "BUN INSTALL")):
                 npm_installed_as_root = True
 
-        # Detect chgrp/chmod without being root
-        if stripped.startswith("RUN ") and current_user not in ("0", "root", None):
+        # Detect chgrp/chmod without being root.
+        # None means no USER directive seen yet — UBI images default to
+        # non-root (UID 1001), so treat None as non-root.
+        if stripped.startswith("RUN ") and current_user not in ("0", "root"):
             if "CHGRP " in stripped or "CHMOD " in stripped:
-                # Insert USER 0 before, will restore after
+                # Insert USER 0 before, restore original user after
                 fixed_lines.append("USER 0")
                 fixed_lines.append(line)
                 fixed_lines.append("USER %s" % (current_user or "1001"))
