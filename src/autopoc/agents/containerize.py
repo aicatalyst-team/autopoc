@@ -193,6 +193,17 @@ def _build_user_message(
             f"```\n{build_error}\n```"
         )
 
+        # Include the current Dockerfile content so the LLM can see what to fix
+        dockerfile_path = Path(component_path) / "Dockerfile.ubi"
+        if dockerfile_path.exists():
+            current_content = dockerfile_path.read_text(encoding="utf-8")
+            parts.append(
+                f"\n**Current Dockerfile.ubi (needs fixing):**\n"
+                f"```dockerfile\n{current_content}```\n"
+                f"Read the error above and fix this Dockerfile. "
+                f"Write the corrected version using write_file."
+            )
+
     return "\n".join(parts)
 
 
