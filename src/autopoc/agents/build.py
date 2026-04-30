@@ -544,9 +544,32 @@ async def build_agent(
                     if patched:
                         logger.info(
                             "Patched Dockerfile to install '%s' — "
-                            "next retry should succeed without containerize re-run",
+                            "retrying build immediately with patched Dockerfile",
                             missing_cmd,
                         )
+                        # Retry the build immediately with the patched Dockerfile.
+                        # Don't return to the graph loop (containerize would overwrite
+                        # the patch). This uses one retry count but avoids the
+                        # containerize → build round-trip.
+                        try:
+                            build_strategy.build(
+                                context_path=str(repo_dir),
+                                dockerfile=str(dockerfile_path),
+                                tag=full_tag,
+                                tls_verify=tls_verify,
+                            )
+                            logger.info("Build successful for %s after installing '%s'", comp_name, missing_cmd)
+                            build_strategy.push(image=full_tag, tls_verify=tls_verify)
+                            built_images.append(full_tag)
+                            comp["image_name"] = full_tag
+                            continue  # Move to the next component
+                        except Exception as retry_err:
+                            logger.warning(
+                                "Build still failed after installing '%s': %s",
+                                missing_cmd,
+                                str(retry_err)[:300],
+                            )
+                            # Fall through to normal error handling below
 
                 # Truncate error for state storage (containerize agent will see this)
                 # Keep it concise so it doesn't bloat the state
