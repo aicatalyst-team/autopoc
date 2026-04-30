@@ -263,6 +263,43 @@ async def _fix_missing_command_in_dockerfile(
         return False
 
 
+def _parse_not_found_packages(error_log: str) -> list[str]:
+    """Parse npm/pip 404 errors to find packages that don't exist.
+
+    Returns:
+        List of package names that got 404 errors.
+    """
+    packages = []
+    # npm: "'@types/vite@*' is not in this registry"
+    for match in re.finditer(
+        r"'([^'@]+(?:@[^']+)?)(?:@[^']*)?' is not in this registry",
+        error_log,
+    ):
+        pkg = match.group(1)
+        if pkg not in packages:
+            packages.append(pkg)
+
+    # npm: "404 Not Found - GET https://registry.npmjs.org/<pkg> - Not found"
+    for match in re.finditer(
+        r"404 Not Found - GET https?://[^\s]+/([^\s]+)\s*-\s*Not found",
+        error_log,
+    ):
+        pkg = match.group(1).replace("%2f", "/").replace("%2F", "/")
+        if pkg not in packages:
+            packages.append(pkg)
+
+    # pip: "No matching distribution found for <pkg>"
+    for match in re.finditer(
+        r"No matching distribution found for ([^\s]+)",
+        error_log,
+    ):
+        pkg = match.group(1)
+        if pkg not in packages:
+            packages.append(pkg)
+
+    return packages
+
+
 async def build_agent(
     state: PoCState,
     *,
@@ -582,6 +619,18 @@ async def build_agent(
                     f"Diagnosis:\n{diagnosis}\n\n"
                     f"Raw Error:\n{error_for_state}"
                 )
+
+                # Enrich the error with explicit instructions about non-existent packages.
+                # Without this, the LLM will keep hallucinating the same package names.
+                bad_packages = _parse_not_found_packages(error_log)
+                if bad_packages:
+                    pkg_list = ", ".join(f"`{p}`" for p in bad_packages)
+                    error_state += (
+                        f"\n\n**CRITICAL: The following packages DO NOT EXIST in the "
+                        f"registry and MUST be removed entirely: {pkg_list}. "
+                        f"Do NOT include them in any install command. "
+                        f"They were hallucinated — they are not real packages.**"
+                    )
 
                 return {
                     "current_phase": PoCPhase.BUILD,
