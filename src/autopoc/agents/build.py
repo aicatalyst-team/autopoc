@@ -264,38 +264,62 @@ async def _fix_missing_command_in_dockerfile(
 
 
 def _parse_not_found_packages(error_log: str) -> list[str]:
-    """Parse npm/pip 404 errors to find packages that don't exist.
+    """Parse package-not-found errors from any package manager.
+
+    Supports: npm, pip, Go modules, Cargo (Rust), RubyGems, Maven/Gradle.
 
     Returns:
-        List of package names that got 404 errors.
+        List of package names that don't exist in the registry.
     """
     packages = []
-    # npm: "'@types/vite@*' is not in this registry"
-    for match in re.finditer(
-        r"'([^'@]+(?:@[^']+)?)(?:@[^']*)?' is not in this registry",
-        error_log,
-    ):
-        pkg = match.group(1)
-        if pkg not in packages:
+
+    def _add(pkg: str) -> None:
+        if pkg and pkg not in packages:
             packages.append(pkg)
 
-    # npm: "404 Not Found - GET https://registry.npmjs.org/<pkg> - Not found"
-    for match in re.finditer(
-        r"404 Not Found - GET https?://[^\s]+/([^\s]+)\s*-\s*Not found",
-        error_log,
-    ):
-        pkg = match.group(1).replace("%2f", "/").replace("%2F", "/")
-        if pkg not in packages:
-            packages.append(pkg)
+    # --- npm / yarn / pnpm ---
+    # "'@types/vite@*' is not in this registry"
+    for m in re.finditer(r"'([^'@]+(?:@[^']+)?)(?:@[^']*)?' is not in this registry", error_log):
+        _add(m.group(1))
+    # "404 Not Found - GET https://registry.npmjs.org/<pkg> - Not found"
+    for m in re.finditer(r"404 Not Found - GET https?://[^\s]+/([^\s]+)\s*-\s*Not found", error_log):
+        _add(m.group(1).replace("%2f", "/").replace("%2F", "/"))
 
-    # pip: "No matching distribution found for <pkg>"
-    for match in re.finditer(
-        r"No matching distribution found for ([^\s]+)",
-        error_log,
-    ):
-        pkg = match.group(1)
-        if pkg not in packages:
-            packages.append(pkg)
+    # --- pip ---
+    # "No matching distribution found for <pkg>"
+    for m in re.finditer(r"No matching distribution found for ([^\s,]+)", error_log):
+        _add(m.group(1))
+    # "Could not find a version that satisfies the requirement <pkg>"
+    for m in re.finditer(r"Could not find a version that satisfies the requirement ([^\s,;(]+)", error_log):
+        _add(m.group(1))
+
+    # --- Go modules ---
+    # "module <pkg> not found" or "cannot find module providing package <pkg>"
+    for m in re.finditer(r"module ([^\s:]+): not found", error_log):
+        _add(m.group(1))
+    for m in re.finditer(r"cannot find module providing package ([^\s:]+)", error_log):
+        _add(m.group(1))
+
+    # --- Cargo (Rust) ---
+    # "no matching package named `<pkg>` found"
+    for m in re.finditer(r"no matching package named `([^`]+)` found", error_log):
+        _add(m.group(1))
+    # "failed to select a version for the requirement `<pkg> = ...`"
+    for m in re.finditer(r"failed to select a version for the requirement `([^`\s=]+)", error_log):
+        _add(m.group(1))
+
+    # --- RubyGems ---
+    # "Could not find gem '<pkg>'"
+    for m in re.finditer(r"Could not find gem ['\"]([^'\"]+)['\"]", error_log):
+        _add(m.group(1))
+
+    # --- Maven / Gradle ---
+    # "Could not resolve <group>:<artifact>:<version>"
+    for m in re.finditer(r"Could not resolve ([^\s]+:[^\s]+:[^\s]+)", error_log):
+        _add(m.group(1))
+    # "Could not find artifact <group>:<artifact>"
+    for m in re.finditer(r"Could not find artifact ([^\s]+)", error_log):
+        _add(m.group(1))
 
     return packages
 
