@@ -324,57 +324,11 @@ def _fixup_dockerfile(dockerfile_path: Path) -> None:
             dockerfile_path.name,
         )
 
-    # Fix bun install via curl (broken PATH pattern)
-    content = _fixup_bun_install(content, dockerfile_path.name)
-
     # Fix permission issues: ensure chgrp/chmod runs as root
     content = _fixup_permissions(content, dockerfile_path.name)
 
     if content != original:
         dockerfile_path.write_text(content, encoding="utf-8")
-
-
-def _fixup_bun_install(content: str, filename: str) -> str:
-    """Fix broken bun installation patterns in Dockerfiles.
-
-    LLMs frequently generate:
-        RUN curl -fsSL https://bun.sh/install | bash && export PATH=... && bun install
-
-    This fails because:
-    1. The install script puts bun in ~/.bun/bin, but ~ varies by USER
-    2. export PATH in a RUN only affects that shell invocation
-    3. The PATH may reference /root/.bun/bin but the container runs as non-root
-
-    Fix: replace curl-based bun install with `npm install -g bun` which
-    puts bun on the standard PATH. Then `bun install` works in subsequent
-    RUN commands.
-    """
-    # Match RUN lines that curl bun.sh/install
-    if "bun.sh/install" not in content:
-        return content
-
-    lines = content.split("\n")
-    fixed_lines = []
-    applied = False
-
-    for line in lines:
-        stripped = line.strip().upper()
-        if stripped.startswith("RUN ") and "BUN.SH/INSTALL" in stripped:
-            # Replace the entire RUN line with npm install -g bun + bun install
-            # Check if the line also has "bun install" after the curl
-            if "BUN INSTALL" in stripped:
-                fixed_lines.append("RUN npm install -g bun && bun install")
-            else:
-                fixed_lines.append("RUN npm install -g bun")
-            logger.info(
-                "Dockerfile fixup: replaced curl bun.sh/install with npm install -g bun in %s",
-                filename,
-            )
-            applied = True
-        else:
-            fixed_lines.append(line)
-
-    return "\n".join(fixed_lines) if applied else content
 
 
 def _fixup_permissions(content: str, filename: str) -> str:
