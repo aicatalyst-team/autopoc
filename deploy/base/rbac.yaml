@@ -18,7 +18,7 @@ rules:
   # OpenShift Build resources
   - apiGroups: ["build.openshift.io"]
     resources: ["buildconfigs", "builds", "builds/log"]
-    verbs: ["get", "list", "create", "update", "patch", "delete"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: ["build.openshift.io"]
     resources: ["buildconfigs/instantiatebinary"]
     verbs: ["create"]
