@@ -46,7 +46,9 @@ def _parse_intake_output(raw_output: str) -> dict:
         return json.loads(text)
     except json.JSONDecodeError as e:
         logger.warning("Failed to parse intake output as JSON: %s", e)
-        logger.debug("Raw output: %s", text[:500])
+        from autopoc.debug import dump_llm_response
+
+        dump_llm_response("intake", f"JSON parse failure: {e}", raw_output)
         return {
             "repo_summary": f"Failed to parse analysis output: {e}",
             "components": [],

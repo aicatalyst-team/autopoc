@@ -104,7 +104,9 @@ def _parse_poc_plan_output(raw_output: str) -> dict:
         pass
 
     logger.warning("Failed to parse PoC plan output as JSON from %d chars of output", len(text))
-    logger.debug("Raw output (last 500 chars): %s", text[-500:])
+    from autopoc.debug import dump_llm_response
+
+    dump_llm_response("poc_plan", "JSON parse failure", raw_output)
     # Return a minimal structure with a parse failure flag
     return {
         "poc_type": "web-app",

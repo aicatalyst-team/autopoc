@@ -99,6 +99,9 @@ def _parse_poc_results(raw_output: str) -> list[PoCResult]:
 
     if not results:
         logger.warning("Could not parse any test results from output (%d chars)", len(raw_output))
+        from autopoc.debug import dump_llm_response
+
+        dump_llm_response("poc_execute", "No test results parsed", raw_output)
 
     return results
 

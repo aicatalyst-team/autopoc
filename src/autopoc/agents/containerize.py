@@ -263,6 +263,14 @@ def _parse_containerize_output(raw_output: str, component_path: str) -> dict:
         return parsed
     except json.JSONDecodeError:
         logger.warning("Failed to parse containerize output as JSON, using defaults")
+        from autopoc.debug import dump_llm_response
+
+        dump_llm_response(
+            "containerize",
+            "JSON output parse failure",
+            raw_output,
+            component=component_path.rsplit("/", 1)[-1],
+        )
         return {
             "dockerfile_ubi_path": f"{component_path}/Dockerfile.ubi",
             "strategy": "unknown",
