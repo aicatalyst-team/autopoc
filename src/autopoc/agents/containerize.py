@@ -265,6 +265,55 @@ def _extract_dockerfile_from_response(raw_output: str) -> str | None:
     return None
 
 
+def _uses_minimal_base(content: str) -> bool:
+    """Check if a Dockerfile uses a UBI minimal base image.
+
+    UBI minimal images (ubi9-minimal, ubi9/minimal) ship microdnf
+    instead of dnf. All other UBI images use dnf.
+    """
+    for line in content.splitlines():
+        stripped = line.strip().upper()
+        if stripped.startswith("FROM "):
+            from_image = line.strip()[5:].split()[0].lower()
+            if "minimal" in from_image:
+                return True
+    return False
+
+
+def _fixup_dockerfile(dockerfile_path: Path) -> None:
+    """Apply deterministic fixes to a generated Dockerfile.
+
+    LLMs (especially non-Claude models) frequently generate Dockerfiles
+    with known errors. Rather than relying on the LLM to get these right,
+    we fix them post-hoc:
+
+    - Package manager mismatch: UBI9 full images use dnf, UBI9 minimal
+      images use microdnf. LLMs often confuse the two.
+    """
+    content = dockerfile_path.read_text(encoding="utf-8")
+    original = content
+
+    is_minimal = _uses_minimal_base(content)
+
+    if is_minimal and "dnf " in content and "microdnf" not in content:
+        # Minimal image but using dnf → replace with microdnf
+        content = re.sub(r"\bdnf\b", "microdnf", content)
+        logger.info(
+            "Dockerfile fixup: replaced dnf with microdnf (minimal base) in %s",
+            dockerfile_path.name,
+        )
+    elif not is_minimal and "microdnf" in content:
+        # Full image but using microdnf → replace with dnf
+        content = content.replace("microdnf", "dnf")
+        logger.info(
+            "Dockerfile fixup: replaced microdnf with dnf (full base) in %s",
+            dockerfile_path.name,
+        )
+
+    if content != original:
+        dockerfile_path.write_text(content, encoding="utf-8")
+
+
 def _parse_containerize_output(raw_output: str, component_path: str) -> dict:
     """Parse the containerize agent's JSON output.
 
@@ -577,6 +626,10 @@ async def containerize_agent(
                     "Could not extract Dockerfile content from LLM response for %s",
                     comp_name,
                 )
+
+        # Post-process: fix common LLM mistakes in the generated Dockerfile
+        if abs_dockerfile.exists():
+            _fixup_dockerfile(abs_dockerfile)
 
         updated["dockerfile_ubi_path"] = dockerfile_path
         updated_components.append(updated)
