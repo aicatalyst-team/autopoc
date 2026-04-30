@@ -199,9 +199,14 @@ def _build_user_message(
 def _extract_dockerfile_from_response(raw_output: str) -> str | None:
     """Extract Dockerfile content from the LLM's text response.
 
-    Looks for a Dockerfile in a markdown code block (```dockerfile or ```).
-    This is a fallback for when the LLM doesn't use the write_file tool
-    but includes the Dockerfile content in its response text.
+    Handles multiple formats that LLMs produce:
+    1. Markdown code block (```dockerfile ... ```)
+    2. Any code block starting with FROM
+    3. Bare FROM lines
+    4. JSON tool-call text where the LLM wrote the write_file call as
+       plain text instead of executing it (common with Qwen and other
+       models that are weak at tool calling). The content field contains
+       the Dockerfile with escaped newlines.
 
     Returns:
         Dockerfile content string, or None if not found.
@@ -223,6 +228,30 @@ def _extract_dockerfile_from_response(raw_output: str) -> str | None:
     )
     if match:
         return match.group(1).strip() + "\n"
+
+    # Try extracting from a write_file tool call in the text.
+    # The LLM may output something like:
+    #   {"name": "write_file", "arguments": {"path": "...Dockerfile.ubi", "content": "FROM ..."}}
+    # where "content" has the Dockerfile with escaped newlines.
+    for match in re.finditer(
+        r'\{"name":\s*"write_file",\s*"arguments":\s*(\{.*?\})\}',
+        raw_output,
+        re.DOTALL,
+    ):
+        try:
+            args = json.loads(match.group(1))
+            path = args.get("path", "")
+            content = args.get("content", "")
+            if "Dockerfile" in path and content.startswith("FROM"):
+                logger.info(
+                    "Extracted Dockerfile from write_file tool call text "
+                    "(path=%s, %d chars)",
+                    path,
+                    len(content),
+                )
+                return content if content.endswith("\n") else content + "\n"
+        except (json.JSONDecodeError, AttributeError):
+            continue
 
     # Try bare FROM ... at start of a line (no code block)
     match = re.search(
@@ -251,31 +280,44 @@ def _parse_containerize_output(raw_output: str, component_path: str) -> dict:
     # Try to find a markdown code block containing JSON
     match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
     if match:
-        text = match.group(1)
-    else:
-        # Fallback: extract from first { to last }
-        match = re.search(r"\{.*\}", text, re.DOTALL)
-        if match:
-            text = match.group(0)
+        try:
+            return json.loads(match.group(1))
+        except json.JSONDecodeError:
+            pass
 
-    try:
-        parsed = json.loads(text)
-        return parsed
-    except json.JSONDecodeError:
-        logger.warning("Failed to parse containerize output as JSON, using defaults")
-        from autopoc.debug import dump_llm_response
+    # Try to find the summary JSON object (has dockerfile_ubi_path).
+    # The LLM may output multiple JSON objects (tool calls + summary),
+    # so we search for all top-level JSON objects and pick the right one.
+    for match in re.finditer(r"\{[^{}]*\}", text):
+        try:
+            candidate = json.loads(match.group(0))
+            if isinstance(candidate, dict) and "dockerfile_ubi_path" in candidate:
+                return candidate
+        except json.JSONDecodeError:
+            continue
 
-        dump_llm_response(
-            "containerize",
-            "JSON output parse failure",
-            raw_output,
-            component=component_path.rsplit("/", 1)[-1],
-        )
-        return {
-            "dockerfile_ubi_path": f"{component_path}/Dockerfile.ubi",
-            "strategy": "unknown",
-            "notes": "Output parsing failed",
-        }
+    # Last resort: try first { to last } (may work for well-formed single JSON)
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(0))
+        except json.JSONDecodeError:
+            pass
+
+    logger.warning("Failed to parse containerize output as JSON, using defaults")
+    from autopoc.debug import dump_llm_response
+
+    dump_llm_response(
+        "containerize",
+        "JSON output parse failure",
+        raw_output,
+        component=component_path.rsplit("/", 1)[-1],
+    )
+    return {
+        "dockerfile_ubi_path": f"{component_path}/Dockerfile.ubi",
+        "strategy": "unknown",
+        "notes": "Output parsing failed",
+    }
 
 
 async def containerize_agent(
