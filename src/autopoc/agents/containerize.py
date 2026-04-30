@@ -196,6 +196,46 @@ def _build_user_message(
     return "\n".join(parts)
 
 
+def _extract_dockerfile_from_response(raw_output: str) -> str | None:
+    """Extract Dockerfile content from the LLM's text response.
+
+    Looks for a Dockerfile in a markdown code block (```dockerfile or ```).
+    This is a fallback for when the LLM doesn't use the write_file tool
+    but includes the Dockerfile content in its response text.
+
+    Returns:
+        Dockerfile content string, or None if not found.
+    """
+    # Try ```dockerfile ... ``` first
+    match = re.search(
+        r"```[Dd]ockerfile\s*\n(.*?)```",
+        raw_output,
+        re.DOTALL,
+    )
+    if match:
+        return match.group(1).strip() + "\n"
+
+    # Try any code block that starts with FROM
+    match = re.search(
+        r"```\s*\n(FROM\s+.*?)```",
+        raw_output,
+        re.DOTALL,
+    )
+    if match:
+        return match.group(1).strip() + "\n"
+
+    # Try bare FROM ... at start of a line (no code block)
+    match = re.search(
+        r"^(FROM\s+.+(?:\n(?!```).+)*)",
+        raw_output,
+        re.MULTILINE,
+    )
+    if match:
+        return match.group(1).strip() + "\n"
+
+    return None
+
+
 def _parse_containerize_output(raw_output: str, component_path: str) -> dict:
     """Parse the containerize agent's JSON output.
 
@@ -462,14 +502,41 @@ async def containerize_agent(
         # Ensure path is relative to repo root for state storage
         if dockerfile_path.startswith(clone_path):
             dockerfile_path = dockerfile_path[len(clone_path) :].lstrip("/")
+
+        # Verify the Dockerfile was actually written to disk.
+        # If the LLM didn't use the write_file tool (common with weaker models),
+        # try to extract the Dockerfile content from the response and write it ourselves.
+        abs_dockerfile = Path(clone_path) / dockerfile_path
+        if not abs_dockerfile.exists():
+            logger.warning(
+                "Dockerfile not found at %s after agent run — "
+                "attempting to extract from LLM response",
+                abs_dockerfile,
+            )
+            dockerfile_content = _extract_dockerfile_from_response(raw_output)
+            if dockerfile_content:
+                abs_dockerfile.parent.mkdir(parents=True, exist_ok=True)
+                abs_dockerfile.write_text(dockerfile_content, encoding="utf-8")
+                logger.info(
+                    "Wrote Dockerfile.ubi from LLM response (%d chars) to %s",
+                    len(dockerfile_content),
+                    abs_dockerfile,
+                )
+            else:
+                logger.error(
+                    "Could not extract Dockerfile content from LLM response for %s",
+                    comp_name,
+                )
+
         updated["dockerfile_ubi_path"] = dockerfile_path
         updated_components.append(updated)
 
         logger.info(
-            "Component %s: Dockerfile.ubi at %s (strategy: %s)",
+            "Component %s: Dockerfile.ubi at %s (strategy: %s, exists: %s)",
             comp_name,
             dockerfile_path,
             parsed.get("strategy", "unknown"),
+            abs_dockerfile.exists(),
         )
 
     # Commit and push the new Dockerfiles

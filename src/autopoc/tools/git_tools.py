@@ -289,5 +289,11 @@ def commit_to_artifacts_branch(
             try:
                 _run_git(["stash", "pop"], cwd=clone_path)
                 logger.debug("Restored stashed working tree state")
-            except Exception as stash_err:
-                logger.warning("Failed to pop stash: %s", stash_err)
+            except Exception:
+                # If pop fails (e.g. conflict with files already on disk),
+                # try dropping the stash entry to avoid accumulating stale stashes.
+                try:
+                    _run_git(["stash", "drop"], cwd=clone_path)
+                    logger.debug("Dropped stash entry after failed pop")
+                except Exception:
+                    pass

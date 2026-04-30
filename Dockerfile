@@ -65,6 +65,10 @@ RUN mkdir -p /workspace && chown 1001:0 /workspace
 # Switch back to non-root user
 USER 1001
 
+# Set git identity for artifact commits inside the container
+RUN git config --global user.email "autopoc@autopoc.local" && \
+    git config --global user.name "AutoPoC Agent"
+
 WORKDIR /workspace
 
 # Default working directory for cloned repos and temp files
