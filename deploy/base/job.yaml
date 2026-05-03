@@ -171,6 +171,14 @@ spec:
                   key: OPENSHIFT_NAMESPACE_PREFIX
                   optional: true
 
+            # --- Tuning ---
+            - name: MAX_BUILD_RETRIES
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: MAX_BUILD_RETRIES
+                  optional: true
+
           resources:
             requests:
               memory: "512Mi"
