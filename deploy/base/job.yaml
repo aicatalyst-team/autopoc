@@ -64,6 +64,12 @@ spec:
                   name: autopoc-credentials
                   key: VERTEX_LOCATION
                   optional: true
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: GOOGLE_APPLICATION_CREDENTIALS
+                  optional: true
             - name: LLM_BASE_URL
               valueFrom:
                 secretKeyRef:
