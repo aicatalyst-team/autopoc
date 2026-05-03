@@ -291,3 +291,72 @@ class TestFixupDockerfile:
         df.write_text(original)
         _fixup_dockerfile(df)
         assert df.read_text() == original
+
+
+class TestFixupBaseImage:
+    """Tests for non-UBI base image replacement."""
+
+    def test_node_replaced_with_ubi(self, tmp_path: Path):
+        df = tmp_path / "Dockerfile.ubi"
+        df.write_text("FROM node:16\nCOPY . .\nRUN npm install\n")
+        _fixup_dockerfile(df)
+        content = df.read_text()
+        assert "registry.access.redhat.com/ubi9/nodejs-22" in content
+        assert "node:16" not in content
+
+    def test_python_replaced_with_ubi(self, tmp_path: Path):
+        df = tmp_path / "Dockerfile.ubi"
+        df.write_text("FROM python:3.11-slim\nCOPY . .\n")
+        _fixup_dockerfile(df)
+        content = df.read_text()
+        assert "registry.access.redhat.com/ubi9/python-312" in content
+        assert "python:3.11-slim" not in content
+
+    def test_golang_replaced_with_ubi(self, tmp_path: Path):
+        df = tmp_path / "Dockerfile.ubi"
+        df.write_text("FROM golang:1.22\nCOPY . .\n")
+        _fixup_dockerfile(df)
+        content = df.read_text()
+        assert "registry.access.redhat.com/ubi9/go-toolset" in content
+
+    def test_alpine_replaced_with_ubi_minimal(self, tmp_path: Path):
+        df = tmp_path / "Dockerfile.ubi"
+        df.write_text("FROM alpine:3.19\nRUN apk add --no-cache curl\n")
+        _fixup_dockerfile(df)
+        content = df.read_text()
+        assert "registry.access.redhat.com/ubi9/ubi-minimal" in content
+
+    def test_nginx_replaced_with_ubi(self, tmp_path: Path):
+        df = tmp_path / "Dockerfile.ubi"
+        df.write_text("FROM nginx:latest\nCOPY dist/ /usr/share/nginx/html/\n")
+        _fixup_dockerfile(df)
+        content = df.read_text()
+        assert "registry.access.redhat.com/ubi9/nginx-124" in content
+
+    def test_ubi_image_not_modified(self, tmp_path: Path):
+        df = tmp_path / "Dockerfile.ubi"
+        original = "FROM registry.access.redhat.com/ubi9/python-312\nCOPY . .\n"
+        df.write_text(original)
+        _fixup_dockerfile(df)
+        assert df.read_text() == original
+
+    def test_nvidia_cuda_not_modified(self, tmp_path: Path):
+        df = tmp_path / "Dockerfile.ubi"
+        original = "FROM nvcr.io/nvidia/cuda:12.0-runtime-ubi9\nCOPY . .\n"
+        df.write_text(original)
+        _fixup_dockerfile(df)
+        assert df.read_text() == original
+
+    def test_multistage_as_alias_preserved(self, tmp_path: Path):
+        df = tmp_path / "Dockerfile.ubi"
+        df.write_text("FROM node:20 AS builder\nCOPY . .\nRUN npm run build\n")
+        _fixup_dockerfile(df)
+        content = df.read_text()
+        assert "registry.access.redhat.com/ubi9/nodejs-22 AS builder" in content
+
+    def test_java_openjdk_replaced(self, tmp_path: Path):
+        df = tmp_path / "Dockerfile.ubi"
+        df.write_text("FROM openjdk:21-slim\nCOPY target/*.jar app.jar\n")
+        _fixup_dockerfile(df)
+        content = df.read_text()
+        assert "registry.access.redhat.com/ubi9/openjdk-21" in content

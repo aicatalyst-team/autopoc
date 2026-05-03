@@ -310,6 +310,89 @@ def _uses_minimal_base(content: str) -> bool:
     return False
 
 
+# Non-UBI base image → UBI equivalent mapping.
+# Used by _fixup_dockerfile to enforce UBI base images.
+_UBI_IMAGE_MAP: list[tuple[re.Pattern, str]] = [
+    # Python
+    (re.compile(r"python:\d[\w.-]*", re.IGNORECASE), "registry.access.redhat.com/ubi9/python-312"),
+    # Node.js
+    (re.compile(r"node:\d[\w.-]*", re.IGNORECASE), "registry.access.redhat.com/ubi9/nodejs-22"),
+    # Go
+    (re.compile(r"golang:\d[\w.-]*", re.IGNORECASE), "registry.access.redhat.com/ubi9/go-toolset"),
+    # Java
+    (
+        re.compile(r"(?:eclipse-temurin|openjdk|amazoncorretto)[\w.:-]*", re.IGNORECASE),
+        "registry.access.redhat.com/ubi9/openjdk-21",
+    ),
+    # Nginx
+    (re.compile(r"nginx[\w.:-]*", re.IGNORECASE), "registry.access.redhat.com/ubi9/nginx-124"),
+    # Generic distros
+    (
+        re.compile(r"(?:alpine|ubuntu|debian|centos)[\w.:-]*", re.IGNORECASE),
+        "registry.access.redhat.com/ubi9/ubi-minimal",
+    ),
+]
+
+
+def _fixup_base_image(content: str, filename: str) -> str:
+    """Replace non-UBI base images with UBI equivalents.
+
+    The containerize prompt tells the LLM to use UBI images, but
+    weaker models sometimes ignore this. Enforce it deterministically.
+    """
+    lines = content.split("\n")
+    fixed_lines = []
+    applied = False
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.upper().startswith("FROM "):
+            parts = stripped.split()
+            image = parts[1] if len(parts) > 1 else ""
+
+            # Skip if already a UBI or Red Hat image
+            if "redhat.com" in image or "ubi" in image.lower():
+                fixed_lines.append(line)
+                continue
+
+            # Skip NVIDIA CUDA images (legitimate non-UBI for GPU)
+            if "nvcr.io" in image or "nvidia" in image.lower():
+                fixed_lines.append(line)
+                continue
+
+            # Try to match against known non-UBI images
+            for pattern, ubi_image in _UBI_IMAGE_MAP:
+                if pattern.fullmatch(image) or pattern.fullmatch(image.split("/")[-1]):
+                    # Preserve any AS alias
+                    rest = " ".join(parts[2:]) if len(parts) > 2 else ""
+                    new_from = f"FROM {ubi_image}"
+                    if rest:
+                        new_from += f" {rest}"
+                    fixed_lines.append(new_from)
+                    logger.info(
+                        "Dockerfile fixup: replaced non-UBI base '%s' with '%s' in %s",
+                        image,
+                        ubi_image,
+                        filename,
+                    )
+                    applied = True
+                    break
+            else:
+                # No match — leave as-is but warn
+                if "." not in image and ":" in image:
+                    # Looks like a Docker Hub short name (e.g. "ruby:3.2")
+                    logger.warning(
+                        "Dockerfile has non-UBI base image '%s' with no known mapping in %s",
+                        image,
+                        filename,
+                    )
+                fixed_lines.append(line)
+        else:
+            fixed_lines.append(line)
+
+    return "\n".join(fixed_lines) if applied else content
+
+
 def _fixup_dockerfile(dockerfile_path: Path) -> None:
     """Apply deterministic fixes to a generated Dockerfile.
 
@@ -317,6 +400,7 @@ def _fixup_dockerfile(dockerfile_path: Path) -> None:
     with known errors. Rather than relying on the LLM to get these right,
     we fix them post-hoc:
 
+    - Non-UBI base images: Replace with UBI equivalents.
     - Package manager mismatch: UBI9 full images use dnf, UBI9 minimal
       images use microdnf. LLMs often confuse the two.
     - Permission errors: commands like chgrp/chmod or npm run build need
@@ -325,6 +409,9 @@ def _fixup_dockerfile(dockerfile_path: Path) -> None:
     """
     content = dockerfile_path.read_text(encoding="utf-8")
     original = content
+
+    # Replace non-UBI base images first (affects subsequent fixups)
+    content = _fixup_base_image(content, dockerfile_path.name)
 
     is_minimal = _uses_minimal_base(content)
 

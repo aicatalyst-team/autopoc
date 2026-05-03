@@ -534,6 +534,16 @@ async def build_agent(
                     "Build failed for %s: %s", comp_name, error_log[:500]
                 )  # Log first 500 chars
 
+                # Dockerfile not found is a containerize failure, not a build failure.
+                # Don't increment build_retries — preserve retry budget for real build errors.
+                is_dockerfile_missing = "Dockerfile not found:" in error_log
+                if is_dockerfile_missing:
+                    logger.warning(
+                        "Dockerfile missing for %s — not counting as build retry "
+                        "(containerize agent needs to generate it)",
+                        comp_name,
+                    )
+
                 # Check if this is a permanent failure
                 if _is_permanent_failure(error_log):
                     logger.error("Detected permanent failure - will not retry")
@@ -659,7 +669,10 @@ async def build_agent(
                 return {
                     "current_phase": PoCPhase.BUILD,
                     "error": error_state,
-                    "build_retries": retries + 1,
+                    # Don't increment retries for missing Dockerfiles — that's a
+                    # containerize failure, not a build failure. Preserve retry
+                    # budget for actual build errors.
+                    "build_retries": retries if is_dockerfile_missing else retries + 1,
                     "components": components,  # To persist any image_name updates from successful builds
                     "built_images": built_images,
                 }
