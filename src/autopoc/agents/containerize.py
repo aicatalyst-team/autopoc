@@ -243,26 +243,45 @@ def _extract_dockerfile_from_response(raw_output: str) -> str | None:
     # Try extracting from a write_file tool call in the text.
     # The LLM may output something like:
     #   {"name": "write_file", "arguments": {"path": "...Dockerfile.ubi", "content": "FROM ..."}}
-    # where "content" has the Dockerfile with escaped newlines.
+    #
+    # We can't use json.loads reliably because the content field contains
+    # literal newlines that break JSON parsing. Instead, extract the path
+    # and content fields directly with regex.
     for match in re.finditer(
-        r'\{"name":\s*"write_file",\s*"arguments":\s*(\{.*?\})\}',
+        r'\{"name":\s*"write_file",\s*"arguments":\s*\{[^}]*"path":\s*"([^"]*Dockerfile[^"]*)"[^}]*"content":\s*"((?:[^"\\]|\\.)*)"\s*\}',
         raw_output,
         re.DOTALL,
     ):
-        try:
-            args = json.loads(match.group(1))
-            path = args.get("path", "")
-            content = args.get("content", "")
-            if "Dockerfile" in path and content.startswith("FROM"):
-                logger.info(
-                    "Extracted Dockerfile from write_file tool call text "
-                    "(path=%s, %d chars)",
-                    path,
-                    len(content),
-                )
-                return content if content.endswith("\n") else content + "\n"
-        except (json.JSONDecodeError, AttributeError):
-            continue
+        path = match.group(1)
+        # Unescape the content: \n -> newline, \" -> ", \\ -> \
+        content = match.group(2)
+        content = content.replace("\\n", "\n").replace('\\"', '"').replace("\\\\", "\\")
+        if content.startswith("FROM"):
+            logger.info(
+                "Extracted Dockerfile from write_file tool call text "
+                "(path=%s, %d chars)",
+                path,
+                len(content),
+            )
+            return content if content.endswith("\n") else content + "\n"
+
+    # Also try with content before path (field order may vary)
+    for match in re.finditer(
+        r'\{"name":\s*"write_file",\s*"arguments":\s*\{[^}]*"content":\s*"((?:[^"\\]|\\.)*)"\s*[^}]*"path":\s*"([^"]*Dockerfile[^"]*)"',
+        raw_output,
+        re.DOTALL,
+    ):
+        content = match.group(1)
+        path = match.group(2)
+        content = content.replace("\\n", "\n").replace('\\"', '"').replace("\\\\", "\\")
+        if content.startswith("FROM"):
+            logger.info(
+                "Extracted Dockerfile from write_file tool call text "
+                "(path=%s, %d chars)",
+                path,
+                len(content),
+            )
+            return content if content.endswith("\n") else content + "\n"
 
     # Try bare FROM ... at start of a line (no code block)
     match = re.search(
