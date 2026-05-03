@@ -133,7 +133,10 @@ async def _fix_component_paths(
                 SystemMessage(content="You are identifying source code directories in a repository. Reply with only the directory path."),
                 HumanMessage(content=prompt),
             ])
-            answer = response.content.strip().strip("`\"'")
+            answer = response.content.strip()
+            # Strip Qwen3 thinking tags (<think>...</think>)
+            answer = re.sub(r"<think>.*?</think>\s*", "", answer, flags=re.DOTALL)
+            answer = answer.strip().strip("`\"'")
 
             if answer.upper() == "NONE" or not answer:
                 logger.warning(

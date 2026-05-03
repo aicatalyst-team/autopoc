@@ -181,6 +181,8 @@ async def _fix_missing_command_in_dockerfile(
             HumanMessage(content=prompt),
         ])
         install_line = response.content.strip()
+        # Strip Qwen3 thinking tags
+        install_line = re.sub(r"<think>.*?</think>\s*", "", install_line, flags=re.DOTALL).strip()
 
         # Validate: must start with RUN
         if not install_line.upper().startswith("RUN "):
@@ -426,7 +428,9 @@ async def build_agent(
         return {
             "current_phase": PoCPhase.BUILD,
             "error": msg,
-            "build_retries": retries,
+            # Increment retries to prevent infinite loop when containerize
+            # consistently fails to produce any Dockerfiles.
+            "build_retries": retries + 1,
             "components": components,
             "built_images": built_images,
         }
@@ -534,13 +538,10 @@ async def build_agent(
                     "Build failed for %s: %s", comp_name, error_log[:500]
                 )  # Log first 500 chars
 
-                # Dockerfile not found is a containerize failure, not a build failure.
-                # Don't increment build_retries — preserve retry budget for real build errors.
                 is_dockerfile_missing = "Dockerfile not found:" in error_log
                 if is_dockerfile_missing:
                     logger.warning(
-                        "Dockerfile missing for %s — not counting as build retry "
-                        "(containerize agent needs to generate it)",
+                        "Dockerfile missing for %s — containerize agent needs to generate it",
                         comp_name,
                     )
 
@@ -669,10 +670,7 @@ async def build_agent(
                 return {
                     "current_phase": PoCPhase.BUILD,
                     "error": error_state,
-                    # Don't increment retries for missing Dockerfiles — that's a
-                    # containerize failure, not a build failure. Preserve retry
-                    # budget for actual build errors.
-                    "build_retries": retries if is_dockerfile_missing else retries + 1,
+                    "build_retries": retries + 1,
                     "components": components,  # To persist any image_name updates from successful builds
                     "built_images": built_images,
                 }
