@@ -43,7 +43,7 @@
 | **10. Raw Test Output** | **COMPLETE** | 6/6 | 23 passing |
 | **11. Google Sheet Ingestion** | **COMPLETE** | 9/9 | 59 passing |
 | **12. RHOAI Fitness Evaluation** | **COMPLETE** | 10/10 | 59 passing |
-| **13. Candidate Comparison** | **PLANNED** | 0/8 | — |
+| **13. Candidate Comparison** | **COMPLETE** | 8/8 | 36 passing |
 
 ---
 
@@ -2242,7 +2242,7 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 > See [candidate-comparison-plan.md](./candidate-comparison-plan.md) for full design.
 
-### Task 83 — Pre-filter: keyword matching against strategy labels
+### Task 83 — Pre-filter: keyword matching against strategy labels ✅
 
 **Files:** `src/autopoc/sheet.py`, `src/autopoc/tools/strategy.py`
 
@@ -2260,7 +2260,7 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 ---
 
-### Task 84 — Pre-filter: PM comments LLM parsing
+### Task 84 — Pre-filter: PM comments LLM parsing ✅
 
 **Files:** `src/autopoc/sheet.py`, `src/autopoc/prompts/prefilter_pm_comments.md`
 
@@ -2280,7 +2280,7 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 ---
 
-### Task 85 — evaluate_candidates() orchestrator
+### Task 85 — evaluate_candidates() orchestrator ✅
 
 **Files:** `src/autopoc/sheet.py`
 
@@ -2300,7 +2300,7 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 ---
 
-### Task 86 — select_best_candidate() with scoring
+### Task 86 — select_best_candidate() with scoring ✅
 
 **Files:** `src/autopoc/sheet.py`
 
@@ -2317,7 +2317,7 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 ---
 
-### Task 87 — CLI: --max-candidates, --skip-evaluation, comparison table
+### Task 87 — CLI: --max-candidates, --skip-evaluation, comparison table ✅
 
 **Files:** `src/autopoc/cli.py`
 
@@ -2336,9 +2336,9 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 ---
 
-### Task 88 — Unit tests: pre-filter
+### Task 88 — Unit tests: pre-filter ✅
 
-**Files:** `tests/test_sheet.py`
+**Files:** `tests/test_prefilter.py`
 
 **Depends on:** Tasks 83, 84
 
@@ -2353,9 +2353,9 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 ---
 
-### Task 89 — Unit tests: candidate comparison
+### Task 89 — Unit tests: candidate comparison ✅
 
-**Files:** `tests/test_sheet.py`
+**Files:** `tests/test_prefilter.py`
 
 **Depends on:** Tasks 85, 86
 
@@ -2369,7 +2369,7 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 ---
 
-### Task 90 — Integration test: multi-candidate flow
+### Task 90 — Integration test: multi-candidate flow ✅
 
 **Files:** `tests/test_evaluate_candidates.py`
 

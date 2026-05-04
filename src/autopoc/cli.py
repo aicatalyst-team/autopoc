@@ -352,6 +352,54 @@ def _print_results(result: dict, verbose: bool = False) -> None:
         console.print(f"\n[bold red]Error:[/bold red] {result['error']}")
 
 
+def _print_candidate_comparison(results: list) -> None:
+    """Display a comparison table of evaluated candidates."""
+    table = Table(
+        show_header=True,
+        header_style="bold magenta",
+        title="Candidate Comparison",
+    )
+    table.add_column("#", justify="right", style="dim", width=3)
+    table.add_column("Project", min_width=20)
+    table.add_column("Score", justify="right", width=7)
+    table.add_column("Relationship", min_width=20)
+    table.add_column("Areas")
+
+    for i, r in enumerate(results):
+        score = r.evaluation.get("total_score", 0)
+        max_score = r.evaluation.get("max_possible_score", 100)
+        relationship = r.evaluation.get("relationship", "—")
+        areas = r.evaluation.get("strategy_areas", [])
+        areas_str = ", ".join(areas) if areas else "—"
+        error_flag = " [red](error)[/red]" if r.error else ""
+
+        # Highlight winner (first row)
+        style = "bold green" if i == 0 else ""
+        marker = " *" if i == 0 else ""
+
+        table.add_row(
+            str(i + 1),
+            f"{r.project.name}{marker}{error_flag}",
+            f"{score}/{max_score}",
+            relationship,
+            areas_str,
+            style=style,
+        )
+
+    console.print()
+    console.print(table)
+
+    if results:
+        winner = results[0]
+        score = winner.evaluation.get("total_score", 0)
+        max_score = winner.evaluation.get("max_possible_score", 100)
+        console.print(
+            f"\n  [bold green]Winner:[/bold green] {winner.project.name} "
+            f"({score}/{max_score})"
+        )
+    console.print()
+
+
 def _load_and_configure(
     *,
     model: str | None = None,
@@ -701,11 +749,26 @@ def run_sheet(
         bool,
         typer.Option("--debug", help="Dump failed LLM response parses to debug/ for diagnosis"),
     ] = False,
+    max_candidates: Annotated[
+        int,
+        typer.Option(
+            "--max-candidates",
+            help="Maximum number of candidates to fully evaluate when multiple exist (default: 5)",
+        ),
+    ] = 5,
+    skip_evaluation: Annotated[
+        bool,
+        typer.Option(
+            "--skip-evaluation",
+            help="Skip RHOAI evaluation and use first-row selection (legacy behavior)",
+        ),
+    ] = False,
 ) -> None:
     """Run AutoPoC for the top project from a Google Sheet.
 
     Reads a POC Explorer spreadsheet, filters to approved GitHub repos,
-    selects the first one, and runs the full pipeline.
+    and runs the full pipeline.  When multiple candidates survive filtering,
+    evaluates them using RHOAI fitness scoring and picks the best one.
     """
     # Validate required sheet inputs
     if not sheet_id:
@@ -755,8 +818,6 @@ def run_sheet(
         github_count = sum(1 for r in rows if "github.com" in r.get("link", ""))
         console.print(f"  GitHub repos: {github_count}")
         console.print(f"  After filters: {len(filtered)}")
-
-        project = select_project(filtered)
     except ValueError as e:
         console.print(f"\n[bold red]Sheet error:[/bold red] {e}")
         raise typer.Exit(code=1)
@@ -766,20 +827,118 @@ def run_sheet(
             console.print_exception(show_locals=True)
         raise typer.Exit(code=1)
 
+    # --- Single candidate or evaluation skipped: use legacy behavior ---
+    if len(filtered) <= 1 or skip_evaluation:
+        try:
+            project = select_project(filtered)
+        except ValueError as e:
+            console.print(f"\n[bold red]Sheet error:[/bold red] {e}")
+            raise typer.Exit(code=1)
+
+        console.print(
+            Panel(
+                f"[bold]Selected:[/bold]  {project.name}\n"
+                f"[bold]Repo:[/bold]      {project.repo_url}\n"
+                f"[bold]Category:[/bold]  {project.category}\n"
+                f"[bold]Sheet row:[/bold] {project.row_index}",
+                title="Project Selected",
+                border_style="green",
+            )
+        )
+
+        _run_pipeline(
+            project.name,
+            project.repo_url,
+            config,
+            verbose=verbose,
+            debug=debug,
+            stop_after=stop_after,
+        )
+        return
+
+    # --- Multiple candidates: pre-filter, evaluate, pick best ---
+    from autopoc.sheet import (
+        cleanup_candidate_clones,
+        evaluate_candidates,
+        prefilter_candidates,
+        select_best_candidate,
+    )
+
+    console.print(
+        f"\n[bold cyan]Multiple candidates ({len(filtered)}). "
+        f"Evaluating top {min(max_candidates, len(filtered))}...[/bold cyan]"
+    )
+
+    async def _do_evaluation():
+        # Pre-filter
+        console.print("[bold cyan]Pre-filtering candidates...[/bold cyan]")
+        prefiltered = await prefilter_candidates(
+            filtered, max_candidates=max_candidates
+        )
+        console.print(f"  Pre-filtered to {len(prefiltered)} candidates")
+
+        # Progress callback
+        def on_progress(idx, total, name):
+            console.print(
+                f"  [cyan]Evaluating candidate {idx + 1}/{total}:[/cyan] {name}"
+            )
+
+        # Full evaluation
+        results = await evaluate_candidates(
+            prefiltered,
+            config,
+            max_candidates=max_candidates,
+            on_progress=on_progress,
+        )
+        return results
+
+    try:
+        results = asyncio.run(_do_evaluation())
+    except Exception as e:
+        console.print(f"\n[bold red]Evaluation failed:[/bold red] {e}")
+        if verbose:
+            console.print_exception(show_locals=True)
+        # Fall back to first candidate
+        console.print("[yellow]Falling back to first candidate...[/yellow]")
+        try:
+            project = select_project(filtered)
+        except ValueError as e2:
+            console.print(f"\n[bold red]Sheet error:[/bold red] {e2}")
+            raise typer.Exit(code=1)
+        _run_pipeline(
+            project.name,
+            project.repo_url,
+            config,
+            verbose=verbose,
+            debug=debug,
+            stop_after=stop_after,
+        )
+        return
+
+    # Display comparison table
+    _print_candidate_comparison(results)
+
+    # Select best
+    winner = select_best_candidate(results)
+
+    # Clean up non-winner clones
+    cleanup_candidate_clones(results, winner)
+
     console.print(
         Panel(
-            f"[bold]Selected:[/bold]  {project.name}\n"
-            f"[bold]Repo:[/bold]      {project.repo_url}\n"
-            f"[bold]Category:[/bold]  {project.category}\n"
-            f"[bold]Sheet row:[/bold] {project.row_index}",
-            title="Project Selected",
+            f"[bold]Selected:[/bold]  {winner.project.name}\n"
+            f"[bold]Repo:[/bold]      {winner.project.repo_url}\n"
+            f"[bold]Score:[/bold]     {winner.evaluation.get('total_score', 0)}"
+            f"/{winner.evaluation.get('max_possible_score', 100)}\n"
+            f"[bold]Category:[/bold]  {winner.project.category}",
+            title="Winner Selected",
             border_style="green",
         )
     )
 
     _run_pipeline(
-        project.name,
-        project.repo_url,
+        winner.project.name,
+        winner.project.repo_url,
         config,
         verbose=verbose,
         debug=debug,
