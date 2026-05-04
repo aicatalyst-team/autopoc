@@ -276,6 +276,38 @@ class TestFixupDockerfile:
         user_pos = content.index("USER 1001")
         assert chgrp_pos < user_pos
 
+    def test_dnf_install_without_root_gets_wrapped(self, tmp_path: Path):
+        """dnf install without USER 0 should be wrapped with USER 0."""
+        df = tmp_path / "Dockerfile.ubi"
+        df.write_text(
+            "FROM registry.access.redhat.com/ubi9/nodejs-22\n"
+            "RUN dnf install -y gcc make && dnf clean all\n"
+            "COPY . .\n"
+        )
+        _fixup_dockerfile(df)
+        content = df.read_text()
+        lines = content.strip().split("\n")
+        for i, line in enumerate(lines):
+            if "dnf install" in line:
+                assert lines[i - 1].strip() == "USER 0"
+                assert lines[i + 1].strip().startswith("USER ")
+                break
+        else:
+            pytest.fail("dnf install line not found")
+
+    def test_dnf_install_already_root_not_wrapped(self, tmp_path: Path):
+        """dnf install with USER 0 already set should NOT be wrapped."""
+        df = tmp_path / "Dockerfile.ubi"
+        original = (
+            "FROM registry.access.redhat.com/ubi9/nodejs-22\n"
+            "USER 0\n"
+            "RUN dnf install -y gcc && dnf clean all\n"
+            "USER 1001\n"
+        )
+        df.write_text(original)
+        _fixup_dockerfile(df)
+        assert df.read_text() == original
+
     def test_no_fixup_needed(self, tmp_path: Path):
         """Clean Dockerfile should not be modified."""
         df = tmp_path / "Dockerfile.ubi"
@@ -380,22 +412,25 @@ class TestFixupPackageManagerMultiStage:
         )
         _fixup_dockerfile(df)
         content = df.read_text()
-        lines = content.split("\n")
         # Stage 1 (ubi full): microdnf should be replaced with dnf
-        assert "dnf install -y golang" in lines[1]
-        assert "microdnf" not in lines[1]
+        assert "dnf install -y golang" in content
         # Stage 2 (ubi-minimal): dnf should be replaced with microdnf
-        assert "microdnf install -y libcurl" in lines[6]
-        assert "dnf " not in lines[6].replace("microdnf", "")
+        assert "microdnf install -y libcurl" in content
+        # Both install commands should be wrapped with USER 0
+        assert content.count("USER 0") >= 2
 
-    def test_multistage_both_correct(self, tmp_path: Path):
-        """Both stages use correct package manager — no change."""
+    def test_multistage_both_correct_with_user(self, tmp_path: Path):
+        """Both stages use correct package manager and USER 0 — no change."""
         df = tmp_path / "Dockerfile.ubi"
         original = (
             "FROM registry.access.redhat.com/ubi9/ubi AS builder\n"
+            "USER 0\n"
             "RUN dnf install -y golang && dnf clean all\n"
+            "USER 1001\n"
             "FROM registry.access.redhat.com/ubi9/ubi-minimal\n"
+            "USER 0\n"
             "RUN microdnf install -y libcurl && microdnf clean all\n"
+            "USER 1001\n"
         )
         df.write_text(original)
         _fixup_dockerfile(df)

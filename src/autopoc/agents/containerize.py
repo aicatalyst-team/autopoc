@@ -88,9 +88,16 @@ def _build_user_message(
         f"- **Build context (repo root):** {clone_path}",
     ]
 
-    existing = component.get("existing_dockerfile")
-    if existing:
-        parts.append(f"\n**Existing Dockerfile:** `{existing}` (read it and adapt to UBI)")
+    # Include existing Dockerfile content directly in the prompt.
+    # Don't rely on the LLM to read_file — tool calling is unreliable.
+    existing_content = _find_existing_dockerfile(clone_path, source_dir)
+    if existing_content:
+        parts.append(
+            f"\n**Existing Dockerfile found.** Adapt it to use UBI base images and "
+            f"add OpenShift compatibility. Preserve the build logic — the project "
+            f"authors wrote this and it works.\n"
+            f"```dockerfile\n{existing_content}```"
+        )
     else:
         parts.append("\n**No existing Dockerfile.** Create one from scratch.")
 
@@ -211,6 +218,63 @@ def _build_user_message(
             )
 
     return "\n".join(parts)
+
+
+def _find_existing_dockerfile(
+    clone_path: str, source_dir: str, max_chars: int = 4000
+) -> str | None:
+    """Find and read an existing Dockerfile for the component.
+
+    Searches in the component's source directory first, then the repo root.
+    Looks for standard Dockerfile names (Dockerfile, Dockerfile.dev, etc.)
+    but NOT Dockerfile.ubi (that's what we're generating).
+
+    Args:
+        clone_path: Path to the repo root.
+        source_dir: Component's source directory (relative to clone_path).
+        max_chars: Maximum characters to include.
+
+    Returns:
+        Dockerfile content, or None if not found.
+    """
+    repo = Path(clone_path)
+    search_dirs = []
+
+    # Search component directory first, then repo root
+    if source_dir and source_dir != ".":
+        search_dirs.append(repo / source_dir)
+    search_dirs.append(repo)
+
+    for search_dir in search_dirs:
+        if not search_dir.is_dir():
+            continue
+        # Find all Dockerfile* files, excluding Dockerfile.ubi (that's what we generate)
+        candidates = sorted(
+            f for f in search_dir.glob("Dockerfile*")
+            if f.is_file() and f.name != "Dockerfile.ubi"
+        )
+        # Also check lowercase
+        candidates.extend(
+            f for f in search_dir.glob("dockerfile*")
+            if f.is_file() and f not in candidates
+        )
+
+        for df_path in candidates:
+            try:
+                content = df_path.read_text(encoding="utf-8", errors="replace")
+                rel_path = df_path.relative_to(repo)
+                logger.info(
+                    "Found existing Dockerfile at %s (%d chars)",
+                    rel_path,
+                    len(content),
+                )
+                if len(content) > max_chars:
+                    content = content[:max_chars] + "\n# ... (truncated)"
+                return content
+            except Exception:
+                continue
+
+    return None
 
 
 def _extract_build_instructions(clone_path: str, max_chars: int = 2000) -> str | None:
@@ -561,9 +625,14 @@ def _fixup_permissions(content: str, filename: str) -> str:
         chgrp -R 0 <path> && chmod -R g=u <path>
     This must run as USER 0 (root).
 
-    Handles two common LLM mistakes:
-    1. chgrp/chmod without USER 0: wrap with USER 0 before, restore after.
-    2. npm/bun install as root creates node_modules owned by root, then
+    UBI images default to non-root (UID 1001). Commands that require root:
+    - dnf/microdnf install (package installation)
+    - chgrp/chmod (permission changes)
+
+    Handles three common LLM mistakes:
+    1. dnf/microdnf install without USER 0: wrap with USER 0 before, restore after.
+    2. chgrp/chmod without USER 0: wrap with USER 0 before, restore after.
+    3. npm/bun install as root creates node_modules owned by root, then
        USER switch to non-root breaks npm run build. Fix by adding
        chgrp/chmod g=u for node_modules before the USER switch (still as root).
     """
@@ -607,17 +676,24 @@ def _fixup_permissions(content: str, filename: str) -> str:
             if any(cmd in stripped for cmd in ("NPM INSTALL", "NPM CI", "BUN INSTALL")):
                 npm_installed_as_root = True
 
-        # Detect chgrp/chmod without being root.
+        # Detect commands that require root but are running as non-root.
         # None means no USER directive seen yet — UBI images default to
         # non-root (UID 1001), so treat None as non-root.
         if stripped.startswith("RUN ") and current_user not in ("0", "root"):
-            if "CHGRP " in stripped or "CHMOD " in stripped:
+            needs_root = (
+                "CHGRP " in stripped
+                or "CHMOD " in stripped
+                or "DNF " in stripped
+                or "MICRODNF " in stripped
+                or "YUM " in stripped
+            )
+            if needs_root:
                 # Insert USER 0 before, restore original user after
                 fixed_lines.append("USER 0")
                 fixed_lines.append(line)
                 fixed_lines.append("USER %s" % (current_user or "1001"))
                 logger.info(
-                    "Dockerfile fixup: wrapped chgrp/chmod with USER 0 in %s",
+                    "Dockerfile fixup: wrapped root-required command with USER 0 in %s",
                     filename,
                 )
                 applied_fix = True
