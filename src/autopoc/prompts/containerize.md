@@ -64,18 +64,17 @@ which is only accessible to the user that ran the install. When you switch from
 "command not found". System packages and `npm install -g` place binaries on the
 standard PATH that works for all users.
 
-## Package Manager Mapping
+## Package Manager Mapping (for adapting existing Dockerfiles)
 
-When adapting existing Dockerfiles, translate package manager commands:
+When you see these commands in an existing Dockerfile, translate them to UBI:
 
-| Original | UBI equivalent |
+| Original (non-UBI) | UBI equivalent |
 |---|---|
-| `apt-get update && apt-get install -y PKG` | `dnf install -y PKG && dnf clean all` |
-| `apk add --no-cache PKG` | `dnf install -y PKG && dnf clean all` |
-| `yum install -y PKG` | `dnf install -y PKG && dnf clean all` |
+| `apt-get install`, `apk add`, `yum install` | `dnf install -y PKG && dnf clean all` |
 | `curl ... \| bash` (install scripts) | `dnf install -y PKG` or `npm install -g PKG` |
 
-Note: `ubi-minimal` uses `microdnf`. Full `ubi9` images use `dnf`.
+**On UBI, ONLY `dnf` or `microdnf` are valid.** Never use `apt-get`, `apk`, or `yum`.
+Use `microdnf` only on `ubi-minimal` images. All other UBI images use `dnf`.
 
 ## OpenShift Compatibility Rules (MANDATORY)
 
