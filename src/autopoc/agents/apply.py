@@ -35,6 +35,7 @@ from autopoc.llm import create_llm
 from autopoc.state import PoCPhase, PoCState
 from autopoc.tools.file_tools import list_files, read_file
 from autopoc.tools.k8s_tools import (
+    _run_kubectl,
     kubectl_apply,
     kubectl_apply_from_string,
     kubectl_create_namespace,
@@ -247,6 +248,16 @@ async def apply_agent(
                 "Check earlier pipeline stages (intake, containerize, build)."
             ),
         }
+
+    # ── Deterministic: ensure namespace exists before the LLM touches kubectl ──
+    # The LLM *should* call kubectl_create_namespace first, but it often skips
+    # straight to kubectl_apply, which fails with "namespaces not found".
+    # Creating it here is idempotent and costs nothing.
+    try:
+        _run_kubectl(["create", "namespace", project_name], check=False)
+        logger.info("Ensured namespace '%s' exists", project_name)
+    except Exception as e:
+        logger.debug("Namespace pre-creation returned: %s (continuing)", e)
 
     k8s_dir = str(Path(local_clone_path) / "kubernetes")
 
