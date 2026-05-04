@@ -239,6 +239,52 @@ Error: building at STEP "COPY package.json ./": no such file or directory
        FIX: Change to COPY {source_dir}/package.json ./
 ```
 
+## Monorepo and Workspace Dependencies (CRITICAL)
+
+Many projects are **monorepos** with multiple packages managed by workspace tools
+(npm workspaces, bun workspaces, pnpm workspaces, yarn workspaces, Go modules).
+
+If the component's `source_dir` is NOT "." (i.e., it lives in a subdirectory like
+`packages/server/`), the project is likely a monorepo. Key rules:
+
+1. **Install dependencies from the monorepo root, not the component subdirectory.**
+   Workspace dependencies (e.g., `@myorg/core`, `@myorg/shared`) are resolved
+   relative to the root `package.json` / `bun.lockb` / `pnpm-lock.yaml`. If you
+   `cd` into a subdirectory first and run `npm install`, the workspace packages
+   won't be found.
+
+   ```dockerfile
+   # WRONG — workspace deps not found:
+   WORKDIR /opt/app-root/src/packages/server
+   RUN bun install
+
+   # RIGHT — install from monorepo root, then build from subdirectory:
+   WORKDIR /opt/app-root/src
+   COPY . .
+   RUN bun install
+   WORKDIR /opt/app-root/src/packages/server
+   RUN bun run build
+   ```
+
+2. **COPY the entire repo, not just the component subdirectory.** Workspace
+   packages reference each other. If you only copy `packages/server/`, the
+   sibling packages (`packages/core/`, `packages/shared/`, etc.) won't exist.
+
+   ```dockerfile
+   # WRONG — sibling packages missing:
+   COPY packages/server/ .
+
+   # RIGHT — copy everything, install from root:
+   COPY . .
+   ```
+
+3. **Never use `COPY ../../` or paths that escape the build context.** The build
+   context is always the repo root. Use `COPY . .` to copy everything.
+
+4. **Check the root `package.json` for workspace configuration.** Look for
+   `"workspaces"` field (npm/bun/yarn) or `pnpm-workspace.yaml` to understand
+   the monorepo structure.
+
 ## Build Error Retry Context
 
 If you receive a previous build error, read the error carefully and fix the
@@ -258,6 +304,11 @@ Dockerfile.ubi to address the issue. Common fixes:
 - **Permission denied:**
   - Ensure `chgrp -R 0` covers the relevant directory
   - Some operations may need to run as USER 0 before final USER 1001
+
+- **Workspace dependency not found:**
+  - This means the project is a monorepo. You MUST run `npm install` / `bun install` /
+    `pnpm install` from the **monorepo root**, NOT from the component subdirectory.
+  - See the "Monorepo and Workspace Dependencies" section above.
 
 ## Runtime Container Fix (Outer Loop)
 

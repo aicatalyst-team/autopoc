@@ -187,6 +187,12 @@ def _build_user_message(
         parts.append("\n## Full PoC Plan (for context)")
         parts.append(poc_plan_text)
 
+    # Include README build instructions if available (helps with monorepos, 
+    # workspace deps, custom build steps that the LLM can't infer from metadata)
+    readme_build_info = _extract_build_instructions(clone_path)
+    if readme_build_info:
+        parts.append(f"\n## Build Instructions from README\n{readme_build_info}")
+
     if build_error:
         parts.append(
             f"\n**PREVIOUS BUILD FAILED.** Fix the Dockerfile.ubi based on this error:\n"
@@ -205,6 +211,76 @@ def _build_user_message(
             )
 
     return "\n".join(parts)
+
+
+def _extract_build_instructions(clone_path: str, max_chars: int = 2000) -> str | None:
+    """Extract build-related instructions from README or build docs.
+
+    Looks for README.md, BUILD.md, CONTRIBUTING.md, and similar files.
+    Extracts sections about building, installing, or developing.
+
+    Returns:
+        Relevant build instructions text, or None if not found.
+    """
+    repo = Path(clone_path)
+
+    # Priority order of files to check
+    doc_files = [
+        "README.md", "README.rst", "README.txt", "README",
+        "BUILD.md", "BUILDING.md", "DEVELOP.md", "DEVELOPMENT.md",
+        "CONTRIBUTING.md",
+    ]
+
+    for name in doc_files:
+        doc_path = repo / name
+        if not doc_path.is_file():
+            continue
+
+        try:
+            content = doc_path.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+
+        # Extract sections related to building/installing/developing
+        sections = []
+        current_section = None
+        current_lines: list[str] = []
+        build_keywords = {
+            "build", "install", "develop", "setup", "getting started",
+            "quick start", "prerequisites", "requirements", "docker",
+            "container", "run", "deploy", "workspace",
+        }
+
+        for line in content.split("\n"):
+            # Detect markdown headers
+            if line.startswith("#"):
+                # Save previous section if it was relevant
+                if current_section and current_lines:
+                    sections.append(
+                        current_section + "\n" + "\n".join(current_lines)
+                    )
+
+                header_text = line.lstrip("#").strip().lower()
+                if any(kw in header_text for kw in build_keywords):
+                    current_section = line
+                    current_lines = []
+                else:
+                    current_section = None
+                    current_lines = []
+            elif current_section is not None:
+                current_lines.append(line)
+
+        # Don't forget the last section
+        if current_section and current_lines:
+            sections.append(current_section + "\n" + "\n".join(current_lines))
+
+        if sections:
+            result = "\n\n".join(sections)
+            if len(result) > max_chars:
+                result = result[:max_chars] + "\n... (truncated)"
+            return result
+
+    return None
 
 
 def _extract_dockerfile_from_response(raw_output: str) -> str | None:
