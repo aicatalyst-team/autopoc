@@ -25,7 +25,7 @@ rules:
   # Namespace management
   - apiGroups: [""]
     resources: ["namespaces"]
-    verbs: ["get", "list", "create"]
+    verbs: ["get", "list", "create", "update", "patch"]
   # Workload resources (for deploy/apply phases)
   - apiGroups: [""]
     resources: ["pods", "pods/log", "services", "secrets", "configmaps",

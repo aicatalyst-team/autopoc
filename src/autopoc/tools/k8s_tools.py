@@ -146,12 +146,17 @@ def kubectl_apply(manifest_path: str, namespace: str) -> str:
         return _run_kubectl(["apply", "-f", manifest_path, "-n", namespace])
     except RuntimeError as e:
         error_msg = str(e).lower()
-        # Detect immutable/forbidden field errors (common with Jobs and PVCs)
-        if (
+        # Detect immutable/forbidden *field* errors (common with Jobs and PVCs).
+        # Do NOT match RBAC errors ("cannot <verb> resource ... is forbidden")
+        # — those should bubble up so the user/triage can diagnose the
+        # permission issue instead of trying to delete-and-reapply.
+        is_rbac_error = "cannot " in error_msg and "resource" in error_msg
+        is_field_error = (
             "field is immutable" in error_msg
             or "is invalid" in error_msg
-            or "is forbidden" in error_msg
-        ):
+            or ("is forbidden" in error_msg and not is_rbac_error)
+        )
+        if is_field_error:
             logger.info(
                 "Apply failed due to immutable/forbidden field, deleting and re-applying: %s",
                 manifest_path,
@@ -194,11 +199,13 @@ def kubectl_apply_from_string(manifest: str, namespace: str) -> str:
             return _run_kubectl(["apply", "-f", temp_path, "-n", namespace])
         except RuntimeError as e:
             error_msg = str(e).lower()
-            if (
+            is_rbac_error = "cannot " in error_msg and "resource" in error_msg
+            is_field_error = (
                 "field is immutable" in error_msg
                 or "is invalid" in error_msg
-                or "is forbidden" in error_msg
-            ):
+                or ("is forbidden" in error_msg and not is_rbac_error)
+            )
+            if is_field_error:
                 logger.info(
                     "Apply from string failed due to immutable/forbidden field, "
                     "deleting and re-applying"

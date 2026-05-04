@@ -253,9 +253,21 @@ async def apply_agent(
     # The LLM *should* call kubectl_create_namespace first, but it often skips
     # straight to kubectl_apply, which fails with "namespaces not found".
     # Creating it here is idempotent and costs nothing.
+    #
+    # We use --save-config so kubectl writes the last-applied-configuration
+    # annotation. Without it, a later `kubectl apply -f namespace.yaml` would
+    # need to PATCH the namespace to add the annotation, requiring the patch
+    # verb on namespaces (which may not be granted).
     try:
-        _run_kubectl(["create", "namespace", project_name], check=False)
-        logger.info("Ensured namespace '%s' exists", project_name)
+        # Check if namespace already exists
+        result = _run_kubectl(["get", "namespace", project_name], check=False)
+        if "NotFound" in result or "not found" in result.lower():
+            _run_kubectl(
+                ["create", "namespace", project_name, "--save-config"], check=False
+            )
+            logger.info("Created namespace '%s' (with --save-config)", project_name)
+        else:
+            logger.info("Namespace '%s' already exists", project_name)
     except Exception as e:
         logger.debug("Namespace pre-creation returned: %s (continuing)", e)
 
