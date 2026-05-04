@@ -413,28 +413,68 @@ def _fixup_dockerfile(dockerfile_path: Path) -> None:
     # Replace non-UBI base images first (affects subsequent fixups)
     content = _fixup_base_image(content, dockerfile_path.name)
 
-    is_minimal = _uses_minimal_base(content)
-
-    if is_minimal and "dnf " in content and "microdnf" not in content:
-        # Minimal image but using dnf → replace with microdnf
-        content = re.sub(r"\bdnf\b", "microdnf", content)
-        logger.info(
-            "Dockerfile fixup: replaced dnf with microdnf (minimal base) in %s",
-            dockerfile_path.name,
-        )
-    elif not is_minimal and "microdnf" in content:
-        # Full image but using microdnf → replace with dnf
-        content = content.replace("microdnf", "dnf")
-        logger.info(
-            "Dockerfile fixup: replaced microdnf with dnf (full base) in %s",
-            dockerfile_path.name,
-        )
+    # Fix package manager per stage (multi-stage aware)
+    content = _fixup_package_manager(content, dockerfile_path.name)
 
     # Fix permission issues: ensure chgrp/chmod runs as root
     content = _fixup_permissions(content, dockerfile_path.name)
 
     if content != original:
         dockerfile_path.write_text(content, encoding="utf-8")
+
+
+def _fixup_package_manager(content: str, filename: str) -> str:
+    """Fix package manager commands per build stage in multi-stage Dockerfiles.
+
+    In multi-stage Dockerfiles, each FROM starts a new stage with a
+    different base image. Full UBI images use dnf, minimal images use
+    microdnf. The fixup must track which stage each RUN line belongs to.
+    """
+    lines = content.split("\n")
+    fixed_lines = []
+    current_base_is_minimal = False
+    applied = False
+
+    for line in lines:
+        stripped = line.strip().upper()
+
+        # Track FROM directives to know which base image we're in
+        if stripped.startswith("FROM "):
+            image = line.strip()[5:].split()[0].lower()
+            current_base_is_minimal = "minimal" in image
+            fixed_lines.append(line)
+            continue
+
+        # Fix package manager in RUN lines based on current stage
+        if stripped.startswith("RUN "):
+            if current_base_is_minimal and "dnf " in line and "microdnf" not in line:
+                # Minimal stage but using dnf → replace with microdnf
+                fixed_line = re.sub(r"\bdnf\b", "microdnf", line)
+                if fixed_line != line:
+                    logger.info(
+                        "Dockerfile fixup: replaced dnf with microdnf "
+                        "(minimal stage) in %s",
+                        filename,
+                    )
+                    applied = True
+                    fixed_lines.append(fixed_line)
+                    continue
+            elif not current_base_is_minimal and "microdnf" in line:
+                # Full stage but using microdnf → replace with dnf
+                fixed_line = line.replace("microdnf", "dnf")
+                if fixed_line != line:
+                    logger.info(
+                        "Dockerfile fixup: replaced microdnf with dnf "
+                        "(full stage) in %s",
+                        filename,
+                    )
+                    applied = True
+                    fixed_lines.append(fixed_line)
+                    continue
+
+        fixed_lines.append(line)
+
+    return "\n".join(fixed_lines) if applied else content
 
 
 def _fixup_permissions(content: str, filename: str) -> str:

@@ -360,3 +360,55 @@ class TestFixupBaseImage:
         _fixup_dockerfile(df)
         content = df.read_text()
         assert "registry.access.redhat.com/ubi9/openjdk-21" in content
+
+
+class TestFixupPackageManagerMultiStage:
+    """Tests for per-stage package manager fixup in multi-stage Dockerfiles."""
+
+    def test_multistage_full_then_minimal(self, tmp_path: Path):
+        """Builder uses full UBI (dnf), runtime uses minimal (microdnf)."""
+        df = tmp_path / "Dockerfile.ubi"
+        df.write_text(
+            "FROM registry.access.redhat.com/ubi9/ubi AS builder\n"
+            "RUN microdnf install -y golang && microdnf clean all\n"
+            "COPY . .\n"
+            "RUN go build -o /app\n"
+            "FROM registry.access.redhat.com/ubi9/ubi-minimal\n"
+            "COPY --from=builder /app /app\n"
+            "RUN dnf install -y libcurl && dnf clean all\n"
+            "USER 1001\n"
+        )
+        _fixup_dockerfile(df)
+        content = df.read_text()
+        lines = content.split("\n")
+        # Stage 1 (ubi full): microdnf should be replaced with dnf
+        assert "dnf install -y golang" in lines[1]
+        assert "microdnf" not in lines[1]
+        # Stage 2 (ubi-minimal): dnf should be replaced with microdnf
+        assert "microdnf install -y libcurl" in lines[6]
+        assert "dnf " not in lines[6].replace("microdnf", "")
+
+    def test_multistage_both_correct(self, tmp_path: Path):
+        """Both stages use correct package manager — no change."""
+        df = tmp_path / "Dockerfile.ubi"
+        original = (
+            "FROM registry.access.redhat.com/ubi9/ubi AS builder\n"
+            "RUN dnf install -y golang && dnf clean all\n"
+            "FROM registry.access.redhat.com/ubi9/ubi-minimal\n"
+            "RUN microdnf install -y libcurl && microdnf clean all\n"
+        )
+        df.write_text(original)
+        _fixup_dockerfile(df)
+        assert df.read_text() == original
+
+    def test_single_stage_full_with_microdnf(self, tmp_path: Path):
+        """Single stage full UBI with microdnf should still be fixed."""
+        df = tmp_path / "Dockerfile.ubi"
+        df.write_text(
+            "FROM registry.access.redhat.com/ubi9/python-312\n"
+            "RUN microdnf install -y gcc && microdnf clean all\n"
+        )
+        _fixup_dockerfile(df)
+        content = df.read_text()
+        assert "dnf install -y gcc" in content
+        assert "microdnf" not in content

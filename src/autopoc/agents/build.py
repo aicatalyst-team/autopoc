@@ -121,6 +121,11 @@ def _parse_missing_command(error_log: str) -> tuple[str | None, str | None, str 
     )
     missing_cmd = cmd_match.group(1) if cmd_match else None
 
+    # Don't try to "install" package managers — these are fixup issues
+    # (wrong package manager for the base image), not missing binaries.
+    if missing_cmd and missing_cmd.lower() in ("microdnf", "dnf", "apt-get", "apt", "yum", "apk"):
+        return None, None, None
+
     # Extract the failing STEP
     step_match = re.search(
         r'(?:STEP \d+/\d+:\s*)(RUN\s+.+?)(?:\n|$)',
