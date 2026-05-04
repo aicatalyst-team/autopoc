@@ -1,0 +1,204 @@
+version: "2026-04-29"
+guiding_principle: >
+  The official Red Hat AI CY2026 product strategy is the canonical source for
+  strategy areas, capability labels, and Red Hat AI stack context. This file is
+  the repo-local extraction used by prompts and rerank logic; it must mirror the
+  official document instead of Jira planning artifacts.
+
+source_documents:
+  - title: "Red Hat AI CY2026 Product Strategy"
+    authority: canonical
+    kind: official-strategy
+
+core_products:
+  - name: "OpenShift AI"
+    role: "Primary hybrid-cloud AI platform for serving, customization, agents, and lifecycle management."
+  - name: "Red Hat AI Inference Server"
+    role: "Opinionated inference runtime and optimization story for efficient self-hosted serving."
+  - name: "RHEL AI"
+    role: "Single-server and edge-oriented AI experience with open-model tooling and optimization."
+  - name: "AI Hub"
+    role: "Curated AI experience for models, assets, and guided workflows."
+  - name: "GenAI Studio"
+    role: "Interactive build and experimentation surface for Red Hat AI workflows."
+  - name: "InstructLab"
+    role: "Model customization and synthetic data generation workflow anchored in open models."
+  - name: "Docling"
+    role: "Document ingestion and transformation capability for enterprise AI data preparation."
+  - name: "Llama Stack"
+    role: "Agentic AI API and runtime surface used in the Red Hat AI story."
+  - name: "MCP"
+    role: "Tool and context connectivity protocol relevant to agentic AI workflows."
+  - name: "TrustyAI"
+    role: "Observability, responsible AI, and guardrail-adjacent capabilities."
+  - name: "model catalog"
+    role: "Discovery layer for model assets and curated AI experiences."
+  - name: "model registry"
+    role: "Lifecycle inventory and management surface for models and related assets."
+
+strategy_areas:
+  - category: "model-inference"
+    official_name: "Model Inference"
+    summary: >
+      Focus on fast, flexible, efficient inference across hybrid environments.
+      The official story emphasizes self-hosted serving, acceleration, runtime
+      optimization, validation, and broad model/accelerator compatibility.
+    capability_labels:
+      - vllm
+      - llm-d
+      - kserve
+      - serving
+      - tool-calling
+      - quantization
+      - sparsity
+      - speculative-decoding
+      - model-validation
+      - optimized-models
+      - accelerator-optionality
+    red_hat_stack:
+      - OpenShift AI
+      - Red Hat AI Inference Server
+      - RHEL AI
+      - vLLM
+      - llm-d
+      - LLM Compressor
+      - KServe
+      - validated model program
+      - optimized model repository
+    enrich_if:
+      - "Improves runtime efficiency, accelerator portability, serving quality, or operational visibility."
+      - "Strengthens the self-hosted inference story beyond a generic upstream install."
+    duplicate_if:
+      - "It is only a thin wrapper around baseline serving features already centered by Red Hat AI."
+      - "It repeats generic vLLM/KServe serving with little operational or strategic differentiation."
+
+  - category: "model-customization"
+    official_name: "Model Customization"
+    summary: >
+      Focus on adapting models to enterprise data and use cases through RAG,
+      fine-tuning, training, evaluation, and document/data preparation workflows.
+    capability_labels:
+      - rag
+      - fine-tuning
+      - lora
+      - qlora
+      - instructlab
+      - synthetic-data-generation
+      - docling
+      - data-ingest
+      - chunking
+      - training
+      - evaluation
+      - reasoning-models
+      - inference-time-scaling
+    red_hat_stack:
+      - OpenShift AI
+      - RHEL AI
+      - InstructLab
+      - Docling
+      - Hugging Face PEFT
+      - TRL
+      - Kubeflow Training Operator
+      - Jupyter workbenches
+      - Kubeflow pipelines
+    enrich_if:
+      - "Adds a practical enterprise data path, better evaluation, or stronger adaptation workflow."
+      - "Improves how Red Hat AI connects open models to private data or domain-specific behavior."
+    duplicate_if:
+      - "It is another generic RAG demo or fine-tuning wrapper without meaningful platform or workflow differentiation."
+      - "It duplicates basic data-ingest or adaptation features already covered by the current stack story."
+
+  - category: "agentic-ai"
+    official_name: "Agentic AI"
+    summary: >
+      Focus on accelerating agent development and deployment through runtimes,
+      protocols, tool connectivity, AI Hub, GenAI Studio, and developer workflows.
+    capability_labels:
+      - llama-stack
+      - mcp
+      - a2a
+      - agents-api
+      - tool-calling
+      - vector-db-integration
+      - agent-runtime
+      - ai-hub
+      - genai-studio
+      - ai-playground
+      - developer-experience
+      - api-management
+    red_hat_stack:
+      - OpenShift AI
+      - Llama Stack
+      - MCP
+      - AI Hub
+      - GenAI Studio
+      - AI Playground
+      - Red Hat Developer Hub
+      - Podman Desktop
+      - Ramalama
+    enrich_if:
+      - "Makes agent deployment, tool connectivity, or developer experience materially better on Red Hat AI."
+      - "Helps agents behave like governable platform workloads rather than isolated local demos."
+    duplicate_if:
+      - "It is another local-first agent framework with no durable platform angle."
+      - "It repeats MCP or agent runtime functionality already central to the stack without stronger integration."
+
+  - category: "management-observability-security"
+    official_name: "Management, Observability & Security"
+    summary: >
+      Focus on lifecycle management, observability, guardrails, registry/catalog,
+      supply chain controls, and GPU/MaaS operating models for AI workloads.
+    capability_labels:
+      - model-catalog
+      - model-registry
+      - lifecycle-management
+      - observability
+      - ttft
+      - token-latency
+      - cost-analysis
+      - trustyai
+      - guardrails
+      - content-safety
+      - pii-filtering
+      - jailbreak-prevention
+      - model-signing
+      - oci-artifacts
+      - supply-chain
+      - gpuaas
+      - maas
+      - gpu-scheduling
+      - usage-metering
+      - fractional-gpus
+    red_hat_stack:
+      - OpenShift AI
+      - TrustyAI
+      - AI Hub
+      - GenAI Studio
+      - model catalog
+      - model registry
+      - OCI-packaged models
+      - GPU as a Service
+      - Models as a Service
+    enrich_if:
+      - "Improves governance, observability, lifecycle control, or secure operations for AI assets and workloads."
+      - "Makes the Red Hat AI control-plane story more credible or operationally complete."
+    duplicate_if:
+      - "It overlaps heavily with basic registry, catalog, or guardrail capabilities already present in the stack story."
+      - "It adds little beyond commodity dashboarding or generic security scanning."
+
+duplication_guidance:
+  enrich_if:
+    - "The project deepens enterprise integration, hybrid-cloud operability, governance, observability, or UX."
+    - "The project validates a Red Hat AI platform story that is strategically important but still needs proof."
+    - "The project fills a missing capability edge rather than re-implementing the middle of the stack."
+  avoid_if:
+    - "The project is mostly a thin wrapper around capabilities already central to Red Hat AI."
+    - "The project duplicates the stack story without a stronger operational, enterprise, or developer-experience angle."
+    - "The project is cloud-locked, proprietary, or otherwise misaligned with the open hybrid Red Hat AI direction."
+
+relationship_rules:
+  enriches-existing-capability: "Adds meaningful differentiated value around an existing Red Hat AI capability."
+  integrates-with-red-hat-ai: "Fits naturally into the current stack and is valuable mainly through integration."
+  validates-platform-story: "Best used as a POC candidate to prove the platform story under realistic conditions."
+  duplicates-existing-capability: "Overlaps strongly with the stack and lacks clear differentiation."
+  misaligned: "Does not materially help the Red Hat AI strategy or conflicts with the open hybrid direction."

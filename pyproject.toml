@@ -44,6 +44,12 @@ autopoc = "autopoc.cli:app"
 [tool.hatch.build.targets.wheel]
 packages = ["src/autopoc"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"data" = "autopoc/data"
+
+[tool.hatch.build.targets.sdist.force-include]
+"data" = "data"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

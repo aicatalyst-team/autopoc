@@ -42,7 +42,7 @@
 | **9. K8s Deployment** | **IN PROGRESS** | | |
 | **10. Raw Test Output** | **COMPLETE** | 6/6 | 23 passing |
 | **11. Google Sheet Ingestion** | **COMPLETE** | 9/9 | 59 passing |
-| **12. RHOAI Fitness Evaluation** | **PLANNED** | 0/10 | — |
+| **12. RHOAI Fitness Evaluation** | **COMPLETE** | 10/10 | 59 passing |
 | **13. Candidate Comparison** | **PLANNED** | 0/8 | — |
 
 ---
@@ -2056,7 +2056,7 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 > See [rhoai-evaluation-plan.md](./rhoai-evaluation-plan.md) for full design.
 
-### Task 73 — Strategy loader module
+### Task 73 — Strategy loader module ✅
 
 **Files:** `src/autopoc/tools/strategy.py`
 
@@ -2076,7 +2076,7 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 ---
 
-### Task 74 — RHOAIEvaluation TypedDict + PoCState fields
+### Task 74 — RHOAIEvaluation TypedDict + PoCState fields ✅
 
 **Files:** `src/autopoc/state.py`
 
@@ -2093,7 +2093,7 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 ---
 
-### Task 75 — Evaluation system prompt
+### Task 75 — Evaluation system prompt ✅
 
 **Files:** `src/autopoc/prompts/evaluate.md`
 
@@ -2111,7 +2111,7 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 ---
 
-### Task 76 — Evaluate agent implementation
+### Task 76 — Evaluate agent implementation ✅
 
 **Files:** `src/autopoc/agents/evaluate.py`
 
@@ -2133,7 +2133,7 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 ---
 
-### Task 77 — Graph integration
+### Task 77 — Graph integration ✅
 
 **Files:** `src/autopoc/graph.py`
 
@@ -2152,7 +2152,7 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 ---
 
-### Task 78 — Markdown report writer
+### Task 78 — Markdown report writer ✅
 
 **Files:** `src/autopoc/agents/evaluate.py` (part of Task 76)
 
@@ -2169,7 +2169,7 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 ---
 
-### Task 79 — Package data configuration
+### Task 79 — Package data configuration ✅
 
 **Files:** `pyproject.toml`
 
@@ -2185,7 +2185,7 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 ---
 
-### Task 80 — Unit tests: strategy loader
+### Task 80 — Unit tests: strategy loader ✅
 
 **Files:** `tests/test_strategy.py`
 
@@ -2203,7 +2203,7 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 ---
 
-### Task 81 — Unit tests: evaluate agent
+### Task 81 — Unit tests: evaluate agent ✅
 
 **Files:** `tests/test_evaluate.py`
 
@@ -2220,7 +2220,7 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 
 ---
 
-### Task 82 — CLI: --stop-after=evaluate and display
+### Task 82 — CLI: --stop-after=evaluate and display ✅
 
 **Files:** `src/autopoc/cli.py`
 

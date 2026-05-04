@@ -1,0 +1,48 @@
+name: "Red Hat AI 2026"
+version: "2026-04-29"
+description: "Strategy-driven scoring aligned with the official CY2026 Red Hat AI strategy. Uses four official strategy areas plus stable capability and stack context instead of custom pillars or Jira-derived references."
+impact_dimensions:
+  - name: audience_value
+    weight: 1
+    source: deterministic
+    llm_override: true
+  - name: strategic_alignment
+    weight: 1
+    source: strategy_rerank
+    llm_override: true
+  - name: strategy_fit
+    weight: 1
+    source: deterministic
+    llm_override: true
+  - name: platform_leverage
+    weight: 1
+    source: deterministic
+    llm_override: true
+  - name: demo_potential
+    weight: 1
+    source: deterministic
+    llm_override: true
+impact_formula: "(audience_value + strategic_alignment + strategy_fit + platform_leverage + demo_potential) / 5"
+feasibility_dimensions:
+  - name: container_readiness
+    weight: 1
+  - name: dependency_profile
+    weight: 1
+  - name: reproduction_confidence
+    weight: 1
+  - name: complexity_sweet_spot
+    weight: 1
+feasibility_formula: "(container_readiness + dependency_profile + reproduction_confidence + complexity_sweet_spot) / 4"
+rerank:
+  enabled: true
+  strategy_baseline: "data/strategy-baseline.yaml"
+  dedup_by_theme: true
+strategy_baseline: "data/strategy-baseline.yaml"
+slide_fields:
+  - problem_statement
+  - proposed_poc
+  - expected_outcome
+  - mermaid_diagram
+  - customer_relevance
+  - visualization_suggestion
+dedup_strategy: "url_hash+strategy_theme"

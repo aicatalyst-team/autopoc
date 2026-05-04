@@ -204,6 +204,62 @@ def _print_results(result: dict, verbose: bool = False) -> None:
             )
         console.print(comp_table)
 
+    # RHOAI Evaluation
+    rhoai_eval = result.get("rhoai_evaluation")
+    if rhoai_eval and rhoai_eval.get("total_score", 0) > 0:
+        total = rhoai_eval.get("total_score", 0)
+        max_score = rhoai_eval.get("max_possible_score", 100)
+        relationship = rhoai_eval.get("relationship", "unknown")
+        areas = rhoai_eval.get("strategy_areas", [])
+        labels = rhoai_eval.get("capability_labels", [])
+
+        eval_lines = [
+            f"[bold]Score:[/bold]        {total}/{max_score}",
+            f"[bold]Relationship:[/bold] {relationship}",
+        ]
+        if areas:
+            eval_lines.append(f"[bold]Areas:[/bold]        {', '.join(areas)}")
+        if labels:
+            # Show first 5 labels to keep it compact
+            shown = labels[:5]
+            suffix = f" (+{len(labels) - 5} more)" if len(labels) > 5 else ""
+            eval_lines.append(f"[bold]Capabilities:[/bold] {', '.join(shown)}{suffix}")
+
+        console.print(
+            Panel(
+                "\n".join(eval_lines),
+                title="RHOAI Evaluation",
+                border_style="magenta",
+            )
+        )
+
+        if verbose:
+            dims = rhoai_eval.get("dimensions", [])
+            if dims:
+                dim_table = Table(show_header=True, header_style="bold magenta")
+                dim_table.add_column("Dimension")
+                dim_table.add_column("Score", justify="right")
+                dim_table.add_column("Max", justify="right")
+                dim_table.add_column("Rationale")
+                for d in dims:
+                    dim_table.add_row(
+                        d.get("name", "?"),
+                        str(d.get("score", 0)),
+                        str(d.get("max_score", 0)),
+                        d.get("rationale", ""),
+                    )
+                console.print(dim_table)
+
+            rationale = rhoai_eval.get("rationale", "")
+            if rationale:
+                console.print(f"\n[dim]{rationale}[/dim]")
+
+    rhoai_eval_path = result.get("rhoai_evaluation_path", "")
+    if rhoai_eval_path:
+        p = Path(rhoai_eval_path)
+        if p.exists():
+            console.print(f"[dim]Evaluation report:[/dim] {rhoai_eval_path}")
+
     # PoC Plan info
     poc_type = result.get("poc_type")
     if poc_type:
@@ -565,7 +621,7 @@ def run(
         typer.Option(
             "--stop-after",
             help="Stop pipeline after this phase (e.g. 'build', 'deploy'). "
-            "Valid: intake, poc_plan, fork, containerize, build, deploy, apply, poc_execute, poc_report",
+            "Valid: intake, evaluate, poc_plan, fork, containerize, build, deploy, apply, poc_execute, poc_report",
         ),
     ] = None,
     debug: Annotated[
@@ -638,7 +694,7 @@ def run_sheet(
         typer.Option(
             "--stop-after",
             help="Stop pipeline after this phase (e.g. 'build', 'deploy'). "
-            "Valid: intake, poc_plan, fork, containerize, build, deploy, apply, poc_execute, poc_report",
+            "Valid: intake, evaluate, poc_plan, fork, containerize, build, deploy, apply, poc_execute, poc_report",
         ),
     ] = None,
     debug: Annotated[
