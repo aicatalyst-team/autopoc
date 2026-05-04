@@ -33,15 +33,47 @@ For runtime-only images (multi-stage final stage with no build tools needed):
 - Use `registry.access.redhat.com/ubi9/ubi-minimal` for compiled binaries
 - Use `registry.access.redhat.com/ubi9/openjdk-21-runtime` for Java JARs
 
+## Installing Software — Priority Order (MANDATORY)
+
+When you need to install software in the Dockerfile, follow this strict priority:
+
+1. **System package manager first** (`dnf` or `microdnf`). Most common tools
+   are available as RPM packages. Examples:
+   - `dnf install -y nodejs npm git curl make gcc-c++`
+   - `dnf install -y python3-pip golang`
+   - For bun: do NOT use `curl bun.sh/install`. Use `npm install -g bun` instead.
+
+2. **Language-specific package manager** if not available as a system package:
+   - `npm install -g <tool>` for Node.js tools
+   - `pip install <tool>` for Python tools
+   - `cargo install <tool>` for Rust tools
+   - `go install <tool>@latest` for Go tools
+
+3. **`curl` to download binaries — ONLY as a last resort.** Avoid `curl | bash`
+   install scripts. They often install to non-standard paths (e.g. `~/.bun/bin`)
+   that break across USER switches, and they are a security risk. If you must
+   download a binary, place it in `/usr/local/bin/` directly:
+   ```dockerfile
+   RUN curl -fsSL https://example.com/tool -o /usr/local/bin/tool && \
+       chmod +x /usr/local/bin/tool
+   ```
+
+**Why this matters:** `curl | bash` install scripts put binaries in `$HOME/.xxx/bin`
+which is only accessible to the user that ran the install. When you switch from
+`USER 0` to `USER 1001`, the installed tool is not on PATH and fails with
+"command not found". System packages and `npm install -g` place binaries on the
+standard PATH that works for all users.
+
 ## Package Manager Mapping
 
 When adapting existing Dockerfiles, translate package manager commands:
 
 | Original | UBI equivalent |
 |---|---|
-| `apt-get update && apt-get install -y PKG` | `microdnf install -y PKG && microdnf clean all` |
-| `apk add --no-cache PKG` | `microdnf install -y PKG && microdnf clean all` |
-| `yum install -y PKG` | `microdnf install -y PKG && microdnf clean all` |
+| `apt-get update && apt-get install -y PKG` | `dnf install -y PKG && dnf clean all` |
+| `apk add --no-cache PKG` | `dnf install -y PKG && dnf clean all` |
+| `yum install -y PKG` | `dnf install -y PKG && dnf clean all` |
+| `curl ... \| bash` (install scripts) | `dnf install -y PKG` or `npm install -g PKG` |
 
 Note: `ubi-minimal` uses `microdnf`. Full `ubi9` images use `dnf`.
 
