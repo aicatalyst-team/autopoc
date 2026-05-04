@@ -641,8 +641,10 @@ def _fixup_permissions(content: str, filename: str) -> str:
     current_user = None  # Track the current USER directive
     npm_installed_as_root = False
     applied_fix = False
+    i = 0
 
-    for i, line in enumerate(lines):
+    while i < len(lines):
+        line = lines[i]
         stripped = line.strip().upper()
 
         # Track USER directives
@@ -688,18 +690,26 @@ def _fixup_permissions(content: str, filename: str) -> str:
                 or "YUM " in stripped
             )
             if needs_root:
-                # Insert USER 0 before, restore original user after
+                # Insert USER 0 before the RUN command.
+                # For multi-line RUN commands (with \ continuations), collect
+                # all continuation lines before inserting USER after.
                 fixed_lines.append("USER 0")
                 fixed_lines.append(line)
+                while line.rstrip().endswith("\\") and i + 1 < len(lines):
+                    i += 1
+                    line = lines[i]
+                    fixed_lines.append(line)
                 fixed_lines.append("USER %s" % (current_user or "1001"))
                 logger.info(
                     "Dockerfile fixup: wrapped root-required command with USER 0 in %s",
                     filename,
                 )
                 applied_fix = True
+                i += 1
                 continue
 
         fixed_lines.append(line)
+        i += 1
 
     if applied_fix:
         return "\n".join(fixed_lines)

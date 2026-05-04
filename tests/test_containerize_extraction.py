@@ -295,6 +295,47 @@ class TestFixupDockerfile:
         else:
             pytest.fail("dnf install line not found")
 
+    def test_dnf_install_multiline_wrapped_correctly(self, tmp_path: Path):
+        """Multi-line RUN dnf install should have USER 1001 AFTER all continuation lines."""
+        df = tmp_path / "Dockerfile.ubi"
+        df.write_text(
+            "FROM registry.access.redhat.com/ubi9/nodejs-22\n"
+            "RUN dnf install -y gcc \\\n"
+            "    make \\\n"
+            "    curl && \\\n"
+            "    dnf clean all\n"
+            "COPY . .\n"
+        )
+        _fixup_dockerfile(df)
+        content = df.read_text()
+        lines = content.strip().split("\n")
+        # Find USER 0 and USER 1001
+        user0_idx = None
+        user1001_idx = None
+        dnf_idx = None
+        clean_idx = None
+        for idx, ln in enumerate(lines):
+            if ln.strip() == "USER 0":
+                user0_idx = idx
+            if ln.strip().startswith("USER 1001"):
+                user1001_idx = idx
+            if "dnf install" in ln:
+                dnf_idx = idx
+            if "dnf clean all" in ln:
+                clean_idx = idx
+        assert user0_idx is not None, "USER 0 not found"
+        assert user1001_idx is not None, "USER 1001 not found"
+        assert dnf_idx is not None, "dnf install not found"
+        assert clean_idx is not None, "dnf clean all not found"
+        # USER 0 before dnf install
+        assert user0_idx < dnf_idx
+        # dnf clean all before USER 1001
+        assert clean_idx < user1001_idx
+        # No USER directive between dnf install and dnf clean all
+        for idx in range(dnf_idx, clean_idx + 1):
+            assert not lines[idx].strip().startswith("USER "), \
+                f"Found USER directive inside multi-line RUN at line {idx}: {lines[idx]}"
+
     def test_dnf_install_already_root_not_wrapped(self, tmp_path: Path):
         """dnf install with USER 0 already set should NOT be wrapped."""
         df = tmp_path / "Dockerfile.ubi"

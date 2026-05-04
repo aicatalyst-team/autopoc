@@ -63,7 +63,28 @@ Every Dockerfile.ubi MUST follow these rules:
    - If the app is hardcoded to a privileged port, configure it to use a high port instead.
 
 4. **Writable directories:** Any directory the application writes to at runtime must be
-   writable by group 0. Include them in the `chgrp`/`chmod` command.
+    writable by group 0. Include them in the `chgrp`/`chmod` command.
+
+5. **UBI images are non-root by default.** UBI images run as UID 1001, not root.
+   Any command that requires root (package installation, permission changes) MUST
+   be preceded by `USER 0` and followed by `USER 1001`:
+   ```dockerfile
+   USER 0
+   RUN dnf install -y gcc make && dnf clean all
+   USER 1001
+   ```
+   Without `USER 0`, `dnf install` will fail with "This command has to be run with
+   superuser privileges".
+
+6. **Package manager rules for UBI:**
+   - Full UBI images (`ubi9`, `ubi9/python-*`, `ubi9/nodejs-*`, `ubi9/go-toolset`, etc.)
+     use **`dnf`**. Do NOT use `microdnf` on full images.
+   - Minimal UBI images (`ubi9-minimal`, `ubi9/ubi-minimal`) use **`microdnf`**.
+     Do NOT use `dnf` on minimal images.
+   - **Never mix** `dnf` and `microdnf` in the same build stage.
+   - UBI nodejs images have `curl-minimal` pre-installed. Do NOT install `curl`
+     (full) — it conflicts. Use `curl-minimal` or add `--allowerasing` if you
+     need the full `curl`.
 
 5. **WORKDIR:** Use `/opt/app-root/src` as the standard working directory.
 
