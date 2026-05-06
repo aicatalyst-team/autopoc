@@ -20,7 +20,6 @@ from autopoc.agents.evaluate import (
 )
 from autopoc.state import PoCPhase, PoCState, RHOAIEvaluation
 from autopoc.tools.strategy import (
-    compute_max_score,
     get_max_per_dimension,
     get_scoring_dimensions,
     load_strategy,
@@ -30,29 +29,31 @@ from autopoc.tools.strategy import (
 
 # --- Sample data ---
 
-SAMPLE_LLM_RESPONSE = json.dumps({
-    "total_score": 72,
-    "dimensions": {
-        "audience_value": 15,
-        "strategic_alignment": 18,
-        "strategy_fit": 14,
-        "platform_leverage": 12,
-        "demo_potential": 13,
-    },
-    "dimension_rationales": {
-        "audience_value": "Popular ML serving framework with strong community interest.",
-        "strategic_alignment": "Directly aligns with model inference strategy area.",
-        "strategy_fit": "Enriches vLLM serving story with benchmarking capabilities.",
-        "platform_leverage": "Can leverage KServe and vLLM on RHOAI.",
-        "demo_potential": "Good visual demo potential with benchmark dashboards.",
-    },
-    "strategy_areas": ["model-inference", "model-customization"],
-    "relationship": "enriches-existing-capability",
-    "capability_labels": ["vllm", "serving", "quantization"],
-    "rationale": "This project is a model serving benchmark that aligns well with the Red Hat AI inference strategy.",
-    "strengths": ["Directly tests inference performance", "Leverages vLLM"],
-    "risks": ["May require GPU resources for meaningful benchmarks"],
-})
+SAMPLE_LLM_RESPONSE = json.dumps(
+    {
+        "total_score": 72,
+        "dimensions": {
+            "audience_value": 15,
+            "strategic_alignment": 18,
+            "strategy_fit": 14,
+            "platform_leverage": 12,
+            "demo_potential": 13,
+        },
+        "dimension_rationales": {
+            "audience_value": "Popular ML serving framework with strong community interest.",
+            "strategic_alignment": "Directly aligns with model inference strategy area.",
+            "strategy_fit": "Enriches vLLM serving story with benchmarking capabilities.",
+            "platform_leverage": "Can leverage KServe and vLLM on RHOAI.",
+            "demo_potential": "Good visual demo potential with benchmark dashboards.",
+        },
+        "strategy_areas": ["model-inference", "model-customization"],
+        "relationship": "enriches-existing-capability",
+        "capability_labels": ["vllm", "serving", "quantization"],
+        "rationale": "This project is a model serving benchmark that aligns well with the Red Hat AI inference strategy.",
+        "strengths": ["Directly tests inference performance", "Leverages vLLM"],
+        "risks": ["May require GPU resources for meaningful benchmarks"],
+    }
+)
 
 SAMPLE_STATE: PoCState = {
     "project_name": "vllm-benchmark",
@@ -233,8 +234,13 @@ class TestFormatStrategyAreas:
 class TestFormatComponents:
     def test_formats_single_component(self) -> None:
         comps = [
-            {"name": "api", "language": "python", "build_system": "pip",
-             "is_ml_workload": True, "port": 8080}
+            {
+                "name": "api",
+                "language": "python",
+                "build_system": "pip",
+                "is_ml_workload": True,
+                "port": 8080,
+            }
         ]
         result = _format_components_for_prompt(comps)
         assert "api" in result
@@ -266,10 +272,18 @@ class TestBuildEvaluationMarkdown:
             total_score=72,
             max_possible_score=100,
             dimensions=[
-                {"name": "audience_value", "score": 15, "max_score": 20,
-                 "rationale": "Good audience value."},
-                {"name": "strategic_alignment", "score": 18, "max_score": 20,
-                 "rationale": "Strong alignment."},
+                {
+                    "name": "audience_value",
+                    "score": 15,
+                    "max_score": 20,
+                    "rationale": "Good audience value.",
+                },
+                {
+                    "name": "strategic_alignment",
+                    "score": 18,
+                    "max_score": 20,
+                    "rationale": "Strong alignment.",
+                },
             ],
             strategy_areas=["model-inference"],
             relationship="enriches-existing-capability",
@@ -413,26 +427,31 @@ class TestEvaluateAgent:
         state = dict(SAMPLE_STATE)
         state["local_clone_path"] = str(tmp_path)
 
-        bad_response = json.dumps({
-            "total_score": 999,
-            "dimensions": {
-                "audience_value": 50,
-                "strategic_alignment": -10,
-                "strategy_fit": 14,
-                "platform_leverage": 12,
-                "demo_potential": 13,
-            },
-            "dimension_rationales": {
-                "audience_value": "r", "strategic_alignment": "r",
-                "strategy_fit": "r", "platform_leverage": "r", "demo_potential": "r",
-            },
-            "strategy_areas": [],
-            "relationship": "enriches-existing-capability",
-            "capability_labels": [],
-            "rationale": "Test.",
-            "strengths": [],
-            "risks": [],
-        })
+        bad_response = json.dumps(
+            {
+                "total_score": 999,
+                "dimensions": {
+                    "audience_value": 50,
+                    "strategic_alignment": -10,
+                    "strategy_fit": 14,
+                    "platform_leverage": 12,
+                    "demo_potential": 13,
+                },
+                "dimension_rationales": {
+                    "audience_value": "r",
+                    "strategic_alignment": "r",
+                    "strategy_fit": "r",
+                    "platform_leverage": "r",
+                    "demo_potential": "r",
+                },
+                "strategy_areas": [],
+                "relationship": "enriches-existing-capability",
+                "capability_labels": [],
+                "rationale": "Test.",
+                "strengths": [],
+                "risks": [],
+            }
+        )
 
         mock_llm = self._make_mock_llm(bad_response)
         result = await evaluate_agent(state, llm=mock_llm)

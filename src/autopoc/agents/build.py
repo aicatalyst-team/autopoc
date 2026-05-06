@@ -128,14 +128,14 @@ def _parse_missing_command(error_log: str) -> tuple[str | None, str | None, str 
 
     # Extract the failing STEP
     step_match = re.search(
-        r'(?:STEP \d+/\d+:\s*)(RUN\s+.+?)(?:\n|$)',
+        r"(?:STEP \d+/\d+:\s*)(RUN\s+.+?)(?:\n|$)",
         error_log,
     )
     failing_step = step_match.group(1).strip() if step_match else None
 
     # Extract base image from the build log
     base_match = re.search(
-        r'STEP 1/\d+:\s*FROM\s+(\S+)',
+        r"STEP 1/\d+:\s*FROM\s+(\S+)",
         error_log,
     )
     base_image = base_match.group(1) if base_match else None
@@ -181,10 +181,14 @@ async def _fix_missing_command_in_dockerfile(
     )
 
     try:
-        response = await llm.ainvoke([
-            SystemMessage(content="You are a Dockerfile expert. Reply with only the requested RUN command."),
-            HumanMessage(content=prompt),
-        ])
+        response = await llm.ainvoke(
+            [
+                SystemMessage(
+                    content="You are a Dockerfile expert. Reply with only the requested RUN command."
+                ),
+                HumanMessage(content=prompt),
+            ]
+        )
         install_line = strip_think_tags(response.content)
 
         # Validate: must start with RUN
@@ -204,7 +208,7 @@ async def _fix_missing_command_in_dockerfile(
         # Clean up: remove markdown code fences if present
         install_line = install_line.strip("`").strip()
         if install_line.startswith("dockerfile"):
-            install_line = install_line[len("dockerfile"):].strip()
+            install_line = install_line[len("dockerfile") :].strip()
 
         logger.info(
             "LLM suggests installing '%s' with: %s",
@@ -287,7 +291,9 @@ def _parse_not_found_packages(error_log: str) -> list[str]:
     for m in re.finditer(r"'([^'@]+(?:@[^']+)?)(?:@[^']*)?' is not in this registry", error_log):
         _add(m.group(1))
     # "404 Not Found - GET https://registry.npmjs.org/<pkg> - Not found"
-    for m in re.finditer(r"404 Not Found - GET https?://[^\s]+/([^\s]+)\s*-\s*Not found", error_log):
+    for m in re.finditer(
+        r"404 Not Found - GET https?://[^\s]+/([^\s]+)\s*-\s*Not found", error_log
+    ):
         _add(m.group(1).replace("%2f", "/").replace("%2F", "/"))
 
     # --- pip ---
@@ -295,7 +301,9 @@ def _parse_not_found_packages(error_log: str) -> list[str]:
     for m in re.finditer(r"No matching distribution found for ([^\s,]+)", error_log):
         _add(m.group(1))
     # "Could not find a version that satisfies the requirement <pkg>"
-    for m in re.finditer(r"Could not find a version that satisfies the requirement ([^\s,;(]+)", error_log):
+    for m in re.finditer(
+        r"Could not find a version that satisfies the requirement ([^\s,;(]+)", error_log
+    ):
         _add(m.group(1))
 
     # --- Go modules ---
@@ -482,13 +490,9 @@ async def build_agent(
                 dockerfile_path = repo_dir / dockerfile
                 if not dockerfile_path.exists():
                     # Log what files are actually in the directory for debugging
-                    existing = [
-                        str(p.relative_to(repo_dir))
-                        for p in repo_dir.rglob("Dockerfile*")
-                    ]
+                    existing = [str(p.relative_to(repo_dir)) for p in repo_dir.rglob("Dockerfile*")]
                     logger.error(
-                        "Dockerfile not found at %s. "
-                        "Dockerfiles in repo: %s",
+                        "Dockerfile not found at %s. Dockerfiles in repo: %s",
                         dockerfile_path,
                         existing or "(none)",
                     )
@@ -633,7 +637,11 @@ async def build_agent(
                                 tag=full_tag,
                                 tls_verify=tls_verify,
                             )
-                            logger.info("Build successful for %s after installing '%s'", comp_name, missing_cmd)
+                            logger.info(
+                                "Build successful for %s after installing '%s'",
+                                comp_name,
+                                missing_cmd,
+                            )
                             build_strategy.push(image=full_tag, tls_verify=tls_verify)
                             built_images.append(full_tag)
                             comp["image_name"] = full_tag

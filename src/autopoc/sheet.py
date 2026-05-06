@@ -81,9 +81,7 @@ def read_sheet(credentials_file: str, sheet_id: str) -> list[dict[str, str]]:
 
     # Get the name of the first tab
     spreadsheet = (
-        service.spreadsheets()
-        .get(spreadsheetId=sheet_id, fields="sheets.properties")
-        .execute()
+        service.spreadsheets().get(spreadsheetId=sheet_id, fields="sheets.properties").execute()
     )
     sheets = spreadsheet.get("sheets", [])
     if not sheets:
@@ -175,16 +173,10 @@ def filter_projects(rows: list[dict[str, str]]) -> list[dict[str, str]]:
 
     # --- PM decision filter ---
     has_pm_column = any("pm_decision" in r for r in rows)
-    pm_column_has_values = has_pm_column and any(
-        r.get("pm_decision", "").strip() for r in rows
-    )
+    pm_column_has_values = has_pm_column and any(r.get("pm_decision", "").strip() for r in rows)
 
     if pm_column_has_values:
-        approved = [
-            r
-            for r in github_rows
-            if "approve" in r.get("pm_decision", "").lower()
-        ]
+        approved = [r for r in github_rows if "approve" in r.get("pm_decision", "").lower()]
         logger.info(
             "PM decision filter: %d/%d GitHub rows are approved",
             len(approved),
@@ -599,8 +591,7 @@ async def _parse_pm_comments(
     raw = response.content
     if isinstance(raw, list):
         raw = "".join(
-            part["text"] if isinstance(part, dict) and "text" in part else str(part)
-            for part in raw
+            part["text"] if isinstance(part, dict) and "text" in part else str(part) for part in raw
         )
 
     # Parse JSON array from response

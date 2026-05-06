@@ -237,11 +237,19 @@ class OpenShiftBuildStrategy(BuildStrategy):
             # the containerize agent has nothing to fix.
             partial = ""
             if e.stdout:
-                raw = e.stdout.decode("utf-8", errors="replace") if isinstance(e.stdout, bytes) else e.stdout
+                raw = (
+                    e.stdout.decode("utf-8", errors="replace")
+                    if isinstance(e.stdout, bytes)
+                    else e.stdout
+                )
                 # Keep last 5000 chars — the error is usually at the end
                 partial = raw[-5000:] if len(raw) > 5000 else raw
             if e.stderr:
-                raw_err = e.stderr.decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else e.stderr
+                raw_err = (
+                    e.stderr.decode("utf-8", errors="replace")
+                    if isinstance(e.stderr, bytes)
+                    else e.stderr
+                )
                 partial += "\n" + (raw_err[-2000:] if len(raw_err) > 2000 else raw_err)
             msg = f"{self._oc} {' '.join(args[:3])}... timed out after {timeout}s"
             if partial.strip():

@@ -43,7 +43,7 @@ class TestTriageApplyError:
     async def test_rbac_cannot_create_is_fix_manifest(self) -> None:
         """RBAC 'cannot create resource' → fix-manifest."""
         error = (
-            'deployments.apps is forbidden: User '
+            "deployments.apps is forbidden: User "
             '"system:serviceaccount:autopoc-test:autopoc-runner" '
             'cannot create resource "deployments" in API group "apps"'
         )
@@ -53,7 +53,7 @@ class TestTriageApplyError:
     async def test_namespace_not_found_is_fix_manifest(self) -> None:
         """'namespaces "X" not found' → fix-manifest."""
         error = (
-            'Error from server (NotFound): error when creating '
+            "Error from server (NotFound): error when creating "
             '"/workspace/kwipu/kubernetes/pvc.yaml": '
             'namespaces "kwipu" not found'
         )
@@ -115,7 +115,11 @@ class TestDetectContainerIssue:
         from autopoc.agents.poc_execute import _detect_container_issue
 
         results = [
-            {"status": "error", "error_message": "ModuleNotFoundError: No module named 'flask'", "output": ""},
+            {
+                "status": "error",
+                "error_message": "ModuleNotFoundError: No module named 'flask'",
+                "output": "",
+            },
         ]
         assert _detect_container_issue(results) is not None
 
@@ -177,8 +181,7 @@ class TestKubectlApplyErrorHandling:
     def test_field_immutable_is_field_error(self) -> None:
         """'field is immutable' should match field-error pattern."""
         error_msg = (
-            'the job "my-job" is invalid: spec.template: '
-            "Invalid value: field is immutable"
+            'the job "my-job" is invalid: spec.template: Invalid value: field is immutable'
         ).lower()
 
         is_rbac_error = "cannot " in error_msg and "resource" in error_msg
@@ -193,7 +196,7 @@ class TestKubectlApplyErrorHandling:
     def test_field_forbidden_without_rbac(self) -> None:
         """'field X is forbidden' (not RBAC) should match field-error."""
         error_msg = (
-            'spec.containers[0].securityContext.runAsUser: '
+            "spec.containers[0].securityContext.runAsUser: "
             "Forbidden: field is forbidden in this context"
         ).lower()
 
@@ -209,8 +212,7 @@ class TestKubectlApplyErrorHandling:
     def test_is_invalid_is_field_error(self) -> None:
         """'is invalid' should match field-error pattern."""
         error_msg = (
-            'the job "my-job" is invalid: spec.selector: '
-            "Invalid value: selector is immutable"
+            'the job "my-job" is invalid: spec.selector: Invalid value: selector is immutable'
         ).lower()
 
         is_rbac_error = "cannot " in error_msg and "resource" in error_msg

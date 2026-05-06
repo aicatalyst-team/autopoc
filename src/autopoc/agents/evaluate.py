@@ -188,13 +188,18 @@ def _build_output_schema(dimensions: list[dict[str, Any]], max_per_dim: int) -> 
         name = dim["name"]
         dim_rationale_entries.append(f'        "{name}": "<1-2 sentence rationale>"')
 
-    schema = """{
+    schema = (
+        """{
     "total_score": <integer, sum of all dimension scores>,
     "dimensions": {
-""" + ",\n".join(dim_entries) + """
+"""
+        + ",\n".join(dim_entries)
+        + """
     },
     "dimension_rationales": {
-""" + ",\n".join(dim_rationale_entries) + """
+"""
+        + ",\n".join(dim_rationale_entries)
+        + """
     },
     "strategy_areas": ["<category-id>", ...],
     "relationship": "<one of the relationship labels>",
@@ -203,6 +208,7 @@ def _build_output_schema(dimensions: list[dict[str, Any]], max_per_dim: int) -> 
     "strengths": ["<strength 1>", "<strength 2>", ...],
     "risks": ["<risk 1>", ...]
 }"""
+    )
     return schema
 
 
@@ -347,11 +353,13 @@ def _build_evaluation_markdown(
         rationale = dim.get("rationale", "").replace("|", "\\|")
         lines.append(f"| {name} | {score} | {max_s} | {rationale} |")
 
-    lines.extend([
-        "",
-        "## Strategy Alignment",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Strategy Alignment",
+            "",
+        ]
+    )
 
     areas = evaluation.get("strategy_areas", [])
     lines.append(f"**Relevant areas:** {', '.join(areas) if areas else 'None'}")
@@ -362,13 +370,15 @@ def _build_evaluation_markdown(
     labels = evaluation.get("capability_labels", [])
     lines.append(f"**Matched capabilities:** {', '.join(labels) if labels else 'None'}")
 
-    lines.extend([
-        "",
-        "## Assessment",
-        "",
-        evaluation.get("rationale", "No assessment available."),
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "## Assessment",
+            "",
+            evaluation.get("rationale", "No assessment available."),
+            "",
+        ]
+    )
 
     strengths = evaluation.get("strengths", [])
     if strengths:

@@ -106,7 +106,9 @@ def _print_debug_dumps() -> None:
             # Truncate very long responses for terminal display
             max_display = 3000
             if len(content) > max_display:
-                content = content[:max_display] + f"\n\n... (truncated, full content in {dump_path})"
+                content = (
+                    content[:max_display] + f"\n\n... (truncated, full content in {dump_path})"
+                )
             console.print(Panel(content, title=dump_path.name, border_style="yellow"))
         except Exception:
             console.print(f"  [dim]Could not read {dump_path}[/dim]")
@@ -169,8 +171,7 @@ async def _invoke_graph_async(
         from langgraph.checkpoint.memory import MemorySaver
 
         logger.debug(
-            "langgraph-checkpoint-sqlite / aiosqlite not installed, "
-            "using in-memory checkpointer"
+            "langgraph-checkpoint-sqlite / aiosqlite not installed, using in-memory checkpointer"
         )
         graph = build_graph(checkpointer=MemorySaver(), stop_after=stop_after)
         return await graph.ainvoke(
@@ -394,8 +395,7 @@ def _print_candidate_comparison(results: list) -> None:
         score = winner.evaluation.get("total_score", 0)
         max_score = winner.evaluation.get("max_possible_score", 100)
         console.print(
-            f"\n  [bold green]Winner:[/bold green] {winner.project.name} "
-            f"({score}/{max_score})"
+            f"\n  [bold green]Winner:[/bold green] {winner.project.name} ({score}/{max_score})"
         )
     console.print()
 
@@ -773,8 +773,7 @@ def run_sheet(
     # Validate required sheet inputs
     if not sheet_id:
         console.print(
-            "[bold red]Error:[/bold red] --sheet-id is required "
-            "(or set AUTOPOC_SHEET_ID env var)"
+            "[bold red]Error:[/bold red] --sheet-id is required (or set AUTOPOC_SHEET_ID env var)"
         )
         raise typer.Exit(code=1)
     if not credentials:
@@ -787,9 +786,7 @@ def run_sheet(
     # Validate credentials file exists
     credentials_path = Path(credentials).expanduser()
     if not credentials_path.is_file():
-        console.print(
-            f"[bold red]Error:[/bold red] Credentials file not found: {credentials_path}"
-        )
+        console.print(f"[bold red]Error:[/bold red] Credentials file not found: {credentials_path}")
         raise typer.Exit(code=1)
 
     config = _load_and_configure(
@@ -802,8 +799,7 @@ def run_sheet(
     # Read and filter the sheet
     console.print(
         Panel(
-            f"[bold]Sheet ID:[/bold]    {sheet_id}\n"
-            f"[bold]Credentials:[/bold] {credentials_path}",
+            f"[bold]Sheet ID:[/bold]    {sheet_id}\n[bold]Credentials:[/bold] {credentials_path}",
             title="Google Sheet Ingestion",
             border_style="cyan",
         )
@@ -872,16 +868,12 @@ def run_sheet(
     async def _do_evaluation():
         # Pre-filter
         console.print("[bold cyan]Pre-filtering candidates...[/bold cyan]")
-        prefiltered = await prefilter_candidates(
-            filtered, max_candidates=max_candidates
-        )
+        prefiltered = await prefilter_candidates(filtered, max_candidates=max_candidates)
         console.print(f"  Pre-filtered to {len(prefiltered)} candidates")
 
         # Progress callback
         def on_progress(idx, total, name):
-            console.print(
-                f"  [cyan]Evaluating candidate {idx + 1}/{total}:[/cyan] {name}"
-            )
+            console.print(f"  [cyan]Evaluating candidate {idx + 1}/{total}:[/cyan] {name}")
 
         # Full evaluation
         results = await evaluate_candidates(
@@ -971,7 +963,7 @@ def resume(
     if not _has_async_sqlite():
         console.print(
             "[bold red]Cannot resume:[/bold red] No persistent checkpointer available.\n"
-            "Install with: [cyan]pip install \"autopoc[checkpoint]\"[/cyan]"
+            'Install with: [cyan]pip install "autopoc[checkpoint]"[/cyan]'
         )
         raise typer.Exit(code=1)
 
@@ -1048,7 +1040,7 @@ def show_status(
     if not _has_async_sqlite():
         console.print(
             "[bold red]No persistent checkpointer available.[/bold red]\n"
-            "Install with: [cyan]pip install \"autopoc[checkpoint]\"[/cyan]"
+            'Install with: [cyan]pip install "autopoc[checkpoint]"[/cyan]'
         )
         raise typer.Exit(code=1)
 
@@ -1058,9 +1050,7 @@ def show_status(
         db_path = _get_checkpoint_dir(config.work_dir) / "autopoc.db"
         async with AsyncSqliteSaver.from_conn_string(str(db_path)) as checkpointer:
             compiled_graph = build_graph(checkpointer=checkpointer)
-            return await compiled_graph.aget_state(
-                {"configurable": {"thread_id": thread_id}}
-            )
+            return await compiled_graph.aget_state({"configurable": {"thread_id": thread_id}})
 
     state = asyncio.run(_get_state())
 

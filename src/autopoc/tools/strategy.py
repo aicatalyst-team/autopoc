@@ -63,8 +63,7 @@ def load_strategy_config() -> dict[str, Any]:
 
     if not config_path.is_file():
         raise FileNotFoundError(
-            f"Strategy config not found: {config_path}.  "
-            "Ensure data/strategy_config.yaml exists."
+            f"Strategy config not found: {config_path}.  Ensure data/strategy_config.yaml exists."
         )
 
     with open(config_path) as f:
@@ -72,8 +71,7 @@ def load_strategy_config() -> dict[str, Any]:
 
     if not isinstance(config, dict) or "active_strategy" not in config:
         raise ValueError(
-            f"strategy_config.yaml must contain an 'active_strategy' key.  "
-            f"Got: {config!r}"
+            f"strategy_config.yaml must contain an 'active_strategy' key.  Got: {config!r}"
         )
 
     return config
@@ -112,7 +110,9 @@ def load_strategy(name: str | None = None) -> dict[str, Any]:
     with open(strategy_path) as f:
         strategy = yaml.safe_load(f)
 
-    logger.info("Loaded strategy '%s' (v%s)", strategy.get("name", name), strategy.get("version", "?"))
+    logger.info(
+        "Loaded strategy '%s' (v%s)", strategy.get("name", name), strategy.get("version", "?")
+    )
     return strategy
 
 
@@ -183,8 +183,7 @@ def get_scoring_dimensions(strategy: dict[str, Any]) -> list[dict[str, Any]]:
     dims = strategy.get("impact_dimensions")
     if dims is None:
         raise ValueError(
-            "Strategy has no 'impact_dimensions'.  "
-            f"Keys found: {sorted(strategy.keys())}"
+            f"Strategy has no 'impact_dimensions'.  Keys found: {sorted(strategy.keys())}"
         )
     return dims
 

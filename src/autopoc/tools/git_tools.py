@@ -280,9 +280,7 @@ def commit_to_artifacts_branch(
 
         # Force-push to origin so re-runs overwrite previous artifacts
         try:
-            _run_git(
-                ["push", "--force", "origin", ARTIFACTS_BRANCH], cwd=clone_path
-            )
+            _run_git(["push", "--force", "origin", ARTIFACTS_BRANCH], cwd=clone_path)
             logger.info("Pushed %s to origin/%s", ", ".join(files), ARTIFACTS_BRANCH)
         except RuntimeError as push_err:
             logger.warning("Failed to push %s branch: %s", ARTIFACTS_BRANCH, push_err)

@@ -5,19 +5,15 @@ LLM and graph invocations.
 """
 
 import json
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from autopoc.sheet import (
-    CandidateResult,
-    SheetProject,
     evaluate_candidates,
     prefilter_candidates,
     select_best_candidate,
 )
-from autopoc.state import PoCPhase
 
 
 MOCK_ROWS = [
@@ -111,9 +107,7 @@ class TestPrefilterToEvaluateFlow:
 
         with patch("autopoc.graph.build_graph", return_value=mock_graph):
             with patch("pathlib.Path.mkdir"):
-                results = await evaluate_candidates(
-                    prefiltered, mock_config, max_candidates=3
-                )
+                results = await evaluate_candidates(prefiltered, mock_config, max_candidates=3)
 
         # Verify results sorted by score
         assert len(results) == 3
@@ -150,9 +144,7 @@ class TestPrefilterToEvaluateFlow:
 
         with patch("autopoc.graph.build_graph", return_value=mock_graph):
             with patch("pathlib.Path.mkdir"):
-                results = await evaluate_candidates(
-                    prefiltered, mock_config, max_candidates=2
-                )
+                results = await evaluate_candidates(prefiltered, mock_config, max_candidates=2)
 
         assert len(results) == 2
 
@@ -179,19 +171,31 @@ class TestPrefilterToEvaluateFlow:
             },
         ]
 
-        pm_response = json.dumps([
-            {"sentiment": "positive", "boost": 10, "strategic_value": True, "demo_potential": True, "concerns": []},
-            {"sentiment": "negative", "boost": -8, "strategic_value": False, "demo_potential": False, "concerns": ["too complex"]},
-        ])
+        pm_response = json.dumps(
+            [
+                {
+                    "sentiment": "positive",
+                    "boost": 10,
+                    "strategic_value": True,
+                    "demo_potential": True,
+                    "concerns": [],
+                },
+                {
+                    "sentiment": "negative",
+                    "boost": -8,
+                    "strategic_value": False,
+                    "demo_potential": False,
+                    "concerns": ["too complex"],
+                },
+            ]
+        )
 
         mock_llm = AsyncMock()
         mock_response = MagicMock()
         mock_response.content = pm_response
         mock_llm.ainvoke.return_value = mock_response
 
-        result = await prefilter_candidates(
-            rows_with_comments, max_candidates=2, llm=mock_llm
-        )
+        result = await prefilter_candidates(rows_with_comments, max_candidates=2, llm=mock_llm)
 
         # With PM boost, generic-web-app gets +10 and vllm-benchmark gets -8
         # But vllm-benchmark has higher keyword/category score

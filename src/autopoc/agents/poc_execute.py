@@ -321,10 +321,7 @@ def _detect_container_issue(poc_results: list) -> str | None:
             # Found a container-level issue — return the first failed
             # scenario's error for the containerize agent
             first_error = failed[0].get("error_message", "") or failed[0].get("output", "")
-            return (
-                f"Container runtime failure detected during PoC execution: "
-                f"{first_error[:1500]}"
-            )
+            return f"Container runtime failure detected during PoC execution: {first_error[:1500]}"
 
     return None
 

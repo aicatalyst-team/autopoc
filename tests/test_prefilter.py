@@ -1,7 +1,6 @@
 """Tests for Phase 13 pre-filter, candidate evaluation, and selection."""
 
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -242,10 +241,12 @@ class TestPrefilterCandidates:
 
 class TestParsePmCommentsResponse:
     def test_parses_valid_array(self) -> None:
-        raw = json.dumps([
-            {"sentiment": "positive", "boost": 7},
-            {"sentiment": "negative", "boost": -5},
-        ])
+        raw = json.dumps(
+            [
+                {"sentiment": "positive", "boost": 7},
+                {"sentiment": "negative", "boost": -5},
+            ]
+        )
         result = _parse_pm_comments_response(raw)
         assert len(result) == 2
         assert result[0]["boost"] == 7
@@ -274,7 +275,9 @@ class TestSelectBestCandidate:
         self, name: str, score: int, heuristic: float = 0.0, error: str | None = None
     ) -> CandidateResult:
         return CandidateResult(
-            project=SheetProject(name=name, repo_url=f"https://github.com/x/{name}", category="", row_index=1),
+            project=SheetProject(
+                name=name, repo_url=f"https://github.com/x/{name}", category="", row_index=1
+            ),
             evaluation={"total_score": score, "max_possible_score": 100},
             heuristic_score=heuristic,
             error=error,

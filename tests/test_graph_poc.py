@@ -408,6 +408,7 @@ def _mock_poc_report_agent():
 
 def _mock_evaluate_agent():
     """Mock evaluate agent that sets a minimal RHOAI evaluation."""
+
     async def _agent(state, **kwargs):
         return {
             "current_phase": PoCPhase.EVALUATE,
@@ -425,6 +426,7 @@ def _mock_evaluate_agent():
                 "strategy_version": "test",
             },
         }
+
     return _agent
 
 
@@ -442,7 +444,12 @@ def _build_test_graph(
 ):
     """Build the full graph with mock agent functions."""
     from langgraph.graph import StateGraph, END
-    from autopoc.graph import route_after_intake, route_after_evaluate, route_after_build, route_after_apply
+    from autopoc.graph import (
+        route_after_intake,
+        route_after_evaluate,
+        route_after_build,
+        route_after_apply,
+    )
 
     if evaluate_fn is None:
         evaluate_fn = _mock_evaluate_agent()

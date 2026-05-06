@@ -38,13 +38,7 @@ class TestExtractDockerfileFromResponse:
 
     def test_generic_code_block_with_from(self):
         """Generic ``` block starting with FROM."""
-        raw = (
-            "```\n"
-            "FROM ubi9/nodejs-22\n"
-            "COPY . .\n"
-            "RUN npm install\n"
-            "```\n"
-        )
+        raw = "```\nFROM ubi9/nodejs-22\nCOPY . .\nRUN npm install\n```\n"
         result = _extract_dockerfile_from_response(raw)
         assert result is not None
         assert result.startswith("FROM ubi9/nodejs-22")
@@ -61,7 +55,7 @@ class TestExtractDockerfileFromResponse:
             '"FROM registry.access.redhat.com/ubi9/python-312\\n\\n'
             "WORKDIR /opt/app-root/src\\n\\n"
             "COPY . ./\\n\\n"
-            'RUN pip install --no-cache-dir .\\n\\n'
+            "RUN pip install --no-cache-dir .\\n\\n"
             'USER 1001\\n"}}\n'
         )
         result = _extract_dockerfile_from_response(raw)
@@ -146,10 +140,7 @@ class TestExtractDockerfileFromResponse:
     def test_bare_from_line(self):
         """Bare FROM at start of a line with no code block."""
         raw = (
-            "I'll create the following Dockerfile:\n"
-            "FROM ubi9/python-312\n"
-            "WORKDIR /app\n"
-            "COPY . .\n"
+            "I'll create the following Dockerfile:\nFROM ubi9/python-312\nWORKDIR /app\nCOPY . .\n"
         )
         result = _extract_dockerfile_from_response(raw)
         assert result is not None
@@ -227,7 +218,7 @@ class TestFixupDockerfile:
             "FROM registry.access.redhat.com/ubi9/python-312\n"
             "COPY . .\n"
             "RUN chgrp -R 0 /opt/app-root && chmod -R g=u /opt/app-root\n"
-            "CMD [\"python\", \"app.py\"]\n"
+            'CMD ["python", "app.py"]\n'
         )
         _fixup_dockerfile(df)
         content = df.read_text()
@@ -333,8 +324,9 @@ class TestFixupDockerfile:
         assert clean_idx < user1001_idx
         # No USER directive between dnf install and dnf clean all
         for idx in range(dnf_idx, clean_idx + 1):
-            assert not lines[idx].strip().startswith("USER "), \
+            assert not lines[idx].strip().startswith("USER "), (
                 f"Found USER directive inside multi-line RUN at line {idx}: {lines[idx]}"
+            )
 
     def test_dnf_install_already_root_not_wrapped(self, tmp_path: Path):
         """dnf install with USER 0 already set should NOT be wrapped."""

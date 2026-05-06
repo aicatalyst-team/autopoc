@@ -80,9 +80,7 @@ def _check_pod_health(namespace: str) -> str | None:
     time.sleep(_POD_HEALTH_CHECK_DELAY)
 
     try:
-        output = _run_kubectl(
-            ["get", "pods", "-n", namespace, "-o", "json"], check=False
-        )
+        output = _run_kubectl(["get", "pods", "-n", namespace, "-o", "json"], check=False)
         if not output.strip():
             return None
 
@@ -117,9 +115,7 @@ def _check_pod_health(namespace: str) -> str | None:
         # Get logs from the first unhealthy pod for diagnosis
         first_pod = unhealthy[0].split(":")[0]
         try:
-            logs = _run_kubectl(
-                ["logs", first_pod, "-n", namespace, "--tail=50"], check=False
-            )
+            logs = _run_kubectl(["logs", first_pod, "-n", namespace, "--tail=50"], check=False)
         except Exception:
             logs = "(failed to fetch logs)"
 
@@ -132,6 +128,7 @@ def _check_pod_health(namespace: str) -> str | None:
     except Exception as e:
         logger.debug("Pod health check failed: %s (continuing)", e)
         return None
+
 
 # Tools for the apply agent — cluster operations + file reading (no writing)
 APPLY_TOOLS = [
@@ -372,9 +369,7 @@ async def apply_agent(
         # Check if namespace already exists
         result = _run_kubectl(["get", "namespace", project_name], check=False)
         if "NotFound" in result or "not found" in result.lower():
-            _run_kubectl(
-                ["create", "namespace", project_name, "--save-config"], check=False
-            )
+            _run_kubectl(["create", "namespace", project_name, "--save-config"], check=False)
             logger.info("Created namespace '%s' (with --save-config)", project_name)
         else:
             logger.info("Namespace '%s' already exists", project_name)
