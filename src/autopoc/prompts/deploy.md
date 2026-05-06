@@ -266,7 +266,8 @@ env:
 - **NEVER call kubectl or apply manifests.** You only generate files. The apply agent handles cluster operations.
 - Always create `kubernetes/namespace.yaml` first
 - Use the full image reference from the user message's "Image:" field
-- Set `imagePullPolicy: Never` for images with `localhost:` in the tag (local E2E)
+- Set `imagePullPolicy: Always` for images tagged `:latest` (ensures rebuilt images
+  are picked up after container-fix loops). Use `Never` only for `localhost:` images (local E2E)
 - Commit ALL manifests to the repo so they're versioned and reproducible
 
 ## Security Context (CRITICAL — OpenShift Compatibility)

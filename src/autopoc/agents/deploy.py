@@ -10,6 +10,7 @@ build runs podman; deploy generates manifests, apply runs kubectl.
 """
 
 import logging
+import re
 from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
@@ -39,6 +40,57 @@ DEPLOY_TOOLS = [
     git_commit,
     git_push,
 ]
+
+
+def _fixup_image_pull_policy(k8s_dir: Path) -> None:
+    """Fix imagePullPolicy in generated K8s manifests.
+
+    LLMs often generate ``imagePullPolicy: IfNotPresent`` for ``:latest``
+    tagged images. With ``:latest``, ``IfNotPresent`` means the node caches
+    the image after the first pull and never re-pulls — so rebuilt images
+    (e.g., from the container-fix outer loop) are never picked up.
+
+    This fixup scans all YAML files in the kubernetes directory and replaces
+    ``imagePullPolicy: IfNotPresent`` with ``imagePullPolicy: Always`` for
+    any container using a ``:latest`` tag (or no tag, which defaults to latest).
+    """
+    if not k8s_dir.is_dir():
+        return
+
+    for yaml_file in k8s_dir.glob("*.yaml"):
+        try:
+            content = yaml_file.read_text(encoding="utf-8")
+        except Exception:
+            continue
+
+        # Only fix files that reference images — look for "image:" lines
+        if "image:" not in content:
+            continue
+
+        # Check if any image uses :latest
+        if not re.search(r"image:\s*\S+:latest\b", content):
+            continue
+
+        # Replace IfNotPresent with Always
+        new_content = content.replace(
+            "imagePullPolicy: IfNotPresent", "imagePullPolicy: Always"
+        )
+
+        # If there's no imagePullPolicy at all, add it after image: lines
+        # that use :latest
+        if "imagePullPolicy" not in new_content:
+            new_content = re.sub(
+                r"(image:\s*\S+:latest\b.*)",
+                r"\1\n          imagePullPolicy: Always",
+                new_content,
+            )
+
+        if new_content != content:
+            yaml_file.write_text(new_content, encoding="utf-8")
+            logger.info(
+                "Deploy fixup: set imagePullPolicy: Always for :latest images in %s",
+                yaml_file.name,
+            )
 
 
 async def deploy_agent(
@@ -267,6 +319,10 @@ Components and their built images:
         )
 
         logger.info("Deploy (manifest generation) complete")
+
+        # ── Deterministic fixup: imagePullPolicy for :latest tags ──
+        k8s_dir = Path(local_clone_path) / "kubernetes"
+        _fixup_image_pull_policy(k8s_dir)
 
         return {
             "current_phase": PoCPhase.DEPLOY,
