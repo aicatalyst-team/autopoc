@@ -6,8 +6,8 @@ retry loops, and the PoC execution/report tail.
 
 Full graph:
     intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ apply → poc_execute → poc_report → END
-                                       ↑                          │
-                                       └──────────────────────────┘  (outer loop: container fix)
+                                       ↑                          │              │
+                                       └──────────────────────────┘──────────────┘  (outer loop: container fix)
 
 The deploy/apply split mirrors containerize/build:
 - containerize generates Dockerfiles, build runs podman
@@ -152,6 +152,39 @@ def route_after_apply(state: PoCState) -> str:
         container_fix_retries,
     )
     return "failed"
+
+
+def route_after_poc_execute(state: PoCState) -> str:
+    """Determine the next step after PoC execution.
+
+    If poc_execute discovered a container-level failure (CrashLoopBackOff,
+    missing command, import error), route back to containerize to fix
+    the image. Otherwise proceed to poc_report.
+
+    Reuses ``container_fix_retries`` to prevent infinite loops.
+    """
+    action = state.get("container_fix_action")
+
+    if action in ("fix-dockerfile", "experiment"):
+        config = load_config()
+        container_fix_retries = state.get("container_fix_retries", 0)
+        if container_fix_retries < config.max_container_fix_retries:
+            logger.warning(
+                "PoC execution detected container issue (action=%s, retry %d/%d). "
+                "Routing back to containerize.",
+                action,
+                container_fix_retries,
+                config.max_container_fix_retries,
+            )
+            return "containerize"
+        logger.warning(
+            "PoC execution detected container issue but retries exhausted (%d/%d). "
+            "Proceeding to report.",
+            container_fix_retries,
+            config.max_container_fix_retries,
+        )
+
+    return "poc_report"
 
 
 # Ordered list of pipeline phases for --stop-after validation.
@@ -333,8 +366,16 @@ def build_graph(checkpointer=None, *, stop_after: str | None = None) -> Compiled
                             if stop_after == "poc_execute":
                                 graph.add_edge("poc_execute", END)
                             else:
-                                # Full pipeline
-                                graph.add_edge("poc_execute", "poc_report")
+                                # Full pipeline — poc_execute can route back
+                                # to containerize if it detects a container issue
+                                graph.add_conditional_edges(
+                                    "poc_execute",
+                                    route_after_poc_execute,
+                                    {
+                                        "poc_report": "poc_report",
+                                        "containerize": "containerize",
+                                    },
+                                )
                                 graph.add_edge("poc_report", END)
 
     # Compile (with optional checkpointer for state persistence)

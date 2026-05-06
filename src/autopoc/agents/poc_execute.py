@@ -13,6 +13,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.prebuilt import create_react_agent
 
 from autopoc.context import make_context_trimmer
+from autopoc.debug import dump_llm_response
 from autopoc.llm import create_llm
 from autopoc.state import PoCPhase, PoCResult, PoCState
 from autopoc.tools.file_tools import read_file, write_file
@@ -99,6 +100,7 @@ def _parse_poc_results(raw_output: str) -> list[PoCResult]:
 
     if not results:
         logger.warning("Could not parse any test results from output (%d chars)", len(raw_output))
+        dump_llm_response("poc_execute", "No test results parsed", raw_output)
 
     return results
 
@@ -273,6 +275,60 @@ def _write_raw_test_output(
     return str(output_dir)
 
 
+# Patterns in poc_results error messages that indicate the container image
+# needs fixing (missing dependency, wrong entrypoint, etc.)
+_CONTAINER_ISSUE_PATTERNS = [
+    "command not found",
+    "no such file or directory",
+    "modulenotfounderror",
+    "importerror",
+    "exec format error",
+    "crashloopbackoff",
+    "imagepullbackoff",
+    "errimagepull",
+    "oci runtime",
+    "cannot find module",
+    "error: cannot find module",
+    "enoent",
+]
+
+
+def _detect_container_issue(poc_results: list) -> str | None:
+    """Check if PoC execution failures indicate a container-level issue.
+
+    Scans error messages from failed scenarios for patterns that suggest
+    the container image is broken (missing dependency, wrong entrypoint).
+    Returns an error description for the containerize agent, or None.
+    """
+    if not poc_results:
+        return None
+
+    failed = [r for r in poc_results if r.get("status") in ("fail", "error")]
+    if not failed:
+        return None
+
+    # Collect all error messages
+    error_texts = []
+    for r in failed:
+        err = r.get("error_message", "") or ""
+        output = r.get("output", "") or ""
+        error_texts.append(f"{err}\n{output}")
+
+    combined = "\n".join(error_texts).lower()
+
+    for pattern in _CONTAINER_ISSUE_PATTERNS:
+        if pattern in combined:
+            # Found a container-level issue — return the first failed
+            # scenario's error for the containerize agent
+            first_error = failed[0].get("error_message", "") or failed[0].get("output", "")
+            return (
+                f"Container runtime failure detected during PoC execution: "
+                f"{first_error[:1500]}"
+            )
+
+    return None
+
+
 async def poc_execute_agent(
     state: PoCState,
     *,
@@ -370,12 +426,28 @@ async def poc_execute_agent(
                     message="Add raw test output and test script (poc-test-output/)",
                 )
 
-        return {
+        # Check if the failures look like container-level issues that
+        # can be fixed by rebuilding the image (missing dependency, wrong
+        # entrypoint, etc.). If so, signal the graph to route back to
+        # containerize instead of proceeding to poc_report.
+        result_state = {
             "current_phase": PoCPhase.POC_EXECUTE,
             "poc_results": poc_results,
             "poc_script_path": poc_script_path,
             "poc_test_output_dir": poc_test_output_dir,
         }
+
+        container_error = _detect_container_issue(poc_results)
+        if container_error:
+            logger.warning(
+                "PoC execution detected container-level issue: %s",
+                container_error[:200],
+            )
+            result_state["container_fix_action"] = "fix-dockerfile"
+            result_state["container_fix_error"] = container_error
+            result_state["error"] = container_error
+
+        return result_state
 
     except Exception as e:
         logger.error("PoC execution failed: %s", e)
