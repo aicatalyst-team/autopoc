@@ -35,6 +35,7 @@ from autopoc.llm import create_llm
 from autopoc.state import PoCPhase, PoCState
 from autopoc.tools.file_tools import list_files, read_file
 from autopoc.tools.k8s_tools import (
+    _run_kubectl,
     kubectl_apply,
     kubectl_apply_from_string,
     kubectl_create_namespace,
@@ -49,7 +50,88 @@ logger = logging.getLogger(__name__)
 # Valid triage actions returned by _triage_apply_error
 _VALID_TRIAGE_ACTIONS = {"fix-manifest", "fix-dockerfile", "experiment"}
 
+# Pod phases/states that indicate a container-level problem (not a manifest issue)
+_UNHEALTHY_WAITING_REASONS = {
+    "CrashLoopBackOff",
+    "ImagePullBackOff",
+    "ErrImagePull",
+    "CreateContainerConfigError",
+    "RunContainerError",
+    "InvalidImageName",
+}
+
 APPLY_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "apply.md"
+
+# Seconds to wait before checking pod health after apply reports success.
+# Gives pods time to start and potentially crash.
+_POD_HEALTH_CHECK_DELAY = 15
+
+
+def _check_pod_health(namespace: str) -> str | None:
+    """Check if pods in the namespace are healthy after deployment.
+
+    Returns an error description if unhealthy pods are found, None if all OK.
+    This catches CrashLoopBackOff and similar issues that ``kubectl rollout
+    status`` doesn't reliably detect (it can return success if the pod starts
+    briefly before crashing).
+    """
+    import time
+
+    time.sleep(_POD_HEALTH_CHECK_DELAY)
+
+    try:
+        output = _run_kubectl(
+            ["get", "pods", "-n", namespace, "-o", "json"], check=False
+        )
+        if not output.strip():
+            return None
+
+        pods = json.loads(output)
+        items = pods.get("items", [])
+        if not items:
+            return None
+
+        unhealthy = []
+        for pod in items:
+            pod_name = pod.get("metadata", {}).get("name", "unknown")
+            statuses = pod.get("status", {}).get("containerStatuses", [])
+            for cs in statuses:
+                waiting = cs.get("state", {}).get("waiting", {})
+                reason = waiting.get("reason", "")
+                if reason in _UNHEALTHY_WAITING_REASONS:
+                    message = waiting.get("message", "")
+                    unhealthy.append(f"{pod_name}: {reason} — {message}")
+
+            # Also check init container statuses
+            init_statuses = pod.get("status", {}).get("initContainerStatuses", [])
+            for cs in init_statuses:
+                waiting = cs.get("state", {}).get("waiting", {})
+                reason = waiting.get("reason", "")
+                if reason in _UNHEALTHY_WAITING_REASONS:
+                    message = waiting.get("message", "")
+                    unhealthy.append(f"{pod_name} (init): {reason} — {message}")
+
+        if not unhealthy:
+            return None
+
+        # Get logs from the first unhealthy pod for diagnosis
+        first_pod = unhealthy[0].split(":")[0]
+        try:
+            logs = _run_kubectl(
+                ["logs", first_pod, "-n", namespace, "--tail=50"], check=False
+            )
+        except Exception:
+            logs = "(failed to fetch logs)"
+
+        return (
+            "Pods unhealthy after deployment:\n"
+            + "\n".join(f"  - {u}" for u in unhealthy)
+            + f"\n\nLogs from {first_pod}:\n{logs}"
+        )
+
+    except Exception as e:
+        logger.debug("Pod health check failed: %s (continuing)", e)
+        return None
 
 # Tools for the apply agent — cluster operations + file reading (no writing)
 APPLY_TOOLS = [
@@ -140,13 +222,42 @@ def _parse_apply_output(raw_output: str, messages: list) -> dict:
 async def _triage_apply_error(error_text: str) -> str:
     """Classify an apply/runtime error to decide where to route the fix.
 
-    Uses a lightweight LLM call to classify the error into one of:
+    First applies deterministic pattern matching for known error types
+    (RBAC, namespace issues) that the LLM consistently misclassifies.
+    Falls through to a lightweight LLM call for ambiguous errors.
+
+    Returns one of:
     - ``fix-manifest``  — K8s manifest issue (wrong port, missing env var, RBAC)
     - ``fix-dockerfile`` — Container image is broken (missing dep, wrong entrypoint)
     - ``experiment``    — Image is fine as-is, but needs a variant for this context
-
-    Returns one of the three action strings.
     """
+    # ── Deterministic pre-checks for patterns the LLM gets wrong ──
+    error_lower = error_text.lower()
+
+    # RBAC forbidden errors: "cannot <verb> resource ... is forbidden"
+    if "cannot " in error_lower and "forbidden" in error_lower:
+        logger.info("Triage: deterministic — RBAC forbidden → fix-manifest")
+        return "fix-manifest"
+
+    # Namespace not found
+    if "namespace" in error_lower and "not found" in error_lower:
+        logger.info("Triage: deterministic — namespace not found → fix-manifest")
+        return "fix-manifest"
+
+    # Container crash / image issues — always a Dockerfile problem
+    if "crashloopbackoff" in error_lower:
+        logger.info("Triage: deterministic — CrashLoopBackOff → fix-dockerfile")
+        return "fix-dockerfile"
+
+    if "imagepullbackoff" in error_lower or "errimagepull" in error_lower:
+        logger.info("Triage: deterministic — ImagePullBackOff → fix-dockerfile")
+        return "fix-dockerfile"
+
+    if "command not found" in error_lower or "exec format error" in error_lower:
+        logger.info("Triage: deterministic — command/exec error → fix-dockerfile")
+        return "fix-dockerfile"
+
+    # ── Fall through to LLM for ambiguous errors ──
     triage_llm = create_llm()
 
     prompt = (
@@ -248,7 +359,38 @@ async def apply_agent(
             ),
         }
 
-    k8s_dir = str(Path(local_clone_path) / "kubernetes")
+    # ── Deterministic: ensure namespace exists before the LLM touches kubectl ──
+    # The LLM *should* call kubectl_create_namespace first, but it often skips
+    # straight to kubectl_apply, which fails with "namespaces not found".
+    # Creating it here is idempotent and costs nothing.
+    #
+    # We use --save-config so kubectl writes the last-applied-configuration
+    # annotation. Without it, a later `kubectl apply -f namespace.yaml` would
+    # need to PATCH the namespace to add the annotation, requiring the patch
+    # verb on namespaces (which may not be granted).
+    try:
+        # Check if namespace already exists
+        result = _run_kubectl(["get", "namespace", project_name], check=False)
+        if "NotFound" in result or "not found" in result.lower():
+            _run_kubectl(
+                ["create", "namespace", project_name, "--save-config"], check=False
+            )
+            logger.info("Created namespace '%s' (with --save-config)", project_name)
+        else:
+            logger.info("Namespace '%s' already exists", project_name)
+    except Exception as e:
+        logger.debug("Namespace pre-creation returned: %s (continuing)", e)
+
+    k8s_path = Path(local_clone_path) / "kubernetes"
+    k8s_dir = str(k8s_path)
+
+    # ── Deterministic: discover manifest files before the LLM runs ──
+    # The LLM often skips list_files and guesses filenames, or uses relative
+    # paths (CWD is /workspace, not the clone dir). Listing files here and
+    # including absolute paths in the message eliminates both failure modes.
+    manifest_files: list[str] = []
+    if k8s_path.is_dir():
+        manifest_files = sorted(str(f) for f in k8s_path.glob("*.yaml"))
 
     user_message = f"""Apply the Kubernetes manifests to the cluster.
 
@@ -256,9 +398,19 @@ Project: {project_name}
 Namespace: {project_name}
 Repository path: {local_clone_path}
 Manifests directory: {k8s_dir}
-
-Components:
 """
+
+    if manifest_files:
+        user_message += "\n**Manifest files to apply (use these EXACT absolute paths):**\n"
+        for f in manifest_files:
+            user_message += f"  {f}\n"
+    else:
+        user_message += (
+            "\n**WARNING:** No manifest files found in kubernetes/ directory. "
+            "Use list_files to verify the directory exists and check for manifests.\n"
+        )
+
+    user_message += "\nComponents:\n"
 
     for component in components:
         comp_name = component.get("name", "unknown")
@@ -294,7 +446,8 @@ Components:
         )
 
     user_message += (
-        "\n\nList the files in the kubernetes/ directory, then apply them in order. "
+        "\n\nApply the manifest files listed above in order. "
+        "Use the EXACT absolute paths provided — do NOT use relative paths. "
         "Wait for rollouts, verify pods, and get service URLs."
     )
 
@@ -358,6 +511,27 @@ Components:
             len(routes),
         )
 
+        # ── Deterministic: verify pod health after apply reports success ──
+        # kubectl rollout status can return success if the pod starts briefly
+        # before crashing. Check pod status after a short delay to catch
+        # CrashLoopBackOff, ImagePullBackOff, etc.
+        health_error = _check_pod_health(project_name)
+        if health_error:
+            logger.warning("Post-apply health check failed: %s", health_error[:300])
+            current_retries = state.get("deploy_retries", 0)
+            triage_action = await _triage_apply_error(health_error)
+            result_state = {
+                "current_phase": PoCPhase.APPLY,
+                "deployed_resources": deployed_resources,
+                "routes": routes,
+                "error": health_error,
+                "deploy_retries": current_retries + 1,
+                "container_fix_action": triage_action,
+            }
+            if triage_action in ("fix-dockerfile", "experiment"):
+                result_state["container_fix_error"] = health_error
+            return result_state
+
         return {
             "current_phase": PoCPhase.APPLY,
             "deployed_resources": deployed_resources,
@@ -371,6 +545,14 @@ Components:
         logger.error("Apply failed: %s", e, exc_info=True)
         current_retries = state.get("deploy_retries", 0)
         error_msg = f"Apply failed: {e}"
+
+        # ── Enrich with pod health check ──
+        # The exception often just says "rollout timed out" which is useless
+        # for the containerize agent. Check pod health to get the ACTUAL
+        # crash reason (e.g., "streamlit: command not found") with logs.
+        health_error = _check_pod_health(project_name)
+        if health_error:
+            error_msg += f"\n\n{health_error}"
 
         # Triage even on exceptions — the error text may indicate a container issue
         triage_action = await _triage_apply_error(error_msg)

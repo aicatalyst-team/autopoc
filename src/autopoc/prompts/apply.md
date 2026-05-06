@@ -29,12 +29,14 @@ is running correctly.
 
 ## Apply Procedure
 
-### Step 1: Discover manifests
+### Step 1: Apply in order
 
-Use `list_files` on the `kubernetes/` directory inside the repository to find all
-manifest files. The repository path is provided in the user message.
+The user message includes the **exact absolute paths** to all manifest files.
+Use those paths directly — do NOT guess filenames or use relative paths.
 
-### Step 2: Apply in order
+**CRITICAL: Always use ABSOLUTE paths** (starting with `/`) when calling
+`kubectl_apply`. The container's working directory is NOT the repository root,
+so relative paths like `kubernetes/foo.yaml` will fail with "does not exist".
 
 Apply manifests in this order (order matters for dependencies):
 
@@ -44,9 +46,9 @@ Apply manifests in this order (order matters for dependencies):
 4. **Deployments / Jobs** — `*-deployment.yaml`, `*-job.yaml`
 5. **Services** — `*-service.yaml`
 
-For each file, use:
+For each file, use the absolute path from the user message:
 ```
-kubectl_apply(manifest_path, namespace=project_name)
+kubectl_apply(manifest_path="/workspace/myproject/kubernetes/deployment.yaml", namespace=project_name)
 ```
 
 ### Step 3: Wait and verify
@@ -135,6 +137,8 @@ If there was a failure:
 - **Do NOT modify or regenerate manifests.** If a manifest is wrong, return an error
   and the pipeline will send it back to the deploy agent for fixing.
 - Apply manifests exactly as they are on disk.
+- **Always use ABSOLUTE paths** (e.g., `/workspace/myproject/kubernetes/foo.yaml`)
+  when calling `kubectl_apply`. Never use relative paths.
 - Use the project name as the namespace (provided in the user message).
 - For local E2E testing (kind/k3d), NodePort services are expected.
 - Keep your tool usage minimal — apply, wait, verify, report. This is an operations
