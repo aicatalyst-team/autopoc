@@ -86,6 +86,32 @@ def _generate_thread_id(project_name: str) -> str:
     return f"{project_name}-{short_id}"
 
 
+def _print_debug_dumps() -> None:
+    """Print any debug dumps from failed LLM response parses."""
+    from autopoc.debug import get_debug_dir, get_dump_files
+
+    dump_files = get_dump_files()
+    if not dump_files:
+        return
+
+    debug_dir = get_debug_dir()
+    console.print(
+        f"\n[bold yellow]LLM Response Debug Dumps ({len(dump_files)} failed parses)[/bold yellow]"
+    )
+    console.print(f"[dim]Directory: {debug_dir}[/dim]\n")
+
+    for dump_path in dump_files:
+        try:
+            content = dump_path.read_text(encoding="utf-8")
+            # Truncate very long responses for terminal display
+            max_display = 3000
+            if len(content) > max_display:
+                content = content[:max_display] + f"\n\n... (truncated, full content in {dump_path})"
+            console.print(Panel(content, title=dump_path.name, border_style="yellow"))
+        except Exception:
+            console.print(f"  [dim]Could not read {dump_path}[/dim]")
+
+
 def _get_checkpoint_dir(work_dir: str) -> Path:
     """Get the checkpoints directory, creating it if needed."""
     checkpoint_dir = Path(work_dir) / "checkpoints"
@@ -325,6 +351,7 @@ def _run_pipeline(
     config: AutoPoCConfig,
     *,
     verbose: bool = False,
+    debug: bool = False,
     stop_after: str | None = None,
 ) -> None:
     """Build initial state, compile the graph, invoke, and print results.
@@ -333,6 +360,11 @@ def _run_pipeline(
     invocation logic that is identical regardless of how the project
     name and repo URL were obtained.
     """
+    # --debug implies --verbose (you want to see phase progress when debugging)
+    if debug and not verbose:
+        verbose = True
+        setup_logging(verbose=True, console=console)
+
     # Validate --stop-after
     if stop_after:
         from autopoc.graph import PIPELINE_PHASES
@@ -343,6 +375,13 @@ def _run_pipeline(
                 f"Valid phases: {', '.join(PIPELINE_PHASES)}"
             )
             raise typer.Exit(code=1)
+
+    # Initialize debug dump directory in debug mode
+    if debug:
+        from autopoc.debug import init_debug_dir
+
+        debug_dir = init_debug_dir(config.work_dir)
+        console.print(f"[dim]Debug dumps: {debug_dir}[/dim]")
 
     # Generate thread ID for checkpointing
     thread_id = _generate_thread_id(name)
@@ -416,6 +455,8 @@ def _run_pipeline(
         else:
             console.print("Run with --verbose to see the full traceback.")
         console.print(f"[dim]Thread ID: {thread_id}[/dim]")
+        if debug:
+            _print_debug_dumps()
         raise typer.Exit(code=1)
 
     elapsed = time.time() - start_time
@@ -439,6 +480,10 @@ def _run_pipeline(
         )
 
     _print_results(result, verbose=verbose)
+
+    # Print debug dumps if any LLM responses failed to parse
+    if debug:
+        _print_debug_dumps()
 
     console.print(f"\n[dim]Thread ID: {thread_id}[/dim]")
 
@@ -523,20 +568,22 @@ def run(
             "Valid: intake, poc_plan, fork, containerize, build, deploy, apply, poc_execute, poc_report",
         ),
     ] = None,
+    debug: Annotated[
+        bool,
+        typer.Option("--debug", help="Dump failed LLM response parses to debug/ for diagnosis"),
+    ] = False,
 ) -> None:
     """Run the full AutoPoC pipeline: intake, fork, containerize, build, deploy."""
 
     # Validate required inputs (CLI args or env vars)
     if not name:
         console.print(
-            "[bold red]Error:[/bold red] --name is required "
-            "(or set AUTOPOC_PROJECT_NAME env var)"
+            "[bold red]Error:[/bold red] --name is required (or set AUTOPOC_PROJECT_NAME env var)"
         )
         raise typer.Exit(code=1)
     if not repo:
         console.print(
-            "[bold red]Error:[/bold red] --repo is required "
-            "(or set AUTOPOC_REPO_URL env var)"
+            "[bold red]Error:[/bold red] --repo is required (or set AUTOPOC_REPO_URL env var)"
         )
         raise typer.Exit(code=1)
 
@@ -547,7 +594,7 @@ def run(
         skip_validation=skip_validation,
     )
 
-    _run_pipeline(name, repo, config, verbose=verbose, stop_after=stop_after)
+    _run_pipeline(name, repo, config, verbose=verbose, debug=debug, stop_after=stop_after)
 
 
 @app.command("run-sheet")
@@ -594,6 +641,10 @@ def run_sheet(
             "Valid: intake, poc_plan, fork, containerize, build, deploy, apply, poc_execute, poc_report",
         ),
     ] = None,
+    debug: Annotated[
+        bool,
+        typer.Option("--debug", help="Dump failed LLM response parses to debug/ for diagnosis"),
+    ] = False,
 ) -> None:
     """Run AutoPoC for the top project from a Google Sheet.
 
@@ -675,6 +726,7 @@ def run_sheet(
         project.repo_url,
         config,
         verbose=verbose,
+        debug=debug,
         stop_after=stop_after,
     )
 
