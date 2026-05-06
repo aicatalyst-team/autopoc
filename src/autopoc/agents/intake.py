@@ -15,7 +15,8 @@ from pathlib import Path
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from autopoc.llm import create_llm
+from autopoc.debug import dump_llm_response
+from autopoc.llm import create_llm, strip_think_tags
 from autopoc.state import ComponentInfo, PoCPhase, PoCState
 from autopoc.tools.git_tools import git_clone
 from autopoc.tools.repo_digest import build_repo_digest
@@ -46,7 +47,7 @@ def _parse_intake_output(raw_output: str) -> dict:
         return json.loads(text)
     except json.JSONDecodeError as e:
         logger.warning("Failed to parse intake output as JSON: %s", e)
-        logger.debug("Raw output: %s", text[:500])
+        dump_llm_response("intake", f"JSON parse failure: {e}", raw_output)
         return {
             "repo_summary": f"Failed to parse analysis output: {e}",
             "components": [],
@@ -71,6 +72,159 @@ def _validate_component(comp: dict) -> ComponentInfo:
         dockerfile_ubi_path="",  # Set later by containerize agent
         image_name="",  # Set later by build agent
     )
+
+
+# Files that indicate a directory is a component root (has its own build system)
+_BUILD_FILES = frozenset({
+    # Python
+    "setup.py", "setup.cfg", "pyproject.toml", "requirements.txt", "Pipfile",
+    # JavaScript / TypeScript
+    "package.json",
+    # Go
+    "go.mod",
+    # Rust
+    "Cargo.toml",
+    # Java / Kotlin
+    "pom.xml", "build.gradle", "build.gradle.kts",
+    # Ruby
+    "Gemfile",
+    # C / C++
+    "CMakeLists.txt", "Makefile", "meson.build",
+    # Generic
+    "Dockerfile", "Dockerfile.ubi",
+})
+
+
+def _has_build_files(directory: Path) -> bool:
+    """Check if a directory looks like a component root (has build/config files)."""
+    return any((directory / f).exists() for f in _BUILD_FILES)
+
+
+async def _fix_component_paths(
+    components: list[ComponentInfo],
+    clone_path: Path,
+    llm: BaseChatModel,
+) -> list[ComponentInfo]:
+    """Validate component source_dir paths and fix any that don't exist.
+
+    For each component whose source_dir doesn't exist on disk, asks the LLM
+    to identify the correct path from the actual directory listing.
+
+    Also catches a common LLM mistake: setting source_dir to a source code
+    subdirectory (e.g., the Python package dir) instead of the component root.
+    If the directory exists but has no build files, and the repo root does,
+    we correct source_dir to ".".
+
+    Components that can't be resolved are dropped with a warning.
+    """
+    valid = []
+    for comp in components:
+        source_dir = comp.get("source_dir", ".")
+        comp_path = clone_path / source_dir if source_dir != "." else clone_path
+
+        if comp_path.exists():
+            # Directory exists — but is it actually a component root?
+            # If it's a subdirectory with no build files, but the repo root
+            # HAS build files, the LLM probably confused the source code dir
+            # (e.g., Python package dir) with the component root.
+            if (
+                source_dir != "."
+                and not _has_build_files(comp_path)
+                and _has_build_files(clone_path)
+            ):
+                comp_name = comp.get("name", "unknown")
+                logger.warning(
+                    "Component '%s' has source_dir='%s' which exists but has no "
+                    "build files (setup.py, package.json, etc.). Repo root does — "
+                    "correcting source_dir to '.'",
+                    comp_name,
+                    source_dir,
+                )
+                comp["source_dir"] = "."
+            valid.append(comp)
+            continue
+
+        comp_name = comp.get("name", "unknown")
+        logger.warning(
+            "Component '%s' has source_dir='%s' which does not exist on disk. "
+            "Asking LLM to correct the path.",
+            comp_name,
+            source_dir,
+        )
+
+        # List actual directories (max 2 levels deep) for the LLM to pick from
+        actual_dirs = sorted(
+            str(p.relative_to(clone_path))
+            for p in clone_path.rglob("*")
+            if p.is_dir()
+            and ".git" not in p.parts
+            and "node_modules" not in p.parts
+            and "__pycache__" not in p.parts
+            and len(p.relative_to(clone_path).parts) <= 3
+        )
+        # Truncate to keep the prompt manageable
+        if len(actual_dirs) > 100:
+            actual_dirs = actual_dirs[:100]
+
+        prompt = (
+            f"The component '{comp_name}' (language: {comp.get('language', 'unknown')}) "
+            f"was identified with source directory '{source_dir}', but that directory "
+            f"does not exist in the repository.\n\n"
+            f"Here are the actual directories in the repository:\n"
+            f"{chr(10).join(actual_dirs)}\n\n"
+            f"Which directory contains the source code for '{comp_name}'?\n"
+            f"Reply with ONLY the directory path, nothing else. "
+            f"If the component does not exist in this repository, reply with NONE."
+        )
+
+        try:
+            response = await llm.ainvoke([
+                SystemMessage(content="You are identifying source code directories in a repository. Reply with only the directory path."),
+                HumanMessage(content=prompt),
+            ])
+            answer = strip_think_tags(response.content)
+            answer = answer.strip("`\"'")
+
+            if answer.upper() == "NONE" or not answer:
+                logger.warning(
+                    "Component '%s' does not exist in the repository — dropping it",
+                    comp_name,
+                )
+                continue
+
+            # Verify the suggested path exists
+            suggested_path = clone_path / answer
+            if suggested_path.exists():
+                logger.info(
+                    "Corrected source_dir for '%s': '%s' → '%s'",
+                    comp_name,
+                    source_dir,
+                    answer,
+                )
+                comp["source_dir"] = answer
+                valid.append(comp)
+            else:
+                logger.warning(
+                    "LLM suggested '%s' for component '%s' but it doesn't exist either — dropping",
+                    answer,
+                    comp_name,
+                )
+        except Exception as e:
+            logger.warning(
+                "Failed to correct path for component '%s': %s — dropping",
+                comp_name,
+                e,
+            )
+
+    if len(valid) < len(components):
+        dropped = len(components) - len(valid)
+        logger.info(
+            "Dropped %d component(s) with invalid source paths, %d remaining",
+            dropped,
+            len(valid),
+        )
+
+    return valid
 
 
 async def intake_agent(
@@ -158,6 +312,10 @@ async def intake_agent(
 
     # Validate and build components list
     components = [_validate_component(comp) for comp in parsed.get("components", [])]
+
+    # Verify each component's source_dir exists on disk.
+    # If the LLM hallucinated a path, ask it to correct it.
+    components = await _fix_component_paths(components, clone_path, llm)
 
     if not components:
         logger.error("Intake found 0 components — pipeline cannot proceed")
