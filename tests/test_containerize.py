@@ -106,6 +106,65 @@ class TestBuildUserMessage:
         msg = _build_user_message(comp, "/tmp/repo")
         assert "True" in msg  # is_ml_workload: True
 
+    def test_cpu_only_hints_when_no_gpu(self) -> None:
+        """When needs_gpu=false, message should include CPU-only package guidance."""
+        comp = ComponentInfo(
+            name="rag-app",
+            language="python",
+            build_system="pip",
+            entry_point="app.py",
+            port=8080,
+            existing_dockerfile=None,
+            is_ml_workload=True,
+            source_dir=".",
+            dockerfile_ubi_path="",
+            image_name="",
+        )
+        infra = {"needs_gpu": False, "resource_profile": "medium"}
+        msg = _build_user_message(comp, "/tmp/repo", poc_infrastructure=infra)
+        assert "faiss-cpu" in msg
+        assert "No GPU available" in msg
+
+    def test_gpu_hints_when_gpu_needed(self) -> None:
+        """When needs_gpu=true, message should include GPU package guidance."""
+        comp = ComponentInfo(
+            name="model-serve",
+            language="python",
+            build_system="pip",
+            entry_point="serve.py",
+            port=8080,
+            existing_dockerfile=None,
+            is_ml_workload=True,
+            source_dir=".",
+            dockerfile_ubi_path="",
+            image_name="",
+        )
+        infra = {"needs_gpu": True, "resource_profile": "gpu"}
+        msg = _build_user_message(comp, "/tmp/repo", poc_infrastructure=infra)
+        assert "GPU support needed" in msg
+        assert "CUDA" in msg
+        # Should NOT include CPU-only hints
+        assert "No GPU available" not in msg
+
+    def test_no_gpu_hints_without_infrastructure(self) -> None:
+        """When poc_infrastructure is None, no GPU/CPU hints should appear."""
+        comp = ComponentInfo(
+            name="api",
+            language="python",
+            build_system="pip",
+            entry_point="app.py",
+            port=8080,
+            existing_dockerfile=None,
+            is_ml_workload=False,
+            source_dir=".",
+            dockerfile_ubi_path="",
+            image_name="",
+        )
+        msg = _build_user_message(comp, "/tmp/repo")
+        assert "faiss-cpu" not in msg
+        assert "GPU support needed" not in msg
+        assert "No GPU available" not in msg
+
 
 # --- Tests for _parse_containerize_output ---
 
