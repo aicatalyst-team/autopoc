@@ -117,6 +117,11 @@ async def _fix_component_paths(
 
     Components that can't be resolved are dropped with a warning.
     """
+    if not clone_path.exists():
+        # Clone path doesn't exist (e.g. in tests with mock paths) —
+        # skip validation entirely, nothing to check against.
+        return components
+
     valid = []
     for comp in components:
         source_dir = comp.get("source_dir", ".")

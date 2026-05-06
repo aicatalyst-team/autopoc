@@ -40,7 +40,10 @@ class TestBuildUserMessage:
         assert "No existing Dockerfile" in msg
         assert "/tmp/repo" in msg
 
-    def test_with_existing_dockerfile(self) -> None:
+    def test_with_existing_dockerfile(self, tmp_path: Path) -> None:
+        # Create a real Dockerfile on disk so _find_existing_dockerfile finds it
+        (tmp_path / "Dockerfile").write_text("FROM python:3.12\nCOPY . .\n")
+
         comp = ComponentInfo(
             name="app",
             language="python",
@@ -53,9 +56,9 @@ class TestBuildUserMessage:
             dockerfile_ubi_path="",
             image_name="",
         )
-        msg = _build_user_message(comp, "/tmp/repo")
+        msg = _build_user_message(comp, str(tmp_path))
         assert "Existing Dockerfile" in msg
-        assert "adapt to UBI" in msg
+        assert "Adapt it to use UBI" in msg
 
     def test_with_build_error(self) -> None:
         comp = ComponentInfo(
