@@ -14,6 +14,25 @@ from langchain_core.tools import tool
 logger = logging.getLogger(__name__)
 
 
+def _is_field_level_error(error_msg: str) -> bool:
+    """Classify a kubectl error as a field-level issue (immutable/invalid/forbidden).
+
+    Returns True for errors caused by immutable fields, invalid values, or
+    forbidden fields — these can be resolved by deleting and re-applying.
+
+    Returns False for RBAC errors ("cannot <verb> resource ... is forbidden"),
+    which should bubble up for user/triage diagnosis rather than triggering
+    a delete-and-reapply cycle.
+    """
+    msg = error_msg.lower()
+    is_rbac = "cannot " in msg and "resource" in msg
+    return (
+        "field is immutable" in msg
+        or "is invalid" in msg
+        or ("is forbidden" in msg and not is_rbac)
+    )
+
+
 def _run_kubectl(args: list[str], timeout: int = 60, check: bool = True) -> str:
     """Run kubectl command and return output.
 
@@ -145,13 +164,7 @@ def kubectl_apply(manifest_path: str, namespace: str) -> str:
     try:
         return _run_kubectl(["apply", "-f", manifest_path, "-n", namespace])
     except RuntimeError as e:
-        error_msg = str(e).lower()
-        # Detect immutable/forbidden field errors (common with Jobs and PVCs)
-        if (
-            "field is immutable" in error_msg
-            or "is invalid" in error_msg
-            or "is forbidden" in error_msg
-        ):
+        if _is_field_level_error(str(e)):
             logger.info(
                 "Apply failed due to immutable/forbidden field, deleting and re-applying: %s",
                 manifest_path,
@@ -193,12 +206,7 @@ def kubectl_apply_from_string(manifest: str, namespace: str) -> str:
         try:
             return _run_kubectl(["apply", "-f", temp_path, "-n", namespace])
         except RuntimeError as e:
-            error_msg = str(e).lower()
-            if (
-                "field is immutable" in error_msg
-                or "is invalid" in error_msg
-                or "is forbidden" in error_msg
-            ):
+            if _is_field_level_error(str(e)):
                 logger.info(
                     "Apply from string failed due to immutable/forbidden field, "
                     "deleting and re-applying"

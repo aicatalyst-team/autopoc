@@ -131,9 +131,9 @@ async def _fork_to_gitlab(
             logger.warning("Failed to reconfigure remotes, falling back to 'gitlab' remote: %s", e)
             git_add_remote.invoke({"repo_path": clone_str, "name": "gitlab", "url": gitlab_url})
 
-        # Push all branches and tags to GitLab
-        git_push.invoke({"repo_path": clone_str, "remote": "origin", "ref": "--all"})
-        git_push.invoke({"repo_path": clone_str, "remote": "origin", "ref": "--tags"})
+        # Force-push all branches and tags so re-runs overwrite previous results
+        git_push.invoke({"repo_path": clone_str, "remote": "origin", "ref": "--all", "force": True})
+        git_push.invoke({"repo_path": clone_str, "remote": "origin", "ref": "--tags", "force": True})
 
         logger.info("Pushed all branches and tags to GitLab")
 

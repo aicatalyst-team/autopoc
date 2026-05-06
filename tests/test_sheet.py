@@ -16,8 +16,8 @@ from autopoc.sheet import (
     select_project,
 )
 
-# Path to the reference CSV checked into the repo.
-CSV_PATH = Path(__file__).resolve().parent.parent / "POCExplorer - 20260428#1.csv"
+# Path to the reference CSV fixture.
+CSV_PATH = Path(__file__).resolve().parent / "fixtures" / "poc_explorer_sample.csv"
 
 
 def _load_csv_rows() -> list[list[str]]:

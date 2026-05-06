@@ -1,0 +1,41 @@
+# Example overlay — copy this directory to create your own deployment.
+#
+# Setup:
+#   cp -r deploy/overlays/example deploy/overlays/my-cluster
+#   cd deploy/overlays/my-cluster
+#   cp secret.yaml.example secret.yaml
+#   # Edit secret.yaml with real credentials
+#   # Edit kustomization.yaml to customize image, namespace, etc.
+#
+# Deploy RBAC + Secret (one-time):
+#   kubectl apply -k deploy/overlays/my-cluster
+#
+# Run a Job:
+#   ./deploy/run-job.sh my-cluster my-project https://github.com/org/repo
+#
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  # Uncomment after creating secret.yaml from the example:
+  # - secret.yaml
+
+# Customize the autopoc container image
+images:
+  - name: quay.io/autopoc/autopoc
+    newName: quay.io/autopoc/autopoc
+    newTag: latest
+
+# Add --stop-after build to the Job args (optional)
+patches:
+  - target:
+      kind: Job
+      name: autopoc-JOB_SUFFIX
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value:
+          - "run"
+          - "--stop-after"
+          - "build"

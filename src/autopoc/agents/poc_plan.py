@@ -15,6 +15,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.prebuilt import create_react_agent
 
 from autopoc.context import make_context_trimmer
+from autopoc.debug import dump_llm_response
 from autopoc.llm import create_llm
 from autopoc.state import PoCInfrastructure, PoCScenario, PoCState
 from autopoc.tools.file_tools import list_files, read_file, search_files, write_file
@@ -104,7 +105,7 @@ def _parse_poc_plan_output(raw_output: str) -> dict:
         pass
 
     logger.warning("Failed to parse PoC plan output as JSON from %d chars of output", len(text))
-    logger.debug("Raw output (last 500 chars): %s", text[-500:])
+    dump_llm_response("poc_plan", "JSON parse failure", raw_output)
     # Return a minimal structure with a parse failure flag
     return {
         "poc_type": "web-app",

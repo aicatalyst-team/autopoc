@@ -14,6 +14,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.prebuilt import create_react_agent
 
 from autopoc.context import make_context_trimmer
+from autopoc.debug import dump_llm_response
 from autopoc.llm import create_llm
 from autopoc.state import ComponentInfo, PoCPhase, PoCState
 from autopoc.tools.file_tools import list_files, read_file, search_files, write_file
@@ -49,13 +50,44 @@ def _load_system_prompt() -> str:
     return prompt_path.read_text(encoding="utf-8")
 
 
+def _extract_dockerfile_considerations(poc_plan_text: str | None) -> str | None:
+    """Extract the 'Dockerfile Considerations' section from the PoC plan markdown.
+
+    This section contains critical guidance for the containerize agent:
+    what the entrypoint should be, whether to add EXPOSE, etc.
+    It's typically 2-5 sentences and much cheaper than including the full plan.
+
+    Returns:
+        The section content (without the header), or None if not found.
+    """
+    if not poc_plan_text:
+        return None
+
+    lines = poc_plan_text.split("\n")
+    in_section = False
+    section_lines: list[str] = []
+
+    for line in lines:
+        if line.strip().lower().startswith("## dockerfile considerations"):
+            in_section = True
+            continue
+        if in_section:
+            # Stop at the next ## header
+            if line.strip().startswith("## "):
+                break
+            section_lines.append(line)
+
+    content = "\n".join(section_lines).strip()
+    return content if content else None
+
+
 def _build_user_message(
     component: ComponentInfo,
     clone_path: str,
     build_error: str | None = None,
     poc_infrastructure: dict | None = None,  # PoCInfrastructure TypedDict
     poc_type: str | None = None,
-    poc_plan_text: str | None = None,
+    dockerfile_considerations: str | None = None,
 ) -> str:
     """Build the user message for the containerize agent.
 
@@ -88,9 +120,16 @@ def _build_user_message(
         f"- **Build context (repo root):** {clone_path}",
     ]
 
-    existing = component.get("existing_dockerfile")
-    if existing:
-        parts.append(f"\n**Existing Dockerfile:** `{existing}` (read it and adapt to UBI)")
+    # Include existing Dockerfile content directly in the prompt.
+    # Don't rely on the LLM to read_file — tool calling is unreliable.
+    existing_content = _find_existing_dockerfile(clone_path, source_dir)
+    if existing_content:
+        parts.append(
+            f"\n**Existing Dockerfile found.** Adapt it to use UBI base images and "
+            f"add OpenShift compatibility. Preserve the build logic — the project "
+            f"authors wrote this and it works.\n"
+            f"```dockerfile\n{existing_content}```"
+        )
     else:
         parts.append("\n**No existing Dockerfile.** Create one from scratch.")
 
@@ -99,10 +138,14 @@ def _build_user_message(
     # Add explicit reminder about COPY paths for subdirectory components
     if source_dir != ".":
         parts.append(
-            f"\n**CRITICAL:** This component is in a subdirectory (`{source_dir}/`). "
-            f"The build context will be the repo root (`{clone_path}`), NOT the component directory. "
-            f"ALL COPY commands must use paths relative to the repo root. "
-            f"Example: `COPY {source_dir}/package.json ./` (not `COPY package.json ./`)"
+            f"\n**CRITICAL — MONOREPO/SUBDIRECTORY COMPONENT:**\n"
+            f"This component is in `{source_dir}/`. Build context is repo root (`{clone_path}`).\n"
+            f"- ALL COPY paths must be prefixed with `{source_dir}/`. "
+            f"Example: `COPY {source_dir}/package.json ./` (not `COPY package.json ./`)\n"
+            f"- Install deps from the monorepo root, not the subdirectory. "
+            f"Workspace packages (`@org/shared`, etc.) resolve from root.\n"
+            f"- `COPY . .` to get sibling packages. Never `COPY ../../`.\n"
+            f"- Check root `package.json` for `\"workspaces\"` or `pnpm-workspace.yaml`."
         )
     parts.append(f"All tool calls should use absolute paths starting with `{clone_path}`.")
 
@@ -139,7 +182,16 @@ def _build_user_message(
         if poc_infrastructure.get("needs_gpu"):
             parts.append(
                 "\n**GPU support needed:** Consider using a CUDA-capable base image "
-                "such as `nvcr.io/nvidia/cuda:12.x-runtime-ubi9`."
+                "such as `nvcr.io/nvidia/cuda:12.x-runtime-ubi9`. "
+                "Use GPU-enabled package variants (faiss-gpu, torch, onnxruntime-gpu)."
+            )
+        else:
+            parts.append(
+                "\n**No GPU available:** Use CPU-only package variants to keep "
+                "images small: `faiss-cpu` (NOT `faiss`), "
+                "`torch --extra-index-url https://download.pytorch.org/whl/cpu` "
+                "(or install torch separately — `--index-url` replaces PyPI for ALL packages in the line), "
+                "`onnxruntime` (NOT `onnxruntime-gpu`), `tensorflow-cpu`."
             )
 
         extra_env = poc_infrastructure.get("extra_env_vars", {})
@@ -182,10 +234,18 @@ def _build_user_message(
         if entrypoint:
             parts.append(f"\n**Suggested entrypoint:** `{entrypoint}`")
 
-    # Include full PoC plan for additional context
-    if poc_plan_text:
-        parts.append("\n## Full PoC Plan (for context)")
-        parts.append(poc_plan_text)
+    # Include Dockerfile-specific guidance from the PoC plan (if available).
+    # This is just the "Dockerfile Considerations" section — NOT the full plan.
+    # It typically contains 2-5 sentences about what ENTRYPOINT/CMD should be,
+    # whether to add EXPOSE, etc.
+    if dockerfile_considerations:
+        parts.append(f"\n## Dockerfile Guidance (from PoC plan)\n{dockerfile_considerations}")
+
+    # Include README build instructions if available (helps with monorepos,
+    # workspace deps, custom build steps that the LLM can't infer from metadata)
+    readme_build_info = _extract_build_instructions(clone_path)
+    if readme_build_info:
+        parts.append(f"\n## Build Instructions from README\n{readme_build_info}")
 
     if build_error:
         parts.append(
@@ -193,7 +253,514 @@ def _build_user_message(
             f"```\n{build_error}\n```"
         )
 
+        # Include the current Dockerfile content so the LLM can see what to fix
+        dockerfile_path = Path(component_path) / "Dockerfile.ubi"
+        if dockerfile_path.exists():
+            current_content = dockerfile_path.read_text(encoding="utf-8")
+            parts.append(
+                f"\n**Current Dockerfile.ubi (needs fixing):**\n"
+                f"```dockerfile\n{current_content}```\n"
+                f"Read the error above and fix this Dockerfile. "
+                f"Write the corrected version using write_file."
+            )
+
     return "\n".join(parts)
+
+
+def _find_existing_dockerfile(
+    clone_path: str, source_dir: str, max_chars: int = 4000
+) -> str | None:
+    """Find and read an existing Dockerfile for the component.
+
+    Searches in the component's source directory first, then the repo root.
+    Looks for standard Dockerfile names (Dockerfile, Dockerfile.dev, etc.)
+    but NOT Dockerfile.ubi (that's what we're generating).
+
+    Args:
+        clone_path: Path to the repo root.
+        source_dir: Component's source directory (relative to clone_path).
+        max_chars: Maximum characters to include.
+
+    Returns:
+        Dockerfile content, or None if not found.
+    """
+    repo = Path(clone_path)
+    search_dirs = []
+
+    # Search component directory first, then repo root
+    if source_dir and source_dir != ".":
+        search_dirs.append(repo / source_dir)
+    search_dirs.append(repo)
+
+    for search_dir in search_dirs:
+        if not search_dir.is_dir():
+            continue
+        # Find all Dockerfile* files, excluding Dockerfile.ubi (that's what we generate)
+        candidates = sorted(
+            f for f in search_dir.glob("Dockerfile*")
+            if f.is_file() and f.name != "Dockerfile.ubi"
+        )
+        # Also check lowercase
+        candidates.extend(
+            f for f in search_dir.glob("dockerfile*")
+            if f.is_file() and f not in candidates
+        )
+
+        for df_path in candidates:
+            try:
+                content = df_path.read_text(encoding="utf-8", errors="replace")
+                rel_path = df_path.relative_to(repo)
+                logger.info(
+                    "Found existing Dockerfile at %s (%d chars)",
+                    rel_path,
+                    len(content),
+                )
+                if len(content) > max_chars:
+                    content = content[:max_chars] + "\n# ... (truncated)"
+                return content
+            except Exception:
+                continue
+
+    return None
+
+
+def _extract_build_instructions(clone_path: str, max_chars: int = 1000) -> str | None:
+    """Extract build-related instructions from README or build docs.
+
+    Looks for README.md, BUILD.md, CONTRIBUTING.md, and similar files.
+    Extracts sections about building, installing, or developing.
+
+    Returns:
+        Relevant build instructions text, or None if not found.
+    """
+    repo = Path(clone_path)
+
+    # Priority order of files to check
+    doc_files = [
+        "README.md", "README.rst", "README.txt", "README",
+        "BUILD.md", "BUILDING.md", "DEVELOP.md", "DEVELOPMENT.md",
+        "CONTRIBUTING.md",
+    ]
+
+    for name in doc_files:
+        doc_path = repo / name
+        if not doc_path.is_file():
+            continue
+
+        try:
+            content = doc_path.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+
+        # Extract sections related to building/installing/developing
+        sections = []
+        current_section = None
+        current_lines: list[str] = []
+        build_keywords = {
+            "build", "install", "develop", "setup", "getting started",
+            "quick start", "prerequisites", "requirements", "docker",
+            "container", "run", "deploy", "workspace",
+        }
+
+        for line in content.split("\n"):
+            # Detect markdown headers
+            if line.startswith("#"):
+                # Save previous section if it was relevant
+                if current_section and current_lines:
+                    sections.append(
+                        current_section + "\n" + "\n".join(current_lines)
+                    )
+
+                header_text = line.lstrip("#").strip().lower()
+                if any(kw in header_text for kw in build_keywords):
+                    current_section = line
+                    current_lines = []
+                else:
+                    current_section = None
+                    current_lines = []
+            elif current_section is not None:
+                current_lines.append(line)
+
+        # Don't forget the last section
+        if current_section and current_lines:
+            sections.append(current_section + "\n" + "\n".join(current_lines))
+
+        if sections:
+            result = "\n\n".join(sections)
+            if len(result) > max_chars:
+                result = result[:max_chars] + "\n... (truncated)"
+            return result
+
+    return None
+
+
+def _extract_dockerfile_from_response(raw_output: str) -> str | None:
+    """Extract Dockerfile content from the LLM's text response.
+
+    Handles multiple formats that LLMs produce:
+    1. Markdown code block (```dockerfile ... ```)
+    2. Any code block starting with FROM
+    3. Bare FROM lines
+    4. JSON tool-call text where the LLM wrote the write_file call as
+       plain text instead of executing it (common with Qwen and other
+       models that are weak at tool calling). The content field contains
+       the Dockerfile with escaped newlines.
+
+    Returns:
+        Dockerfile content string, or None if not found.
+    """
+    # Try ```dockerfile ... ``` first
+    match = re.search(
+        r"```[Dd]ockerfile\s*\n(.*?)```",
+        raw_output,
+        re.DOTALL,
+    )
+    if match:
+        return match.group(1).strip() + "\n"
+
+    # Try any code block that starts with FROM
+    match = re.search(
+        r"```\s*\n(FROM\s+.*?)```",
+        raw_output,
+        re.DOTALL,
+    )
+    if match:
+        return match.group(1).strip() + "\n"
+
+    # Try extracting from a write_file tool call in the text.
+    # The LLM may output something like:
+    #   {"name": "write_file", "arguments": {"path": "...Dockerfile.ubi", "content": "FROM ..."}}
+    #
+    # We can't use json.loads reliably because the content field contains
+    # literal newlines that break JSON parsing. Instead, extract the path
+    # and content fields directly with regex.
+    for match in re.finditer(
+        r'\{"name":\s*"write_file",\s*"arguments":\s*\{[^}]*"path":\s*"([^"]*Dockerfile[^"]*)"[^}]*"content":\s*"((?:[^"\\]|\\.)*)"\s*\}',
+        raw_output,
+        re.DOTALL,
+    ):
+        path = match.group(1)
+        # Unescape the content: \n -> newline, \" -> ", \\ -> \
+        content = match.group(2)
+        content = content.replace("\\n", "\n").replace('\\"', '"').replace("\\\\", "\\")
+        if content.startswith("FROM"):
+            logger.info(
+                "Extracted Dockerfile from write_file tool call text "
+                "(path=%s, %d chars)",
+                path,
+                len(content),
+            )
+            return content if content.endswith("\n") else content + "\n"
+
+    # Also try with content before path (field order may vary)
+    for match in re.finditer(
+        r'\{"name":\s*"write_file",\s*"arguments":\s*\{[^}]*"content":\s*"((?:[^"\\]|\\.)*)"\s*[^}]*"path":\s*"([^"]*Dockerfile[^"]*)"',
+        raw_output,
+        re.DOTALL,
+    ):
+        content = match.group(1)
+        path = match.group(2)
+        content = content.replace("\\n", "\n").replace('\\"', '"').replace("\\\\", "\\")
+        if content.startswith("FROM"):
+            logger.info(
+                "Extracted Dockerfile from write_file tool call text "
+                "(path=%s, %d chars)",
+                path,
+                len(content),
+            )
+            return content if content.endswith("\n") else content + "\n"
+
+    # Try bare FROM ... at start of a line (no code block)
+    match = re.search(
+        r"^(FROM\s+.+(?:\n(?!```).+)*)",
+        raw_output,
+        re.MULTILINE,
+    )
+    if match:
+        return match.group(1).strip() + "\n"
+
+    return None
+
+
+def _uses_minimal_base(content: str) -> bool:
+    """Check if a Dockerfile uses a UBI minimal base image.
+
+    UBI minimal images (ubi9-minimal, ubi9/minimal) ship microdnf
+    instead of dnf. All other UBI images use dnf.
+    """
+    for line in content.splitlines():
+        stripped = line.strip().upper()
+        if stripped.startswith("FROM "):
+            from_image = line.strip()[5:].split()[0].lower()
+            if "minimal" in from_image:
+                return True
+    return False
+
+
+# Non-UBI base image → UBI equivalent mapping.
+# Used by _fixup_dockerfile to enforce UBI base images.
+_UBI_IMAGE_MAP: list[tuple[re.Pattern, str]] = [
+    # Python
+    (re.compile(r"python:\d[\w.-]*", re.IGNORECASE), "registry.access.redhat.com/ubi9/python-312"),
+    # Node.js
+    (re.compile(r"node:\d[\w.-]*", re.IGNORECASE), "registry.access.redhat.com/ubi9/nodejs-22"),
+    # Go
+    (re.compile(r"golang:\d[\w.-]*", re.IGNORECASE), "registry.access.redhat.com/ubi9/go-toolset"),
+    # Java
+    (
+        re.compile(r"(?:eclipse-temurin|openjdk|amazoncorretto)[\w.:-]*", re.IGNORECASE),
+        "registry.access.redhat.com/ubi9/openjdk-21",
+    ),
+    # Nginx
+    (re.compile(r"nginx[\w.:-]*", re.IGNORECASE), "registry.access.redhat.com/ubi9/nginx-124"),
+    # Generic distros
+    (
+        re.compile(r"(?:alpine|ubuntu|debian|centos)[\w.:-]*", re.IGNORECASE),
+        "registry.access.redhat.com/ubi9/ubi-minimal",
+    ),
+]
+
+
+def _fixup_base_image(content: str, filename: str) -> str:
+    """Replace non-UBI base images with UBI equivalents.
+
+    The containerize prompt tells the LLM to use UBI images, but
+    weaker models sometimes ignore this. Enforce it deterministically.
+    """
+    lines = content.split("\n")
+    fixed_lines = []
+    applied = False
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.upper().startswith("FROM "):
+            parts = stripped.split()
+            image = parts[1] if len(parts) > 1 else ""
+
+            # Skip if already a UBI or Red Hat image
+            if "redhat.com" in image or "ubi" in image.lower():
+                fixed_lines.append(line)
+                continue
+
+            # Skip NVIDIA CUDA images (legitimate non-UBI for GPU)
+            if "nvcr.io" in image or "nvidia" in image.lower():
+                fixed_lines.append(line)
+                continue
+
+            # Try to match against known non-UBI images
+            for pattern, ubi_image in _UBI_IMAGE_MAP:
+                if pattern.fullmatch(image) or pattern.fullmatch(image.split("/")[-1]):
+                    # Preserve any AS alias
+                    rest = " ".join(parts[2:]) if len(parts) > 2 else ""
+                    new_from = f"FROM {ubi_image}"
+                    if rest:
+                        new_from += f" {rest}"
+                    fixed_lines.append(new_from)
+                    logger.info(
+                        "Dockerfile fixup: replaced non-UBI base '%s' with '%s' in %s",
+                        image,
+                        ubi_image,
+                        filename,
+                    )
+                    applied = True
+                    break
+            else:
+                # No match — leave as-is but warn
+                if "." not in image and ":" in image:
+                    # Looks like a Docker Hub short name (e.g. "ruby:3.2")
+                    logger.warning(
+                        "Dockerfile has non-UBI base image '%s' with no known mapping in %s",
+                        image,
+                        filename,
+                    )
+                fixed_lines.append(line)
+        else:
+            fixed_lines.append(line)
+
+    return "\n".join(fixed_lines) if applied else content
+
+
+def _fixup_dockerfile(dockerfile_path: Path) -> None:
+    """Apply deterministic fixes to a generated Dockerfile.
+
+    LLMs (especially non-Claude models) frequently generate Dockerfiles
+    with known errors. Rather than relying on the LLM to get these right,
+    we fix them post-hoc:
+
+    - Non-UBI base images: Replace with UBI equivalents.
+    - Package manager mismatch: UBI9 full images use dnf, UBI9 minimal
+      images use microdnf. LLMs often confuse the two.
+    - Permission errors: commands like chgrp/chmod or npm run build need
+      correct USER context. Ensure operations that require root run as
+      USER 0, and fix ownership before switching to non-root.
+    """
+    content = dockerfile_path.read_text(encoding="utf-8")
+    original = content
+
+    # Replace non-UBI base images first (affects subsequent fixups)
+    content = _fixup_base_image(content, dockerfile_path.name)
+
+    # Fix package manager per stage (multi-stage aware)
+    content = _fixup_package_manager(content, dockerfile_path.name)
+
+    # Fix permission issues: ensure chgrp/chmod runs as root
+    content = _fixup_permissions(content, dockerfile_path.name)
+
+    if content != original:
+        dockerfile_path.write_text(content, encoding="utf-8")
+
+
+def _fixup_package_manager(content: str, filename: str) -> str:
+    """Fix package manager commands per build stage in multi-stage Dockerfiles.
+
+    In multi-stage Dockerfiles, each FROM starts a new stage with a
+    different base image. Full UBI images use dnf, minimal images use
+    microdnf. The fixup must track which stage each RUN line belongs to.
+    """
+    lines = content.split("\n")
+    fixed_lines = []
+    current_base_is_minimal = False
+    applied = False
+
+    for line in lines:
+        stripped = line.strip().upper()
+
+        # Track FROM directives to know which base image we're in
+        if stripped.startswith("FROM "):
+            image = line.strip()[5:].split()[0].lower()
+            current_base_is_minimal = "minimal" in image
+            fixed_lines.append(line)
+            continue
+
+        # Fix package manager in RUN lines based on current stage
+        if stripped.startswith("RUN "):
+            if current_base_is_minimal and "dnf " in line and "microdnf" not in line:
+                # Minimal stage but using dnf → replace with microdnf
+                fixed_line = re.sub(r"\bdnf\b", "microdnf", line)
+                if fixed_line != line:
+                    logger.info(
+                        "Dockerfile fixup: replaced dnf with microdnf "
+                        "(minimal stage) in %s",
+                        filename,
+                    )
+                    applied = True
+                    fixed_lines.append(fixed_line)
+                    continue
+            elif not current_base_is_minimal and "microdnf" in line:
+                # Full stage but using microdnf → replace with dnf
+                fixed_line = line.replace("microdnf", "dnf")
+                if fixed_line != line:
+                    logger.info(
+                        "Dockerfile fixup: replaced microdnf with dnf "
+                        "(full stage) in %s",
+                        filename,
+                    )
+                    applied = True
+                    fixed_lines.append(fixed_line)
+                    continue
+
+        fixed_lines.append(line)
+
+    return "\n".join(fixed_lines) if applied else content
+
+
+def _fixup_permissions(content: str, filename: str) -> str:
+    """Fix permission-related issues in Dockerfiles for OpenShift.
+
+    OpenShift runs containers with an arbitrary UID (e.g. 1000620000) but
+    always in GID 0. The correct pattern for file permissions is:
+        chgrp -R 0 <path> && chmod -R g=u <path>
+    This must run as USER 0 (root).
+
+    UBI images default to non-root (UID 1001). Commands that require root:
+    - dnf/microdnf install (package installation)
+    - chgrp/chmod (permission changes)
+
+    Handles three common LLM mistakes:
+    1. dnf/microdnf install without USER 0: wrap with USER 0 before, restore after.
+    2. chgrp/chmod without USER 0: wrap with USER 0 before, restore after.
+    3. npm/bun install as root creates node_modules owned by root, then
+       USER switch to non-root breaks npm run build. Fix by adding
+       chgrp/chmod g=u for node_modules before the USER switch (still as root).
+    """
+    lines = content.split("\n")
+    fixed_lines = []
+    current_user = None  # Track the current USER directive
+    npm_installed_as_root = False
+    applied_fix = False
+    i = 0
+
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip().upper()
+
+        # Track USER directives
+        if stripped.startswith("USER "):
+            user_val = line.strip()[5:].strip()
+            # Detect USER switch from root to non-root
+            if (
+                current_user in ("0", "root")
+                and user_val not in ("0", "root")
+                and npm_installed_as_root
+            ):
+                # Fix node_modules permissions using OpenShift-safe pattern:
+                # chgrp to GID 0 + chmod g=u, so any arbitrary UID in GID 0 can write.
+                # This runs before the USER switch, so we're still root.
+                fixed_lines.append(
+                    "RUN chgrp -R 0 /opt/app-root/src/node_modules && "
+                    "chmod -R g=u /opt/app-root/src/node_modules || true"
+                )
+                logger.info(
+                    "Dockerfile fixup: added chgrp/chmod g=u for node_modules "
+                    "before USER %s in %s",
+                    user_val,
+                    filename,
+                )
+                applied_fix = True
+                npm_installed_as_root = False
+            current_user = user_val
+
+        # Detect npm install/ci running as root
+        if stripped.startswith("RUN ") and current_user in ("0", "root"):
+            if any(cmd in stripped for cmd in ("NPM INSTALL", "NPM CI", "BUN INSTALL")):
+                npm_installed_as_root = True
+
+        # Detect commands that require root but are running as non-root.
+        # None means no USER directive seen yet — UBI images default to
+        # non-root (UID 1001), so treat None as non-root.
+        if stripped.startswith("RUN ") and current_user not in ("0", "root"):
+            needs_root = (
+                "CHGRP " in stripped
+                or "CHMOD " in stripped
+                or "DNF " in stripped
+                or "MICRODNF " in stripped
+                or "YUM " in stripped
+            )
+            if needs_root:
+                # Insert USER 0 before the RUN command.
+                # For multi-line RUN commands (with \ continuations), collect
+                # all continuation lines before inserting USER after.
+                fixed_lines.append("USER 0")
+                fixed_lines.append(line)
+                while line.rstrip().endswith("\\") and i + 1 < len(lines):
+                    i += 1
+                    line = lines[i]
+                    fixed_lines.append(line)
+                fixed_lines.append("USER %s" % (current_user or "1001"))
+                logger.info(
+                    "Dockerfile fixup: wrapped root-required command with USER 0 in %s",
+                    filename,
+                )
+                applied_fix = True
+                i += 1
+                continue
+
+        fixed_lines.append(line)
+        i += 1
+
+    if applied_fix:
+        return "\n".join(fixed_lines)
+    return content
 
 
 def _parse_containerize_output(raw_output: str, component_path: str) -> dict:
@@ -211,23 +778,42 @@ def _parse_containerize_output(raw_output: str, component_path: str) -> dict:
     # Try to find a markdown code block containing JSON
     match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
     if match:
-        text = match.group(1)
-    else:
-        # Fallback: extract from first { to last }
-        match = re.search(r"\{.*\}", text, re.DOTALL)
-        if match:
-            text = match.group(0)
+        try:
+            return json.loads(match.group(1))
+        except json.JSONDecodeError:
+            pass
 
-    try:
-        parsed = json.loads(text)
-        return parsed
-    except json.JSONDecodeError:
-        logger.warning("Failed to parse containerize output as JSON, using defaults")
-        return {
-            "dockerfile_ubi_path": f"{component_path}/Dockerfile.ubi",
-            "strategy": "unknown",
-            "notes": "Output parsing failed",
-        }
+    # Try to find the summary JSON object (has dockerfile_ubi_path).
+    # The LLM may output multiple JSON objects (tool calls + summary),
+    # so we search for all top-level JSON objects and pick the right one.
+    for match in re.finditer(r"\{[^{}]*\}", text):
+        try:
+            candidate = json.loads(match.group(0))
+            if isinstance(candidate, dict) and "dockerfile_ubi_path" in candidate:
+                return candidate
+        except json.JSONDecodeError:
+            continue
+
+    # Last resort: try first { to last } (may work for well-formed single JSON)
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(0))
+        except json.JSONDecodeError:
+            pass
+
+    logger.warning("Failed to parse containerize output as JSON, using defaults")
+    dump_llm_response(
+        "containerize",
+        "JSON output parse failure",
+        raw_output,
+        component=component_path.rsplit("/", 1)[-1],
+    )
+    return {
+        "dockerfile_ubi_path": f"{component_path}/Dockerfile.ubi",
+        "strategy": "unknown",
+        "notes": "Output parsing failed",
+    }
 
 
 async def containerize_agent(
@@ -324,26 +910,36 @@ async def containerize_agent(
             **outer_loop_state,
         }
 
-    # Filter to only PoC-relevant components (if poc_plan specified which ones)
+    # Filter to only PoC-relevant components (if poc_plan specified which ones).
+    # This is an optimization for monorepos — skip docs sites, test harnesses, etc.
+    # If the filter results in zero components (e.g., the LLM hallucinated a
+    # filename instead of a component name), fall back to ALL components rather
+    # than doing nothing for 12 retries.
     poc_components = state.get("poc_components", [])
     if poc_components:
         original_count = len(components)
-        components = [c for c in components if c.get("name", "") in poc_components]
-        skipped = original_count - len(components)
-        if skipped > 0:
-            logger.info(
-                "Filtered to %d PoC-relevant component(s), skipping %d (poc_components=%s)",
-                len(components),
-                skipped,
+        filtered = [c for c in components if c.get("name", "") in poc_components]
+        skipped = original_count - len(filtered)
+        if filtered:
+            components = filtered
+            if skipped > 0:
+                logger.info(
+                    "Filtered to %d PoC-relevant component(s), skipping %d (poc_components=%s)",
+                    len(components),
+                    skipped,
+                    poc_components,
+                )
+        else:
+            # poc_components didn't match any actual component names — the LLM
+            # likely hallucinated (e.g., used a filename instead of component name).
+            # Fall back to all components rather than containerizing nothing.
+            component_names = [c.get("name", "") for c in components]
+            logger.warning(
+                "poc_components=%s matched none of the actual components %s. "
+                "Ignoring filter and containerizing all components.",
                 poc_components,
+                component_names,
             )
-        if not components:
-            logger.warning("No PoC-relevant components after filtering")
-            return {
-                "current_phase": PoCPhase.CONTAINERIZE,
-                "components": components,
-                **outer_loop_state,
-            }
 
     # Get PoC infrastructure requirements (may be absent for older flows)
     poc_infrastructure = state.get("poc_infrastructure")
@@ -395,6 +991,11 @@ async def containerize_agent(
             pre_model_hook=make_context_trimmer(),
         )
 
+        # Extract Dockerfile-specific guidance from the PoC plan (just that section,
+        # not the full plan — saves tokens while preserving critical entrypoint info).
+        poc_plan_text = state.get("poc_plan")
+        df_considerations = _extract_dockerfile_considerations(poc_plan_text)
+
         # Build user message (with PoC context if available)
         user_message = _build_user_message(
             component,
@@ -402,7 +1003,7 @@ async def containerize_agent(
             component_build_error,
             poc_infrastructure=dict(poc_infrastructure) if poc_infrastructure else None,
             poc_type=poc_type,
-            poc_plan_text=state.get("poc_plan"),
+            dockerfile_considerations=df_considerations,
         )
 
         # If this is a container-fix from the outer loop, append the runtime
@@ -413,6 +1014,19 @@ async def containerize_agent(
                 if container_fix_action == "experiment"
                 else "Fix the Dockerfile"
             )
+
+            # Include the current Dockerfile.ubi so the LLM patches it
+            # instead of regenerating from scratch (which loses previous fixes).
+            source_dir = component.get("source_dir", ".")
+            comp_path = clone_path if source_dir == "." else str(Path(clone_path) / source_dir)
+            dockerfile_path = Path(comp_path) / "Dockerfile.ubi"
+            if dockerfile_path.exists():
+                current_df = dockerfile_path.read_text(encoding="utf-8")
+                user_message += (
+                    f"\n\n**Current Dockerfile.ubi (needs fixing):**\n"
+                    f"```dockerfile\n{current_df}```\n"
+                )
+
             user_message += (
                 f"\n\n**RUNTIME FAILURE — CONTAINER FIX REQUESTED**\n"
                 f"Action: **{action_label}**\n\n"
@@ -431,10 +1045,9 @@ async def containerize_agent(
             else:
                 user_message += (
                     "The Dockerfile.ubi has a bug that causes the container to fail at "
-                    "runtime. Fix it so the container starts and runs correctly. Common "
-                    "causes: missing dependency in requirements/package install, wrong "
-                    "ENTRYPOINT/CMD, missing COPY for required files, wrong working "
-                    "directory.\n"
+                    "runtime. Read the current Dockerfile.ubi above and the error below, "
+                    "then fix the specific issue. Do NOT regenerate from scratch — patch "
+                    "the existing Dockerfile to preserve previous fixes.\n"
                 )
 
         # Invoke the agent
@@ -462,14 +1075,60 @@ async def containerize_agent(
         # Ensure path is relative to repo root for state storage
         if dockerfile_path.startswith(clone_path):
             dockerfile_path = dockerfile_path[len(clone_path) :].lstrip("/")
+
+        # Verify the Dockerfile was actually written to disk.
+        # If the LLM didn't use the write_file tool (common with weaker models),
+        # try to extract the Dockerfile content from the response and write it ourselves.
+        #
+        # On retry (component_build_error is set), ALWAYS try to extract and
+        # overwrite — the LLM was asked to fix the Dockerfile, so its output
+        # should replace the old broken version even if the file exists.
+        abs_dockerfile = Path(clone_path) / dockerfile_path
+        is_retry = component_build_error is not None
+        should_extract = not abs_dockerfile.exists() or is_retry
+
+        if should_extract:
+            if not abs_dockerfile.exists():
+                logger.warning(
+                    "Dockerfile not found at %s after agent run — "
+                    "attempting to extract from LLM response",
+                    abs_dockerfile,
+                )
+            else:
+                logger.info(
+                    "Build retry: attempting to extract updated Dockerfile "
+                    "from LLM response for %s",
+                    comp_name,
+                )
+
+            dockerfile_content = _extract_dockerfile_from_response(raw_output)
+            if dockerfile_content:
+                abs_dockerfile.parent.mkdir(parents=True, exist_ok=True)
+                abs_dockerfile.write_text(dockerfile_content, encoding="utf-8")
+                logger.info(
+                    "Wrote Dockerfile.ubi from LLM response (%d chars) to %s",
+                    len(dockerfile_content),
+                    abs_dockerfile,
+                )
+            elif not abs_dockerfile.exists():
+                logger.error(
+                    "Could not extract Dockerfile content from LLM response for %s",
+                    comp_name,
+                )
+
+        # Post-process: fix common LLM mistakes in the generated Dockerfile
+        if abs_dockerfile.exists():
+            _fixup_dockerfile(abs_dockerfile)
+
         updated["dockerfile_ubi_path"] = dockerfile_path
         updated_components.append(updated)
 
         logger.info(
-            "Component %s: Dockerfile.ubi at %s (strategy: %s)",
+            "Component %s: Dockerfile.ubi at %s (strategy: %s, exists: %s)",
             comp_name,
             dockerfile_path,
             parsed.get("strategy", "unknown"),
+            abs_dockerfile.exists(),
         )
 
     # Commit and push the new Dockerfiles
@@ -491,7 +1150,7 @@ async def containerize_agent(
                 }
             )
 
-            # Push to fork if remote exists
+            # Force-push to fork so re-runs overwrite previous Dockerfiles
             fork_url = state.get("fork_repo_url") or state.get("gitlab_repo_url")
             if fork_url:
                 git_push.invoke(
@@ -499,6 +1158,7 @@ async def containerize_agent(
                         "repo_path": clone_path,
                         "remote": "origin",
                         "ref": "HEAD",
+                        "force": True,
                     }
                 )
                 logger.info("Pushed Dockerfile.ubi files to fork")

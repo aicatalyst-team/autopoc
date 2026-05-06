@@ -72,9 +72,7 @@ def check_quay(config: AutoPoCConfig, timeout: float = 10.0) -> CredentialStatus
         return _check_quay_oauth(config, registry, timeout)
 
 
-def _check_quay_robot(
-    config: AutoPoCConfig, registry: str, timeout: float
-) -> CredentialStatus:
+def _check_quay_robot(config: AutoPoCConfig, registry: str, timeout: float) -> CredentialStatus:
     """Validate robot account credentials via Docker v2 token endpoint."""
     # Robot accounts can only authenticate via the Docker registry protocol,
     # not the Quay REST API. We validate by requesting a v2 token.
@@ -101,9 +99,7 @@ def _check_quay_robot(
                 )
             return CredentialStatus("Quay", False, "unexpected response from v2 auth")
         elif resp.status_code == 401:
-            return CredentialStatus(
-                "Quay", False, "robot account credentials are invalid (401)"
-            )
+            return CredentialStatus("Quay", False, "robot account credentials are invalid (401)")
         else:
             return CredentialStatus("Quay", False, f"unexpected HTTP {resp.status_code}")
     except httpx.ConnectError:
@@ -114,9 +110,7 @@ def _check_quay_robot(
         return CredentialStatus("Quay", False, str(e))
 
 
-def _check_quay_oauth(
-    config: AutoPoCConfig, registry: str, timeout: float
-) -> CredentialStatus:
+def _check_quay_oauth(config: AutoPoCConfig, registry: str, timeout: float) -> CredentialStatus:
     """Validate OAuth token via GET /api/v1/user/."""
     url = f"{registry.rstrip('/')}/api/v1/user/"
     try:
