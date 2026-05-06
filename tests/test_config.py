@@ -57,7 +57,7 @@ class TestAutoPoCConfig:
                 # Use _env_file=None to skip .env file on disk
                 AutoPoCConfig(_env_file=None)  # type: ignore[call-arg]
             # Verify the error mentions the missing field requirement
-            assert "Either ANTHROPIC_API_KEY or VERTEX_PROJECT must be provided" in str(
+            assert "At least one LLM provider must be configured" in str(
                 exc_info.value
             )
 
@@ -67,9 +67,10 @@ class TestAutoPoCConfig:
             with pytest.raises(ValidationError) as exc_info:
                 AutoPoCConfig(_env_file=None)  # type: ignore[call-arg]
             error_str = str(exc_info.value)
-            # quay_org and openshift fields are always required at field level
+            # quay_org and quay_token are always required at field level
+            # (openshift_api_url and openshift_token are optional for in-cluster usage)
             assert "quay_org" in error_str
-            assert "openshift_api_url" in error_str
+            assert "quay_token" in error_str
 
     def test_gitlab_target_requires_gitlab_fields(self) -> None:
         """fork_target=gitlab requires GITLAB_URL, GITLAB_TOKEN, GITLAB_GROUP."""

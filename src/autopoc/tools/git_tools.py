@@ -109,7 +109,12 @@ _BLOCKED_PUSH_HOSTS = {"gitlab.com", "bitbucket.org", "codeberg.org"}
 
 
 @tool
-def git_push(repo_path: str, remote: str = "origin", ref: str = "main") -> str:
+def git_push(
+    repo_path: str,
+    remote: str = "origin",
+    ref: str = "main",
+    force: bool = False,
+) -> str:
     """Push to a remote repository.
 
     Args:
@@ -117,6 +122,7 @@ def git_push(repo_path: str, remote: str = "origin", ref: str = "main") -> str:
         remote: Remote name to push to (default: "origin").
         ref: Branch name or ref to push, or "--all" for all branches,
              or "--tags" for all tags.
+        force: If True, use --force-with-lease to overwrite remote.
 
     Returns:
         Git push output.
@@ -143,7 +149,10 @@ def git_push(repo_path: str, remote: str = "origin", ref: str = "main") -> str:
         # If we can't resolve the remote URL, proceed cautiously
         pass
 
-    args = ["push", remote]
+    args = ["push"]
+    if force:
+        args.append("--force")
+    args.append(remote)
     if ref in ("--all", "--tags"):
         args.append(ref)
     else:
@@ -234,6 +243,20 @@ def commit_to_artifacts_branch(
         # Remember the current branch/ref so we can switch back
         original_ref = _run_git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=clone_path)
 
+        # Read file contents before stashing so we can write them on the artifacts branch
+        file_contents: dict[str, str] = {}
+        clone = Path(clone_path)
+        for f in files:
+            fpath = clone / f
+            if fpath.exists():
+                file_contents[f] = fpath.read_text(encoding="utf-8")
+            else:
+                logger.warning("Artifact file %s does not exist, skipping", fpath)
+
+        if not file_contents:
+            logger.warning("No artifact files found to commit")
+            return
+
         # Stash any dirty state so we can safely switch branches
         status = _run_git(["status", "--porcelain"], cwd=clone_path)
         if status.strip():
@@ -247,14 +270,19 @@ def commit_to_artifacts_branch(
             # Branch already exists -- switch to it
             _run_git(["checkout", ARTIFACTS_BRANCH], cwd=clone_path)
 
-        # Stage and commit
-        for f in files:
+        # Write files to the artifacts branch and stage them
+        for f, content in file_contents.items():
+            fpath = clone / f
+            fpath.parent.mkdir(parents=True, exist_ok=True)
+            fpath.write_text(content, encoding="utf-8")
             _run_git(["add", f], cwd=clone_path)
         _run_git(["commit", "-m", message], cwd=clone_path)
 
-        # Push to origin (which points to GitLab after fork agent runs)
+        # Force-push to origin so re-runs overwrite previous artifacts
         try:
-            _run_git(["push", "origin", ARTIFACTS_BRANCH], cwd=clone_path)
+            _run_git(
+                ["push", "--force", "origin", ARTIFACTS_BRANCH], cwd=clone_path
+            )
             logger.info("Pushed %s to origin/%s", ", ".join(files), ARTIFACTS_BRANCH)
         except RuntimeError as push_err:
             logger.warning("Failed to push %s branch: %s", ARTIFACTS_BRANCH, push_err)
@@ -269,7 +297,14 @@ def commit_to_artifacts_branch(
             except Exception:
                 pass
         if stashed:
-            # Don't pop — dirty state is likely leftover from a previous
-            # interrupted run.  Leave it stashed; recoverable via
-            # `git stash list` if needed.
-            logger.debug("Stashed dirty state left in stash (not popped)")
+            try:
+                _run_git(["stash", "pop"], cwd=clone_path)
+                logger.debug("Restored stashed working tree state")
+            except Exception:
+                # If pop fails (e.g. conflict with files already on disk),
+                # try dropping the stash entry to avoid accumulating stale stashes.
+                try:
+                    _run_git(["stash", "drop"], cwd=clone_path)
+                    logger.debug("Dropped stash entry after failed pop")
+                except Exception:
+                    pass
