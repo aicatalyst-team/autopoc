@@ -211,8 +211,16 @@ class OpenShiftBuildStrategy(BuildStrategy):
                 timeout=timeout,
             )
             if stdin_data is not None:
-                stdout = result.stdout.decode("utf-8", errors="replace") if isinstance(result.stdout, bytes) else result.stdout
-                stderr = result.stderr.decode("utf-8", errors="replace") if isinstance(result.stderr, bytes) else result.stderr
+                stdout = (
+                    result.stdout.decode("utf-8", errors="replace")
+                    if isinstance(result.stdout, bytes)
+                    else result.stdout
+                )
+                stderr = (
+                    result.stderr.decode("utf-8", errors="replace")
+                    if isinstance(result.stderr, bytes)
+                    else result.stderr
+                )
             else:
                 stdout = result.stdout
                 stderr = result.stderr
@@ -223,10 +231,22 @@ class OpenShiftBuildStrategy(BuildStrategy):
                     f"(exit {result.returncode}):\n{output}"
                 )
             return output
-        except subprocess.TimeoutExpired:
-            raise RuntimeError(
-                f"{self._oc} {' '.join(args[:3])}... timed out after {timeout}s"
-            )
+        except subprocess.TimeoutExpired as e:
+            # Capture whatever output was produced before the timeout.
+            # Without this, timeout errors carry zero diagnostic info and
+            # the containerize agent has nothing to fix.
+            partial = ""
+            if e.stdout:
+                raw = e.stdout.decode("utf-8", errors="replace") if isinstance(e.stdout, bytes) else e.stdout
+                # Keep last 5000 chars — the error is usually at the end
+                partial = raw[-5000:] if len(raw) > 5000 else raw
+            if e.stderr:
+                raw_err = e.stderr.decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else e.stderr
+                partial += "\n" + (raw_err[-2000:] if len(raw_err) > 2000 else raw_err)
+            msg = f"{self._oc} {' '.join(args[:3])}... timed out after {timeout}s"
+            if partial.strip():
+                msg += f"\nPartial output:\n{partial.strip()}"
+            raise RuntimeError(msg)
 
     def _ensure_namespace(self) -> None:
         """Create the build namespace if it doesn't exist."""
@@ -247,22 +267,33 @@ class OpenShiftBuildStrategy(BuildStrategy):
 
         # Delete existing secret if present (idempotent update)
         try:
-            self._run([
-                "delete", "secret", self._push_secret_name,
-                "-n", self.namespace,
-                "--ignore-not-found=true",
-            ])
+            self._run(
+                [
+                    "delete",
+                    "secret",
+                    self._push_secret_name,
+                    "-n",
+                    self.namespace,
+                    "--ignore-not-found=true",
+                ]
+            )
         except RuntimeError:
             pass  # Ignore if it doesn't exist
 
         # Create the docker-registry secret
-        self._run([
-            "create", "secret", "docker-registry", self._push_secret_name,
-            f"--docker-server={registry}",
-            f"--docker-username={username}",
-            f"--docker-password={password}",
-            "-n", self.namespace,
-        ])
+        self._run(
+            [
+                "create",
+                "secret",
+                "docker-registry",
+                self._push_secret_name,
+                f"--docker-server={registry}",
+                f"--docker-username={username}",
+                f"--docker-password={password}",
+                "-n",
+                self.namespace,
+            ]
+        )
 
         logger.info(
             "Created registry push secret '%s' in namespace '%s' for %s",
@@ -351,11 +382,13 @@ class OpenShiftBuildStrategy(BuildStrategy):
         # --wait blocks until the build finishes
         output = self._run(
             [
-                "start-build", bc_name,
+                "start-build",
+                bc_name,
                 f"--from-dir={context_path}",
                 "--follow",
                 "--wait",
-                "-n", self.namespace,
+                "-n",
+                self.namespace,
             ],
             timeout=BUILD_TIMEOUT,
         )
@@ -369,16 +402,76 @@ class OpenShiftBuildStrategy(BuildStrategy):
             Dict with 'phase' (Complete, Failed, Running, etc.) and 'message'.
         """
         try:
-            output = self._run([
-                "get", "builds",
-                "-l", f"buildconfig={bc_name}",
-                "--sort-by=.metadata.creationTimestamp",
-                "-o", "jsonpath={.items[-1].status.phase}",
-                "-n", self.namespace,
-            ])
+            output = self._run(
+                [
+                    "get",
+                    "builds",
+                    "-l",
+                    f"buildconfig={bc_name}",
+                    "--sort-by=.metadata.creationTimestamp",
+                    "-o",
+                    "jsonpath={.items[-1].status.phase}",
+                    "-n",
+                    self.namespace,
+                ]
+            )
             return {"phase": output.strip(), "message": ""}
         except RuntimeError as e:
             return {"phase": "Unknown", "message": str(e)}
+
+    def _get_latest_build_name(self, bc_name: str) -> str | None:
+        """Get the name of the most recent build for a BuildConfig."""
+        try:
+            output = self._run(
+                [
+                    "get",
+                    "builds",
+                    "-l",
+                    f"buildconfig={bc_name}",
+                    "--sort-by=.metadata.creationTimestamp",
+                    "-o",
+                    "jsonpath={.items[-1].metadata.name}",
+                    "-n",
+                    self.namespace,
+                ]
+            )
+            name = output.strip()
+            return name if name else None
+        except RuntimeError:
+            return None
+
+    def _get_build_log(self, bc_name: str, tail: int = 200) -> str:
+        """Fetch the build log from the cluster for the latest build.
+
+        This is a fallback for when ``--follow`` output is lost (e.g.,
+        on timeout) or truncated. The log is always available on the
+        cluster as long as the Build resource exists.
+
+        Args:
+            bc_name: BuildConfig name.
+            tail: Max lines to fetch (default 200 — keeps it focused
+                  on the error at the end).
+
+        Returns:
+            Build log text, or an error message if retrieval fails.
+        """
+        build_name = self._get_latest_build_name(bc_name)
+        if not build_name:
+            return "(could not determine build name)"
+
+        try:
+            return self._run(
+                [
+                    "logs",
+                    f"build/{build_name}",
+                    f"--tail={tail}",
+                    "-n",
+                    self.namespace,
+                ],
+                timeout=30,
+            )
+        except Exception as e:
+            return f"(failed to fetch build log: {e})"
 
     def build(self, context_path, dockerfile, tag, *, tls_verify=True):
         """Build an image using OpenShift Binary Build.
@@ -422,12 +515,15 @@ class OpenShiftBuildStrategy(BuildStrategy):
         try:
             output = self._start_binary_build(bc_name, context_path)
         except RuntimeError as e:
-            # Enrich the error with build status
+            # Enrich the error with build status and full build log.
+            # The --follow output may be truncated or lost (especially on
+            # timeout), so we fetch the log from the cluster as a fallback.
             status = self._get_build_status(bc_name)
+            build_log = self._get_build_log(bc_name)
             raise RuntimeError(
                 f"OpenShift build failed for BuildConfig '{bc_name}'.\n"
                 f"Build phase: {status['phase']}\n"
-                f"Error: {e}"
+                f"Build log (last 200 lines):\n{build_log}"
             ) from e
 
         logger.info("OpenShift build completed for %s", tag)
@@ -440,8 +536,7 @@ class OpenShiftBuildStrategy(BuildStrategy):
         a push secret, so the build controller pushes automatically.
         """
         logger.debug(
-            "push() is a no-op for OpenShift builds — image %s was "
-            "pushed during the build step",
+            "push() is a no-op for OpenShift builds — image %s was pushed during the build step",
             image,
         )
         return f"Image {image} was pushed during the OpenShift build"
@@ -497,6 +592,5 @@ def get_build_strategy(config) -> BuildStrategy:
         return OpenShiftBuildStrategy(namespace=namespace)
     else:
         raise ValueError(
-            f"Unknown build strategy: '{strategy_name}'. "
-            f"Valid options are 'podman' or 'openshift'."
+            f"Unknown build strategy: '{strategy_name}'. Valid options are 'podman' or 'openshift'."
         )
