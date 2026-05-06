@@ -2,7 +2,7 @@
 
 import os
 import re
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
@@ -95,13 +95,15 @@ class TestRunSheetArgs:
         assert "AUTOPOC_SHEET_CREDENTIALS" in output
         assert "stop-after" in output
         assert "verbose" in output
+        assert "max-evaluated-sheets" in output
+        assert "max-batched-poc" in output
 
 
 class TestRunSheetFlow:
     """Tests for the sheet reading and project selection flow."""
 
     def test_no_projects_after_filter(self, tmp_path) -> None:
-        """Exits with error when no projects remain after filtering."""
+        """Exits cleanly when no projects remain after filtering."""
         sa_file = tmp_path / "sa.json"
         sa_file.write_text('{"type": "service_account"}')
 
@@ -123,7 +125,7 @@ class TestRunSheetFlow:
                         "--skip-validation",
                     ],
                 )
-                assert result.exit_code == 1
+                assert result.exit_code == 0
                 assert "No projects remain" in result.stdout
 
     def test_selects_approved_github_project(self, tmp_path) -> None:
@@ -156,7 +158,7 @@ class TestRunSheetFlow:
         with patch.dict(os.environ, env, clear=True):
             with (
                 patch("autopoc.cli.read_sheet", return_value=mock_rows),
-                patch("autopoc.cli._run_pipeline") as mock_pipeline,
+                patch("autopoc.cli._run_pipeline", return_value={}) as mock_pipeline,
             ):
                 result = runner.invoke(
                     app,
@@ -229,7 +231,7 @@ class TestRunSheetFlow:
         with patch.dict(os.environ, env, clear=True):
             with (
                 patch("autopoc.cli.read_sheet", return_value=mock_rows),
-                patch("autopoc.cli._run_pipeline"),
+                patch("autopoc.cli._run_pipeline", return_value={}),
             ):
                 result = runner.invoke(
                     app,
@@ -245,3 +247,132 @@ class TestRunSheetFlow:
                 # Should show row counts
                 assert "Rows read: 2" in result.stdout
                 assert "GitHub repos: 1" in result.stdout
+
+    def test_write_back_after_pipeline(self, tmp_path) -> None:
+        """Results are written back to the sheet after pipeline completes."""
+        from autopoc.sheet import SheetRowOrigin, _ORIGIN_KEY
+
+        sa_file = tmp_path / "sa.json"
+        sa_file.write_text('{"type": "service_account"}')
+
+        mock_rows = [
+            {
+                "title": "org/my-project",
+                "link": "https://github.com/org/my-project",
+                "category": "rag",
+                "pm_decision": "Approve(user1)",
+                _ORIGIN_KEY: SheetRowOrigin(tab_name="Week1", tab_gid=0, row_number=4),
+            },
+        ]
+
+        pipeline_result = {
+            "fork_repo_url": "https://token@github.com/fork/my-project.git",
+            "fork_target": "github",
+            "built_images": ["quay.io/org/my-project:latest"],
+            "poc_report_path": "/tmp/autopoc/poc-report.md",
+        }
+
+        env = {**VALID_ENV}
+        with patch.dict(os.environ, env, clear=True):
+            with (
+                patch("autopoc.cli.read_sheet", return_value=mock_rows),
+                patch("autopoc.cli._run_pipeline", return_value=pipeline_result),
+                patch("autopoc.cli.build_sheets_service") as mock_build_svc,
+                patch("autopoc.cli.ensure_result_columns", return_value={"poc_repo": 3, "poc_image": 4, "poc_report": 5}) as mock_ensure,
+                patch("autopoc.cli.write_poc_results") as mock_write,
+            ):
+                result = runner.invoke(
+                    app,
+                    [
+                        "run-sheet",
+                        "--sheet-id",
+                        "test-sheet",
+                        "--credentials",
+                        str(sa_file),
+                        "--skip-validation",
+                    ],
+                )
+                # Write-back should have been called
+                mock_build_svc.assert_called_once()
+                mock_ensure.assert_called_once()
+                mock_write.assert_called_once()
+
+    def test_already_processed_rows_skipped(self, tmp_path) -> None:
+        """Rows with existing PoC results are excluded from selection."""
+        sa_file = tmp_path / "sa.json"
+        sa_file.write_text('{"type": "service_account"}')
+
+        mock_rows = [
+            {
+                "title": "org/already-done",
+                "link": "https://github.com/org/already-done",
+                "category": "rag",
+                "pm_decision": "Approve(u1)",
+                "poc_repo": "https://github.com/fork/already-done/tree/autopoc-artifacts",
+            },
+            {
+                "title": "org/new-project",
+                "link": "https://github.com/org/new-project",
+                "category": "agents",
+                "pm_decision": "Approve(u1)",
+            },
+        ]
+
+        env = {**VALID_ENV}
+        with patch.dict(os.environ, env, clear=True):
+            with (
+                patch("autopoc.cli.read_sheet", return_value=mock_rows),
+                patch("autopoc.cli._run_pipeline", return_value={}) as mock_pipeline,
+                patch("autopoc.cli.build_sheets_service", return_value=MagicMock()),
+            ):
+                result = runner.invoke(
+                    app,
+                    [
+                        "run-sheet",
+                        "--sheet-id",
+                        "test-sheet",
+                        "--credentials",
+                        str(sa_file),
+                        "--skip-validation",
+                    ],
+                )
+                # Should have selected new-project, not already-done
+                mock_pipeline.assert_called_once()
+                call_args = mock_pipeline.call_args
+                assert call_args[0][0] == "new-project"
+
+    def test_max_evaluated_sheets_env_var(self, tmp_path) -> None:
+        """MAX_EVALUATED_SHEETS env var is passed through to read_sheet."""
+        sa_file = tmp_path / "sa.json"
+        sa_file.write_text('{"type": "service_account"}')
+
+        mock_rows = [
+            {
+                "title": "org/repo",
+                "link": "https://github.com/org/repo",
+                "pm_decision": "Approve(u1)",
+            },
+        ]
+
+        env = {**VALID_ENV, "MAX_EVALUATED_SHEETS": "7"}
+        with patch.dict(os.environ, env, clear=True):
+            with (
+                patch("autopoc.cli.read_sheet", return_value=mock_rows) as mock_read,
+                patch("autopoc.cli._run_pipeline", return_value={}),
+                patch("autopoc.cli.build_sheets_service", return_value=MagicMock()),
+            ):
+                result = runner.invoke(
+                    app,
+                    [
+                        "run-sheet",
+                        "--sheet-id",
+                        "test-sheet",
+                        "--credentials",
+                        str(sa_file),
+                        "--skip-validation",
+                    ],
+                )
+                # read_sheet should have been called with max_tabs=7
+                mock_read.assert_called_once()
+                call_kwargs = mock_read.call_args
+                assert call_kwargs.kwargs.get("max_tabs") == 7

@@ -2,18 +2,29 @@
 
 import csv
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
 from autopoc.sheet import (
+    POC_RESULT_COLUMNS,
     SheetProject,
+    SheetRowOrigin,
+    _ORIGIN_KEY,
+    _build_artifacts_branch_url,
+    _build_report_url,
+    _col_index_to_letter,
     _derive_project_name,
+    _has_poc_results,
     _is_github_url,
     _parse_rows,
+    _row_to_project,
+    _strip_credentials_from_url,
+    ensure_result_columns,
     filter_projects,
     read_sheet,
     select_project,
+    write_poc_results,
 )
 
 # Path to the reference CSV fixture.
@@ -423,7 +434,7 @@ class TestReadSheet:
 
         # Mock get() for tab name
         mock_spreadsheets.get.return_value.execute.return_value = {
-            "sheets": [{"properties": {"title": "20260428#1"}}]
+            "sheets": [{"properties": {"title": "20260428#1", "sheetId": 0}}]
         }
 
         # Mock values().get() for cell data
@@ -440,10 +451,10 @@ class TestReadSheet:
         ):
             result = read_sheet("/fake/sa.json", "sheet-id-123")
 
-        # Verify auth
+        # Verify auth — scope is read-write for write-back support
         mock_auth.assert_called_once_with(
             "/fake/sa.json",
-            scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"],
+            scopes=["https://www.googleapis.com/auth/spreadsheets"],
         )
         mock_build.assert_called_once_with(
             "sheets", "v4", credentials=mock_creds, cache_discovery=False
@@ -452,6 +463,13 @@ class TestReadSheet:
         # Verify we got the right number of parsed rows
         assert len(result) == 15
         assert result[0]["title"] == "microsoft/TRELLIS.2"
+
+        # Verify origin metadata is injected
+        origin = result[0][_ORIGIN_KEY]
+        assert isinstance(origin, SheetRowOrigin)
+        assert origin.tab_name == "20260428#1"
+        assert origin.tab_gid == 0
+        assert origin.row_number == 4  # 2 metadata + 1 header + 1 (first data row)
 
     def test_read_sheet_empty_spreadsheet(self) -> None:
         """read_sheet raises ValueError for a spreadsheet with no tabs."""
@@ -470,6 +488,153 @@ class TestReadSheet:
         ):
             with pytest.raises(ValueError, match="has no tabs"):
                 read_sheet("/fake/sa.json", "sheet-id-123")
+
+    def test_read_sheet_multi_tab(self) -> None:
+        """read_sheet with max_tabs=2 reads two tabs and aggregates rows."""
+        tab1_rows = [
+            ["metadata"],
+            ["review"],
+            ["title", "link", "category"],
+            ["ProjectA", "https://github.com/org/a", "rag"],
+        ]
+        tab2_rows = [
+            ["metadata"],
+            ["review"],
+            ["title", "link", "category"],
+            ["ProjectB", "https://github.com/org/b", "agents"],
+            ["ProjectC", "https://github.com/org/c", "inference"],
+        ]
+
+        mock_creds = MagicMock()
+        mock_service = MagicMock()
+        mock_spreadsheets = mock_service.spreadsheets.return_value
+
+        mock_spreadsheets.get.return_value.execute.return_value = {
+            "sheets": [
+                {"properties": {"title": "Week1", "sheetId": 0}},
+                {"properties": {"title": "Week2", "sheetId": 42}},
+                {"properties": {"title": "Week3", "sheetId": 99}},
+            ]
+        }
+
+        # values().get() returns different data per tab
+        def fake_values_get(spreadsheetId, range):
+            mock_result = MagicMock()
+            if "Week1" in range:
+                mock_result.execute.return_value = {"values": tab1_rows}
+            elif "Week2" in range:
+                mock_result.execute.return_value = {"values": tab2_rows}
+            else:
+                mock_result.execute.return_value = {"values": []}
+            return mock_result
+
+        mock_spreadsheets.values.return_value.get = fake_values_get
+
+        with (
+            patch("autopoc.sheet.Credentials.from_service_account_file", return_value=mock_creds),
+            patch("autopoc.sheet.build", return_value=mock_service),
+        ):
+            result = read_sheet("/fake/sa.json", "sheet-id-123", max_tabs=2)
+
+        # Should have 3 rows total (1 from tab1 + 2 from tab2)
+        assert len(result) == 3
+        assert result[0]["title"] == "ProjectA"
+        assert result[1]["title"] == "ProjectB"
+        assert result[2]["title"] == "ProjectC"
+
+        # Verify tab 1 origin
+        assert result[0][_ORIGIN_KEY].tab_name == "Week1"
+        assert result[0][_ORIGIN_KEY].tab_gid == 0
+        assert result[0][_ORIGIN_KEY].row_number == 4
+
+        # Verify tab 2 origin (non-zero tab!) — key requirement
+        assert result[1][_ORIGIN_KEY].tab_name == "Week2"
+        assert result[1][_ORIGIN_KEY].tab_gid == 42
+        assert result[1][_ORIGIN_KEY].row_number == 4
+        assert result[2][_ORIGIN_KEY].tab_name == "Week2"
+        assert result[2][_ORIGIN_KEY].tab_gid == 42
+        assert result[2][_ORIGIN_KEY].row_number == 5
+
+    def test_read_sheet_skips_invalid_tab(self) -> None:
+        """read_sheet skips tabs that don't have enough rows for metadata + header."""
+        good_tab = [
+            ["metadata"],
+            ["review"],
+            ["title", "link"],
+            ["A", "https://github.com/org/a"],
+        ]
+        bad_tab = [["only-one-row"]]
+
+        mock_creds = MagicMock()
+        mock_service = MagicMock()
+        mock_spreadsheets = mock_service.spreadsheets.return_value
+
+        mock_spreadsheets.get.return_value.execute.return_value = {
+            "sheets": [
+                {"properties": {"title": "BadTab", "sheetId": 1}},
+                {"properties": {"title": "GoodTab", "sheetId": 2}},
+            ]
+        }
+
+        def fake_values_get(spreadsheetId, range):
+            mock_result = MagicMock()
+            if "BadTab" in range:
+                mock_result.execute.return_value = {"values": bad_tab}
+            else:
+                mock_result.execute.return_value = {"values": good_tab}
+            return mock_result
+
+        mock_spreadsheets.values.return_value.get = fake_values_get
+
+        with (
+            patch("autopoc.sheet.Credentials.from_service_account_file", return_value=mock_creds),
+            patch("autopoc.sheet.build", return_value=mock_service),
+        ):
+            result = read_sheet("/fake/sa.json", "sheet-id", max_tabs=2)
+
+        assert len(result) == 1
+        assert result[0]["title"] == "A"
+        assert result[0][_ORIGIN_KEY].tab_name == "GoodTab"
+
+    def test_read_sheet_respects_max_tabs(self) -> None:
+        """read_sheet only reads max_tabs tabs even if more exist."""
+        tab_rows = [
+            ["metadata"],
+            ["review"],
+            ["title", "link"],
+            ["X", "https://github.com/org/x"],
+        ]
+
+        mock_creds = MagicMock()
+        mock_service = MagicMock()
+        mock_spreadsheets = mock_service.spreadsheets.return_value
+
+        mock_spreadsheets.get.return_value.execute.return_value = {
+            "sheets": [
+                {"properties": {"title": f"Tab{i}", "sheetId": i}}
+                for i in range(10)
+            ]
+        }
+
+        call_count = 0
+        def fake_values_get(spreadsheetId, range):
+            nonlocal call_count
+            call_count += 1
+            mock_result = MagicMock()
+            mock_result.execute.return_value = {"values": tab_rows}
+            return mock_result
+
+        mock_spreadsheets.values.return_value.get = fake_values_get
+
+        with (
+            patch("autopoc.sheet.Credentials.from_service_account_file", return_value=mock_creds),
+            patch("autopoc.sheet.build", return_value=mock_service),
+        ):
+            result = read_sheet("/fake/sa.json", "sheet-id", max_tabs=3)
+
+        # Should have read exactly 3 tabs
+        assert call_count == 3
+        assert len(result) == 3
 
 
 # ---------------------------------------------------------------------------
@@ -516,3 +681,360 @@ class TestEndToEndCSV:
         # CSV has 6 GitHub links: TRELLIS.2, CyberVerse, agentswift,
         # ai-native-pm-os, cadis, aamp
         assert len(github_rows) == 6
+
+
+# ---------------------------------------------------------------------------
+# Already-processed filter
+# ---------------------------------------------------------------------------
+
+
+class TestAlreadyProcessedFilter:
+    """Tests for skipping rows that already have PoC results."""
+
+    def test_rows_with_poc_repo_skipped(self) -> None:
+        """Rows with a non-empty poc_repo value are excluded."""
+        rows = [
+            {
+                "title": "A",
+                "link": "https://github.com/org/a",
+                "poc_repo": "https://github.com/fork/a/tree/autopoc-artifacts",
+                "poc_image": "",
+                "poc_report": "",
+            },
+            {
+                "title": "B",
+                "link": "https://github.com/org/b",
+                "poc_repo": "",
+                "poc_image": "",
+                "poc_report": "",
+            },
+        ]
+        result = filter_projects(rows)
+        assert len(result) == 1
+        assert result[0]["title"] == "B"
+
+    def test_rows_with_poc_image_skipped(self) -> None:
+        """Rows with a non-empty poc_image value are excluded."""
+        rows = [
+            {
+                "title": "A",
+                "link": "https://github.com/org/a",
+                "poc_image": "quay.io/org/a:latest",
+            },
+        ]
+        result = filter_projects(rows)
+        assert len(result) == 0
+
+    def test_rows_with_poc_report_skipped(self) -> None:
+        """Rows with a non-empty poc_report value are excluded."""
+        rows = [
+            {
+                "title": "A",
+                "link": "https://github.com/org/a",
+                "poc_report": "https://github.com/fork/a/blob/autopoc-artifacts/poc-report.md",
+            },
+        ]
+        result = filter_projects(rows)
+        assert len(result) == 0
+
+    def test_rows_with_failed_values_are_skipped(self) -> None:
+        """Rows where poc_repo=FAILED are considered already-processed."""
+        rows = [
+            {
+                "title": "A",
+                "link": "https://github.com/org/a",
+                "poc_repo": "FAILED",
+                "poc_image": "FAILED",
+                "poc_report": "FAILED",
+            },
+        ]
+        result = filter_projects(rows)
+        assert len(result) == 0
+
+    def test_rows_without_poc_columns_pass(self) -> None:
+        """Rows without any poc_* columns pass the filter."""
+        rows = [
+            {"title": "A", "link": "https://github.com/org/a"},
+        ]
+        result = filter_projects(rows)
+        assert len(result) == 1
+
+    def test_whitespace_only_poc_values_pass(self) -> None:
+        """Rows with whitespace-only poc_* values are NOT skipped."""
+        rows = [
+            {
+                "title": "A",
+                "link": "https://github.com/org/a",
+                "poc_repo": "  ",
+                "poc_image": "",
+                "poc_report": "",
+            },
+        ]
+        result = filter_projects(rows)
+        assert len(result) == 1
+
+    def test_has_poc_results_helper(self) -> None:
+        """_has_poc_results correctly detects existing results."""
+        assert _has_poc_results({"poc_repo": "something"}) is True
+        assert _has_poc_results({"poc_image": "something"}) is True
+        assert _has_poc_results({"poc_report": "something"}) is True
+        assert _has_poc_results({"poc_repo": "", "poc_image": "", "poc_report": ""}) is False
+        assert _has_poc_results({"title": "A"}) is False
+
+
+# ---------------------------------------------------------------------------
+# Origin tracking and _row_to_project
+# ---------------------------------------------------------------------------
+
+
+class TestRowToProject:
+    """Tests for _row_to_project with origin metadata."""
+
+    def test_with_origin_metadata(self) -> None:
+        """Origin metadata populates tab_name, tab_gid, and row_index."""
+        row = {
+            "title": "org/repo",
+            "link": "https://github.com/org/repo",
+            "category": "rag",
+            _ORIGIN_KEY: SheetRowOrigin(tab_name="Week2", tab_gid=42, row_number=7),
+        }
+        project = _row_to_project(row)
+        assert project.name == "repo"
+        assert project.tab_name == "Week2"
+        assert project.tab_gid == 42
+        assert project.row_index == 7
+
+    def test_without_origin_uses_fallback(self) -> None:
+        """Without origin metadata, fallback_row_index is used."""
+        row = {
+            "title": "org/repo",
+            "link": "https://github.com/org/repo",
+        }
+        project = _row_to_project(row, fallback_row_index=10)
+        assert project.row_index == 10
+        assert project.tab_name == ""
+        assert project.tab_gid == 0
+
+    def test_tab_not_zero(self) -> None:
+        """Projects from a non-first tab retain the correct tab info."""
+        row = {
+            "title": "org/ml-project",
+            "link": "https://github.com/org/ml-project",
+            "category": "inference",
+            _ORIGIN_KEY: SheetRowOrigin(tab_name="Sprint3", tab_gid=99, row_number=12),
+        }
+        project = _row_to_project(row)
+        assert project.tab_name == "Sprint3"
+        assert project.tab_gid == 99
+        assert project.row_index == 12
+        assert project.name == "ml-project"
+
+    def test_select_project_uses_origin(self) -> None:
+        """select_project delegates to _row_to_project and preserves origin."""
+        rows = [
+            {
+                "title": "org/project-a",
+                "link": "https://github.com/org/project-a",
+                "category": "rag",
+                _ORIGIN_KEY: SheetRowOrigin(tab_name="Tab5", tab_gid=55, row_number=9),
+            },
+        ]
+        project = select_project(rows)
+        assert project.name == "project-a"
+        assert project.tab_name == "Tab5"
+        assert project.tab_gid == 55
+        assert project.row_index == 9
+
+
+# ---------------------------------------------------------------------------
+# Credential stripping
+# ---------------------------------------------------------------------------
+
+
+class TestStripCredentials:
+    """Tests for _strip_credentials_from_url."""
+
+    def test_github_token(self) -> None:
+        url = "https://ghp_abc123@github.com/org/repo.git"
+        assert _strip_credentials_from_url(url) == "https://github.com/org/repo"
+
+    def test_gitlab_oauth(self) -> None:
+        url = "https://oauth2:glpat-xyz@gitlab.example.com/group/project.git"
+        assert _strip_credentials_from_url(url) == "https://gitlab.example.com/group/project"
+
+    def test_no_credentials(self) -> None:
+        url = "https://github.com/org/repo"
+        assert _strip_credentials_from_url(url) == "https://github.com/org/repo"
+
+    def test_no_git_suffix(self) -> None:
+        url = "https://token@github.com/org/repo"
+        assert _strip_credentials_from_url(url) == "https://github.com/org/repo"
+
+    def test_empty_url(self) -> None:
+        assert _strip_credentials_from_url("") == ""
+
+
+# ---------------------------------------------------------------------------
+# Artifacts branch URL building
+# ---------------------------------------------------------------------------
+
+
+class TestBuildUrls:
+    """Tests for _build_artifacts_branch_url and _build_report_url."""
+
+    def test_github_artifacts_url(self) -> None:
+        url = _build_artifacts_branch_url(
+            "https://token@github.com/org/repo.git", "github"
+        )
+        assert url == "https://github.com/org/repo/tree/autopoc-artifacts"
+
+    def test_gitlab_artifacts_url(self) -> None:
+        url = _build_artifacts_branch_url(
+            "https://oauth2:token@gitlab.example.com/g/p.git", "gitlab"
+        )
+        assert url == "https://gitlab.example.com/g/p/-/tree/autopoc-artifacts"
+
+    def test_github_report_url(self) -> None:
+        url = _build_report_url(
+            "https://token@github.com/org/repo.git", "github"
+        )
+        assert url == "https://github.com/org/repo/blob/autopoc-artifacts/poc-report.md"
+
+    def test_gitlab_report_url(self) -> None:
+        url = _build_report_url(
+            "https://oauth2:token@gitlab.example.com/g/p.git", "gitlab"
+        )
+        assert url == "https://gitlab.example.com/g/p/-/blob/autopoc-artifacts/poc-report.md"
+
+
+# ---------------------------------------------------------------------------
+# Column index to letter
+# ---------------------------------------------------------------------------
+
+
+class TestColIndexToLetter:
+    def test_single_letters(self) -> None:
+        assert _col_index_to_letter(0) == "A"
+        assert _col_index_to_letter(1) == "B"
+        assert _col_index_to_letter(25) == "Z"
+
+    def test_double_letters(self) -> None:
+        assert _col_index_to_letter(26) == "AA"
+        assert _col_index_to_letter(27) == "AB"
+        assert _col_index_to_letter(51) == "AZ"
+        assert _col_index_to_letter(52) == "BA"
+
+
+# ---------------------------------------------------------------------------
+# ensure_result_columns
+# ---------------------------------------------------------------------------
+
+
+class TestEnsureResultColumns:
+    """Tests for ensure_result_columns."""
+
+    def test_creates_missing_columns(self) -> None:
+        """Appends poc_repo, poc_image, poc_report to header when missing."""
+        mock_service = MagicMock()
+        headers = ["title", "link", "category"]
+
+        col_indices = ensure_result_columns(
+            mock_service, "sheet-123", "Tab1", headers
+        )
+
+        # Should have called update to append 3 columns
+        mock_service.spreadsheets.return_value.values.return_value.update.assert_called_once()
+        call_kwargs = mock_service.spreadsheets.return_value.values.return_value.update.call_args
+        assert call_kwargs.kwargs["body"]["values"] == [["poc_repo", "poc_image", "poc_report"]]
+
+        # Column indices should be correct
+        assert col_indices["poc_repo"] == 3
+        assert col_indices["poc_image"] == 4
+        assert col_indices["poc_report"] == 5
+
+    def test_columns_already_exist(self) -> None:
+        """No API call when all columns already exist."""
+        mock_service = MagicMock()
+        headers = ["title", "link", "poc_repo", "poc_image", "poc_report"]
+
+        col_indices = ensure_result_columns(
+            mock_service, "sheet-123", "Tab1", headers
+        )
+
+        # No update call
+        mock_service.spreadsheets.return_value.values.return_value.update.assert_not_called()
+
+        assert col_indices["poc_repo"] == 2
+        assert col_indices["poc_image"] == 3
+        assert col_indices["poc_report"] == 4
+
+    def test_partial_columns_exist(self) -> None:
+        """Only appends the missing columns."""
+        mock_service = MagicMock()
+        headers = ["title", "link", "poc_repo"]
+
+        col_indices = ensure_result_columns(
+            mock_service, "sheet-123", "Tab1", headers
+        )
+
+        call_kwargs = mock_service.spreadsheets.return_value.values.return_value.update.call_args
+        assert call_kwargs.kwargs["body"]["values"] == [["poc_image", "poc_report"]]
+
+        assert col_indices["poc_repo"] == 2
+        assert col_indices["poc_image"] == 3
+        assert col_indices["poc_report"] == 4
+
+
+# ---------------------------------------------------------------------------
+# write_poc_results
+# ---------------------------------------------------------------------------
+
+
+class TestWritePocResults:
+    """Tests for write_poc_results."""
+
+    def test_writes_successful_results(self) -> None:
+        """Writes correct values for a successful pipeline run."""
+        mock_service = MagicMock()
+        col_indices = {"poc_repo": 3, "poc_image": 4, "poc_report": 5}
+
+        write_poc_results(
+            mock_service,
+            "sheet-123",
+            "Tab1",
+            row_number=7,
+            col_indices=col_indices,
+            fork_repo_url="https://token@github.com/org/repo.git",
+            fork_target="github",
+            built_images=["quay.io/org/repo:latest"],
+            poc_report_path="/tmp/autopoc/repo/poc-report.md",
+        )
+
+        # Should have 3 update calls (one per column)
+        update_mock = mock_service.spreadsheets.return_value.values.return_value.update
+        assert update_mock.call_count == 3
+
+    def test_writes_failed_values(self) -> None:
+        """Writes FAILED when artifacts are missing."""
+        mock_service = MagicMock()
+        col_indices = {"poc_repo": 3, "poc_image": 4, "poc_report": 5}
+
+        write_poc_results(
+            mock_service,
+            "sheet-123",
+            "Tab1",
+            row_number=5,
+            col_indices=col_indices,
+            fork_repo_url=None,
+            fork_target=None,
+            built_images=None,
+            poc_report_path=None,
+        )
+
+        update_mock = mock_service.spreadsheets.return_value.values.return_value.update
+        # Collect all written values
+        written_values = []
+        for c in update_mock.call_args_list:
+            written_values.append(c.kwargs["body"]["values"][0][0])
+
+        assert all(v == "FAILED" for v in written_values)
