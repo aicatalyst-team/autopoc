@@ -24,13 +24,25 @@ class AutoPoCConfig(BaseSettings):
     vertex_location: str | None = Field(
         default=None, description="Google Cloud region for Vertex AI (e.g., us-east5)"
     )
+    llm_base_url: str | None = Field(
+        default=None,
+        description="Base URL for an OpenAI-compatible API (e.g. http://qwen-coder-svc.vllm:8000/v1)",
+    )
+    llm_api_key: str | None = Field(
+        default=None,
+        description="API key for the OpenAI-compatible endpoint (use 'none' if no auth required)",
+    )
     llm_model: str | None = Field(
         default=None,
-        description="LLM model name to use (e.g., claude-3-5-sonnet-20241022 or claude-3-5-haiku@20241022)",
+        description="LLM model name to use (e.g., claude-3-5-sonnet-20241022, qwen2.5-coder-32b)",
     )
     llm_max_retries: int = Field(
         default=0,
         description="Max retries for LLM API calls (default 0 to fail fast on rate limits)",
+    )
+    llm_max_tokens: int | None = Field(
+        default=None,
+        description="Max output tokens for LLM responses (auto-detected per provider if unset)",
     )
 
     # Fork target
@@ -66,10 +78,16 @@ class AutoPoCConfig(BaseSettings):
     )
 
     # OpenShift
-    openshift_api_url: str = Field(
-        description="OpenShift API URL (e.g. https://api.cluster.example.com:6443)"
+    openshift_api_url: str | None = Field(
+        default=None,
+        description="OpenShift API URL (e.g. https://api.cluster.example.com:6443). "
+        "Not required when running in-cluster (uses ServiceAccount auth).",
     )
-    openshift_token: str = Field(description="OpenShift bearer token")
+    openshift_token: str | None = Field(
+        default=None,
+        description="OpenShift bearer token. "
+        "Not required when running in-cluster (uses ServiceAccount auth).",
+    )
     openshift_namespace_prefix: str = Field(
         default="poc", description="Prefix for created namespaces (e.g. poc-myproject)"
     )
@@ -85,7 +103,7 @@ class AutoPoCConfig(BaseSettings):
         default=3, description="Max retry attempts for failed container builds"
     )
     max_deploy_retries: int = Field(
-        default=2, description="Max retry attempts for failed deployments"
+        default=3, description="Max retry attempts for failed deployments"
     )
     max_container_fix_retries: int = Field(
         default=2,
@@ -111,12 +129,20 @@ class AutoPoCConfig(BaseSettings):
 
     @model_validator(mode="after")
     def validate_llm_config(self) -> "AutoPoCConfig":
-        """Ensure we have either Anthropic API key or Vertex AI config."""
-        if not self.anthropic_api_key and not self.vertex_project:
-            raise ValueError("Either ANTHROPIC_API_KEY or VERTEX_PROJECT must be provided.")
+        """Ensure we have at least one LLM provider configured."""
+        if not self.anthropic_api_key and not self.vertex_project and not self.llm_base_url:
+            raise ValueError(
+                "At least one LLM provider must be configured: "
+                "ANTHROPIC_API_KEY, VERTEX_PROJECT, or LLM_BASE_URL."
+            )
         if self.vertex_project and not self.vertex_location:
             # Default to us-east5 (where Claude is supported) if project is provided but location is not
             self.vertex_location = "us-east5"
+        if self.llm_base_url and not self.llm_model:
+            raise ValueError(
+                "LLM_MODEL is required when using LLM_BASE_URL "
+                "(e.g. LLM_MODEL=qwen2.5-coder-32b)."
+            )
         return self
 
     @model_validator(mode="after")
