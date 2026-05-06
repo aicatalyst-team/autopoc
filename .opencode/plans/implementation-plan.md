@@ -20,8 +20,10 @@
 | **9. K8s Deployment** | — | Containerize agent, env var input, build strategy abstraction, Job manifests. See [k8s-deployment-plan.md](./k8s-deployment-plan.md) |
 | **10. Raw Test Output** | 67–72 | Raw output capture, truncation, log formatting, artifact commit. See [raw-test-output-impl.md](./raw-test-output-impl.md) |
 | **11. Google Sheet Ingestion** | — | Read projects from Google Sheet, filter, select, run pipeline. See [google-sheet-ingestion-plan.md](./google-sheet-ingestion-plan.md) |
+| **12. RHOAI Fitness Evaluation** | 73–82 | Strategy loader, evaluate agent, graph integration, scoring, CLI. See [rhoai-evaluation-plan.md](./rhoai-evaluation-plan.md) |
+| **13. Candidate Comparison** | 83–90 | Pre-filter, PM comments parsing, multi-candidate evaluation, best selection, CLI. See [candidate-comparison-plan.md](./candidate-comparison-plan.md) |
 
-**Critical path:** 1 → 2 → 4 → 6,7 → 9 → 13,18 → 20 → 25 → 27 → 33 → 34 → 40 → 42 → 44 → 45,46 → 49 → 54
+**Critical path:** 1 → 2 → 4 → 6,7 → 9 → 13,18 → 20 → 25 → 27 → 33 → 34 → 40 → 42 → 44 → 45,46 → 49 → 54 → 73 → 76 → 77 → 83 → 85
 
 ---
 
@@ -40,6 +42,8 @@
 | **9. K8s Deployment** | **IN PROGRESS** | | |
 | **10. Raw Test Output** | **COMPLETE** | 6/6 | 23 passing |
 | **11. Google Sheet Ingestion** | **COMPLETE** | 9/9 | 59 passing |
+| **12. RHOAI Fitness Evaluation** | **COMPLETE** | 10/10 | 59 passing |
+| **13. Candidate Comparison** | **COMPLETE** | 8/8 | 36 passing |
 
 ---
 
@@ -2045,3 +2049,336 @@ Local E2E requires `docker-compose.test.yml` running and `--e2e` flag.
 - All new tests pass
 - All existing tests pass (no regressions)
 - Good coverage of GitHub fork flow edge cases
+
+---
+
+## Phase 12: RHOAI Fitness Evaluation
+
+> See [rhoai-evaluation-plan.md](./rhoai-evaluation-plan.md) for full design.
+
+### Task 73 — Strategy loader module ✅
+
+**Files:** `src/autopoc/tools/strategy.py`
+
+**Depends on:** nothing
+
+**Work:**
+- Create strategy loader with functions: `load_strategy_config()`,
+  `load_strategy()`, `load_strategy_baseline()`, `get_scoring_dimensions()`,
+  `compute_max_score()`
+- Resolve `data/` directory relative to project root
+- Parse YAML, validate required keys, handle missing files
+
+**Acceptance criteria:**
+- All loader functions work with real YAML files from `data/`
+- Missing file raises `FileNotFoundError` with helpful message
+- Works in both editable and installed package modes
+
+---
+
+### Task 74 — RHOAIEvaluation TypedDict + PoCState fields ✅
+
+**Files:** `src/autopoc/state.py`
+
+**Depends on:** nothing
+
+**Work:**
+- Add `RHOAIDimensionScore` and `RHOAIEvaluation` TypedDicts
+- Add `rhoai_evaluation` and `rhoai_evaluation_path` to `PoCState`
+- Add `EVALUATE = "evaluate"` to `PoCPhase` enum
+
+**Acceptance criteria:**
+- All new types importable from `autopoc.state`
+- Existing tests pass (no regressions)
+
+---
+
+### Task 75 — Evaluation system prompt ✅
+
+**Files:** `src/autopoc/prompts/evaluate.md`
+
+**Depends on:** Task 73
+
+**Work:**
+- Write system prompt template with placeholders for scoring dimensions,
+  strategy baseline, core products, relationship rules, and JSON output schema
+- All placeholders injected at runtime from strategy YAML
+
+**Acceptance criteria:**
+- Prompt file exists and is well-structured
+- Output schema matches `RHOAIEvaluation` TypedDict
+- Prompt instructs LLM to respond with only JSON
+
+---
+
+### Task 76 — Evaluate agent implementation ✅
+
+**Files:** `src/autopoc/agents/evaluate.py`
+
+**Depends on:** Tasks 73, 74, 75
+
+**Work:**
+- Implement `evaluate_agent()` node function: load strategy, build prompt,
+  one-shot LLM call, parse JSON, write markdown, return state update
+- JSON parsing with markdown fence handling (same as intake)
+- Score validation and clamping
+- Markdown report generation (`rhoai-evaluation.md`)
+- All failure paths return valid state (non-blocking)
+
+**Acceptance criteria:**
+- Agent produces valid evaluation from mocked LLM
+- Agent writes `rhoai-evaluation.md`
+- LLM/parse failures handled gracefully (empty evaluation, no exception)
+- Dimensions read from strategy YAML, not hardcoded
+
+---
+
+### Task 77 — Graph integration ✅
+
+**Files:** `src/autopoc/graph.py`
+
+**Depends on:** Task 76
+
+**Work:**
+- Add `evaluate` node between intake and fan-out
+- Refactor routing: intake → evaluate → [poc_plan ∥ fork]
+- Update `PIPELINE_PHASES` with `"evaluate"` between `"intake"` and `"poc_plan"`
+- Handle all `stop_after` values correctly
+
+**Acceptance criteria:**
+- Graph compiles with all `stop_after` values
+- Evaluate runs between intake and fan-out
+- Existing topology preserved after evaluate
+
+---
+
+### Task 78 — Markdown report writer ✅
+
+**Files:** `src/autopoc/agents/evaluate.py` (part of Task 76)
+
+**Depends on:** Task 76
+
+**Work:**
+- `_build_evaluation_markdown()` renders clean markdown with score table,
+  strategy alignment section, assessment, strengths, risks
+- Written to `{local_clone_path}/rhoai-evaluation.md`
+
+**Acceptance criteria:**
+- Well-formatted, readable markdown
+- Handles edge cases (empty dimensions, missing rationale)
+
+---
+
+### Task 79 — Package data configuration ✅
+
+**Files:** `pyproject.toml`
+
+**Depends on:** Task 73
+
+**Work:**
+- Include `data/` directory as package data via hatchling config
+- Verify data files findable at runtime
+
+**Acceptance criteria:**
+- `pip install -e .` includes `data/` files
+- Strategy loader finds files at runtime
+
+---
+
+### Task 80 — Unit tests: strategy loader ✅
+
+**Files:** `tests/test_strategy.py`
+
+**Depends on:** Task 73
+
+**Work:**
+- Test all loader functions with real YAML files
+- Test different strategies (redhat-ai-2026 vs classic)
+- Test missing file handling
+- Test structure validation
+
+**Acceptance criteria:**
+- All loader functions tested
+- Edge cases covered
+
+---
+
+### Task 81 — Unit tests: evaluate agent ✅
+
+**Files:** `tests/test_evaluate.py`
+
+**Depends on:** Task 76
+
+**Work:**
+- Test happy path, score clamping, LLM failure, JSON parse failure
+- Test markdown generation, strategy injection, dynamic dimensions
+- Test with different strategies
+
+**Acceptance criteria:**
+- All agent behaviors tested (success, failure, edge cases)
+- Non-blocking behavior verified
+
+---
+
+### Task 82 — CLI: --stop-after=evaluate and display ✅
+
+**Files:** `src/autopoc/cli.py`
+
+**Depends on:** Task 77
+
+**Work:**
+- Add evaluation display to CLI output (score panel, dimension table in verbose)
+- Handle empty evaluation in display
+- Verify `--stop-after=evaluate` works
+
+**Acceptance criteria:**
+- Evaluation results displayed in pipeline run
+- `--stop-after=evaluate` works
+- Empty evaluation handled gracefully
+
+---
+
+## Phase 13: Candidate Comparison for run-sheet
+
+> See [candidate-comparison-plan.md](./candidate-comparison-plan.md) for full design.
+
+### Task 83 — Pre-filter: keyword matching against strategy labels ✅
+
+**Files:** `src/autopoc/sheet.py`, `src/autopoc/tools/strategy.py`
+
+**Depends on:** Phase 12 (Task 73)
+
+**Work:**
+- Implement `prefilter_candidates()` with category matching and keyword matching
+  against strategy capability labels
+- Sort candidates by heuristic score, return top N
+
+**Acceptance criteria:**
+- AI/ML-related projects rank higher than generic ones
+- Category column leveraged when present
+- No LLM calls, fast execution
+
+---
+
+### Task 84 — Pre-filter: PM comments LLM parsing ✅
+
+**Files:** `src/autopoc/sheet.py`, `src/autopoc/prompts/prefilter_pm_comments.md`
+
+**Depends on:** Task 83
+
+**Work:**
+- Implement `_parse_pm_comments()` — single batched LLM call for all candidates
+- Write `prefilter_pm_comments.md` system prompt
+- Integrate PM comment boost (-10 to +10) into heuristic score
+- Handle missing/empty comments (skip LLM), parse failures (ignore PM signals)
+
+**Acceptance criteria:**
+- PM comments with positive signals boost score
+- Missing/empty comments handled (no LLM call)
+- LLM failure doesn't crash pre-filter
+- Single batched call for all candidates
+
+---
+
+### Task 85 — evaluate_candidates() orchestrator ✅
+
+**Files:** `src/autopoc/sheet.py`
+
+**Depends on:** Phase 12 (Tasks 76, 77), Task 83
+
+**Work:**
+- Implement `evaluate_candidates()`: for each candidate, run partial pipeline
+  with `stop_after="evaluate"`, extract evaluation, build `CandidateResult`
+- Add `CandidateResult` dataclass
+- Sequential evaluation, graceful failure handling
+- Winner's clone preserved, others cleaned up
+
+**Acceptance criteria:**
+- Each candidate gets full intake + evaluate
+- Pipeline failures handled per-candidate
+- Results sorted by score
+
+---
+
+### Task 86 — select_best_candidate() with scoring ✅
+
+**Files:** `src/autopoc/sheet.py`
+
+**Depends on:** Task 85
+
+**Work:**
+- Sort by: successful evaluation > failed, then total_score, then heuristic_score,
+  then sheet order
+- Handle all-failure edge case
+
+**Acceptance criteria:**
+- Highest-scoring candidate selected
+- All-failure case handled
+
+---
+
+### Task 87 — CLI: --max-candidates, --skip-evaluation, comparison table ✅
+
+**Files:** `src/autopoc/cli.py`
+
+**Depends on:** Tasks 84, 85, 86
+
+**Work:**
+- Add `--max-candidates` and `--skip-evaluation` options
+- Multi-candidate flow with progress feedback
+- Rich comparison table display
+- Reuse winner's clone in full pipeline
+
+**Acceptance criteria:**
+- Options work correctly
+- Comparison table displayed
+- Winner's clone reused
+
+---
+
+### Task 88 — Unit tests: pre-filter ✅
+
+**Files:** `tests/test_prefilter.py`
+
+**Depends on:** Tasks 83, 84
+
+**Work:**
+- Test pre-filter ranking, category mapping, keyword matching
+- Test PM comments parsing with mocked LLM
+- Test edge cases (empty inputs, missing columns)
+
+**Acceptance criteria:**
+- Pre-filter ranking deterministic
+- Edge cases handled
+
+---
+
+### Task 89 — Unit tests: candidate comparison ✅
+
+**Files:** `tests/test_prefilter.py`
+
+**Depends on:** Tasks 85, 86
+
+**Work:**
+- Test `evaluate_candidates()` with mocked pipeline
+- Test `select_best_candidate()` with various scenarios
+
+**Acceptance criteria:**
+- Orchestration and selection tested
+- Error handling verified
+
+---
+
+### Task 90 — Integration test: multi-candidate flow ✅
+
+**Files:** `tests/test_evaluate_candidates.py`
+
+**Depends on:** Tasks 85, 86, 87
+
+**Work:**
+- End-to-end test with mock sheet data and mocked LLM
+- Verify correct candidate selected, comparison data correct
+
+**Acceptance criteria:**
+- Full flow works with mocked dependencies
+- Correct candidate selected

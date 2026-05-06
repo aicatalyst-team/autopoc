@@ -13,6 +13,7 @@ class PoCPhase(str, Enum):
     """Current phase of the PoC pipeline."""
 
     INTAKE = "intake"
+    EVALUATE = "evaluate"
     FORK = "fork"
     POC_PLAN = "poc_plan"
     CONTAINERIZE = "containerize"
@@ -95,6 +96,36 @@ class PoCInfrastructure(TypedDict, total=False):
     test_strategy: str  # "http" | "cli" | "exec" — how to validate after deploy
 
 
+class RHOAIDimensionScore(TypedDict, total=False):
+    """Score for a single RHOAI evaluation dimension."""
+
+    name: str  # e.g. "audience_value", "strategic_alignment"
+    score: int  # 0 to max_score
+    max_score: int  # max possible score for this dimension
+    rationale: str  # 1-2 sentence explanation
+
+
+class RHOAIEvaluation(TypedDict, total=False):
+    """RHOAI fitness evaluation result for a project.
+
+    Produced by the evaluate agent, which scores how well a project
+    fits as a proof-of-concept on OpenShift AI.  Scoring dimensions
+    are read dynamically from the active strategy YAML.
+    """
+
+    total_score: int  # sum of dimension scores (0-100)
+    max_possible_score: int  # sum of all max_scores
+    dimensions: list[RHOAIDimensionScore]  # per-dimension breakdown
+    strategy_areas: list[str]  # matched official strategy areas
+    relationship: str  # relationship classification label
+    capability_labels: list[str]  # matched capability labels from strategy
+    rationale: str  # overall 2-3 sentence assessment
+    strengths: list[str]  # key strengths (2-4 items)
+    risks: list[str]  # key risks/concerns (1-3 items)
+    strategy_name: str  # which strategy profile was used
+    strategy_version: str  # version of the strategy
+
+
 class PoCResult(TypedDict, total=False):
     """Result of a single PoC test scenario execution."""
 
@@ -126,6 +157,10 @@ class PoCState(TypedDict, total=False):
     fork_repo_url: str | None  # URL of the fork (GitHub or GitLab)
     fork_target: str | None  # "github" or "gitlab" — which platform was used
     local_clone_path: str | None
+
+    # --- RHOAI Evaluation output ---
+    rhoai_evaluation: RHOAIEvaluation  # RHOAI fitness evaluation result
+    rhoai_evaluation_path: str  # Path to rhoai-evaluation.md in the repo
 
     # --- Intake/analysis output ---
     repo_digest: str  # Pre-generated text digest of the repo (procedural, no LLM)

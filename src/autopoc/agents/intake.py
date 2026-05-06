@@ -75,24 +75,35 @@ def _validate_component(comp: dict) -> ComponentInfo:
 
 
 # Files that indicate a directory is a component root (has its own build system)
-_BUILD_FILES = frozenset({
-    # Python
-    "setup.py", "setup.cfg", "pyproject.toml", "requirements.txt", "Pipfile",
-    # JavaScript / TypeScript
-    "package.json",
-    # Go
-    "go.mod",
-    # Rust
-    "Cargo.toml",
-    # Java / Kotlin
-    "pom.xml", "build.gradle", "build.gradle.kts",
-    # Ruby
-    "Gemfile",
-    # C / C++
-    "CMakeLists.txt", "Makefile", "meson.build",
-    # Generic
-    "Dockerfile", "Dockerfile.ubi",
-})
+_BUILD_FILES = frozenset(
+    {
+        # Python
+        "setup.py",
+        "setup.cfg",
+        "pyproject.toml",
+        "requirements.txt",
+        "Pipfile",
+        # JavaScript / TypeScript
+        "package.json",
+        # Go
+        "go.mod",
+        # Rust
+        "Cargo.toml",
+        # Java / Kotlin
+        "pom.xml",
+        "build.gradle",
+        "build.gradle.kts",
+        # Ruby
+        "Gemfile",
+        # C / C++
+        "CMakeLists.txt",
+        "Makefile",
+        "meson.build",
+        # Generic
+        "Dockerfile",
+        "Dockerfile.ubi",
+    }
+)
 
 
 def _has_build_files(directory: Path) -> bool:
@@ -183,10 +194,14 @@ async def _fix_component_paths(
         )
 
         try:
-            response = await llm.ainvoke([
-                SystemMessage(content="You are identifying source code directories in a repository. Reply with only the directory path."),
-                HumanMessage(content=prompt),
-            ])
+            response = await llm.ainvoke(
+                [
+                    SystemMessage(
+                        content="You are identifying source code directories in a repository. Reply with only the directory path."
+                    ),
+                    HumanMessage(content=prompt),
+                ]
+            )
             answer = strip_think_tags(response.content)
             answer = answer.strip("`\"'")
 

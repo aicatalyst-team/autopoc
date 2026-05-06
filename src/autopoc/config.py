@@ -140,8 +140,7 @@ class AutoPoCConfig(BaseSettings):
             self.vertex_location = "us-east5"
         if self.llm_base_url and not self.llm_model:
             raise ValueError(
-                "LLM_MODEL is required when using LLM_BASE_URL "
-                "(e.g. LLM_MODEL=qwen2.5-coder-32b)."
+                "LLM_MODEL is required when using LLM_BASE_URL (e.g. LLM_MODEL=qwen2.5-coder-32b)."
             )
         return self
 

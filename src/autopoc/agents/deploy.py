@@ -72,9 +72,7 @@ def _fixup_image_pull_policy(k8s_dir: Path) -> None:
             continue
 
         # Replace IfNotPresent with Always
-        new_content = content.replace(
-            "imagePullPolicy: IfNotPresent", "imagePullPolicy: Always"
-        )
+        new_content = content.replace("imagePullPolicy: IfNotPresent", "imagePullPolicy: Always")
 
         # If there's no imagePullPolicy at all, add it after image: lines
         # that use :latest

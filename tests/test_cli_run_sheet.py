@@ -15,6 +15,7 @@ def _strip_ansi(text: str) -> str:
     """Remove ANSI escape codes from text for assertion matching."""
     return re.sub(r"\x1b\[[0-9;]*m", "", text)
 
+
 # Minimal env vars to satisfy config validation (for tests that get past
 # the sheet-specific arg checks).
 VALID_ENV = {
@@ -42,7 +43,9 @@ class TestRunSheetArgs:
         """run-sheet without --credentials or AUTOPOC_SHEET_CREDENTIALS exits with error."""
         result = runner.invoke(app, ["run-sheet", "--sheet-id", "fake123"])
         assert result.exit_code == 1
-        assert "credentials" in result.stdout.lower() or "AUTOPOC_SHEET_CREDENTIALS" in result.stdout
+        assert (
+            "credentials" in result.stdout.lower() or "AUTOPOC_SHEET_CREDENTIALS" in result.stdout
+        )
 
     def test_credentials_file_not_found(self) -> None:
         """run-sheet with nonexistent credentials file exits with error."""
@@ -60,7 +63,10 @@ class TestRunSheetArgs:
             # Should get past the sheet_id check and fail on credentials
             result = runner.invoke(app, ["run-sheet"])
             assert result.exit_code == 1
-            assert "credentials" in result.stdout.lower() or "AUTOPOC_SHEET_CREDENTIALS" in result.stdout
+            assert (
+                "credentials" in result.stdout.lower()
+                or "AUTOPOC_SHEET_CREDENTIALS" in result.stdout
+            )
 
     def test_credentials_from_env(self, tmp_path) -> None:
         """AUTOPOC_SHEET_CREDENTIALS env var is picked up when --credentials is omitted."""
@@ -110,8 +116,10 @@ class TestRunSheetFlow:
                     app,
                     [
                         "run-sheet",
-                        "--sheet-id", "test-sheet",
-                        "--credentials", str(sa_file),
+                        "--sheet-id",
+                        "test-sheet",
+                        "--credentials",
+                        str(sa_file),
                         "--skip-validation",
                     ],
                 )
@@ -154,8 +162,10 @@ class TestRunSheetFlow:
                     app,
                     [
                         "run-sheet",
-                        "--sheet-id", "test-sheet",
-                        "--credentials", str(sa_file),
+                        "--sheet-id",
+                        "test-sheet",
+                        "--credentials",
+                        str(sa_file),
                         "--skip-validation",
                     ],
                 )
@@ -184,8 +194,10 @@ class TestRunSheetFlow:
                     app,
                     [
                         "run-sheet",
-                        "--sheet-id", "test-sheet",
-                        "--credentials", str(sa_file),
+                        "--sheet-id",
+                        "test-sheet",
+                        "--credentials",
+                        str(sa_file),
                         "--skip-validation",
                     ],
                 )
@@ -223,8 +235,10 @@ class TestRunSheetFlow:
                     app,
                     [
                         "run-sheet",
-                        "--sheet-id", "test-sheet",
-                        "--credentials", str(sa_file),
+                        "--sheet-id",
+                        "test-sheet",
+                        "--credentials",
+                        str(sa_file),
                         "--skip-validation",
                     ],
                 )

@@ -1,0 +1,36 @@
+name: "Classic"
+version: "2026-01-01"
+description: "Original scoring approach. Novelty driven by stars velocity, OpenShift fit by generic Kubernetes keyword matching. No strategy alignment, no demo potential scoring."
+impact_dimensions:
+  - name: audience_value
+    weight: 1
+    source: deterministic
+    llm_override: true
+  - name: novelty
+    weight: 1
+    source: deterministic
+    llm_override: true
+  - name: openshift_fit
+    weight: 1
+    source: deterministic
+    llm_override: true
+impact_formula: "(audience_value + novelty + openshift_fit) / 3"
+feasibility_dimensions:
+  - name: container_readiness
+    weight: 1
+  - name: dependency_profile
+    weight: 1
+  - name: reproduction_confidence
+    weight: 1
+  - name: complexity_sweet_spot
+    weight: 1
+feasibility_formula: "(container_readiness + dependency_profile + reproduction_confidence + complexity_sweet_spot) / 4"
+rerank:
+  enabled: false
+strategy_baseline: null
+slide_fields:
+  - problem_statement
+  - proposed_poc
+  - expected_outcome
+  - mermaid_diagram
+dedup_strategy: "url_hash"

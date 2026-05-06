@@ -57,9 +57,7 @@ class TestAutoPoCConfig:
                 # Use _env_file=None to skip .env file on disk
                 AutoPoCConfig(_env_file=None)  # type: ignore[call-arg]
             # Verify the error mentions the missing field requirement
-            assert "At least one LLM provider must be configured" in str(
-                exc_info.value
-            )
+            assert "At least one LLM provider must be configured" in str(exc_info.value)
 
     def test_missing_multiple_required_vars(self) -> None:
         """Missing multiple required vars reports all of them."""

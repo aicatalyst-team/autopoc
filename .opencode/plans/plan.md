@@ -31,6 +31,11 @@ images, deployment manifests, test scripts, PoC report) committed and available.
 │   Agent      │
 └──────┬───────┘
        │
+┌──────▼──────┐
+│  Evaluate    │            ← RHOAI fitness scoring (NEW)
+│  Agent       │
+└──────┬───────┘
+       │
   ┌────┴────┐          ← fan-out (parallel)
   │         │
 ┌─▼───────┐ ┌▼──────────┐
@@ -65,7 +70,12 @@ images, deployment manifests, test scripts, PoC report) committed and available.
                      (PoC Record)
 ```
 
-The **PoC Plan Agent** runs in parallel with **Fork** after intake completes. Both write to
+After intake, the **Evaluate Agent** scores the project's fitness for OpenShift AI using
+the strategy baseline in `data/strategy-baseline.yaml`. This evaluation is non-blocking —
+if it fails, the pipeline continues. The scoring dimensions are read dynamically from the
+active strategy profile (`data/strategies/redhat-ai-2026.yaml`).
+
+The **PoC Plan Agent** runs in parallel with **Fork** after evaluation completes. Both write to
 different state fields, so LangGraph's state merge combines their outputs before feeding into
 **Containerize**. The PoC plan influences how Dockerfiles are built (e.g., including an
 inference server) and how deployments are structured (e.g., sidecar containers, PVCs).
@@ -108,30 +118,35 @@ autopoc/
 │       ├── agents/
 │       │   ├── __init__.py
 │       │   ├── intake.py         # Repo analysis agent
-│       │   ├── poc_plan.py       # PoC plan generation agent (NEW)
-│       │   ├── fork.py           # GitLab fork agent
+│       │   ├── evaluate.py       # RHOAI fitness evaluation agent (NEW)
+│       │   ├── poc_plan.py       # PoC plan generation agent
+│       │   ├── fork.py           # GitLab/GitHub fork agent
 │       │   ├── containerize.py   # Dockerfile.ubi generation agent
 │       │   ├── build.py          # Image build & push agent
 │       │   ├── deploy.py         # OpenShift deployment agent
-│       │   ├── poc_execute.py    # PoC test execution agent (NEW)
-│       │   └── poc_report.py     # PoC report generation agent (NEW)
+│       │   ├── poc_execute.py    # PoC test execution agent
+│       │   └── poc_report.py     # PoC report generation agent
 │       ├── tools/
 │       │   ├── __init__.py
 │       │   ├── git_tools.py      # git clone, push, branch operations
 │       │   ├── gitlab_tools.py   # GitLab API (fork, create project)
+│       │   ├── github_tools.py   # GitHub API (fork, wait, clone URL)
 │       │   ├── podman_tools.py   # podman build, tag, push
 │       │   ├── quay_tools.py     # Quay repo creation, image listing
 │       │   ├── k8s_tools.py      # kubectl apply, get, logs, wait
 │       │   ├── file_tools.py     # Read/write/search files in cloned repo
 │       │   ├── template_tools.py # Jinja2 template rendering
-│       │   └── script_tools.py   # Script execution tool (NEW)
+│       │   ├── script_tools.py   # Script execution tool
+│       │   └── strategy.py       # Strategy YAML loader (NEW)
 │       ├── prompts/
 │       │   ├── intake.md         # System prompt for intake analysis
-│       │   ├── poc_plan.md       # System prompt for PoC planning (NEW)
+│       │   ├── evaluate.md       # System prompt for RHOAI evaluation (NEW)
+│       │   ├── poc_plan.md       # System prompt for PoC planning
 │       │   ├── containerize.md   # System prompt for Dockerfile generation
 │       │   ├── deploy.md         # System prompt for deployment planning
-│       │   ├── poc_execute.md    # System prompt for PoC execution (NEW)
-│       │   └── poc_report.md     # System prompt for PoC report (NEW)
+│       │   ├── poc_execute.md    # System prompt for PoC execution
+│       │   ├── poc_report.md     # System prompt for PoC report
+│       │   └── prefilter_pm_comments.md  # System prompt for PM comments parsing (NEW)
 │       └── templates/
 │           ├── Dockerfile.ubi.j2          # Jinja2 base UBI Dockerfile template
 │           ├── Dockerfile.ubi-builder.j2  # Multi-stage builder template
@@ -167,6 +182,7 @@ from enum import Enum
 
 class PoCPhase(str, Enum):
     INTAKE = "intake"
+    EVALUATE = "evaluate"          # RHOAI fitness evaluation (NEW)
     FORK = "fork"
     POC_PLAN = "poc_plan"
     CONTAINERIZE = "containerize"
@@ -230,6 +246,27 @@ class PoCResult(TypedDict, total=False):
     error_message: str | None          # Error details if failed
     duration_seconds: float            # How long it took
 
+class RHOAIDimensionScore(TypedDict, total=False):        # NEW
+    """Score for a single evaluation dimension."""
+    name: str                          # e.g. "audience_value"
+    score: int                         # 0 to max_score
+    max_score: int                     # max possible for this dimension
+    rationale: str                     # 1-2 sentence explanation
+
+class RHOAIEvaluation(TypedDict, total=False):             # NEW
+    """RHOAI fitness evaluation result for a project."""
+    total_score: int                   # sum of dimension scores (0-100)
+    max_possible_score: int            # sum of all max_scores
+    dimensions: list[RHOAIDimensionScore]
+    strategy_areas: list[str]          # matched official strategy areas
+    relationship: str                  # relationship classification label
+    capability_labels: list[str]       # matched capability labels from strategy
+    rationale: str                     # overall 2-3 sentence assessment
+    strengths: list[str]               # key strengths (2-4 items)
+    risks: list[str]                   # key risks/concerns (1-3 items)
+    strategy_name: str                 # which strategy profile was used
+    strategy_version: str              # version of the strategy
+
 class PoCState(TypedDict, total=False):
     # Input
     project_name: str
@@ -254,7 +291,11 @@ class PoCState(TypedDict, total=False):
     has_compose: bool
     existing_ci_cd: str | None         # e.g. "github-actions", "gitlab-ci", etc.
 
-    # PoC Plan output (NEW)
+    # RHOAI Evaluation output (NEW)
+    rhoai_evaluation: RHOAIEvaluation  # RHOAI fitness evaluation result
+    rhoai_evaluation_path: str         # Path to rhoai-evaluation.md in the repo
+
+    # PoC Plan output
     poc_plan: str                      # Raw markdown content of the PoC plan
     poc_plan_path: str                 # Path to poc-plan.md in the repo
     poc_scenarios: list[PoCScenario]   # Structured test scenarios
@@ -270,11 +311,11 @@ class PoCState(TypedDict, total=False):
     routes: list[str]                  # Accessible URLs
     deploy_retries: int                # Current retry count
 
-    # PoC Execute output (NEW)
+    # PoC Execute output
     poc_results: list[PoCResult]       # Test execution results
     poc_script_path: str               # Path to generated test script
 
-    # PoC Report output (NEW)
+    # PoC Report output
     poc_report_path: str               # Path to poc-report.md in the repo
 ```
 
@@ -314,6 +355,40 @@ builds, what components it has, and what deployment patterns already exist.
 
 **Output:** Updated state with `repo_summary`, `components`, `has_helm_chart`,
 `has_kustomize`, `has_compose`, `existing_ci_cd`.
+
+---
+
+### Agent 1b: Evaluate Agent (`agents/evaluate.py`) — NEW
+
+**Purpose:** Score a project's fitness as a PoC on OpenShift AI by consulting the
+strategy baseline (`data/strategy-baseline.yaml`). Produces a numeric score (0-100)
+with per-dimension breakdown, strategy area alignment, and relationship classification.
+
+**Runs:** Sequentially after intake, before fork. Non-blocking — evaluation failure
+does not stop the pipeline.
+
+**Inputs:** `repo_digest`, `repo_summary`, `components[]`, `project_name`, `source_repo_url`
+
+**Tools available:** None — one-shot LLM call only (same pattern as intake).
+
+**LLM reasoning tasks:**
+1. **Score each dimension** (read dynamically from strategy YAML):
+   - `audience_value` — How valuable to RHOAI users/customers?
+   - `strategic_alignment` — Alignment with the 4 official CY2026 strategy areas?
+   - `strategy_fit` — Enriches vs. duplicates existing capabilities?
+   - `platform_leverage` — Leverages RHOAI components (KServe, vLLM, pipelines, etc.)?
+   - `demo_potential` — How compelling as a live PoC/demo?
+2. **Identify strategy areas** this project is relevant to.
+3. **Classify the relationship** using the 5-label taxonomy from the baseline.
+4. **Match capability labels** from the strategy that apply.
+5. **Assess strengths and risks** for RHOAI PoC.
+
+**Strategy context:** The prompt includes the full strategy baseline (strategy areas,
+capability labels, enrichment/duplication criteria, relationship rules, core products).
+This is loaded at runtime from `data/strategy-baseline.yaml` via `tools/strategy.py`.
+
+**Output:** `rhoai_evaluation` (TypedDict with scores + rationales), `rhoai_evaluation_path`
+(path to `rhoai-evaluation.md` written in the repo directory).
 
 ---
 
@@ -642,7 +717,8 @@ done, what worked, and providing recommendations.
 ## LangGraph Orchestration (`graph.py`)
 
 The main graph wires the agents together as nodes with conditional edges. Key features:
-- **Parallel fan-out:** After intake, `poc_plan` and `fork` run concurrently
+- **RHOAI evaluation:** After intake, evaluate scores the project's OpenShift AI fitness
+- **Parallel fan-out:** After evaluate, `poc_plan` and `fork` run concurrently
 - **Fan-in join:** Both complete before containerize runs
 - **Retry loops:** Build can loop back to containerize; deploy can retry
 - **PoC tail:** After successful deploy, execute tests and generate report
@@ -654,19 +730,28 @@ graph = StateGraph(PoCState)
 
 # Add nodes
 graph.add_node("intake", intake_agent)
-graph.add_node("poc_plan", poc_plan_agent)     # NEW: parallel with fork
-graph.add_node("fork", fork_agent)             # parallel with poc_plan
+graph.add_node("evaluate", evaluate_agent)       # NEW: RHOAI fitness scoring
+graph.add_node("poc_plan", poc_plan_agent)        # parallel with fork
+graph.add_node("fork", fork_agent)                # parallel with poc_plan
 graph.add_node("containerize", containerize_agent)
 graph.add_node("build", build_agent)
 graph.add_node("deploy", deploy_agent)
-graph.add_node("poc_execute", poc_execute_agent)  # NEW: after deploy
-graph.add_node("poc_report", poc_report_agent)    # NEW: after execute
+graph.add_node("poc_execute", poc_execute_agent)
+graph.add_node("poc_report", poc_report_agent)
 
-# Fan-out: intake → [poc_plan, fork] in parallel
+# Sequential: intake → evaluate
 graph.set_entry_point("intake")
 graph.add_conditional_edges(
     "intake",
-    lambda _: ["poc_plan", "fork"],  # fan-out to both
+    route_after_intake,    # "evaluate" on success, "failed" on error
+    {"evaluate": "evaluate", "failed": END},
+)
+
+# Fan-out: evaluate → [poc_plan, fork] in parallel
+graph.add_conditional_edges(
+    "evaluate",
+    route_after_evaluate,  # always ["poc_plan", "fork"] (evaluate is non-blocking)
+    {"poc_plan": "poc_plan", "fork": "fork", "failed": END},
 )
 
 # Fan-in: both poc_plan and fork feed into containerize
@@ -688,11 +773,12 @@ graph.add_conditional_edges(
 
 # Conditional: deploy can loop back or continue to PoC execution
 graph.add_conditional_edges(
-    "deploy",
-    route_after_deploy,  # returns "poc_execute" or "deploy" or "failed"
+    "apply",
+    route_after_apply,   # returns "poc_execute", "deploy", "containerize", or "failed"
     {
         "poc_execute": "poc_execute",   # success → run PoC tests
-        "deploy": "deploy",            # retry loop
+        "deploy": "deploy",            # inner retry loop
+        "containerize": "containerize", # outer retry loop
         "failed": END,
     }
 )
@@ -848,6 +934,57 @@ with ODH/OpenShift AI context. Introduce parallel execution in the graph.
 
 ### Phase 8: GitHub Fork Target Support
 
+**Goal:** Add the ability to fork source repos to GitHub (in addition to GitLab).
+
+See full details in implementation-plan.md.
+
+### Phase 12: RHOAI Fitness Evaluation — NEW
+
+**Goal:** Score each project's fitness for OpenShift AI PoC before forking. Strategy-driven
+evaluation using `data/strategy-baseline.yaml`, with dynamic scoring dimensions from
+the active strategy profile.
+
+| # | Task | Details |
+|---|------|---------|
+| 12.1 | Strategy loader module | `tools/strategy.py` — load strategy config, active strategy, baseline YAML |
+| 12.2 | State updates | `RHOAIDimensionScore`, `RHOAIEvaluation` TypedDicts, new `PoCState` fields, `PoCPhase.EVALUATE` |
+| 12.3 | Evaluation system prompt | `prompts/evaluate.md` — template with placeholders for strategy content |
+| 12.4 | Evaluate agent | `agents/evaluate.py` — one-shot LLM call, JSON parsing, markdown report |
+| 12.5 | Graph integration | Add evaluate node between intake and fan-out, update routing |
+| 12.6 | Markdown report | Write `rhoai-evaluation.md` to clone directory |
+| 12.7 | Package data | Include `data/` in distribution via pyproject.toml |
+| 12.8 | Strategy loader tests | Unit tests for all loader functions |
+| 12.9 | Evaluate agent tests | Unit tests with mocked LLM (success, failure, edge cases) |
+| 12.10 | CLI support | `--stop-after=evaluate`, evaluation display in output |
+
+See [rhoai-evaluation-plan.md](./rhoai-evaluation-plan.md) for full details.
+
+### Phase 13: Candidate Comparison for run-sheet — NEW
+
+**Goal:** When `run-sheet` has multiple candidates, evaluate all of them and pick the
+best-scoring one. Includes a cheap pre-filter (keyword matching + PM comments) to
+bound cost before expensive clone-and-evaluate cycles.
+
+| # | Task | Details |
+|---|------|---------|
+| 13.1 | Pre-filter: keywords | Keyword matching against strategy capability labels from sheet metadata |
+| 13.2 | Pre-filter: PM comments | Batched LLM parse of `pm_comments` column for relevance signals |
+| 13.3 | Candidate evaluator | `evaluate_candidates()` — partial pipeline runs (intake + evaluate) per candidate |
+| 13.4 | Best selection | `select_best_candidate()` — pick highest-scoring candidate |
+| 13.5 | CLI updates | `--max-candidates`, `--skip-evaluation`, comparison table display |
+| 13.6 | Pre-filter tests | Unit tests for keyword matching and PM comments parsing |
+| 13.7 | Comparison tests | Unit tests for evaluation orchestration and selection |
+| 13.8 | Integration test | End-to-end test with mock sheet data and mocked LLM |
+
+See [candidate-comparison-plan.md](./candidate-comparison-plan.md) for full details.
+
+---
+
+Below are the original phase details (Phases 1-8). Phase 8 is shown in summary form
+above; its full task listing follows.
+
+### Phase 8: GitHub Fork Target Support (Original Details)
+
 **Goal:** Add the ability to fork source repos to GitHub (in addition to GitLab). Uses the
 GitHub API's fork endpoint to establish a true parent-child relationship. All downstream
 agents push to the fork (whichever platform) instead of hardcoding GitLab.
@@ -876,6 +1013,7 @@ Not every step needs a full LLM-powered agent. The distinction:
 | Step | Type | Rationale |
 |------|------|-----------|
 | Intake | **LLM Agent** | Needs to reason about repo structure, identify languages, components |
+| Evaluate | **LLM Agent** | Scores RHOAI fitness against strategy baseline — one-shot, no tools |
 | PoC Plan | **LLM Agent** | Heavy reasoning about what constitutes a valid PoC for this project |
 | Fork | **Procedural Node** | Deterministic sequence of git/API commands |
 | Containerize | **LLM Agent** | Heavy reasoning about Dockerfile creation/adaptation, now PoC-aware |
@@ -899,7 +1037,21 @@ Pipelines, Notebooks) and references them in the plan. However, actual deploymen
 standard kubectl/K8s resources for portability. ODH-specific CRDs (InferenceService, etc.)
 can be added incrementally as ODH clusters become available for testing.
 
-### 6. Parallel fan-out/fan-in
+### 6. RHOAI Evaluation: Strategy-Driven, Non-Blocking
+
+The evaluate agent's scoring rubric is driven entirely by the strategy YAML files in
+`data/`. Dimensions, weights, and criteria are loaded at runtime — changing the active
+strategy (via `data/strategy_config.yaml`) automatically changes the evaluation without
+code modifications. The evaluation is non-blocking: if the LLM call fails, the pipeline
+continues with an empty evaluation. This is critical for reliability — we never want
+scoring to prevent a PoC from running.
+
+For `run-sheet` with multiple candidates, the evaluation is used for comparison. A cheap
+pre-filter (keyword matching + optional PM comments LLM parse) narrows candidates before
+expensive clone-and-evaluate cycles. This bounds the cost while still surfacing the
+best-fit project.
+
+### 7. Parallel fan-out/fan-in
 
 PoC Plan and Fork are independent after intake: PoC Plan is LLM-bound (analyzing the repo),
 Fork is I/O-bound (pushing to GitLab). Running them in parallel saves wall-clock time.
@@ -985,3 +1137,7 @@ This is opt-in — the default `pytest` run uses mocks only and requires no exte
 | PoC test scripts fail on transient issues | False negatives | Built-in retry and wait logic in test scripts; readiness checks before testing |
 | Parallel graph nodes cause state conflicts | Data corruption | PoC Plan and Fork write to disjoint state fields; LangGraph handles merge safely |
 | Model files too large for container | Build fails / slow | PoC plan identifies model handling strategy (download at runtime vs. bake in) |
+| RHOAI evaluation scoring inconsistent | Different scores for same project across runs | Clear rubric in prompt; per-dimension rationales provide transparency |
+| Strategy YAML not found at runtime | Evaluate agent crashes | Graceful fallback — skip evaluation, pipeline continues |
+| Too many candidates for evaluation | Expensive LLM calls | Pre-filter + configurable cap (default 5) bounds cost |
+| PM comments unparseable | Bad pre-filter ranking | Fall back to keyword-only matching; PM boost is optional |

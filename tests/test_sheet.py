@@ -286,7 +286,10 @@ class TestFilterProjects:
 class TestDeriveProjectName:
     def test_github_url_extracts_repo(self) -> None:
         """Extracts repo name from a standard GitHub URL."""
-        assert _derive_project_name("https://github.com/microsoft/TRELLIS.2", "microsoft/TRELLIS.2") == "trellis.2"
+        assert (
+            _derive_project_name("https://github.com/microsoft/TRELLIS.2", "microsoft/TRELLIS.2")
+            == "trellis.2"
+        )
 
     def test_github_url_with_trailing_slash(self) -> None:
         assert _derive_project_name("https://github.com/org/repo/", "org/repo") == "repo"
@@ -302,7 +305,10 @@ class TestDeriveProjectName:
         assert _derive_project_name("not-a-url", "my-project") == "my-project"
 
     def test_lowercase(self) -> None:
-        assert _derive_project_name("https://github.com/Org/CyberVerse", "Org/CyberVerse") == "cyberverse"
+        assert (
+            _derive_project_name("https://github.com/Org/CyberVerse", "Org/CyberVerse")
+            == "cyberverse"
+        )
 
     def test_unsafe_chars_replaced(self) -> None:
         """Characters unsafe for paths/registries are replaced with hyphens."""
@@ -320,7 +326,11 @@ class TestDeriveProjectName:
             ("https://github.com/microsoft/TRELLIS.2", "microsoft/TRELLIS.2", "trellis.2"),
             ("https://github.com/dsd2077/CyberVerse", "dsd2077/CyberVerse", "cyberverse"),
             ("https://github.com/hpennington/agentswift", "hpennington/agentswift", "agentswift"),
-            ("https://github.com/vishalmdi/ai-native-pm-os", "vishalmdi/ai-native-pm-os", "ai-native-pm-os"),
+            (
+                "https://github.com/vishalmdi/ai-native-pm-os",
+                "vishalmdi/ai-native-pm-os",
+                "ai-native-pm-os",
+            ),
             ("https://github.com/Growth-Circle/cadis", "Growth-Circle/cadis", "cadis"),
             ("https://github.com/larksuite/aamp", "larksuite/aamp", "aamp"),
         ]
@@ -338,8 +348,16 @@ class TestSelectProject:
     def test_selects_first_row(self) -> None:
         """Returns a SheetProject from the first row."""
         rows = [
-            {"title": "org/project-a", "link": "https://github.com/org/project-a", "category": "rag"},
-            {"title": "org/project-b", "link": "https://github.com/org/project-b", "category": "agents"},
+            {
+                "title": "org/project-a",
+                "link": "https://github.com/org/project-a",
+                "category": "rag",
+            },
+            {
+                "title": "org/project-b",
+                "link": "https://github.com/org/project-b",
+                "category": "agents",
+            },
         ]
         project = select_project(rows)
         assert project.name == "project-a"

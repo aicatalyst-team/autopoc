@@ -133,7 +133,9 @@ async def _fork_to_gitlab(
 
         # Force-push all branches and tags so re-runs overwrite previous results
         git_push.invoke({"repo_path": clone_str, "remote": "origin", "ref": "--all", "force": True})
-        git_push.invoke({"repo_path": clone_str, "remote": "origin", "ref": "--tags", "force": True})
+        git_push.invoke(
+            {"repo_path": clone_str, "remote": "origin", "ref": "--tags", "force": True}
+        )
 
         logger.info("Pushed all branches and tags to GitLab")
 

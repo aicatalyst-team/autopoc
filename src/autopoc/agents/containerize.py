@@ -145,7 +145,7 @@ def _build_user_message(
             f"- Install deps from the monorepo root, not the subdirectory. "
             f"Workspace packages (`@org/shared`, etc.) resolve from root.\n"
             f"- `COPY . .` to get sibling packages. Never `COPY ../../`.\n"
-            f"- Check root `package.json` for `\"workspaces\"` or `pnpm-workspace.yaml`."
+            f'- Check root `package.json` for `"workspaces"` or `pnpm-workspace.yaml`.'
         )
     parts.append(f"All tool calls should use absolute paths starting with `{clone_path}`.")
 
@@ -297,13 +297,11 @@ def _find_existing_dockerfile(
             continue
         # Find all Dockerfile* files, excluding Dockerfile.ubi (that's what we generate)
         candidates = sorted(
-            f for f in search_dir.glob("Dockerfile*")
-            if f.is_file() and f.name != "Dockerfile.ubi"
+            f for f in search_dir.glob("Dockerfile*") if f.is_file() and f.name != "Dockerfile.ubi"
         )
         # Also check lowercase
         candidates.extend(
-            f for f in search_dir.glob("dockerfile*")
-            if f.is_file() and f not in candidates
+            f for f in search_dir.glob("dockerfile*") if f.is_file() and f not in candidates
         )
 
         for df_path in candidates:
@@ -337,8 +335,14 @@ def _extract_build_instructions(clone_path: str, max_chars: int = 1000) -> str |
 
     # Priority order of files to check
     doc_files = [
-        "README.md", "README.rst", "README.txt", "README",
-        "BUILD.md", "BUILDING.md", "DEVELOP.md", "DEVELOPMENT.md",
+        "README.md",
+        "README.rst",
+        "README.txt",
+        "README",
+        "BUILD.md",
+        "BUILDING.md",
+        "DEVELOP.md",
+        "DEVELOPMENT.md",
         "CONTRIBUTING.md",
     ]
 
@@ -357,9 +361,19 @@ def _extract_build_instructions(clone_path: str, max_chars: int = 1000) -> str |
         current_section = None
         current_lines: list[str] = []
         build_keywords = {
-            "build", "install", "develop", "setup", "getting started",
-            "quick start", "prerequisites", "requirements", "docker",
-            "container", "run", "deploy", "workspace",
+            "build",
+            "install",
+            "develop",
+            "setup",
+            "getting started",
+            "quick start",
+            "prerequisites",
+            "requirements",
+            "docker",
+            "container",
+            "run",
+            "deploy",
+            "workspace",
         }
 
         for line in content.split("\n"):
@@ -367,9 +381,7 @@ def _extract_build_instructions(clone_path: str, max_chars: int = 1000) -> str |
             if line.startswith("#"):
                 # Save previous section if it was relevant
                 if current_section and current_lines:
-                    sections.append(
-                        current_section + "\n" + "\n".join(current_lines)
-                    )
+                    sections.append(current_section + "\n" + "\n".join(current_lines))
 
                 header_text = line.lstrip("#").strip().lower()
                 if any(kw in header_text for kw in build_keywords):
@@ -445,8 +457,7 @@ def _extract_dockerfile_from_response(raw_output: str) -> str | None:
         content = content.replace("\\n", "\n").replace('\\"', '"').replace("\\\\", "\\")
         if content.startswith("FROM"):
             logger.info(
-                "Extracted Dockerfile from write_file tool call text "
-                "(path=%s, %d chars)",
+                "Extracted Dockerfile from write_file tool call text (path=%s, %d chars)",
                 path,
                 len(content),
             )
@@ -463,8 +474,7 @@ def _extract_dockerfile_from_response(raw_output: str) -> str | None:
         content = content.replace("\\n", "\n").replace('\\"', '"').replace("\\\\", "\\")
         if content.startswith("FROM"):
             logger.info(
-                "Extracted Dockerfile from write_file tool call text "
-                "(path=%s, %d chars)",
+                "Extracted Dockerfile from write_file tool call text (path=%s, %d chars)",
                 path,
                 len(content),
             )
@@ -639,8 +649,7 @@ def _fixup_package_manager(content: str, filename: str) -> str:
                 fixed_line = re.sub(r"\bdnf\b", "microdnf", line)
                 if fixed_line != line:
                     logger.info(
-                        "Dockerfile fixup: replaced dnf with microdnf "
-                        "(minimal stage) in %s",
+                        "Dockerfile fixup: replaced dnf with microdnf (minimal stage) in %s",
                         filename,
                     )
                     applied = True
@@ -651,8 +660,7 @@ def _fixup_package_manager(content: str, filename: str) -> str:
                 fixed_line = line.replace("microdnf", "dnf")
                 if fixed_line != line:
                     logger.info(
-                        "Dockerfile fixup: replaced microdnf with dnf "
-                        "(full stage) in %s",
+                        "Dockerfile fixup: replaced microdnf with dnf (full stage) in %s",
                         filename,
                     )
                     applied = True
@@ -711,8 +719,7 @@ def _fixup_permissions(content: str, filename: str) -> str:
                     "chmod -R g=u /opt/app-root/src/node_modules || true"
                 )
                 logger.info(
-                    "Dockerfile fixup: added chgrp/chmod g=u for node_modules "
-                    "before USER %s in %s",
+                    "Dockerfile fixup: added chgrp/chmod g=u for node_modules before USER %s in %s",
                     user_val,
                     filename,
                 )

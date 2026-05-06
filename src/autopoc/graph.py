@@ -5,9 +5,12 @@ parallel fan-out/fan-in for PoC planning, conditional routing for
 retry loops, and the PoC execution/report tail.
 
 Full graph:
-    intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ apply → poc_execute → poc_report → END
-                                       ↑                          │              │
-                                       └──────────────────────────┘──────────────┘  (outer loop: container fix)
+    intake → evaluate → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ apply → poc_execute → poc_report → END
+                                                  ↑                          │            │
+                                                  └──────────────────────────┘────────────┘ (outer loop: container fix)
+
+The evaluate node scores the project's RHOAI fitness before forking.
+It is non-blocking: evaluation failure does not stop the pipeline.
 
 The deploy/apply split mirrors containerize/build:
 - containerize generates Dockerfiles, build runs podman
@@ -26,6 +29,7 @@ from autopoc.agents.apply import apply_agent
 from autopoc.agents.build import build_agent
 from autopoc.agents.containerize import containerize_agent
 from autopoc.agents.deploy import deploy_agent
+from autopoc.agents.evaluate import evaluate_agent
 from autopoc.agents.fork import fork_agent
 from autopoc.agents.intake import intake_agent
 from autopoc.agents.poc_execute import poc_execute_agent
@@ -37,18 +41,33 @@ from autopoc.state import PoCState
 logger = logging.getLogger(__name__)
 
 
-def route_after_intake(state: PoCState) -> list[str]:
-    """Determine next steps after intake.
+def route_after_intake(state: PoCState) -> str:
+    """Determine the next step after intake.
 
-    If intake succeeded, fan out to both poc_plan and fork in parallel.
+    If intake succeeded, proceed to evaluate.
     If intake failed (e.g., 0 components, step exhaustion), stop the pipeline.
     """
     error = state.get("error")
     if error:
         logger.error("Intake failed: %s. Stopping pipeline.", error)
+        return "failed"
+
+    return "evaluate"
+
+
+def route_after_evaluate(state: PoCState) -> list[str]:
+    """Determine next steps after evaluate.
+
+    Always fan out to both poc_plan and fork.  Evaluation is non-blocking:
+    even if the evaluation produced an empty result, the pipeline proceeds.
+    The only thing that stops the pipeline here is an intake error that
+    was somehow not caught (defensive).
+    """
+    error = state.get("error")
+    if error:
+        logger.error("Error detected after evaluate: %s. Stopping pipeline.", error)
         return ["failed"]
 
-    # Fan-out to both poc_plan and fork
     return ["poc_plan", "fork"]
 
 
@@ -191,6 +210,7 @@ def route_after_poc_execute(state: PoCState) -> str:
 # This matches the logical pipeline order (not the graph topology).
 PIPELINE_PHASES = [
     "intake",
+    "evaluate",
     "poc_plan",
     "fork",
     "containerize",
@@ -206,12 +226,13 @@ def build_graph(checkpointer=None, *, stop_after: str | None = None) -> Compiled
     """Build and compile the AutoPoC pipeline graph.
 
     Full graph:
-        intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ apply → poc_execute → poc_report → END
-                                          ↑                          │
-                                          └──────────────────────────┘  (outer loop)
+        intake → evaluate → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ apply → poc_execute → poc_report → END
+                                                      ↑                          │
+                                                      └──────────────────────────┘  (outer loop)
 
     Key features:
-    - Parallel fan-out: after intake, poc_plan and fork run concurrently
+    - RHOAI evaluation: after intake, evaluate scores the project's fitness
+    - Parallel fan-out: after evaluate, poc_plan and fork run concurrently
     - Fan-in: containerize waits for both poc_plan and fork to complete
     - Build retry loop: build failure → containerize → build (up to max_build_retries)
     - Deploy/Apply split: deploy generates manifests, apply runs kubectl
@@ -246,6 +267,8 @@ def build_graph(checkpointer=None, *, stop_after: str | None = None) -> Compiled
 
     # Add nodes — only include phases up to and including stop_after
     graph.add_node("intake", intake_agent)
+    if _is_active("evaluate"):
+        graph.add_node("evaluate", evaluate_agent)
     if _is_active("poc_plan"):
         graph.add_node("poc_plan", poc_plan_agent)
     if _is_active("fork"):
@@ -269,18 +292,33 @@ def build_graph(checkpointer=None, *, stop_after: str | None = None) -> Compiled
     if stop_after == "intake":
         # Stop immediately after intake
         graph.add_edge("intake", END)
+    elif stop_after == "evaluate":
+        # intake → evaluate → END
+        graph.add_conditional_edges(
+            "intake",
+            route_after_intake,
+            {"evaluate": "evaluate", "failed": END},
+        )
+        graph.add_edge("evaluate", END)
     else:
-        # Conditional fan-out after intake: proceed to poc_plan + fork if success, END if failure
+        # intake → evaluate (conditional on intake success)
+        graph.add_conditional_edges(
+            "intake",
+            route_after_intake,
+            {"evaluate": "evaluate", "failed": END},
+        )
+
+        # evaluate → fan-out to [poc_plan, fork]
         if stop_after in ("poc_plan", "fork"):
             # Only fan out to the phases that are active
-            targets = {}
+            targets: dict[str, str] = {}
             if _is_active("poc_plan"):
                 targets["poc_plan"] = "poc_plan"
             if _is_active("fork"):
                 targets["fork"] = "fork"
             targets["failed"] = END
 
-            graph.add_conditional_edges("intake", route_after_intake, targets)
+            graph.add_conditional_edges("evaluate", route_after_evaluate, targets)
 
             # Stop after the active phase(s)
             if _is_active("poc_plan"):
@@ -288,10 +326,10 @@ def build_graph(checkpointer=None, *, stop_after: str | None = None) -> Compiled
             if _is_active("fork"):
                 graph.add_edge("fork", END)
         else:
-            # Normal fan-out
+            # Normal fan-out from evaluate
             graph.add_conditional_edges(
-                "intake",
-                route_after_intake,
+                "evaluate",
+                route_after_evaluate,
                 {
                     "poc_plan": "poc_plan",
                     "fork": "fork",
@@ -385,7 +423,7 @@ def build_graph(checkpointer=None, *, stop_after: str | None = None) -> Compiled
         logger.info("Graph compiled with --stop-after=%s", stop_after)
     else:
         logger.info(
-            "Graph compiled: intake → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ apply → poc_execute → poc_report → END"
+            "Graph compiled: intake → evaluate → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ apply → poc_execute → poc_report → END"
         )
     if checkpointer is not None:
         logger.info("Checkpointer enabled: %s", type(checkpointer).__name__)

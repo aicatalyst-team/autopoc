@@ -106,7 +106,9 @@ def _print_debug_dumps() -> None:
             # Truncate very long responses for terminal display
             max_display = 3000
             if len(content) > max_display:
-                content = content[:max_display] + f"\n\n... (truncated, full content in {dump_path})"
+                content = (
+                    content[:max_display] + f"\n\n... (truncated, full content in {dump_path})"
+                )
             console.print(Panel(content, title=dump_path.name, border_style="yellow"))
         except Exception:
             console.print(f"  [dim]Could not read {dump_path}[/dim]")
@@ -169,8 +171,7 @@ async def _invoke_graph_async(
         from langgraph.checkpoint.memory import MemorySaver
 
         logger.debug(
-            "langgraph-checkpoint-sqlite / aiosqlite not installed, "
-            "using in-memory checkpointer"
+            "langgraph-checkpoint-sqlite / aiosqlite not installed, using in-memory checkpointer"
         )
         graph = build_graph(checkpointer=MemorySaver(), stop_after=stop_after)
         return await graph.ainvoke(
@@ -203,6 +204,62 @@ def _print_results(result: dict, verbose: bool = False) -> None:
                 "yes" if comp.get("is_ml_workload") else "no",
             )
         console.print(comp_table)
+
+    # RHOAI Evaluation
+    rhoai_eval = result.get("rhoai_evaluation")
+    if rhoai_eval and rhoai_eval.get("total_score", 0) > 0:
+        total = rhoai_eval.get("total_score", 0)
+        max_score = rhoai_eval.get("max_possible_score", 100)
+        relationship = rhoai_eval.get("relationship", "unknown")
+        areas = rhoai_eval.get("strategy_areas", [])
+        labels = rhoai_eval.get("capability_labels", [])
+
+        eval_lines = [
+            f"[bold]Score:[/bold]        {total}/{max_score}",
+            f"[bold]Relationship:[/bold] {relationship}",
+        ]
+        if areas:
+            eval_lines.append(f"[bold]Areas:[/bold]        {', '.join(areas)}")
+        if labels:
+            # Show first 5 labels to keep it compact
+            shown = labels[:5]
+            suffix = f" (+{len(labels) - 5} more)" if len(labels) > 5 else ""
+            eval_lines.append(f"[bold]Capabilities:[/bold] {', '.join(shown)}{suffix}")
+
+        console.print(
+            Panel(
+                "\n".join(eval_lines),
+                title="RHOAI Evaluation",
+                border_style="magenta",
+            )
+        )
+
+        if verbose:
+            dims = rhoai_eval.get("dimensions", [])
+            if dims:
+                dim_table = Table(show_header=True, header_style="bold magenta")
+                dim_table.add_column("Dimension")
+                dim_table.add_column("Score", justify="right")
+                dim_table.add_column("Max", justify="right")
+                dim_table.add_column("Rationale")
+                for d in dims:
+                    dim_table.add_row(
+                        d.get("name", "?"),
+                        str(d.get("score", 0)),
+                        str(d.get("max_score", 0)),
+                        d.get("rationale", ""),
+                    )
+                console.print(dim_table)
+
+            rationale = rhoai_eval.get("rationale", "")
+            if rationale:
+                console.print(f"\n[dim]{rationale}[/dim]")
+
+    rhoai_eval_path = result.get("rhoai_evaluation_path", "")
+    if rhoai_eval_path:
+        p = Path(rhoai_eval_path)
+        if p.exists():
+            console.print(f"[dim]Evaluation report:[/dim] {rhoai_eval_path}")
 
     # PoC Plan info
     poc_type = result.get("poc_type")
@@ -294,6 +351,53 @@ def _print_results(result: dict, verbose: bool = False) -> None:
 
     if result.get("error"):
         console.print(f"\n[bold red]Error:[/bold red] {result['error']}")
+
+
+def _print_candidate_comparison(results: list) -> None:
+    """Display a comparison table of evaluated candidates."""
+    table = Table(
+        show_header=True,
+        header_style="bold magenta",
+        title="Candidate Comparison",
+    )
+    table.add_column("#", justify="right", style="dim", width=3)
+    table.add_column("Project", min_width=20)
+    table.add_column("Score", justify="right", width=7)
+    table.add_column("Relationship", min_width=20)
+    table.add_column("Areas")
+
+    for i, r in enumerate(results):
+        score = r.evaluation.get("total_score", 0)
+        max_score = r.evaluation.get("max_possible_score", 100)
+        relationship = r.evaluation.get("relationship", "—")
+        areas = r.evaluation.get("strategy_areas", [])
+        areas_str = ", ".join(areas) if areas else "—"
+        error_flag = " [red](error)[/red]" if r.error else ""
+
+        # Highlight winner (first row)
+        style = "bold green" if i == 0 else ""
+        marker = " *" if i == 0 else ""
+
+        table.add_row(
+            str(i + 1),
+            f"{r.project.name}{marker}{error_flag}",
+            f"{score}/{max_score}",
+            relationship,
+            areas_str,
+            style=style,
+        )
+
+    console.print()
+    console.print(table)
+
+    if results:
+        winner = results[0]
+        score = winner.evaluation.get("total_score", 0)
+        max_score = winner.evaluation.get("max_possible_score", 100)
+        console.print(
+            f"\n  [bold green]Winner:[/bold green] {winner.project.name} ({score}/{max_score})"
+        )
+    console.print()
 
 
 def _load_and_configure(
@@ -565,7 +669,7 @@ def run(
         typer.Option(
             "--stop-after",
             help="Stop pipeline after this phase (e.g. 'build', 'deploy'). "
-            "Valid: intake, poc_plan, fork, containerize, build, deploy, apply, poc_execute, poc_report",
+            "Valid: intake, evaluate, poc_plan, fork, containerize, build, deploy, apply, poc_execute, poc_report",
         ),
     ] = None,
     debug: Annotated[
@@ -638,24 +742,38 @@ def run_sheet(
         typer.Option(
             "--stop-after",
             help="Stop pipeline after this phase (e.g. 'build', 'deploy'). "
-            "Valid: intake, poc_plan, fork, containerize, build, deploy, apply, poc_execute, poc_report",
+            "Valid: intake, evaluate, poc_plan, fork, containerize, build, deploy, apply, poc_execute, poc_report",
         ),
     ] = None,
     debug: Annotated[
         bool,
         typer.Option("--debug", help="Dump failed LLM response parses to debug/ for diagnosis"),
     ] = False,
+    max_candidates: Annotated[
+        int,
+        typer.Option(
+            "--max-candidates",
+            help="Maximum number of candidates to fully evaluate when multiple exist (default: 5)",
+        ),
+    ] = 5,
+    skip_evaluation: Annotated[
+        bool,
+        typer.Option(
+            "--skip-evaluation",
+            help="Skip RHOAI evaluation and use first-row selection (legacy behavior)",
+        ),
+    ] = False,
 ) -> None:
     """Run AutoPoC for the top project from a Google Sheet.
 
     Reads a POC Explorer spreadsheet, filters to approved GitHub repos,
-    selects the first one, and runs the full pipeline.
+    and runs the full pipeline.  When multiple candidates survive filtering,
+    evaluates them using RHOAI fitness scoring and picks the best one.
     """
     # Validate required sheet inputs
     if not sheet_id:
         console.print(
-            "[bold red]Error:[/bold red] --sheet-id is required "
-            "(or set AUTOPOC_SHEET_ID env var)"
+            "[bold red]Error:[/bold red] --sheet-id is required (or set AUTOPOC_SHEET_ID env var)"
         )
         raise typer.Exit(code=1)
     if not credentials:
@@ -668,9 +786,7 @@ def run_sheet(
     # Validate credentials file exists
     credentials_path = Path(credentials).expanduser()
     if not credentials_path.is_file():
-        console.print(
-            f"[bold red]Error:[/bold red] Credentials file not found: {credentials_path}"
-        )
+        console.print(f"[bold red]Error:[/bold red] Credentials file not found: {credentials_path}")
         raise typer.Exit(code=1)
 
     config = _load_and_configure(
@@ -683,8 +799,7 @@ def run_sheet(
     # Read and filter the sheet
     console.print(
         Panel(
-            f"[bold]Sheet ID:[/bold]    {sheet_id}\n"
-            f"[bold]Credentials:[/bold] {credentials_path}",
+            f"[bold]Sheet ID:[/bold]    {sheet_id}\n[bold]Credentials:[/bold] {credentials_path}",
             title="Google Sheet Ingestion",
             border_style="cyan",
         )
@@ -699,8 +814,6 @@ def run_sheet(
         github_count = sum(1 for r in rows if "github.com" in r.get("link", ""))
         console.print(f"  GitHub repos: {github_count}")
         console.print(f"  After filters: {len(filtered)}")
-
-        project = select_project(filtered)
     except ValueError as e:
         console.print(f"\n[bold red]Sheet error:[/bold red] {e}")
         raise typer.Exit(code=1)
@@ -710,20 +823,114 @@ def run_sheet(
             console.print_exception(show_locals=True)
         raise typer.Exit(code=1)
 
+    # --- Single candidate or evaluation skipped: use legacy behavior ---
+    if len(filtered) <= 1 or skip_evaluation:
+        try:
+            project = select_project(filtered)
+        except ValueError as e:
+            console.print(f"\n[bold red]Sheet error:[/bold red] {e}")
+            raise typer.Exit(code=1)
+
+        console.print(
+            Panel(
+                f"[bold]Selected:[/bold]  {project.name}\n"
+                f"[bold]Repo:[/bold]      {project.repo_url}\n"
+                f"[bold]Category:[/bold]  {project.category}\n"
+                f"[bold]Sheet row:[/bold] {project.row_index}",
+                title="Project Selected",
+                border_style="green",
+            )
+        )
+
+        _run_pipeline(
+            project.name,
+            project.repo_url,
+            config,
+            verbose=verbose,
+            debug=debug,
+            stop_after=stop_after,
+        )
+        return
+
+    # --- Multiple candidates: pre-filter, evaluate, pick best ---
+    from autopoc.sheet import (
+        cleanup_candidate_clones,
+        evaluate_candidates,
+        prefilter_candidates,
+        select_best_candidate,
+    )
+
+    console.print(
+        f"\n[bold cyan]Multiple candidates ({len(filtered)}). "
+        f"Evaluating top {min(max_candidates, len(filtered))}...[/bold cyan]"
+    )
+
+    async def _do_evaluation():
+        # Pre-filter
+        console.print("[bold cyan]Pre-filtering candidates...[/bold cyan]")
+        prefiltered = await prefilter_candidates(filtered, max_candidates=max_candidates)
+        console.print(f"  Pre-filtered to {len(prefiltered)} candidates")
+
+        # Progress callback
+        def on_progress(idx, total, name):
+            console.print(f"  [cyan]Evaluating candidate {idx + 1}/{total}:[/cyan] {name}")
+
+        # Full evaluation
+        results = await evaluate_candidates(
+            prefiltered,
+            config,
+            max_candidates=max_candidates,
+            on_progress=on_progress,
+        )
+        return results
+
+    try:
+        results = asyncio.run(_do_evaluation())
+    except Exception as e:
+        console.print(f"\n[bold red]Evaluation failed:[/bold red] {e}")
+        if verbose:
+            console.print_exception(show_locals=True)
+        # Fall back to first candidate
+        console.print("[yellow]Falling back to first candidate...[/yellow]")
+        try:
+            project = select_project(filtered)
+        except ValueError as e2:
+            console.print(f"\n[bold red]Sheet error:[/bold red] {e2}")
+            raise typer.Exit(code=1)
+        _run_pipeline(
+            project.name,
+            project.repo_url,
+            config,
+            verbose=verbose,
+            debug=debug,
+            stop_after=stop_after,
+        )
+        return
+
+    # Display comparison table
+    _print_candidate_comparison(results)
+
+    # Select best
+    winner = select_best_candidate(results)
+
+    # Clean up non-winner clones
+    cleanup_candidate_clones(results, winner)
+
     console.print(
         Panel(
-            f"[bold]Selected:[/bold]  {project.name}\n"
-            f"[bold]Repo:[/bold]      {project.repo_url}\n"
-            f"[bold]Category:[/bold]  {project.category}\n"
-            f"[bold]Sheet row:[/bold] {project.row_index}",
-            title="Project Selected",
+            f"[bold]Selected:[/bold]  {winner.project.name}\n"
+            f"[bold]Repo:[/bold]      {winner.project.repo_url}\n"
+            f"[bold]Score:[/bold]     {winner.evaluation.get('total_score', 0)}"
+            f"/{winner.evaluation.get('max_possible_score', 100)}\n"
+            f"[bold]Category:[/bold]  {winner.project.category}",
+            title="Winner Selected",
             border_style="green",
         )
     )
 
     _run_pipeline(
-        project.name,
-        project.repo_url,
+        winner.project.name,
+        winner.project.repo_url,
         config,
         verbose=verbose,
         debug=debug,
@@ -756,7 +963,7 @@ def resume(
     if not _has_async_sqlite():
         console.print(
             "[bold red]Cannot resume:[/bold red] No persistent checkpointer available.\n"
-            "Install with: [cyan]pip install \"autopoc[checkpoint]\"[/cyan]"
+            'Install with: [cyan]pip install "autopoc[checkpoint]"[/cyan]'
         )
         raise typer.Exit(code=1)
 
@@ -833,7 +1040,7 @@ def show_status(
     if not _has_async_sqlite():
         console.print(
             "[bold red]No persistent checkpointer available.[/bold red]\n"
-            "Install with: [cyan]pip install \"autopoc[checkpoint]\"[/cyan]"
+            'Install with: [cyan]pip install "autopoc[checkpoint]"[/cyan]'
         )
         raise typer.Exit(code=1)
 
@@ -843,9 +1050,7 @@ def show_status(
         db_path = _get_checkpoint_dir(config.work_dir) / "autopoc.db"
         async with AsyncSqliteSaver.from_conn_string(str(db_path)) as checkpointer:
             compiled_graph = build_graph(checkpointer=checkpointer)
-            return await compiled_graph.aget_state(
-                {"configurable": {"thread_id": thread_id}}
-            )
+            return await compiled_graph.aget_state({"configurable": {"thread_id": thread_id}})
 
     state = asyncio.run(_get_state())
 

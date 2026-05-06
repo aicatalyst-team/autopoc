@@ -406,6 +406,30 @@ def _mock_poc_report_agent():
 # ---------------------------------------------------------------------------
 
 
+def _mock_evaluate_agent():
+    """Mock evaluate agent that sets a minimal RHOAI evaluation."""
+
+    async def _agent(state, **kwargs):
+        return {
+            "current_phase": PoCPhase.EVALUATE,
+            "rhoai_evaluation": {
+                "total_score": 50,
+                "max_possible_score": 100,
+                "dimensions": [],
+                "strategy_areas": [],
+                "relationship": "validates-platform-story",
+                "capability_labels": [],
+                "rationale": "Mock evaluation.",
+                "strengths": [],
+                "risks": [],
+                "strategy_name": "test",
+                "strategy_version": "test",
+            },
+        }
+
+    return _agent
+
+
 def _build_test_graph(
     intake_fn,
     poc_plan_fn,
@@ -416,13 +440,23 @@ def _build_test_graph(
     apply_fn,
     poc_execute_fn,
     poc_report_fn,
+    evaluate_fn=None,
 ):
     """Build the full graph with mock agent functions."""
     from langgraph.graph import StateGraph, END
-    from autopoc.graph import route_after_intake, route_after_build, route_after_apply
+    from autopoc.graph import (
+        route_after_intake,
+        route_after_evaluate,
+        route_after_build,
+        route_after_apply,
+    )
+
+    if evaluate_fn is None:
+        evaluate_fn = _mock_evaluate_agent()
 
     sg = StateGraph(PoCState)
     sg.add_node("intake", intake_fn)
+    sg.add_node("evaluate", evaluate_fn)
     sg.add_node("poc_plan", poc_plan_fn)
     sg.add_node("fork", fork_fn)
     sg.add_node("containerize", containerize_fn)
@@ -436,6 +470,11 @@ def _build_test_graph(
     sg.add_conditional_edges(
         "intake",
         route_after_intake,
+        {"evaluate": "evaluate", "failed": END},
+    )
+    sg.add_conditional_edges(
+        "evaluate",
+        route_after_evaluate,
         {"poc_plan": "poc_plan", "fork": "fork", "failed": END},
     )
     sg.add_edge("poc_plan", "containerize")
@@ -472,7 +511,7 @@ class TestGraphPoCCompilation:
     """Test that the real graph compiles with all new nodes."""
 
     def test_graph_has_all_nodes(self):
-        """Verify all 8 agent nodes are present."""
+        """Verify all agent nodes are present (including evaluate)."""
         from autopoc.graph import build_graph
 
         graph = build_graph()
@@ -480,6 +519,7 @@ class TestGraphPoCCompilation:
         expected = [
             "__start__",
             "intake",
+            "evaluate",
             "poc_plan",
             "fork",
             "containerize",
@@ -494,14 +534,15 @@ class TestGraphPoCCompilation:
             assert node in nodes, f"Missing node: {node}"
 
     def test_graph_parallel_edges(self):
-        """Verify intake fans out to both poc_plan and fork (conditional edges)."""
+        """Verify evaluate fans out to both poc_plan and fork (conditional edges)."""
         from autopoc.graph import build_graph
 
         graph = build_graph()
         mermaid = graph.get_graph().draw_mermaid()
-        # Conditional edges use dotted arrows (-.->)
-        assert "intake -.-> poc_plan" in mermaid
-        assert "intake -.-> fork" in mermaid
+        # intake routes to evaluate, evaluate fans out to poc_plan + fork
+        assert "intake -.-> evaluate" in mermaid
+        assert "evaluate -.-> poc_plan" in mermaid
+        assert "evaluate -.-> fork" in mermaid
         assert "poc_plan --> containerize" in mermaid
         assert "fork --> containerize" in mermaid
 
