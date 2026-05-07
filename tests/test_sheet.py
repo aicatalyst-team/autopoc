@@ -934,17 +934,27 @@ class TestEnsureResultColumns:
     """Tests for ensure_result_columns."""
 
     def test_creates_missing_columns(self) -> None:
-        """Appends poc_repo, poc_image, poc_report to header when missing."""
+        """Expands grid and appends poc_repo, poc_image, poc_report when missing."""
         mock_service = MagicMock()
         headers = ["title", "link", "category"]
 
         col_indices = ensure_result_columns(
-            mock_service, "sheet-123", "Tab1", headers
+            mock_service, "sheet-123", "Tab1", headers, tab_gid=42
         )
 
-        # Should have called update to append 3 columns
-        mock_service.spreadsheets.return_value.values.return_value.update.assert_called_once()
-        call_kwargs = mock_service.spreadsheets.return_value.values.return_value.update.call_args
+        # Should have expanded the grid first
+        batch_update = mock_service.spreadsheets.return_value.batchUpdate
+        batch_update.assert_called_once()
+        batch_body = batch_update.call_args.kwargs["body"]
+        append_req = batch_body["requests"][0]["appendDimension"]
+        assert append_req["sheetId"] == 42
+        assert append_req["dimension"] == "COLUMNS"
+        assert append_req["length"] == 3
+
+        # Then should have written the header values
+        values_update = mock_service.spreadsheets.return_value.values.return_value.update
+        values_update.assert_called_once()
+        call_kwargs = values_update.call_args
         assert call_kwargs.kwargs["body"]["values"] == [["poc_repo", "poc_image", "poc_report"]]
 
         # Column indices should be correct
@@ -958,10 +968,11 @@ class TestEnsureResultColumns:
         headers = ["title", "link", "poc_repo", "poc_image", "poc_report"]
 
         col_indices = ensure_result_columns(
-            mock_service, "sheet-123", "Tab1", headers
+            mock_service, "sheet-123", "Tab1", headers, tab_gid=0
         )
 
-        # No update call
+        # No grid expansion or value update
+        mock_service.spreadsheets.return_value.batchUpdate.assert_not_called()
         mock_service.spreadsheets.return_value.values.return_value.update.assert_not_called()
 
         assert col_indices["poc_repo"] == 2
@@ -969,13 +980,18 @@ class TestEnsureResultColumns:
         assert col_indices["poc_report"] == 4
 
     def test_partial_columns_exist(self) -> None:
-        """Only appends the missing columns."""
+        """Only appends the missing columns and expands grid accordingly."""
         mock_service = MagicMock()
         headers = ["title", "link", "poc_repo"]
 
         col_indices = ensure_result_columns(
-            mock_service, "sheet-123", "Tab1", headers
+            mock_service, "sheet-123", "Tab1", headers, tab_gid=7
         )
+
+        # Grid should be expanded by 2 (only poc_image and poc_report missing)
+        batch_body = mock_service.spreadsheets.return_value.batchUpdate.call_args.kwargs["body"]
+        assert batch_body["requests"][0]["appendDimension"]["length"] == 2
+        assert batch_body["requests"][0]["appendDimension"]["sheetId"] == 7
 
         call_kwargs = mock_service.spreadsheets.return_value.values.return_value.update.call_args
         assert call_kwargs.kwargs["body"]["values"] == [["poc_image", "poc_report"]]

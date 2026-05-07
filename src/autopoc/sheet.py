@@ -996,18 +996,22 @@ def ensure_result_columns(
     sheet_id: str,
     tab_name: str,
     existing_headers: list[str],
+    *,
+    tab_gid: int = 0,
 ) -> dict[str, int]:
     """Ensure the PoC result columns exist in the given tab's header row.
 
     If any of ``poc_repo``, ``poc_image``, ``poc_report`` are missing
-    from *existing_headers*, they are appended to the header row via the
-    Sheets API.
+    from *existing_headers*, the sheet grid is expanded (if needed) and
+    the new column headers are written.
 
     Args:
         service: Authenticated Google Sheets API service.
         sheet_id: Spreadsheet ID.
         tab_name: Tab name to update.
         existing_headers: Current header column names.
+        tab_gid: Numeric sheet ID (gid) of the tab, used for grid
+            expansion via ``appendDimension``.
 
     Returns:
         Dict mapping each PoC result column name to its 0-based column
@@ -1017,9 +1021,26 @@ def ensure_result_columns(
 
     missing = [col for col in POC_RESULT_COLUMNS if col not in existing_headers]
     if missing:
-        # Append missing columns to the end of the header row
+        # Expand the sheet grid to accommodate new columns.
+        # The Sheets values API cannot write beyond the current grid
+        # boundary, so we must add columns first.
+        service.spreadsheets().batchUpdate(
+            spreadsheetId=sheet_id,
+            body={
+                "requests": [
+                    {
+                        "appendDimension": {
+                            "sheetId": tab_gid,
+                            "dimension": "COLUMNS",
+                            "length": len(missing),
+                        }
+                    }
+                ]
+            },
+        ).execute()
+
+        # Now write the header names into the newly added columns
         start_col_idx = len(existing_headers)
-        # Convert 0-based column index to A1 column letter
         start_col = _col_index_to_letter(start_col_idx)
         end_col = _col_index_to_letter(start_col_idx + len(missing) - 1)
 
@@ -1034,9 +1055,10 @@ def ensure_result_columns(
         ).execute()
 
         logger.info(
-            "Added missing PoC result columns to tab '%s': %s",
+            "Added missing PoC result columns to tab '%s': %s (expanded grid by %d columns)",
             tab_name,
             missing,
+            len(missing),
         )
         # Update local copy
         existing_headers.extend(missing)

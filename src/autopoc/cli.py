@@ -1020,6 +1020,7 @@ def _write_back_poc_results(
                 sheet_id,
                 project.tab_name,
                 headers,
+                tab_gid=project.tab_gid,
             )
             tab_col_indices[project.tab_name] = col_indices
 

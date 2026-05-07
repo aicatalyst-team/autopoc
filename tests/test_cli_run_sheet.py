@@ -295,6 +295,9 @@ class TestRunSheetFlow:
                 # Write-back should have been called
                 mock_build_svc.assert_called_once()
                 mock_ensure.assert_called_once()
+                # Verify tab_gid is passed through
+                ensure_kwargs = mock_ensure.call_args
+                assert ensure_kwargs.kwargs.get("tab_gid") == 0
                 mock_write.assert_called_once()
 
     def test_already_processed_rows_skipped(self, tmp_path) -> None:
