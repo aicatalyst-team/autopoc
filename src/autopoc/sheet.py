@@ -962,6 +962,48 @@ def _strip_credentials_from_url(url: str) -> str:
     return result
 
 
+def derive_fork_browse_url(
+    source_repo_url: str,
+    fork_target: str,
+    *,
+    github_org: str | None = None,
+    gitlab_url: str | None = None,
+    gitlab_group: str | None = None,
+) -> str | None:
+    """Derive a browsable URL to the fork from the source repo URL and config.
+
+    This is a best-effort fallback for when the pipeline result does not
+    contain ``fork_repo_url`` (e.g. the pipeline crashed before or during
+    the fork step, or the fork already existed).
+
+    Args:
+        source_repo_url: Original GitHub source repository URL.
+        fork_target: ``"github"`` or ``"gitlab"``.
+        github_org: GitHub org for forks (if fork_target is github).
+        gitlab_url: GitLab instance URL (if fork_target is gitlab).
+        gitlab_group: GitLab group/namespace (if fork_target is gitlab).
+
+    Returns:
+        Browsable URL to the fork, or ``None`` if it cannot be derived.
+    """
+    try:
+        parsed = urlparse(source_repo_url)
+        path_parts = parsed.path.strip("/").split("/")
+        if len(path_parts) < 2:
+            return None
+        repo_name = path_parts[1].removesuffix(".git")
+    except Exception:
+        return None
+
+    if fork_target == "github" and github_org:
+        return f"https://github.com/{github_org}/{repo_name}"
+    elif fork_target == "gitlab" and gitlab_url and gitlab_group:
+        base = gitlab_url.rstrip("/")
+        return f"{base}/{gitlab_group}/{repo_name}"
+
+    return None
+
+
 def _build_artifacts_branch_url(fork_repo_url: str, fork_target: str) -> str:
     """Build a browsable URL to the ``autopoc-artifacts`` branch.
 

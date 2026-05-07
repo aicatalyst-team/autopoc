@@ -20,6 +20,7 @@ from autopoc.sheet import (
     _parse_rows,
     _row_to_project,
     _strip_credentials_from_url,
+    derive_fork_browse_url,
     ensure_result_columns,
     filter_projects,
     read_sheet,
@@ -905,6 +906,76 @@ class TestBuildUrls:
             "https://oauth2:token@gitlab.example.com/g/p.git", "gitlab"
         )
         assert url == "https://gitlab.example.com/g/p/-/blob/autopoc-artifacts/poc-report.md"
+
+
+# ---------------------------------------------------------------------------
+# derive_fork_browse_url
+# ---------------------------------------------------------------------------
+
+
+class TestDeriveForkBrowseUrl:
+    """Tests for derive_fork_browse_url fallback URL construction."""
+
+    def test_github_with_org(self) -> None:
+        url = derive_fork_browse_url(
+            "https://github.com/upstream/repo",
+            "github",
+            github_org="my-org",
+        )
+        assert url == "https://github.com/my-org/repo"
+
+    def test_github_strips_git_suffix(self) -> None:
+        url = derive_fork_browse_url(
+            "https://github.com/upstream/repo.git",
+            "github",
+            github_org="my-org",
+        )
+        assert url == "https://github.com/my-org/repo"
+
+    def test_gitlab_with_group(self) -> None:
+        url = derive_fork_browse_url(
+            "https://github.com/upstream/repo",
+            "gitlab",
+            gitlab_url="https://gitlab.example.com",
+            gitlab_group="poc-demos",
+        )
+        assert url == "https://gitlab.example.com/poc-demos/repo"
+
+    def test_gitlab_strips_trailing_slash(self) -> None:
+        url = derive_fork_browse_url(
+            "https://github.com/upstream/repo",
+            "gitlab",
+            gitlab_url="https://gitlab.example.com/",
+            gitlab_group="poc-demos",
+        )
+        assert url == "https://gitlab.example.com/poc-demos/repo"
+
+    def test_github_no_org_returns_none(self) -> None:
+        """Without github_org, we can't derive the fork owner."""
+        url = derive_fork_browse_url(
+            "https://github.com/upstream/repo",
+            "github",
+        )
+        assert url is None
+
+    def test_gitlab_missing_config_returns_none(self) -> None:
+        url = derive_fork_browse_url(
+            "https://github.com/upstream/repo",
+            "gitlab",
+        )
+        assert url is None
+
+    def test_invalid_url_returns_none(self) -> None:
+        url = derive_fork_browse_url("not-a-url", "github", github_org="org")
+        assert url is None
+
+    def test_url_with_only_one_path_segment(self) -> None:
+        url = derive_fork_browse_url(
+            "https://github.com/owner-only",
+            "github",
+            github_org="org",
+        )
+        assert url is None
 
 
 # ---------------------------------------------------------------------------

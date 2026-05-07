@@ -987,6 +987,7 @@ def run_sheet(
                 sheet_id,
                 project,
                 pipeline_result,
+                config,
                 rows,
                 tab_col_indices,
             )
@@ -997,13 +998,21 @@ def _write_back_poc_results(
     sheet_id: str,
     project: SheetProject,
     pipeline_result: dict,
+    config: AutoPoCConfig,
     rows: list[dict[str, str]],
     tab_col_indices: dict[str, dict[str, int]],
 ) -> None:
     """Write PoC results back to the Google Sheet for a completed pipeline.
 
+    When the pipeline result does not contain a ``fork_repo_url`` (e.g.
+    the pipeline crashed or the fork step was never reached), the fork
+    URL is derived from the source repo URL and config so we can still
+    write a link to the (possibly pre-existing) fork instead of FAILED.
+
     Handles column creation and error recovery gracefully.
     """
+    from autopoc.sheet import derive_fork_browse_url
+
     try:
         # Ensure result columns exist (cached per tab)
         if project.tab_name not in tab_col_indices:
@@ -1026,14 +1035,38 @@ def _write_back_poc_results(
 
         col_indices = tab_col_indices[project.tab_name]
 
+        # Use fork_repo_url from pipeline result if available; otherwise
+        # derive from source repo URL + config so we link to the fork
+        # even when the pipeline crashed.
+        fork_repo_url = pipeline_result.get("fork_repo_url")
+        fork_target = pipeline_result.get("fork_target") or config.fork_target
+
+        if not fork_repo_url:
+            derived = derive_fork_browse_url(
+                project.repo_url,
+                fork_target,
+                github_org=config.github_org,
+                gitlab_url=config.gitlab_url,
+                gitlab_group=config.gitlab_group,
+            )
+            if derived:
+                # Wrap in the clone-URL format that write_poc_results expects
+                # (it will strip credentials and .git suffix)
+                fork_repo_url = derived
+                logger.info(
+                    "Derived fork URL for %s: %s",
+                    project.name,
+                    derived,
+                )
+
         write_poc_results(
             service,
             sheet_id,
             project.tab_name,
             project.row_index,
             col_indices,
-            fork_repo_url=pipeline_result.get("fork_repo_url"),
-            fork_target=pipeline_result.get("fork_target"),
+            fork_repo_url=fork_repo_url,
+            fork_target=fork_target,
             built_images=pipeline_result.get("built_images"),
             poc_report_path=pipeline_result.get("poc_report_path"),
         )
