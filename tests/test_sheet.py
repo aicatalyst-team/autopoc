@@ -2,12 +2,11 @@
 
 import csv
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from autopoc.sheet import (
-    POC_RESULT_COLUMNS,
     SheetProject,
     SheetRowOrigin,
     _ORIGIN_KEY,
@@ -613,13 +612,11 @@ class TestReadSheet:
         mock_spreadsheets = mock_service.spreadsheets.return_value
 
         mock_spreadsheets.get.return_value.execute.return_value = {
-            "sheets": [
-                {"properties": {"title": f"Tab{i}", "sheetId": i}}
-                for i in range(10)
-            ]
+            "sheets": [{"properties": {"title": f"Tab{i}", "sheetId": i}} for i in range(10)]
         }
 
         call_count = 0
+
         def fake_values_get(spreadsheetId, range):
             nonlocal call_count
             call_count += 1
@@ -886,9 +883,7 @@ class TestBuildUrls:
     """Tests for _build_artifacts_branch_url and _build_report_url."""
 
     def test_github_artifacts_url(self) -> None:
-        url = _build_artifacts_branch_url(
-            "https://token@github.com/org/repo.git", "github"
-        )
+        url = _build_artifacts_branch_url("https://token@github.com/org/repo.git", "github")
         assert url == "https://github.com/org/repo/tree/autopoc-artifacts"
 
     def test_gitlab_artifacts_url(self) -> None:
@@ -898,15 +893,11 @@ class TestBuildUrls:
         assert url == "https://gitlab.example.com/g/p/-/tree/autopoc-artifacts"
 
     def test_github_report_url(self) -> None:
-        url = _build_report_url(
-            "https://token@github.com/org/repo.git", "github"
-        )
+        url = _build_report_url("https://token@github.com/org/repo.git", "github")
         assert url == "https://github.com/org/repo/blob/autopoc-artifacts/poc-report.md"
 
     def test_gitlab_report_url(self) -> None:
-        url = _build_report_url(
-            "https://oauth2:token@gitlab.example.com/g/p.git", "gitlab"
-        )
+        url = _build_report_url("https://oauth2:token@gitlab.example.com/g/p.git", "gitlab")
         assert url == "https://gitlab.example.com/g/p/-/blob/autopoc-artifacts/poc-report.md"
 
 
@@ -1073,9 +1064,7 @@ class TestEnsureResultColumns:
         mock_service = MagicMock()
         headers = ["title", "link", "category"]
 
-        col_indices = ensure_result_columns(
-            mock_service, "sheet-123", "Tab1", headers, tab_gid=42
-        )
+        col_indices = ensure_result_columns(mock_service, "sheet-123", "Tab1", headers, tab_gid=42)
 
         # Should have expanded the grid first
         batch_update = mock_service.spreadsheets.return_value.batchUpdate
@@ -1102,9 +1091,7 @@ class TestEnsureResultColumns:
         mock_service = MagicMock()
         headers = ["title", "link", "poc_repo", "poc_image", "poc_report"]
 
-        col_indices = ensure_result_columns(
-            mock_service, "sheet-123", "Tab1", headers, tab_gid=0
-        )
+        col_indices = ensure_result_columns(mock_service, "sheet-123", "Tab1", headers, tab_gid=0)
 
         # No grid expansion or value update
         mock_service.spreadsheets.return_value.batchUpdate.assert_not_called()
@@ -1119,9 +1106,7 @@ class TestEnsureResultColumns:
         mock_service = MagicMock()
         headers = ["title", "link", "poc_repo"]
 
-        col_indices = ensure_result_columns(
-            mock_service, "sheet-123", "Tab1", headers, tab_gid=7
-        )
+        col_indices = ensure_result_columns(mock_service, "sheet-123", "Tab1", headers, tab_gid=7)
 
         # Grid should be expanded by 2 (only poc_image and poc_report missing)
         batch_body = mock_service.spreadsheets.return_value.batchUpdate.call_args.kwargs["body"]
@@ -1234,7 +1219,9 @@ class TestWritePocResults:
         update_mock = mock_service.spreadsheets.return_value.values.return_value.update
         written_values = [c.kwargs["body"]["values"][0][0] for c in update_mock.call_args_list]
         # poc_report should be the override, not FAILED
-        assert written_values[2] == "https://github.com/org/repo/blob/autopoc-artifacts/poc-report.md"
+        assert (
+            written_values[2] == "https://github.com/org/repo/blob/autopoc-artifacts/poc-report.md"
+        )
 
     def test_overrides_take_precedence(self) -> None:
         """Overrides win even when primary values are available."""

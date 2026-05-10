@@ -186,8 +186,7 @@ def read_sheet(
 
     if not all_parsed:
         raise ValueError(
-            f"No valid data rows found across {len(tabs_to_read)} tab(s) "
-            f"in spreadsheet {sheet_id}"
+            f"No valid data rows found across {len(tabs_to_read)} tab(s) in spreadsheet {sheet_id}"
         )
 
     logger.info(

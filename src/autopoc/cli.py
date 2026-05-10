@@ -861,7 +861,9 @@ def run_sheet(
         raise typer.Exit(code=1)
 
     if not filtered:
-        console.print("\n[bold yellow]No projects remain after filtering — nothing to PoC.[/bold yellow]")
+        console.print(
+            "\n[bold yellow]No projects remain after filtering — nothing to PoC.[/bold yellow]"
+        )
         raise typer.Exit(code=0)
 
     # --- Select projects to PoC ---
@@ -882,7 +884,6 @@ def run_sheet(
             cleanup_candidate_clones,
             evaluate_candidates,
             prefilter_candidates,
-            select_best_candidate,
         )
 
         console.print(
@@ -920,7 +921,7 @@ def run_sheet(
                 except ValueError:
                     continue
             if not projects_to_run:
-                console.print(f"\n[bold red]Sheet error:[/bold red] No valid projects found")
+                console.print("\n[bold red]Sheet error:[/bold red] No valid projects found")
                 raise typer.Exit(code=1)
             results = None
 
@@ -967,8 +968,7 @@ def run_sheet(
     # --- Run pipelines sequentially, writing results after each ---
     for i, project in enumerate(projects_to_run):
         console.print(
-            f"\n[bold cyan]Running PoC {i + 1}/{len(projects_to_run)}: "
-            f"{project.name}[/bold cyan]"
+            f"\n[bold cyan]Running PoC {i + 1}/{len(projects_to_run)}: {project.name}[/bold cyan]"
         )
 
         pipeline_result = _run_pipeline(
@@ -1026,7 +1026,11 @@ def _write_back_poc_results(
     try:
         # Ensure result columns exist (cached per tab)
         if project.tab_name not in tab_col_indices:
-            tab_rows = [r for r in rows if r.get(_ORIGIN_KEY) and r[_ORIGIN_KEY].tab_name == project.tab_name]
+            tab_rows = [
+                r
+                for r in rows
+                if r.get(_ORIGIN_KEY) and r[_ORIGIN_KEY].tab_name == project.tab_name
+            ]
             if tab_rows:
                 headers = [k for k in tab_rows[0] if k != _ORIGIN_KEY]
             else:
@@ -1107,13 +1111,10 @@ def _write_back_poc_results(
             poc_report_override=poc_report_override,
         )
         console.print(
-            f"  [green]Results written to tab '{project.tab_name}' "
-            f"row {project.row_index}[/green]"
+            f"  [green]Results written to tab '{project.tab_name}' row {project.row_index}[/green]"
         )
     except Exception as e:
-        console.print(
-            f"  [yellow]Warning: Failed to write results to sheet: {e}[/yellow]"
-        )
+        console.print(f"  [yellow]Warning: Failed to write results to sheet: {e}[/yellow]")
         logger.warning("Sheet write-back failed for %s: %s", project.name, e)
 
 

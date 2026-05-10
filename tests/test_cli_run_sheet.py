@@ -278,10 +278,13 @@ class TestRunSheetFlow:
                 patch("autopoc.cli.read_sheet", return_value=mock_rows),
                 patch("autopoc.cli._run_pipeline", return_value=pipeline_result),
                 patch("autopoc.cli.build_sheets_service") as mock_build_svc,
-                patch("autopoc.cli.ensure_result_columns", return_value={"poc_repo": 3, "poc_image": 4, "poc_report": 5}) as mock_ensure,
+                patch(
+                    "autopoc.cli.ensure_result_columns",
+                    return_value={"poc_repo": 3, "poc_image": 4, "poc_report": 5},
+                ) as mock_ensure,
                 patch("autopoc.cli.write_poc_results") as mock_write,
             ):
-                result = runner.invoke(
+                runner.invoke(
                     app,
                     [
                         "run-sheet",
@@ -328,7 +331,7 @@ class TestRunSheetFlow:
                 patch("autopoc.cli._run_pipeline", return_value={}) as mock_pipeline,
                 patch("autopoc.cli.build_sheets_service", return_value=MagicMock()),
             ):
-                result = runner.invoke(
+                runner.invoke(
                     app,
                     [
                         "run-sheet",
@@ -364,7 +367,7 @@ class TestRunSheetFlow:
                 patch("autopoc.cli._run_pipeline", return_value={}),
                 patch("autopoc.cli.build_sheets_service", return_value=MagicMock()),
             ):
-                result = runner.invoke(
+                runner.invoke(
                     app,
                     [
                         "run-sheet",
