@@ -21,8 +21,9 @@ RUN pip install --no-cache-dir shiv==1.0.8
 # Copy dependency lockfile first for layer caching
 COPY requirements.lock pyproject.toml ./
 
-# Copy source and build assets
+# Copy source, data, and build assets
 COPY src/ src/
+COPY data/ data/
 COPY Makefile ./
 
 # Build the shiv zipapp binary

@@ -1,7 +1,8 @@
-"""Google Sheet reader for PoC candidate projects.
+"""Google Sheet reader and writer for PoC candidate projects.
 
 Reads a POC Explorer spreadsheet via the Google Sheets API, filters rows
-to find actionable GitHub projects, and selects one for the pipeline.
+to find actionable GitHub projects, selects candidates for the pipeline,
+and writes PoC results back to the sheet.
 
 The expected sheet structure (matching POC Explorer output):
   - Row 1: metadata (run info)
@@ -9,7 +10,14 @@ The expected sheet structure (matching POC Explorer output):
   - Row 3: header row (column names)
   - Row 4+: data rows
 
-Only the first tab (index 0) is read.
+Multiple tabs (up to ``max_tabs``) are scanned left-to-right and
+aggregated into a single candidate pool.  Each row carries origin
+metadata (tab name + row number) so results can be written back to
+the correct location.
+
+Rows that already have PoC results (non-empty ``poc_repo``,
+``poc_image``, or ``poc_report`` columns) are automatically excluded
+from candidate selection.
 
 Phase 13 additions: pre-filtering, multi-candidate evaluation, and
 best-candidate selection for the ``run-sheet`` command.
@@ -31,10 +39,35 @@ from googleapiclient.discovery import build
 
 logger = logging.getLogger(__name__)
 
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 # Number of metadata rows before the header row (run info + review URL).
 _METADATA_ROWS = 2
+
+# Columns written by AutoPoC after a PoC run.
+POC_RESULT_COLUMNS = ("poc_repo", "poc_image", "poc_report")
+
+# Internal key injected into row dicts to track sheet origin.
+_ORIGIN_KEY = "_origin"
+
+
+@dataclass
+class SheetRowOrigin:
+    """Tracks where a row came from in the spreadsheet.
+
+    Uses tab *name* (not index) as the stable identifier so that
+    write-back targets the correct tab even if tabs are reordered
+    while the pipeline is running.
+    """
+
+    tab_name: str
+    """Title of the worksheet tab (stable across reorderings)."""
+
+    tab_gid: int
+    """Numeric sheet ID (gid) — immutable within a spreadsheet."""
+
+    row_number: int
+    """1-based row number within the tab."""
 
 
 @dataclass
@@ -53,17 +86,47 @@ class SheetProject:
     row_index: int
     """1-based row number in the spreadsheet (for logging/diagnostics)."""
 
+    tab_name: str = ""
+    """Name of the tab this project came from."""
 
-def read_sheet(credentials_file: str, sheet_id: str) -> list[dict[str, str]]:
-    """Read all data rows from the first tab of a Google Sheet.
+    tab_gid: int = 0
+    """Numeric sheet ID (gid) of the tab."""
 
-    Authenticates with a service account, reads tab 0, skips the two
-    metadata rows, uses row 3 as the header, and returns remaining rows
-    as a list of dicts keyed by column name.
+
+def build_sheets_service(credentials_file: str):
+    """Create an authenticated Google Sheets API service.
+
+    Args:
+        credentials_file: Path to the Google service account JSON key file.
+
+    Returns:
+        A ``googleapiclient.discovery.Resource`` for the Sheets v4 API.
+    """
+    creds = Credentials.from_service_account_file(credentials_file, scopes=SCOPES)
+    return build("sheets", "v4", credentials=creds, cache_discovery=False)
+
+
+def read_sheet(
+    credentials_file: str,
+    sheet_id: str,
+    *,
+    max_tabs: int = 1,
+) -> list[dict[str, str]]:
+    """Read data rows from one or more tabs of a Google Sheet.
+
+    Authenticates with a service account, reads up to *max_tabs* tabs
+    (left-to-right), skips the two metadata rows per tab, uses row 3
+    as the header, and returns all data rows aggregated into a single
+    list.
+
+    Each returned dict has an extra ``_origin`` key containing a
+    :class:`SheetRowOrigin` instance that tracks which tab and row the
+    data came from.  This metadata is used by write-back functions.
 
     Args:
         credentials_file: Path to the Google service account JSON key file.
         sheet_id: The spreadsheet ID (from the Google Sheets URL).
+        max_tabs: Maximum number of tabs to scan (default 1, leftmost first).
 
     Returns:
         List of dicts, one per data row, keyed by header column names.
@@ -74,31 +137,64 @@ def read_sheet(credentials_file: str, sheet_id: str) -> list[dict[str, str]]:
         google.auth.exceptions.DefaultCredentialsError: On auth failure.
         googleapiclient.errors.HttpError: On API errors (e.g. sheet not
             found, permission denied).
-        ValueError: If the sheet has no data rows or no header row.
+        ValueError: If the sheet has no tabs or no valid data rows.
     """
-    creds = Credentials.from_service_account_file(credentials_file, scopes=SCOPES)
-    service = build("sheets", "v4", credentials=creds, cache_discovery=False)
+    service = build_sheets_service(credentials_file)
 
-    # Get the name of the first tab
+    # Get tab metadata
     spreadsheet = (
         service.spreadsheets().get(spreadsheetId=sheet_id, fields="sheets.properties").execute()
     )
     sheets = spreadsheet.get("sheets", [])
     if not sheets:
         raise ValueError(f"Spreadsheet {sheet_id} has no tabs")
-    tab_name = sheets[0]["properties"]["title"]
-    logger.info("Reading tab '%s' from spreadsheet %s", tab_name, sheet_id)
 
-    # Read all cells from the first tab
-    result = (
-        service.spreadsheets()
-        .values()
-        .get(spreadsheetId=sheet_id, range=f"'{tab_name}'!A1:ZZ")
-        .execute()
+    tabs_to_read = sheets[: max(1, max_tabs)]
+
+    all_parsed: list[dict[str, str]] = []
+
+    for tab_info in tabs_to_read:
+        props = tab_info["properties"]
+        tab_name = props["title"]
+        tab_gid = props.get("sheetId", 0)
+        logger.info("Reading tab '%s' (gid=%d) from spreadsheet %s", tab_name, tab_gid, sheet_id)
+
+        result = (
+            service.spreadsheets()
+            .values()
+            .get(spreadsheetId=sheet_id, range=f"'{tab_name}'!A1:ZZ")
+            .execute()
+        )
+        raw_rows: list[list[str]] = result.get("values", [])
+
+        try:
+            parsed = _parse_rows(raw_rows)
+        except ValueError as exc:
+            logger.warning("Skipping tab '%s': %s", tab_name, exc)
+            continue
+
+        # Inject origin metadata into each row
+        data_start_row = _METADATA_ROWS + 1  # 0-based index of first data row
+        for i, row in enumerate(parsed):
+            row[_ORIGIN_KEY] = SheetRowOrigin(
+                tab_name=tab_name,
+                tab_gid=tab_gid,
+                row_number=data_start_row + i + 1,  # 1-based spreadsheet row
+            )
+
+        all_parsed.extend(parsed)
+
+    if not all_parsed:
+        raise ValueError(
+            f"No valid data rows found across {len(tabs_to_read)} tab(s) in spreadsheet {sheet_id}"
+        )
+
+    logger.info(
+        "Total rows across %d tab(s): %d",
+        len(tabs_to_read),
+        len(all_parsed),
     )
-    all_rows: list[list[str]] = result.get("values", [])
-
-    return _parse_rows(all_rows)
+    return all_parsed
 
 
 def _parse_rows(all_rows: list[list[str]]) -> list[dict[str, str]]:
@@ -144,16 +240,24 @@ def _parse_rows(all_rows: list[list[str]]) -> list[dict[str, str]]:
     return parsed
 
 
+def _has_poc_results(row: dict[str, str]) -> bool:
+    """Return True if a row already has PoC result data."""
+    return any(row.get(col, "").strip() for col in POC_RESULT_COLUMNS)
+
+
 def filter_projects(rows: list[dict[str, str]]) -> list[dict[str, str]]:
     """Filter rows to actionable GitHub projects.
 
-    Applies two filters in order:
+    Applies three filters in order:
     1. **Link filter**: keep only rows where the ``link`` column is a
        ``github.com`` URL.
     2. **PM decision filter**: if a ``pm_decision`` column exists *and*
        at least one row has a non-empty value, keep only rows where the
        value contains "approve" (case-insensitive).  If the column is
        absent or entirely empty, this filter is skipped.
+    3. **Already-processed filter**: exclude rows that already have a
+       non-empty value in any of the PoC result columns (``poc_repo``,
+       ``poc_image``, ``poc_report``).
 
     Original row order is preserved.
 
@@ -182,10 +286,23 @@ def filter_projects(rows: list[dict[str, str]]) -> list[dict[str, str]]:
             len(approved),
             len(github_rows),
         )
-        return approved
+        candidates = approved
+    else:
+        logger.info("No pm_decision values found — skipping approval filter")
+        candidates = github_rows
 
-    logger.info("No pm_decision values found — skipping approval filter")
-    return github_rows
+    # --- Already-processed filter ---
+    before_count = len(candidates)
+    candidates = [r for r in candidates if not _has_poc_results(r)]
+    skipped = before_count - len(candidates)
+    if skipped:
+        logger.info(
+            "Already-processed filter: skipped %d/%d rows with existing PoC results",
+            skipped,
+            before_count,
+        )
+
+    return candidates
 
 
 def select_project(
@@ -199,7 +316,8 @@ def select_project(
         rows: Filtered rows from ``filter_projects``. Must not be empty.
         data_start_row: 0-based index of the first data row in the
             original sheet (used to compute the 1-based ``row_index``
-            for diagnostics). Defaults to 3 (after 2 metadata + 1 header).
+            for diagnostics when no ``_origin`` metadata is present).
+            Defaults to 3 (after 2 metadata + 1 header).
 
     Returns:
         A ``SheetProject`` for the first row.
@@ -214,34 +332,42 @@ def select_project(
         )
 
     row = rows[0]
+    return _row_to_project(row, fallback_row_index=data_start_row + 1)
 
+
+def _row_to_project(row: dict[str, str], *, fallback_row_index: int = 4) -> SheetProject:
+    """Convert a parsed row dict to a ``SheetProject``.
+
+    Uses ``_origin`` metadata when available, otherwise falls back to
+    *fallback_row_index*.
+    """
     if "title" not in row:
         raise ValueError(
             "Selected row is missing the 'title' column. "
-            f"Available columns: {', '.join(sorted(row.keys()))}"
+            f"Available columns: {', '.join(sorted(k for k in row if k != _ORIGIN_KEY))}"
         )
     if "link" not in row:
         raise ValueError(
             "Selected row is missing the 'link' column. "
-            f"Available columns: {', '.join(sorted(row.keys()))}"
+            f"Available columns: {', '.join(sorted(k for k in row if k != _ORIGIN_KEY))}"
         )
 
-    # row_index: 1-based row number in the spreadsheet
-    # data_start_row is 0-based index of the first data row in the values
-    # array, so the first data row = data_start_row + 1 in the spreadsheet.
-    row_index = data_start_row + 1  # 1-based
+    origin: SheetRowOrigin | None = row.get(_ORIGIN_KEY)  # type: ignore[assignment]
 
     project = SheetProject(
         name=_derive_project_name(row["link"], row["title"]),
         repo_url=row["link"],
         category=row.get("category", ""),
-        row_index=row_index,
+        row_index=origin.row_number if origin else fallback_row_index,
+        tab_name=origin.tab_name if origin else "",
+        tab_gid=origin.tab_gid if origin else 0,
     )
 
     logger.info(
-        "Selected project: %s (%s) from sheet row %d",
+        "Selected project: %s (%s) from tab '%s' row %d",
         project.name,
         project.repo_url,
+        project.tab_name,
         project.row_index,
     )
 
@@ -684,12 +810,7 @@ async def evaluate_candidates(
             heuristic_score,
         )
 
-        project = SheetProject(
-            name=project_name,
-            repo_url=repo_url,
-            category=row.get("category", ""),
-            row_index=idx + 1,
-        )
+        project = _row_to_project(row, fallback_row_index=idx + 1)
 
         # Run partial pipeline: intake → evaluate
         try:
@@ -808,3 +929,324 @@ def cleanup_candidate_clones(
                 logger.debug("Cleaned up clone: %s", result.clone_path)
             except Exception as exc:
                 logger.warning("Failed to clean up %s: %s", result.clone_path, exc)
+
+
+# ---------------------------------------------------------------------------
+# Write-back: record PoC results in the Google Sheet
+# ---------------------------------------------------------------------------
+
+
+def _strip_credentials_from_url(url: str) -> str:
+    """Remove embedded credentials and ``.git`` suffix from a clone URL.
+
+    Examples::
+
+        https://TOKEN@github.com/org/repo.git  →  https://github.com/org/repo
+        https://oauth2:TOKEN@gitlab.example.com/g/p.git  →  https://gitlab.example.com/g/p
+    """
+    if not url:
+        return url
+    try:
+        parsed = urlparse(url)
+        # Rebuild without userinfo (username:password)
+        clean = parsed._replace(netloc=parsed.hostname or "")
+        if parsed.port:
+            clean = clean._replace(netloc=f"{parsed.hostname}:{parsed.port}")
+        result = clean.geturl()
+    except Exception:
+        result = url
+    # Strip trailing .git
+    if result.endswith(".git"):
+        result = result[:-4]
+    return result
+
+
+def derive_fork_browse_url(
+    source_repo_url: str,
+    fork_target: str,
+    *,
+    github_org: str | None = None,
+    gitlab_url: str | None = None,
+    gitlab_group: str | None = None,
+) -> str | None:
+    """Derive a browsable URL to the fork from the source repo URL and config.
+
+    This is a best-effort fallback for when the pipeline result does not
+    contain ``fork_repo_url`` (e.g. the pipeline crashed before or during
+    the fork step, or the fork already existed).
+
+    Args:
+        source_repo_url: Original GitHub source repository URL.
+        fork_target: ``"github"`` or ``"gitlab"``.
+        github_org: GitHub org for forks (if fork_target is github).
+        gitlab_url: GitLab instance URL (if fork_target is gitlab).
+        gitlab_group: GitLab group/namespace (if fork_target is gitlab).
+
+    Returns:
+        Browsable URL to the fork, or ``None`` if it cannot be derived.
+    """
+    try:
+        parsed = urlparse(source_repo_url)
+        path_parts = parsed.path.strip("/").split("/")
+        if len(path_parts) < 2:
+            return None
+        repo_name = path_parts[1].removesuffix(".git")
+    except Exception:
+        return None
+
+    if fork_target == "github" and github_org:
+        return f"https://github.com/{github_org}/{repo_name}"
+    elif fork_target == "gitlab" and gitlab_url and gitlab_group:
+        base = gitlab_url.rstrip("/")
+        return f"{base}/{gitlab_group}/{repo_name}"
+
+    return None
+
+
+def derive_quay_search_url(
+    project_name: str,
+    quay_registry: str,
+    quay_org: str,
+) -> str:
+    """Build a Quay repository search URL for a project.
+
+    Returns a URL to the Quay organization page filtered by the
+    project name.  This always resolves to a valid page (the search
+    results may be empty, but the page itself loads).
+
+    Args:
+        project_name: Project name used as search filter.
+        quay_registry: Quay registry hostname (e.g. ``quay.io``).
+        quay_org: Quay organization name.
+
+    Returns:
+        Browsable URL to the Quay search page.
+    """
+    # Strip any scheme prefix
+    host = quay_registry
+    if "://" in host:
+        host = host.split("://", 1)[1]
+    host = host.rstrip("/")
+    return f"https://{host}/organization/{quay_org}?tab=repositories&q={project_name}"
+
+
+def _check_url_exists(url: str, *, timeout: float = 5.0) -> bool:
+    """Best-effort HTTP HEAD check to see if a URL exists.
+
+    Returns ``True`` for 2xx and 3xx responses, ``False`` for 4xx/5xx
+    or any network/timeout error.  Uses a short timeout to avoid
+    blocking the pipeline.
+    """
+    import httpx
+
+    try:
+        response = httpx.head(url, timeout=timeout, follow_redirects=True)
+        return response.status_code < 400
+    except Exception:
+        return False
+
+
+def _build_artifacts_branch_url(fork_repo_url: str, fork_target: str) -> str:
+    """Build a browsable URL to the ``autopoc-artifacts`` branch.
+
+    Args:
+        fork_repo_url: Clone URL (may contain embedded credentials).
+        fork_target: ``"github"`` or ``"gitlab"``.
+
+    Returns:
+        Human-readable URL to the artifacts branch.
+    """
+    from autopoc.tools.git_tools import ARTIFACTS_BRANCH
+
+    base = _strip_credentials_from_url(fork_repo_url)
+    if fork_target == "gitlab":
+        return f"{base}/-/tree/{ARTIFACTS_BRANCH}"
+    # Default to GitHub-style
+    return f"{base}/tree/{ARTIFACTS_BRANCH}"
+
+
+def _build_report_url(fork_repo_url: str, fork_target: str) -> str:
+    """Build a browsable URL to ``poc-report.md`` on the artifacts branch."""
+    from autopoc.tools.git_tools import ARTIFACTS_BRANCH
+
+    base = _strip_credentials_from_url(fork_repo_url)
+    if fork_target == "gitlab":
+        return f"{base}/-/blob/{ARTIFACTS_BRANCH}/poc-report.md"
+    return f"{base}/blob/{ARTIFACTS_BRANCH}/poc-report.md"
+
+
+def ensure_result_columns(
+    service,
+    sheet_id: str,
+    tab_name: str,
+    existing_headers: list[str],
+    *,
+    tab_gid: int = 0,
+) -> dict[str, int]:
+    """Ensure the PoC result columns exist in the given tab's header row.
+
+    If any of ``poc_repo``, ``poc_image``, ``poc_report`` are missing
+    from *existing_headers*, the sheet grid is expanded (if needed) and
+    the new column headers are written.
+
+    Args:
+        service: Authenticated Google Sheets API service.
+        sheet_id: Spreadsheet ID.
+        tab_name: Tab name to update.
+        existing_headers: Current header column names.
+        tab_gid: Numeric sheet ID (gid) of the tab, used for grid
+            expansion via ``appendDimension``.
+
+    Returns:
+        Dict mapping each PoC result column name to its 0-based column
+        index in the header row.
+    """
+    header_row = _METADATA_ROWS + 1  # 1-based row number of the header
+
+    missing = [col for col in POC_RESULT_COLUMNS if col not in existing_headers]
+    if missing:
+        # Expand the sheet grid to accommodate new columns.
+        # The Sheets values API cannot write beyond the current grid
+        # boundary, so we must add columns first.
+        service.spreadsheets().batchUpdate(
+            spreadsheetId=sheet_id,
+            body={
+                "requests": [
+                    {
+                        "appendDimension": {
+                            "sheetId": tab_gid,
+                            "dimension": "COLUMNS",
+                            "length": len(missing),
+                        }
+                    }
+                ]
+            },
+        ).execute()
+
+        # Now write the header names into the newly added columns
+        start_col_idx = len(existing_headers)
+        start_col = _col_index_to_letter(start_col_idx)
+        end_col = _col_index_to_letter(start_col_idx + len(missing) - 1)
+
+        range_str = f"'{tab_name}'!{start_col}{header_row}:{end_col}{header_row}"
+        body = {"values": [missing]}
+
+        service.spreadsheets().values().update(
+            spreadsheetId=sheet_id,
+            range=range_str,
+            valueInputOption="RAW",
+            body=body,
+        ).execute()
+
+        logger.info(
+            "Added missing PoC result columns to tab '%s': %s (expanded grid by %d columns)",
+            tab_name,
+            missing,
+            len(missing),
+        )
+        # Update local copy
+        existing_headers.extend(missing)
+
+    # Build column index map
+    return {col: existing_headers.index(col) for col in POC_RESULT_COLUMNS}
+
+
+def write_poc_results(
+    service,
+    sheet_id: str,
+    tab_name: str,
+    row_number: int,
+    col_indices: dict[str, int],
+    *,
+    fork_repo_url: str | None,
+    fork_target: str | None,
+    built_images: list[str] | None,
+    poc_report_path: str | None,
+    poc_image_override: str | None = None,
+    poc_report_override: str | None = None,
+) -> None:
+    """Write PoC result values to the specified row.
+
+    Only writes to the ``poc_repo``, ``poc_image``, and ``poc_report``
+    cells — no other cells are touched.
+
+    Args:
+        service: Authenticated Google Sheets API service.
+        sheet_id: Spreadsheet ID.
+        tab_name: Tab name containing the row.
+        row_number: 1-based row number to write to.
+        col_indices: Column index map from :func:`ensure_result_columns`.
+        fork_repo_url: Clone URL of the fork (may contain credentials).
+        fork_target: ``"github"`` or ``"gitlab"``.
+        built_images: List of pushed image refs.
+        poc_report_path: Local path to poc-report.md (used only to
+            determine if a report was generated).
+        poc_image_override: Pre-resolved image URL/value.  When set,
+            bypasses the ``built_images`` logic entirely.
+        poc_report_override: Pre-resolved report URL.  When set,
+            bypasses the local-file + fork URL derivation.
+    """
+    target = fork_target or "github"
+
+    # poc_repo → link to artifacts branch
+    if fork_repo_url:
+        poc_repo_val = _build_artifacts_branch_url(fork_repo_url, target)
+    else:
+        poc_repo_val = "FAILED"
+
+    # poc_image → override, or first built image, or FAILED
+    if poc_image_override:
+        poc_image_val = poc_image_override
+    elif built_images:
+        poc_image_val = built_images[0]
+    else:
+        poc_image_val = "FAILED"
+
+    # poc_report → override, or derive from fork URL + local file, or FAILED
+    if poc_report_override:
+        poc_report_val = poc_report_override
+    elif fork_repo_url and poc_report_path and Path(poc_report_path).exists():
+        poc_report_val = _build_report_url(fork_repo_url, target)
+    else:
+        poc_report_val = "FAILED"
+
+    # Write each cell individually (they may not be contiguous columns)
+    values_to_write = {
+        "poc_repo": poc_repo_val,
+        "poc_image": poc_image_val,
+        "poc_report": poc_report_val,
+    }
+
+    for col_name, value in values_to_write.items():
+        col_letter = _col_index_to_letter(col_indices[col_name])
+        cell_ref = f"'{tab_name}'!{col_letter}{row_number}"
+
+        service.spreadsheets().values().update(
+            spreadsheetId=sheet_id,
+            range=cell_ref,
+            valueInputOption="RAW",
+            body={"values": [[value]]},
+        ).execute()
+
+    logger.info(
+        "Wrote PoC results to tab '%s' row %d: repo=%s, image=%s, report=%s",
+        tab_name,
+        row_number,
+        poc_repo_val[:60],
+        poc_image_val[:60],
+        poc_report_val[:60],
+    )
+
+
+def _col_index_to_letter(index: int) -> str:
+    """Convert a 0-based column index to a spreadsheet column letter.
+
+    Examples: 0→A, 1→B, 25→Z, 26→AA, 27→AB, ...
+    """
+    result = ""
+    while True:
+        result = chr(65 + index % 26) + result
+        index = index // 26 - 1
+        if index < 0:
+            break
+    return result

@@ -121,6 +121,14 @@ class AutoPoCConfig(BaseSettings):
         validation_alias="AUTOPOC_SHEET_ID",
         description="Google Sheet ID containing PoC candidate projects",
     )
+    max_evaluated_sheets: int = Field(
+        default=4,
+        description="Maximum number of sheet tabs to scan for candidates (leftmost first)",
+    )
+    max_batched_poc: int = Field(
+        default=2,
+        description="Maximum number of PoC pipelines to run in a single session",
+    )
 
     # Working directory
     work_dir: str = Field(

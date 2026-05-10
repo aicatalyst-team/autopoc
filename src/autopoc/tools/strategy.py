@@ -5,8 +5,13 @@ baseline YAML files from the ``data/`` directory.  These files define
 the scoring dimensions, capability labels, enrichment/duplication
 criteria, and relationship rules used by the evaluate agent.
 
-The ``data/`` directory is resolved relative to the project root (two
-levels above ``src/autopoc/tools/``).
+The ``data/`` directory is resolved in order:
+1. ``AUTOPOC_DATA_DIR`` environment variable (explicit override).
+2. ``autopoc/data/`` inside the package (works in shiv zipapps and
+   pip-installed wheels where hatch ``force-include`` maps
+   ``data → autopoc/data``).
+3. ``data/`` at the project root (development layout: ``src/autopoc/``
+   with ``data/`` alongside ``src/``).
 """
 
 import logging
@@ -17,16 +22,23 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-# data/ lives at the project root, alongside src/
+# In-package location: autopoc/data/ (sibling of autopoc/tools/)
+# Works for shiv, pip install, and any wheel-based deployment.
+_PACKAGE_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+
+# Development location: data/ at the project root (4 levels up from
+# src/autopoc/tools/strategy.py).
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-_DATA_DIR = _PROJECT_ROOT / "data"
+_DEV_DATA_DIR = _PROJECT_ROOT / "data"
 
 
 def _resolve_data_dir() -> Path:
     """Return the path to the ``data/`` directory.
 
-    Checks the standard project-root location first.  Falls back to
-    ``DATA_DIR`` environment variable for deployed / relocated installs.
+    Resolution order:
+    1. ``AUTOPOC_DATA_DIR`` environment variable.
+    2. In-package ``autopoc/data/`` (shiv / pip install).
+    3. Project-root ``data/`` (development).
 
     Raises:
         FileNotFoundError: If the data directory cannot be found.
@@ -39,12 +51,15 @@ def _resolve_data_dir() -> Path:
         if p.is_dir():
             return p
 
-    if _DATA_DIR.is_dir():
-        return _DATA_DIR
+    if _PACKAGE_DATA_DIR.is_dir():
+        return _PACKAGE_DATA_DIR
+
+    if _DEV_DATA_DIR.is_dir():
+        return _DEV_DATA_DIR
 
     raise FileNotFoundError(
-        f"Strategy data directory not found at {_DATA_DIR}.  "
-        "Set AUTOPOC_DATA_DIR to point to the data/ directory."
+        f"Strategy data directory not found at {_PACKAGE_DATA_DIR} or "
+        f"{_DEV_DATA_DIR}.  Set AUTOPOC_DATA_DIR to point to the data/ directory."
     )
 
 

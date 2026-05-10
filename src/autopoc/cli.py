@@ -17,7 +17,16 @@ from autopoc.config import AutoPoCConfig, load_config
 from autopoc.credentials import validate_credentials
 from autopoc.graph import build_graph
 from autopoc.logging_config import setup_logging
-from autopoc.sheet import filter_projects, read_sheet, select_project
+from autopoc.sheet import (
+    SheetProject,
+    _ORIGIN_KEY,
+    build_sheets_service,
+    ensure_result_columns,
+    filter_projects,
+    read_sheet,
+    select_project,
+    write_poc_results,
+)
 from autopoc.state import PoCPhase, PoCState
 
 app = typer.Typer(
@@ -457,12 +466,16 @@ def _run_pipeline(
     verbose: bool = False,
     debug: bool = False,
     stop_after: str | None = None,
-) -> None:
+) -> dict:
     """Build initial state, compile the graph, invoke, and print results.
 
     Shared by ``run`` and ``run_sheet``.  This contains the pipeline
     invocation logic that is identical regardless of how the project
     name and repo URL were obtained.
+
+    Returns:
+        The final pipeline state dict.  On unrecoverable errors the dict
+        will contain ``{"error": "<message>", "current_phase": "failed"}``.
     """
     # --debug implies --verbose (you want to see phase progress when debugging)
     if debug and not verbose:
@@ -561,7 +574,7 @@ def _run_pipeline(
         console.print(f"[dim]Thread ID: {thread_id}[/dim]")
         if debug:
             _print_debug_dumps()
-        raise typer.Exit(code=1)
+        return {"error": str(e), "current_phase": "failed"}
 
     elapsed = time.time() - start_time
 
@@ -590,6 +603,8 @@ def _run_pipeline(
         _print_debug_dumps()
 
     console.print(f"\n[dim]Thread ID: {thread_id}[/dim]")
+
+    return result
 
 
 @app.command()
@@ -698,7 +713,9 @@ def run(
         skip_validation=skip_validation,
     )
 
-    _run_pipeline(name, repo, config, verbose=verbose, debug=debug, stop_after=stop_after)
+    result = _run_pipeline(name, repo, config, verbose=verbose, debug=debug, stop_after=stop_after)
+    if result.get("error"):
+        raise typer.Exit(code=1)
 
 
 @app.command("run-sheet")
@@ -763,12 +780,29 @@ def run_sheet(
             help="Skip RHOAI evaluation and use first-row selection (legacy behavior)",
         ),
     ] = False,
+    max_evaluated_sheets: Annotated[
+        int,
+        typer.Option(
+            "--max-evaluated-sheets",
+            envvar="MAX_EVALUATED_SHEETS",
+            help="Maximum number of sheet tabs to scan for candidates (default: 4)",
+        ),
+    ] = 4,
+    max_batched_poc: Annotated[
+        int,
+        typer.Option(
+            "--max-batched-poc",
+            envvar="MAX_BATCHED_POC",
+            help="Maximum number of PoC pipelines to run in this session (default: 2)",
+        ),
+    ] = 2,
 ) -> None:
-    """Run AutoPoC for the top project from a Google Sheet.
+    """Run AutoPoC for top projects from a Google Sheet.
 
-    Reads a POC Explorer spreadsheet, filters to approved GitHub repos,
-    and runs the full pipeline.  When multiple candidates survive filtering,
-    evaluates them using RHOAI fitness scoring and picks the best one.
+    Reads a POC Explorer spreadsheet (scanning up to --max-evaluated-sheets
+    tabs), filters to approved GitHub repos that haven't been PoC'd yet,
+    and runs up to --max-batched-poc pipelines sequentially.  Results are
+    written back to the sheet after each pipeline completes.
     """
     # Validate required sheet inputs
     if not sheet_id:
@@ -799,7 +833,10 @@ def run_sheet(
     # Read and filter the sheet
     console.print(
         Panel(
-            f"[bold]Sheet ID:[/bold]    {sheet_id}\n[bold]Credentials:[/bold] {credentials_path}",
+            f"[bold]Sheet ID:[/bold]    {sheet_id}\n"
+            f"[bold]Credentials:[/bold] {credentials_path}\n"
+            f"[bold]Tabs to scan:[/bold] {max_evaluated_sheets}\n"
+            f"[bold]Max PoCs:[/bold]    {max_batched_poc}",
             title="Google Sheet Ingestion",
             border_style="cyan",
         )
@@ -807,7 +844,7 @@ def run_sheet(
 
     try:
         console.print("[bold cyan]Reading sheet...[/bold cyan]")
-        rows = read_sheet(str(credentials_path), sheet_id)
+        rows = read_sheet(str(credentials_path), sheet_id, max_tabs=max_evaluated_sheets)
         console.print(f"  Rows read: {len(rows)}")
 
         filtered = filter_projects(rows)
@@ -823,26 +860,118 @@ def run_sheet(
             console.print_exception(show_locals=True)
         raise typer.Exit(code=1)
 
-    # --- Single candidate or evaluation skipped: use legacy behavior ---
+    if not filtered:
+        console.print(
+            "\n[bold yellow]No projects remain after filtering — nothing to PoC.[/bold yellow]"
+        )
+        raise typer.Exit(code=0)
+
+    # --- Select projects to PoC ---
+    projects_to_run: list[SheetProject] = []
+
     if len(filtered) <= 1 or skip_evaluation:
+        # Single candidate or evaluation skipped: legacy first-row selection
         try:
             project = select_project(filtered)
+            projects_to_run.append(project)
         except ValueError as e:
             console.print(f"\n[bold red]Sheet error:[/bold red] {e}")
             raise typer.Exit(code=1)
+    else:
+        # Multiple candidates: pre-filter, evaluate, pick top N
+        from autopoc.sheet import (
+            _row_to_project,
+            cleanup_candidate_clones,
+            evaluate_candidates,
+            prefilter_candidates,
+        )
 
+        console.print(
+            f"\n[bold cyan]Multiple candidates ({len(filtered)}). "
+            f"Evaluating top {min(max_candidates, len(filtered))}...[/bold cyan]"
+        )
+
+        async def _do_evaluation():
+            console.print("[bold cyan]Pre-filtering candidates...[/bold cyan]")
+            prefiltered = await prefilter_candidates(filtered, max_candidates=max_candidates)
+            console.print(f"  Pre-filtered to {len(prefiltered)} candidates")
+
+            def on_progress(idx, total, name):
+                console.print(f"  [cyan]Evaluating candidate {idx + 1}/{total}:[/cyan] {name}")
+
+            results = await evaluate_candidates(
+                prefiltered,
+                config,
+                max_candidates=max_candidates,
+                on_progress=on_progress,
+            )
+            return results
+
+        try:
+            results = asyncio.run(_do_evaluation())
+        except Exception as e:
+            console.print(f"\n[bold red]Evaluation failed:[/bold red] {e}")
+            if verbose:
+                console.print_exception(show_locals=True)
+            # Fall back to first N candidates in sheet order
+            console.print("[yellow]Falling back to first candidate(s)...[/yellow]")
+            for row in filtered[:max_batched_poc]:
+                try:
+                    projects_to_run.append(_row_to_project(row))
+                except ValueError:
+                    continue
+            if not projects_to_run:
+                console.print("\n[bold red]Sheet error:[/bold red] No valid projects found")
+                raise typer.Exit(code=1)
+            results = None
+
+        if results is not None:
+            # Display comparison table
+            _print_candidate_comparison(results)
+
+            # Select top N winners
+            winners = results[:max_batched_poc]
+            losers = results[max_batched_poc:]
+
+            # Clean up non-winner clones
+            if losers:
+                best = winners[0]
+                cleanup_candidate_clones(losers, best)
+
+            for w in winners:
+                projects_to_run.append(w.project)
+
+    # --- Print selection summary ---
+    for i, project in enumerate(projects_to_run):
         console.print(
             Panel(
                 f"[bold]Selected:[/bold]  {project.name}\n"
                 f"[bold]Repo:[/bold]      {project.repo_url}\n"
                 f"[bold]Category:[/bold]  {project.category}\n"
+                f"[bold]Tab:[/bold]       {project.tab_name}\n"
                 f"[bold]Sheet row:[/bold] {project.row_index}",
-                title="Project Selected",
+                title=f"Project {i + 1}/{len(projects_to_run)}",
                 border_style="green",
             )
         )
 
-        _run_pipeline(
+    # --- Build sheets service for write-back ---
+    sheets_service = None
+    tab_col_indices: dict[str, dict[str, int]] = {}  # cache per tab
+    try:
+        sheets_service = build_sheets_service(str(credentials_path))
+    except Exception as e:
+        console.print(
+            f"[yellow]Warning: Could not create sheets service for write-back: {e}[/yellow]"
+        )
+
+    # --- Run pipelines sequentially, writing results after each ---
+    for i, project in enumerate(projects_to_run):
+        console.print(
+            f"\n[bold cyan]Running PoC {i + 1}/{len(projects_to_run)}: {project.name}[/bold cyan]"
+        )
+
+        pipeline_result = _run_pipeline(
             project.name,
             project.repo_url,
             config,
@@ -850,92 +979,143 @@ def run_sheet(
             debug=debug,
             stop_after=stop_after,
         )
-        return
 
-    # --- Multiple candidates: pre-filter, evaluate, pick best ---
+        # Write results back to the sheet
+        if sheets_service and sheet_id and project.tab_name:
+            _write_back_poc_results(
+                sheets_service,
+                sheet_id,
+                project,
+                pipeline_result,
+                config,
+                rows,
+                tab_col_indices,
+            )
+
+
+def _write_back_poc_results(
+    service,
+    sheet_id: str,
+    project: SheetProject,
+    pipeline_result: dict,
+    config: AutoPoCConfig,
+    rows: list[dict[str, str]],
+    tab_col_indices: dict[str, dict[str, int]],
+) -> None:
+    """Write PoC results back to the Google Sheet for a completed pipeline.
+
+    When the pipeline result is missing artifacts (fork URL, built images,
+    report), best-effort fallbacks are used:
+
+    - **Fork URL**: derived from source repo URL + config (github_org /
+      gitlab_url + gitlab_group).
+    - **Image URL**: a Quay organisation search URL filtered by the
+      project name (always resolves to a valid page).
+    - **Report URL**: derived from the fork browse URL and verified with
+      an HTTP HEAD check; written only if the remote file exists.
+
+    Handles column creation and error recovery gracefully.
+    """
     from autopoc.sheet import (
-        cleanup_candidate_clones,
-        evaluate_candidates,
-        prefilter_candidates,
-        select_best_candidate,
+        _build_report_url,
+        _check_url_exists,
+        derive_fork_browse_url,
+        derive_quay_search_url,
     )
-
-    console.print(
-        f"\n[bold cyan]Multiple candidates ({len(filtered)}). "
-        f"Evaluating top {min(max_candidates, len(filtered))}...[/bold cyan]"
-    )
-
-    async def _do_evaluation():
-        # Pre-filter
-        console.print("[bold cyan]Pre-filtering candidates...[/bold cyan]")
-        prefiltered = await prefilter_candidates(filtered, max_candidates=max_candidates)
-        console.print(f"  Pre-filtered to {len(prefiltered)} candidates")
-
-        # Progress callback
-        def on_progress(idx, total, name):
-            console.print(f"  [cyan]Evaluating candidate {idx + 1}/{total}:[/cyan] {name}")
-
-        # Full evaluation
-        results = await evaluate_candidates(
-            prefiltered,
-            config,
-            max_candidates=max_candidates,
-            on_progress=on_progress,
-        )
-        return results
 
     try:
-        results = asyncio.run(_do_evaluation())
+        # Ensure result columns exist (cached per tab)
+        if project.tab_name not in tab_col_indices:
+            tab_rows = [
+                r
+                for r in rows
+                if r.get(_ORIGIN_KEY) and r[_ORIGIN_KEY].tab_name == project.tab_name
+            ]
+            if tab_rows:
+                headers = [k for k in tab_rows[0] if k != _ORIGIN_KEY]
+            else:
+                headers = []
+
+            col_indices = ensure_result_columns(
+                service,
+                sheet_id,
+                project.tab_name,
+                headers,
+                tab_gid=project.tab_gid,
+            )
+            tab_col_indices[project.tab_name] = col_indices
+
+        col_indices = tab_col_indices[project.tab_name]
+
+        # --- Resolve fork URL (fallback: derive from config) ---
+        fork_repo_url = pipeline_result.get("fork_repo_url")
+        fork_target = pipeline_result.get("fork_target") or config.fork_target
+
+        if not fork_repo_url:
+            derived = derive_fork_browse_url(
+                project.repo_url,
+                fork_target,
+                github_org=config.github_org,
+                gitlab_url=config.gitlab_url,
+                gitlab_group=config.gitlab_group,
+            )
+            if derived:
+                fork_repo_url = derived
+                logger.info(
+                    "Derived fork URL for %s: %s",
+                    project.name,
+                    derived,
+                )
+
+        # --- Resolve image URL (fallback: Quay search page) ---
+        built_images = pipeline_result.get("built_images")
+        poc_image_override = None
+        if not built_images:
+            poc_image_override = derive_quay_search_url(
+                project.name,
+                config.quay_registry,
+                config.quay_org,
+            )
+            logger.info(
+                "No built images for %s — using Quay search URL: %s",
+                project.name,
+                poc_image_override,
+            )
+
+        # --- Resolve report URL (fallback: check remote existence) ---
+        poc_report_path = pipeline_result.get("poc_report_path")
+        poc_report_override = None
+        local_report_exists = poc_report_path and Path(poc_report_path).exists()
+
+        if not local_report_exists and fork_repo_url:
+            candidate_url = _build_report_url(fork_repo_url, fork_target)
+            if _check_url_exists(candidate_url):
+                poc_report_override = candidate_url
+                logger.info(
+                    "Report file verified remotely for %s: %s",
+                    project.name,
+                    candidate_url,
+                )
+
+        write_poc_results(
+            service,
+            sheet_id,
+            project.tab_name,
+            project.row_index,
+            col_indices,
+            fork_repo_url=fork_repo_url,
+            fork_target=fork_target,
+            built_images=built_images,
+            poc_report_path=poc_report_path,
+            poc_image_override=poc_image_override,
+            poc_report_override=poc_report_override,
+        )
+        console.print(
+            f"  [green]Results written to tab '{project.tab_name}' row {project.row_index}[/green]"
+        )
     except Exception as e:
-        console.print(f"\n[bold red]Evaluation failed:[/bold red] {e}")
-        if verbose:
-            console.print_exception(show_locals=True)
-        # Fall back to first candidate
-        console.print("[yellow]Falling back to first candidate...[/yellow]")
-        try:
-            project = select_project(filtered)
-        except ValueError as e2:
-            console.print(f"\n[bold red]Sheet error:[/bold red] {e2}")
-            raise typer.Exit(code=1)
-        _run_pipeline(
-            project.name,
-            project.repo_url,
-            config,
-            verbose=verbose,
-            debug=debug,
-            stop_after=stop_after,
-        )
-        return
-
-    # Display comparison table
-    _print_candidate_comparison(results)
-
-    # Select best
-    winner = select_best_candidate(results)
-
-    # Clean up non-winner clones
-    cleanup_candidate_clones(results, winner)
-
-    console.print(
-        Panel(
-            f"[bold]Selected:[/bold]  {winner.project.name}\n"
-            f"[bold]Repo:[/bold]      {winner.project.repo_url}\n"
-            f"[bold]Score:[/bold]     {winner.evaluation.get('total_score', 0)}"
-            f"/{winner.evaluation.get('max_possible_score', 100)}\n"
-            f"[bold]Category:[/bold]  {winner.project.category}",
-            title="Winner Selected",
-            border_style="green",
-        )
-    )
-
-    _run_pipeline(
-        winner.project.name,
-        winner.project.repo_url,
-        config,
-        verbose=verbose,
-        debug=debug,
-        stop_after=stop_after,
-    )
+        console.print(f"  [yellow]Warning: Failed to write results to sheet: {e}[/yellow]")
+        logger.warning("Sheet write-back failed for %s: %s", project.name, e)
 
 
 @app.command()
