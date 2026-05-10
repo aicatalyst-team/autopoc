@@ -13,6 +13,7 @@ from autopoc.sheet import (
     _ORIGIN_KEY,
     _build_artifacts_branch_url,
     _build_report_url,
+    _check_url_exists,
     _col_index_to_letter,
     _derive_project_name,
     _has_poc_results,
@@ -21,6 +22,7 @@ from autopoc.sheet import (
     _row_to_project,
     _strip_credentials_from_url,
     derive_fork_browse_url,
+    derive_quay_search_url,
     ensure_result_columns,
     filter_projects,
     read_sheet,
@@ -979,6 +981,68 @@ class TestDeriveForkBrowseUrl:
 
 
 # ---------------------------------------------------------------------------
+# derive_quay_search_url
+# ---------------------------------------------------------------------------
+
+
+class TestDeriveQuaySearchUrl:
+    """Tests for derive_quay_search_url."""
+
+    def test_basic(self) -> None:
+        url = derive_quay_search_url("my-project", "quay.io", "my-org")
+        assert url == "https://quay.io/organization/my-org?tab=repositories&q=my-project"
+
+    def test_strips_scheme(self) -> None:
+        url = derive_quay_search_url("proj", "https://quay.io", "org")
+        assert url == "https://quay.io/organization/org?tab=repositories&q=proj"
+
+    def test_strips_trailing_slash(self) -> None:
+        url = derive_quay_search_url("proj", "quay.io/", "org")
+        assert url == "https://quay.io/organization/org?tab=repositories&q=proj"
+
+    def test_custom_registry(self) -> None:
+        url = derive_quay_search_url("proj", "registry.example.com", "team")
+        assert url == "https://registry.example.com/organization/team?tab=repositories&q=proj"
+
+
+# ---------------------------------------------------------------------------
+# _check_url_exists
+# ---------------------------------------------------------------------------
+
+
+class TestCheckUrlExists:
+    """Tests for _check_url_exists with mocked httpx."""
+
+    def test_200_returns_true(self) -> None:
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        with patch("httpx.head", return_value=mock_response):
+            assert _check_url_exists("https://example.com/file") is True
+
+    def test_301_redirect_returns_true(self) -> None:
+        mock_response = MagicMock()
+        mock_response.status_code = 301
+        with patch("httpx.head", return_value=mock_response):
+            assert _check_url_exists("https://example.com/file") is True
+
+    def test_404_returns_false(self) -> None:
+        mock_response = MagicMock()
+        mock_response.status_code = 404
+        with patch("httpx.head", return_value=mock_response):
+            assert _check_url_exists("https://example.com/missing") is False
+
+    def test_network_error_returns_false(self) -> None:
+        with patch("httpx.head", side_effect=Exception("connection refused")):
+            assert _check_url_exists("https://example.com/down") is False
+
+    def test_timeout_returns_false(self) -> None:
+        import httpx as httpx_mod
+
+        with patch("httpx.head", side_effect=httpx_mod.TimeoutException("timeout")):
+            assert _check_url_exists("https://example.com/slow") is False
+
+
+# ---------------------------------------------------------------------------
 # Column index to letter
 # ---------------------------------------------------------------------------
 
@@ -1125,3 +1189,73 @@ class TestWritePocResults:
             written_values.append(c.kwargs["body"]["values"][0][0])
 
         assert all(v == "FAILED" for v in written_values)
+
+    def test_poc_image_override(self) -> None:
+        """poc_image_override bypasses built_images logic."""
+        mock_service = MagicMock()
+        col_indices = {"poc_repo": 0, "poc_image": 1, "poc_report": 2}
+
+        write_poc_results(
+            mock_service,
+            "sheet-123",
+            "Tab1",
+            row_number=4,
+            col_indices=col_indices,
+            fork_repo_url=None,
+            fork_target="github",
+            built_images=None,
+            poc_report_path=None,
+            poc_image_override="https://quay.io/organization/org?tab=repositories&q=proj",
+        )
+
+        update_mock = mock_service.spreadsheets.return_value.values.return_value.update
+        written_values = [c.kwargs["body"]["values"][0][0] for c in update_mock.call_args_list]
+        # poc_image should be the override, not FAILED
+        assert written_values[1] == "https://quay.io/organization/org?tab=repositories&q=proj"
+
+    def test_poc_report_override(self) -> None:
+        """poc_report_override bypasses local file check."""
+        mock_service = MagicMock()
+        col_indices = {"poc_repo": 0, "poc_image": 1, "poc_report": 2}
+
+        write_poc_results(
+            mock_service,
+            "sheet-123",
+            "Tab1",
+            row_number=4,
+            col_indices=col_indices,
+            fork_repo_url=None,
+            fork_target="github",
+            built_images=None,
+            poc_report_path=None,
+            poc_report_override="https://github.com/org/repo/blob/autopoc-artifacts/poc-report.md",
+        )
+
+        update_mock = mock_service.spreadsheets.return_value.values.return_value.update
+        written_values = [c.kwargs["body"]["values"][0][0] for c in update_mock.call_args_list]
+        # poc_report should be the override, not FAILED
+        assert written_values[2] == "https://github.com/org/repo/blob/autopoc-artifacts/poc-report.md"
+
+    def test_overrides_take_precedence(self) -> None:
+        """Overrides win even when primary values are available."""
+        mock_service = MagicMock()
+        col_indices = {"poc_repo": 0, "poc_image": 1, "poc_report": 2}
+
+        write_poc_results(
+            mock_service,
+            "sheet-123",
+            "Tab1",
+            row_number=4,
+            col_indices=col_indices,
+            fork_repo_url="https://token@github.com/org/repo.git",
+            fork_target="github",
+            built_images=["quay.io/org/img:latest"],
+            poc_report_path=None,
+            poc_image_override="override-image-url",
+            poc_report_override="override-report-url",
+        )
+
+        update_mock = mock_service.spreadsheets.return_value.values.return_value.update
+        written_values = [c.kwargs["body"]["values"][0][0] for c in update_mock.call_args_list]
+        assert written_values[1] == "override-image-url"
+        assert written_values[2] == "override-report-url"

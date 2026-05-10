@@ -1004,6 +1004,49 @@ def derive_fork_browse_url(
     return None
 
 
+def derive_quay_search_url(
+    project_name: str,
+    quay_registry: str,
+    quay_org: str,
+) -> str:
+    """Build a Quay repository search URL for a project.
+
+    Returns a URL to the Quay organization page filtered by the
+    project name.  This always resolves to a valid page (the search
+    results may be empty, but the page itself loads).
+
+    Args:
+        project_name: Project name used as search filter.
+        quay_registry: Quay registry hostname (e.g. ``quay.io``).
+        quay_org: Quay organization name.
+
+    Returns:
+        Browsable URL to the Quay search page.
+    """
+    # Strip any scheme prefix
+    host = quay_registry
+    if "://" in host:
+        host = host.split("://", 1)[1]
+    host = host.rstrip("/")
+    return f"https://{host}/organization/{quay_org}?tab=repositories&q={project_name}"
+
+
+def _check_url_exists(url: str, *, timeout: float = 5.0) -> bool:
+    """Best-effort HTTP HEAD check to see if a URL exists.
+
+    Returns ``True`` for 2xx and 3xx responses, ``False`` for 4xx/5xx
+    or any network/timeout error.  Uses a short timeout to avoid
+    blocking the pipeline.
+    """
+    import httpx
+
+    try:
+        response = httpx.head(url, timeout=timeout, follow_redirects=True)
+        return response.status_code < 400
+    except Exception:
+        return False
+
+
 def _build_artifacts_branch_url(fork_repo_url: str, fork_target: str) -> str:
     """Build a browsable URL to the ``autopoc-artifacts`` branch.
 
@@ -1120,6 +1163,8 @@ def write_poc_results(
     fork_target: str | None,
     built_images: list[str] | None,
     poc_report_path: str | None,
+    poc_image_override: str | None = None,
+    poc_report_override: str | None = None,
 ) -> None:
     """Write PoC result values to the specified row.
 
@@ -1137,6 +1182,10 @@ def write_poc_results(
         built_images: List of pushed image refs.
         poc_report_path: Local path to poc-report.md (used only to
             determine if a report was generated).
+        poc_image_override: Pre-resolved image URL/value.  When set,
+            bypasses the ``built_images`` logic entirely.
+        poc_report_override: Pre-resolved report URL.  When set,
+            bypasses the local-file + fork URL derivation.
     """
     target = fork_target or "github"
 
@@ -1146,14 +1195,18 @@ def write_poc_results(
     else:
         poc_repo_val = "FAILED"
 
-    # poc_image → first built image (full quay ref)
-    if built_images:
+    # poc_image → override, or first built image, or FAILED
+    if poc_image_override:
+        poc_image_val = poc_image_override
+    elif built_images:
         poc_image_val = built_images[0]
     else:
         poc_image_val = "FAILED"
 
-    # poc_report → link to poc-report.md on artifacts branch
-    if fork_repo_url and poc_report_path and Path(poc_report_path).exists():
+    # poc_report → override, or derive from fork URL + local file, or FAILED
+    if poc_report_override:
+        poc_report_val = poc_report_override
+    elif fork_repo_url and poc_report_path and Path(poc_report_path).exists():
         poc_report_val = _build_report_url(fork_repo_url, target)
     else:
         poc_report_val = "FAILED"

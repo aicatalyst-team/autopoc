@@ -1004,22 +1004,30 @@ def _write_back_poc_results(
 ) -> None:
     """Write PoC results back to the Google Sheet for a completed pipeline.
 
-    When the pipeline result does not contain a ``fork_repo_url`` (e.g.
-    the pipeline crashed or the fork step was never reached), the fork
-    URL is derived from the source repo URL and config so we can still
-    write a link to the (possibly pre-existing) fork instead of FAILED.
+    When the pipeline result is missing artifacts (fork URL, built images,
+    report), best-effort fallbacks are used:
+
+    - **Fork URL**: derived from source repo URL + config (github_org /
+      gitlab_url + gitlab_group).
+    - **Image URL**: a Quay organisation search URL filtered by the
+      project name (always resolves to a valid page).
+    - **Report URL**: derived from the fork browse URL and verified with
+      an HTTP HEAD check; written only if the remote file exists.
 
     Handles column creation and error recovery gracefully.
     """
-    from autopoc.sheet import derive_fork_browse_url
+    from autopoc.sheet import (
+        _build_report_url,
+        _check_url_exists,
+        derive_fork_browse_url,
+        derive_quay_search_url,
+    )
 
     try:
         # Ensure result columns exist (cached per tab)
         if project.tab_name not in tab_col_indices:
-            # Get headers from first row of this tab
             tab_rows = [r for r in rows if r.get(_ORIGIN_KEY) and r[_ORIGIN_KEY].tab_name == project.tab_name]
             if tab_rows:
-                # Headers are the keys of the row dict (minus internal keys)
                 headers = [k for k in tab_rows[0] if k != _ORIGIN_KEY]
             else:
                 headers = []
@@ -1035,9 +1043,7 @@ def _write_back_poc_results(
 
         col_indices = tab_col_indices[project.tab_name]
 
-        # Use fork_repo_url from pipeline result if available; otherwise
-        # derive from source repo URL + config so we link to the fork
-        # even when the pipeline crashed.
+        # --- Resolve fork URL (fallback: derive from config) ---
         fork_repo_url = pipeline_result.get("fork_repo_url")
         fork_target = pipeline_result.get("fork_target") or config.fork_target
 
@@ -1050,13 +1056,41 @@ def _write_back_poc_results(
                 gitlab_group=config.gitlab_group,
             )
             if derived:
-                # Wrap in the clone-URL format that write_poc_results expects
-                # (it will strip credentials and .git suffix)
                 fork_repo_url = derived
                 logger.info(
                     "Derived fork URL for %s: %s",
                     project.name,
                     derived,
+                )
+
+        # --- Resolve image URL (fallback: Quay search page) ---
+        built_images = pipeline_result.get("built_images")
+        poc_image_override = None
+        if not built_images:
+            poc_image_override = derive_quay_search_url(
+                project.name,
+                config.quay_registry,
+                config.quay_org,
+            )
+            logger.info(
+                "No built images for %s — using Quay search URL: %s",
+                project.name,
+                poc_image_override,
+            )
+
+        # --- Resolve report URL (fallback: check remote existence) ---
+        poc_report_path = pipeline_result.get("poc_report_path")
+        poc_report_override = None
+        local_report_exists = poc_report_path and Path(poc_report_path).exists()
+
+        if not local_report_exists and fork_repo_url:
+            candidate_url = _build_report_url(fork_repo_url, fork_target)
+            if _check_url_exists(candidate_url):
+                poc_report_override = candidate_url
+                logger.info(
+                    "Report file verified remotely for %s: %s",
+                    project.name,
+                    candidate_url,
                 )
 
         write_poc_results(
@@ -1067,8 +1101,10 @@ def _write_back_poc_results(
             col_indices,
             fork_repo_url=fork_repo_url,
             fork_target=fork_target,
-            built_images=pipeline_result.get("built_images"),
-            poc_report_path=pipeline_result.get("poc_report_path"),
+            built_images=built_images,
+            poc_report_path=poc_report_path,
+            poc_image_override=poc_image_override,
+            poc_report_override=poc_report_override,
         )
         console.print(
             f"  [green]Results written to tab '{project.tab_name}' "
