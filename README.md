@@ -23,20 +23,21 @@ autopoc run-sheet --sheet-id SHEET_ID --credentials sa-key.json
 
 > **Planned:** HuggingFace model URL support (e.g. `https://huggingface.co/meta-llama/Llama-2-7b`) is under development on the `feature/huggingface-sources` branch. This will add a source router, HF intake agent, and lean repo creation for model serving.
 
-AutoPoC runs a pipeline of 9 specialized agents. Some are procedural (no LLM), some use a single LLM call, and some are full ReAct agents with tools:
+AutoPoC runs a pipeline of 10 specialized agents. Some are procedural (no LLM), some use a single LLM call, and some are full ReAct agents with tools:
 
 ```
-intake --> [poc_plan || fork] --> containerize <-> build --> deploy <-> apply --> poc_execute --> poc_report
+intake --> evaluate --> [poc_plan || fork] --> containerize <-> build --> deploy <-> apply --> poc_execute --> poc_report
 ```
 
 | Agent | Type | What it does |
 |-------|------|-------------|
 | **Intake** | Procedural + one-shot LLM | Clones the repo, builds a structural digest, identifies components (languages, ports, build systems, ML workloads) |
-| **PoC Plan** | One-shot + ReAct fallback | Classifies the project (model-serving, RAG, web-app, etc.), identifies infrastructure needs, defines test scenarios, writes `poc-plan.md` |
+| **Evaluate** | One-shot LLM | Scores the project's fitness for OpenShift AI using the strategy baseline. Non-blocking -- failures don't stop the pipeline |
+| **PoC Plan** | One-shot + ReAct fallback | Classifies the project (model-serving, RAG, web-app, etc.), identifies infrastructure needs (including LLM API dependencies), defines test scenarios, writes `poc-plan.md` |
 | **Fork** | Procedural (no LLM) | Forks to GitHub or GitLab. Runs in parallel with PoC Plan |
 | **Containerize** | ReAct agent | Generates `Dockerfile.ubi` files using Red Hat Universal Base Images. Handles Python, Node.js, Go, Java, and multi-stage builds |
 | **Build** | Procedural + LLM diagnosis | Builds images with Podman (or OpenShift Builds), pushes to Quay. On failure, uses the LLM to diagnose build logs |
-| **Deploy** | ReAct agent | Generates Kubernetes manifests (Deployments, Services, Jobs, PVCs, Secrets). Does NOT apply them |
+| **Deploy** | ReAct agent | Generates Kubernetes manifests (Deployments, Services, Jobs, PVCs, Secrets). Injects OGX LLM proxy env vars when configured. Does NOT apply them |
 | **Apply** | ReAct agent | Applies manifests via kubectl, waits for rollouts, verifies pods, extracts service URLs |
 | **PoC Execute** | ReAct agent | Runs the test scenarios from the PoC plan against the deployed application |
 | **PoC Report** | One-shot (no tools) | Generates a markdown report with pass/fail results, logs, and recommendations |
@@ -87,7 +88,9 @@ cp .env.example .env
 | `ANTHROPIC_API_KEY` | Yes* | Anthropic API key |
 | `VERTEX_PROJECT` | Yes* | Google Cloud project ID (alternative to Anthropic key) |
 | `VERTEX_LOCATION` | No | Vertex AI region (default: `us-east5`) |
-| `LLM_MODEL` | No | Model override (default: `claude-3-5-sonnet-20241022`) |
+| `LLM_BASE_URL` | Yes* | OpenAI-compatible endpoint (e.g. vLLM). Requires `LLM_MODEL` |
+| `LLM_API_KEY` | No | API key for the OpenAI-compatible endpoint |
+| `LLM_MODEL` | No | Model name (required with `LLM_BASE_URL`, otherwise optional) |
 | `LLM_MAX_RETRIES` | No | Max retries for LLM API calls (default: `0`, fail fast) |
 | `FORK_TARGET` | No | Fork destination: `gitlab` (default) or `github` |
 | `GITLAB_URL` | When target=gitlab | Self-hosted GitLab URL |
@@ -110,9 +113,12 @@ cp .env.example .env
 | `AUTOPOC_SHEET_ID` | For run-sheet | Google Sheet ID containing candidate projects |
 | `AUTOPOC_PROJECT_NAME` | No | Env var fallback for `--name` |
 | `AUTOPOC_REPO_URL` | No | Env var fallback for `--repo` |
+| `OGX_BASE_URL` | No | OGX LLM proxy URL for PoC projects (see [LLM Proxy](#llm-proxy-for-poc-projects)) |
+| `OGX_MODEL` | No | Model name on OGX server (default: `qwen3-32b`) |
+| `OGX_API_KEY` | No | API key for OGX server (default: `none`) |
 | `WORK_DIR` | No | Local working directory (default: `/tmp/autopoc`) |
 
-*One of `ANTHROPIC_API_KEY` or `VERTEX_PROJECT` is required.
+*One of `ANTHROPIC_API_KEY`, `VERTEX_PROJECT`, or `LLM_BASE_URL` is required.
 
 ### Run
 
@@ -161,8 +167,9 @@ autopoc graph      [--format mermaid|ascii]
 
 ```mermaid
 graph TD;
-    intake --> poc_plan;
-    intake --> fork;
+    intake --> evaluate;
+    evaluate --> poc_plan;
+    evaluate --> fork;
     poc_plan --> containerize;
     fork --> containerize;
     containerize --> build;
@@ -180,15 +187,46 @@ graph TD;
 Design decisions:
 
 - **Fork target flexibility**: Fork to GitHub (true API fork with parent-child relationship) or to a self-hosted GitLab instance. The source remote is removed after forking to prevent accidental pushes upstream.
-- **Parallel fan-out**: `poc_plan` and `fork` run concurrently after intake -- the plan doesn't depend on the fork, and both can take 30+ seconds.
+- **Parallel fan-out**: `poc_plan` and `fork` run concurrently after evaluate -- the plan doesn't depend on the fork, and both can take 30+ seconds.
 - **Retry with escalation**: Apply failures first try fixing manifests (deploy retry). If that doesn't work, the pipeline escalates to fixing the container image (containerize retry).
 - **Separation of concerns**: `containerize` generates Dockerfiles, `build` runs Podman (or OpenShift Builds). `deploy` generates manifests, `apply` runs kubectl. Each agent has a focused tool set and can be debugged independently.
 - **Pluggable build strategy**: The `BUILD_STRATEGY` variable selects between local Podman builds and on-cluster OpenShift Builds. The build agent delegates to the appropriate strategy at runtime.
 - **Procedural pre-processing**: Intake builds a deterministic repo digest (~10KB text summary) without any LLM calls. This digest feeds into all downstream agents, ensuring consistent context.
 - **Context management**: ReAct agents have a `pre_model_hook` that compacts conversation history when it approaches 120K estimated tokens. Older tool results are truncated to summaries, preserving the most recent context.
 - **Google Sheet ingestion**: The `run-sheet` command reads a spreadsheet of candidate projects, filters to approved GitHub repos, and feeds the top pick into the same pipeline.
+- **LLM proxy for PoC projects**: An OGX server acts as an OpenAI-compatible proxy, routing LLM requests to our own vLLM backend so PoC projects don't need real API keys (see below).
 
 See [`docs/architecture.md`](docs/architecture.md) for detailed agent-by-agent documentation.
+
+## LLM Proxy for PoC Projects
+
+Many projects require API keys to LLM providers (OpenAI, Anthropic). Handing real keys to arbitrary third-party code is a security risk. AutoPoC solves this with an **OGX server** (formerly LlamaStack) that acts as an OpenAI-compatible proxy.
+
+```
+PoC App  ──►  OGX Server  ──►  vLLM (Qwen3-32B)
+              (ogx namespace)   (vllm namespace)
+```
+
+When `OGX_BASE_URL` is configured:
+
+1. **PoC Plan** detects that a project needs LLM API access (e.g., imports `openai`, expects `OPENAI_API_KEY`)
+2. **Deploy** automatically substitutes `OPENAI_API_KEY=none` and `OPENAI_BASE_URL=<ogx-url>` in the generated manifests
+3. The PoC app calls the OGX server, which routes to your vLLM backend -- no real API keys involved
+
+### Deploying OGX
+
+```bash
+# Build the OGX container image (UBI9-based)
+make ogx-image
+
+# Push to registry
+make ogx-image-push
+
+# Deploy to cluster
+kubectl apply -f deploy/lab/ogx.yaml
+```
+
+OGX runs in its own namespace (`ogx`) with a ConfigMap-driven config. Model aliases (gpt-4, gpt-4o, gpt-3.5-turbo) are pre-configured to route to Qwen3-32B. Adding real OpenAI/Anthropic providers later is a ConfigMap edit -- no AutoPoC code changes needed.
 
 ## Project Structure
 
@@ -196,6 +234,7 @@ See [`docs/architecture.md`](docs/architecture.md) for detailed agent-by-agent d
 src/autopoc/
   agents/             # Agent implementations (one per pipeline node)
     intake.py         #   Repo analysis (procedural digest + one-shot LLM)
+    evaluate.py       #   RHOAI fitness scoring (one-shot LLM)
     poc_plan.py       #   PoC planning (one-shot + ReAct fallback)
     fork.py           #   Fork to GitHub/GitLab
     containerize.py   #   Dockerfile generation (ReAct)
@@ -222,15 +261,17 @@ src/autopoc/
   state.py            # PoCState TypedDict (shared state schema)
   config.py           # Pydantic Settings configuration
   context.py          # Token budget management for ReAct agents
+  llm_proxy.py        # OGX LLM proxy env var resolution for PoC projects
   sheet.py            # Google Sheet reader for run-sheet command
   cli.py              # Typer CLI application
   credentials.py      # Startup credential validation
-  llm.py              # LLM provider factory (Anthropic / Vertex AI)
+  llm.py              # LLM provider factory (Anthropic / Vertex AI / OpenAI-compat)
   logging_config.py   # Rich logging setup
 deploy/
-  job.yaml                # K8s Job manifest for running autopoc in-cluster
-  secret.yaml.example     # Example credentials Secret
-  lab/                    # Lab-specific Kustomize overlays and model configs
+  base/                   # Kustomize base (Job, CronJob, RBAC, namespace)
+  ogx/                    # OGX LLM proxy Dockerfile and build context
+  build-ogx.sh            # Build script for OGX UBI9 container image
+  lab/                    # Lab-specific overlays, secrets, vLLM/OGX configs
 scripts/
   setup-e2e.sh            # Provision E2E infrastructure (GitLab + Quay)
   teardown-e2e.sh         # Tear down E2E infrastructure
@@ -252,8 +293,10 @@ make test           # Run unit/integration tests
 make test-e2e       # Run end-to-end tests (requires local infra)
 make lint           # Lint with ruff
 make fmt            # Auto-format with ruff
-make image          # Build container image with Podman
-make image-push     # Push container image to registry
+make image          # Build AutoPoC container image with Podman
+make image-push     # Push AutoPoC container image to registry
+make ogx-image      # Build OGX LLM proxy container image (UBI9)
+make ogx-image-push # Push OGX container image to registry
 make lock           # Regenerate requirements.lock from pyproject.toml
 make clean          # Remove build artifacts
 make help           # Show all targets
