@@ -137,7 +137,42 @@ the intake agent already found. Focus on:
    - `"exec"` — Test by exec-ing into a running pod
 
 5. **Define 2-5 concrete test scenarios** that can be automated:
-   Each scenario should be something a script can execute and verify.
+    Each scenario should be something a script can execute and verify.
+
+6. **Detect LLM API dependencies** — determine whether the project calls an
+   external LLM API (OpenAI, Anthropic, etc.). If it does, set `needs_llm_api: true`
+   and identify the `llm_env_pattern`.
+
+   ### Detection Patterns
+
+   **"openai"** — Uses OpenAI SDK or expects OpenAI-style env vars:
+   - `import openai` or `from openai import ...`
+   - `OPENAI_API_KEY` in env vars, .env files, README, or config
+   - `OPENAI_BASE_URL` or `OPENAI_API_BASE` references
+   - LiteLLM with OpenAI-style config
+
+   **"anthropic"** — Uses Anthropic SDK or expects Anthropic env vars:
+   - `import anthropic` or `from anthropic import ...`
+   - `ANTHROPIC_API_KEY` in env vars or config
+
+   **"langchain"** — Uses LangChain with configurable LLM backends:
+   - `from langchain_openai import ChatOpenAI`
+   - `from langchain_anthropic import ChatAnthropic`
+   - `from langchain.llms import ...` or `from langchain_community.llms import ...`
+   - LangChain projects typically use `OPENAI_API_KEY` or similar
+
+   **"custom"** — Uses a custom HTTP client to call LLM endpoints:
+   - Direct `httpx` / `requests` calls to `/v1/chat/completions`
+   - Custom wrapper around LLM APIs
+
+   When `needs_llm_api` is true, also set `extra_env_vars` with the LLM-related
+   env vars the project needs. Use `"required"` for API keys/secrets. Examples:
+   - OpenAI pattern: `{"OPENAI_API_KEY": "required", "OPENAI_MODEL": "gpt-4"}`
+   - Anthropic pattern: `{"ANTHROPIC_API_KEY": "required"}`
+   - LangChain pattern: `{"OPENAI_API_KEY": "required"}`
+
+   When `needs_llm_api` is false (project does NOT call external LLM APIs),
+   set `llm_env_pattern` to `null`.
 
 ## Output
 
@@ -239,7 +274,9 @@ and deployed. If there's only one main component, list just that one.
     "listens_on_port": true,
     "long_running": true,
     "entrypoint_suggestion": null,
-    "test_strategy": "http"
+    "test_strategy": "http",
+    "needs_llm_api": false,
+    "llm_env_pattern": null
   },
   "scenarios": [
     {
@@ -284,7 +321,9 @@ For a repo containing a PyTorch model with FastAPI serving code:
     "listens_on_port": true,
     "long_running": true,
     "entrypoint_suggestion": "uvicorn app:app --host 0.0.0.0 --port 8080",
-    "test_strategy": "http"
+    "test_strategy": "http",
+    "needs_llm_api": false,
+    "llm_env_pattern": null
   },
   "scenarios": [
     {
@@ -336,7 +375,9 @@ For a repo containing a LangChain RAG pipeline:
     "listens_on_port": true,
     "long_running": true,
     "entrypoint_suggestion": null,
-    "test_strategy": "http"
+    "test_strategy": "http",
+    "needs_llm_api": true,
+    "llm_env_pattern": "langchain"
   },
   "scenarios": [
     {
@@ -397,7 +438,9 @@ For a standard Flask/Node.js web application:
     "listens_on_port": true,
     "long_running": true,
     "entrypoint_suggestion": null,
-    "test_strategy": "http"
+    "test_strategy": "http",
+    "needs_llm_api": false,
+    "llm_env_pattern": null
   },
   "scenarios": [
     {
@@ -450,7 +493,9 @@ ChromaDB, MCP server support, and command-line interface):
     "listens_on_port": false,
     "long_running": false,
     "entrypoint_suggestion": "mempalace",
-    "test_strategy": "cli"
+    "test_strategy": "cli",
+    "needs_llm_api": false,
+    "llm_env_pattern": null
   },
   "scenarios": [
     {
@@ -538,11 +583,13 @@ Example response structure:
   `api-service`, or `infrastructure` and create appropriate scenarios.
 - For `odh_components`, only list components that are directly relevant. Leave empty
   if none apply.
-- **CRITICAL:** Always set `deployment_model`, `listens_on_port`, `long_running`, and
-  `test_strategy` in the infrastructure object. These fields directly control how
-  downstream agents build the Dockerfile and create Kubernetes manifests. Getting these
-  wrong leads to CrashLoopBackOff (deploying CLI tools as Deployments) or missing
-  Services (not creating Services for servers).
+- **CRITICAL:** Always set `deployment_model`, `listens_on_port`, `long_running`,
+  `test_strategy`, `needs_llm_api`, and `llm_env_pattern` in the infrastructure object.
+  The deployment fields control how downstream agents build the Dockerfile and create
+  Kubernetes manifests. The LLM fields control whether the deploy agent injects an
+  internal LLM proxy endpoint (so PoC projects don't need real API keys). Getting
+  `deployment_model` wrong leads to CrashLoopBackOff (deploying CLI tools as
+  Deployments) or missing Services (not creating Services for servers).
 - Your final text response after writing the file must contain ONLY the JSON object.
    No additional text, no markdown fences, just the raw JSON.
 

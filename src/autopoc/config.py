@@ -45,6 +45,22 @@ class AutoPoCConfig(BaseSettings):
         description="Max output tokens for LLM responses (auto-detected per provider if unset)",
     )
 
+    # OGX LLM Proxy (for PoC projects that need LLM access)
+    ogx_base_url: str | None = Field(
+        default=None,
+        description="OGX server URL for PoC projects "
+        "(e.g. http://ogx-svc.ogx.svc.cluster.local:8321/v1). "
+        "When set, PoC projects that need LLM access will be directed here.",
+    )
+    ogx_model: str = Field(
+        default="qwen3-32b",
+        description="Default model name to use on the OGX server.",
+    )
+    ogx_api_key: str = Field(
+        default="none",
+        description="API key for OGX server (use 'none' if no auth required).",
+    )
+
     # Fork target
     fork_target: str = Field(
         default="gitlab",
@@ -195,6 +211,7 @@ class AutoPoCConfig(BaseSettings):
             "github_token",
             "quay_token",
             "openshift_token",
+            "ogx_api_key",
         }
         result = {}
         for field_name in self.__class__.model_fields:

@@ -4,4 +4,5 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - rbac.yaml
-  - job.yaml
+#  - job.yaml
+  - cronjob.yaml

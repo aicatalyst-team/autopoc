@@ -1,0 +1,154 @@
+# OGX (formerly LlamaStack) — OpenAI-compatible LLM proxy for PoC projects
+#
+# Sits between PoC apps and our vLLM Qwen3-32B backend, exposing an
+# OpenAI-compatible API so PoC projects don't need real API keys.
+#
+# Prerequisites:
+#   - vLLM Qwen3-32B running in the vllm namespace (qwen3-svc.vllm.svc)
+#   - OGX UBI9 image built and pushed (deploy/build-ogx.sh --push)
+#
+# Usage:
+#   kubectl apply -f deploy/lab/ogx.yaml
+#   kubectl logs -f deployment/ogx -n ogx
+#
+# Test:
+#   kubectl run curl-test --rm -it --image=curlimages/curl -- \
+#     curl -s http://ogx-svc.ogx.svc.cluster.local:8321/v1/models
+#
+#   kubectl run curl-test --rm -it --image=curlimages/curl -- \
+#     curl -s -X POST http://ogx-svc.ogx.svc.cluster.local:8321/v1/chat/completions \
+#       -H "Content-Type: application/json" \
+#       -d '{"model":"qwen3-32b","messages":[{"role":"user","content":"Hello"}]}'
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ogx
+  labels:
+    app.kubernetes.io/name: ogx
+    app.kubernetes.io/managed-by: autopoc
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ogx-config
+  namespace: ogx
+  labels:
+    app: ogx
+data:
+  config.yaml: |
+    version: 2
+    distro_name: autopoc-ogx
+
+    apis:
+    - inference
+
+    providers:
+      inference:
+      - provider_id: vllm
+        provider_type: remote::vllm
+        config:
+          base_url: http://qwen3-svc.vllm.svc.cluster.local:8000/v1
+          max_tokens: 4096
+          api_token: none
+
+    models:
+    # Primary model — matches the vLLM served-model-name
+    - model_id: qwen3-32b
+      provider_id: vllm
+      provider_model_id: qwen3-32b
+      model_type: llm
+    # Aliases — PoC projects requesting these get routed to Qwen3.
+    # The deploy agent also overrides model names, but having aliases
+    # here serves as a fallback for projects that hardcode model names.
+    - model_id: gpt-4
+      provider_id: vllm
+      provider_model_id: qwen3-32b
+      model_type: llm
+    - model_id: gpt-4o
+      provider_id: vllm
+      provider_model_id: qwen3-32b
+      model_type: llm
+    - model_id: gpt-4o-mini
+      provider_id: vllm
+      provider_model_id: qwen3-32b
+      model_type: llm
+    - model_id: gpt-3.5-turbo
+      provider_id: vllm
+      provider_model_id: qwen3-32b
+      model_type: llm
+
+    server:
+      port: 8321
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ogx
+  namespace: ogx
+  labels:
+    app: ogx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ogx
+  template:
+    metadata:
+      labels:
+        app: ogx
+    spec:
+      containers:
+        - name: ogx
+          image: quay.io/autopoc/ogx:ubi9-latest
+          args: ["--config", "/etc/ogx/config.yaml"]
+          ports:
+            - containerPort: 8321
+          volumeMounts:
+            - name: config
+              mountPath: /etc/ogx
+              readOnly: true
+          startupProbe:
+            httpGet:
+              path: /v1/models
+              port: 8321
+            failureThreshold: 30
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /v1/models
+              port: 8321
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /v1/models
+              port: 8321
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+      volumes:
+        - name: config
+          configMap:
+            name: ogx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ogx-svc
+  namespace: ogx
+  labels:
+    app: ogx
+spec:
+  selector:
+    app: ogx
+  ports:
+    - port: 8321
+      targetPort: 8321
+      protocol: TCP
