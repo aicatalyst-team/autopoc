@@ -114,34 +114,30 @@ The new flow adds:
 
 ### Component 1: OGX Container Image (UBI9)
 
-**Approach:** Build from upstream Containerfile with UBI9 base arg. The upstream
-Containerfile already supports UBI9 via its `dnf` branch — no custom Dockerfile
-needed.
+**Approach:** Our own slim Dockerfile (`deploy/ogx/Dockerfile.ubi`) based on
+`ubi9/python-312`. The UBI9 Python image already includes Python 3.12, pip,
+gcc-c++, make, python3.12-devel, git, and libffi-devel — everything needed to
+compile C extensions and install OGX from PyPI. No upstream clone needed.
+
+The upstream Containerfile assumed a root user for `dnf install`, but
+`ubi9/python-312` runs as UID 1001. Rather than fighting that, our slim
+Dockerfile only switches to root briefly for the few extra system packages
+(iputils, net-tools, wget), then installs OGX via pip as the normal user.
 
 ```bash
-# Clone upstream at pinned tag
-git clone --depth 1 --branch v0.8.0 https://github.com/ogx-ai/ogx.git /tmp/ogx
+# Build
+podman build -f deploy/ogx/Dockerfile.ubi -t quay.io/autopoc/ogx:ubi9-latest deploy/ogx/
 
-# Build with UBI9 base
-podman build \
-  -f /tmp/ogx/containers/Containerfile \
-  --build-arg BASE_IMAGE=registry.access.redhat.com/ubi9/python-312:latest \
-  --build-arg DISTRO_NAME=starter \
-  --tag quay.io/autopoc/ogx:ubi9-v0.8.0 \
-  /tmp/ogx
-
-# Tag as latest
-podman tag quay.io/autopoc/ogx:ubi9-v0.8.0 quay.io/autopoc/ogx:ubi9-latest
-
-# Push
-podman push quay.io/autopoc/ogx:ubi9-v0.8.0
-podman push quay.io/autopoc/ogx:ubi9-latest
+# Or with pinned version
+podman build -f deploy/ogx/Dockerfile.ubi --build-arg OGX_VERSION=0.2.13 \
+  -t quay.io/autopoc/ogx:ubi9-0.2.13 deploy/ogx/
 ```
 
 **Build pipeline artifacts:**
-- New Makefile targets: `ogx-image`, `ogx-image-push`
-- New build script: `deploy/build-ogx.sh` (wraps the above with error handling,
-  pinned version variable at the top)
+- `deploy/ogx/Dockerfile.ubi` — slim UBI9 Dockerfile
+- `deploy/build-ogx.sh` — wrapper script with env var support
+- Makefile targets: `ogx-image`, `ogx-image-push` (pass through
+  `CONTAINER_CMD`, `IMAGE_REGISTRY`, `IMAGE_ORG`, `OGX_VERSION`)
 
 ### Component 2: OGX Kubernetes Manifests
 

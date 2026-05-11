@@ -1,0 +1,71 @@
+# OGX (formerly LlamaStack) on UBI9
+#
+# Slim Dockerfile using ubi9/python-312 which already includes:
+#   Python 3.12, pip, gcc-c++, make, python3.12-devel, git, libffi-devel
+#
+# Installs OGX from PyPI — no need to clone the upstream repo.
+#
+# Build:
+#   podman build -f deploy/ogx/Dockerfile.ubi -t quay.io/autopoc/ogx:ubi9-latest deploy/ogx/
+#
+# Run:
+#   podman run -p 8321:8321 -v ./config.yaml:/etc/ogx/config.yaml:ro \
+#     quay.io/autopoc/ogx:ubi9-latest --config /etc/ogx/config.yaml
+
+FROM registry.access.redhat.com/ubi9/python-312:latest
+
+# Switch to root for system package installation.
+# ubi9/python-312 runs as UID 1001 by default.
+USER 0
+
+RUN dnf install -y --setopt=install_weak_deps=False \
+        iputils net-tools wget && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf
+
+USER 1001
+
+WORKDIR /opt/app-root/src
+
+# Install OGX from PyPI.
+# The starter distribution pulls in common provider dependencies
+# (remote::vllm, inline::faiss, etc.).
+ARG OGX_VERSION=""
+RUN set -eux; \
+    if [ -n "$OGX_VERSION" ]; then \
+        pip install --no-cache-dir "ogx[starter]==${OGX_VERSION}"; \
+    else \
+        pip install --no-cache-dir "ogx[starter]"; \
+    fi
+
+# Install distribution provider dependencies for the starter distro.
+# This resolves any extra packages required by the providers configured
+# in the starter distribution (e.g., remote::vllm, inline::faiss).
+RUN set -eux; \
+    deps="$(ogx stack list-deps starter 2>/dev/null || true)"; \
+    if [ -n "$deps" ]; then \
+        printf '%s\n' "$deps" | xargs -L1 pip install --no-cache-dir || true; \
+    fi
+
+# Pre-cache tiktoken cl100k_base encoding at build time so the server
+# never attempts a runtime download.  Required for air-gapped /
+# disconnected-cluster deployments (e.g. RHOAI).
+ENV TIKTOKEN_CACHE_DIR="/.cache/tiktoken"
+RUN set -eux; \
+    pip install --no-cache-dir tiktoken; \
+    mkdir -p /.cache/tiktoken; \
+    python -c "import tiktoken; tiktoken.get_encoding('cl100k_base')"
+
+# Permissions for OpenShift (arbitrary UID support).
+# The restricted-v2 SCC assigns a random UID from the namespace range;
+# the process must be able to write to its state/cache dirs.
+USER 0
+RUN mkdir -p /.ogx /.cache && \
+    chgrp -R 0 /opt/app-root /.ogx /.cache && \
+    chmod -R g=u /opt/app-root /.ogx /.cache
+USER 1001
+
+EXPOSE 8321
+
+ENTRYPOINT ["ogx", "stack", "run"]
+CMD ["starter"]
