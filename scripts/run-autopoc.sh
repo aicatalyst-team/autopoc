@@ -19,7 +19,7 @@
 set -euo pipefail
 
 # ── Defaults ─────────────────────────────────────────────────────────
-NAMESPACE="autopoc"
+NAMESPACE="autopoc-test"
 IMAGE="quay.io/aicatalyst/autopoc:latest"
 STOP_AFTER=""
 DEBUG=""
@@ -38,7 +38,7 @@ Positional arguments:
   repo-url              Upstream repository URL to process
 
 Options:
-  -n, --namespace NS    Kubernetes namespace (default: autopoc)
+  -n, --namespace NS    Kubernetes namespace (default: autopoc-test)
   -i, --image IMAGE     Container image (default: quay.io/aicatalyst/autopoc:latest)
   -s, --stop-after PH   Stop after phase: intake, evaluate, poc_plan, fork,
                          containerize, build, deploy, apply, poc_execute, poc_report
