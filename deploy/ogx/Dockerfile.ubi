@@ -59,10 +59,11 @@ RUN set -eux; \
 # Permissions for OpenShift (arbitrary UID support).
 # The restricted-v2 SCC assigns a random UID from the namespace range;
 # the process must be able to write to its state/cache dirs.
+# OGX uses ~/.ogx which resolves to /opt/app-root/.ogx — already
+# covered by the recursive chgrp/chmod below.
 USER 0
-RUN mkdir -p /.ogx && \
-    chgrp -R 0 /opt/app-root /.ogx && \
-    chmod -R g=u /opt/app-root /.ogx
+RUN chgrp -R 0 /opt/app-root && \
+    chmod -R g=u /opt/app-root
 USER 1001
 
 EXPOSE 8321
