@@ -5,8 +5,6 @@ from __future__ import annotations
 import os
 from unittest.mock import patch
 
-import pytest
-
 from autopoc.config import AutoPoCConfig
 from autopoc.llm_proxy import resolve_llm_env_vars
 from autopoc.state import PoCInfrastructure
