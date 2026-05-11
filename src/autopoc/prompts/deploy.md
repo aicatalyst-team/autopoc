@@ -261,6 +261,18 @@ env:
   `PASSWORD`, `CREDENTIAL`, `API_KEY`, or with value `"required"` in the PoC plan
 - **Plain** (use `value:`): everything else (ports, hostnames, feature flags, model names)
 
+## LLM Proxy (OGX)
+
+When the environment variables include `OPENAI_BASE_URL` pointing to an internal
+OGX server (e.g., `http://ogx-svc.ogx.svc.cluster.local:8321/v1`) and
+`OPENAI_API_KEY` is `"none"`, this is intentional. The OGX server acts as a proxy
+to our own inference backend (vLLM with Qwen3). These env vars should go as **plain
+`env:` values** (not in a Secret), since they contain no real secrets.
+
+The pipeline resolves LLM env vars automatically — if you see `OPENAI_API_KEY: "none"`
+with an internal base URL, do NOT put it in a Secret and do NOT warn about it being
+a placeholder.
+
 ## Important Notes
 
 - **NEVER call kubectl or apply manifests.** You only generate files. The apply agent handles cluster operations.

@@ -95,6 +95,10 @@ class PoCInfrastructure(TypedDict, total=False):
     entrypoint_suggestion: str | None  # Suggested ENTRYPOINT/CMD for Dockerfile
     test_strategy: str  # "http" | "cli" | "exec" — how to validate after deploy
 
+    # LLM proxy — set by PoC Plan when project needs LLM API access
+    needs_llm_api: bool  # Whether the app calls an external LLM API
+    llm_env_pattern: str | None  # "openai" | "anthropic" | "langchain" | "custom" | None
+
 
 class RHOAIDimensionScore(TypedDict, total=False):
     """Score for a single RHOAI evaluation dimension."""

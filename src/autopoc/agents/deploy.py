@@ -20,6 +20,7 @@ from langgraph.prebuilt import create_react_agent
 from autopoc.config import AutoPoCConfig, load_config
 from autopoc.context import make_context_trimmer
 from autopoc.llm import create_llm
+from autopoc.llm_proxy import resolve_llm_env_vars
 from autopoc.state import PoCPhase, PoCState
 from autopoc.tools.file_tools import list_files, read_file, search_files, write_file
 from autopoc.tools.git_tools import git_commit, git_push
@@ -205,6 +206,14 @@ Components and their built images:
         user_message += f"\n\n**Resource profile:** {resource_profile}"
 
         extra_env = poc_infrastructure.get("extra_env_vars", {})
+
+        # Resolve LLM env vars through OGX proxy if configured.
+        # This replaces placeholder API keys (e.g. OPENAI_API_KEY: "required")
+        # with OGX connection details, and adds OPENAI_BASE_URL pointing to
+        # the internal OGX server. Done in code (deterministic) rather than
+        # leaving it to the LLM.
+        extra_env = resolve_llm_env_vars(extra_env, poc_infrastructure, app_config)
+
         if extra_env:
             # Classify env vars as sensitive (-> Secret) vs plain
             sensitive_keywords = {"KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL", "API_KEY"}

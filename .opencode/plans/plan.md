@@ -978,6 +978,25 @@ bound cost before expensive clone-and-evaluate cycles.
 
 See [candidate-comparison-plan.md](./candidate-comparison-plan.md) for full details.
 
+### Phase 14: OGX LLM Proxy for PoC Projects ✅
+
+**Goal:** Deploy an OGX (formerly LlamaStack) server as an OpenAI-compatible LLM
+proxy for PoC projects. Eliminates the need to hand real API keys to third-party
+code by routing LLM requests through our own vLLM Qwen3-32B backend.
+
+| # | Task | Details |
+|---|------|---------|
+| 14.1 | OGX image build ✅ | Build OGX from upstream Containerfile with UBI9 base, push to Quay |
+| 14.2 | K8s deployment ✅ | Deploy OGX to cluster: Namespace, ConfigMap, Deployment, Service, model aliases |
+| 14.3 | Config extension ✅ | Add `ogx_base_url`, `ogx_model`, `ogx_api_key` to AutoPoCConfig |
+| 14.4 | State schema ✅ | Add `needs_llm_api`, `llm_env_pattern` to `PoCInfrastructure` |
+| 14.5 | PoC Plan prompt ✅ | Add LLM API detection patterns, update examples |
+| 14.6 | LLM proxy logic ✅ | `llm_proxy.py` — resolve env vars through OGX, unit tests |
+| 14.7 | Deploy integration ✅ | Deploy agent calls `resolve_llm_env_vars()`, prompt update |
+| 14.8 | E2E validation ✅ | Full pipeline test with LLM-dependent PoC project |
+
+See [ogx-llm-proxy-plan.md](./ogx-llm-proxy-plan.md) for full details.
+
 ---
 
 Below are the original phase details (Phases 1-8). Phase 8 is shown in summary form

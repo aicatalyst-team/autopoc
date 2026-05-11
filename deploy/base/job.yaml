@@ -89,6 +89,26 @@ spec:
                   key: LLM_MODEL
                   optional: true
 
+            # --- OGX LLM Proxy (for PoC projects) ---
+            - name: OGX_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: OGX_BASE_URL
+                  optional: true
+            - name: OGX_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: OGX_MODEL
+                  optional: true
+            - name: OGX_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: OGX_API_KEY
+                  optional: true
+
             # --- Fork target ---
             - name: FORK_TARGET
               valueFrom:

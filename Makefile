@@ -59,6 +59,16 @@ image: ## Build container image
 image-push: ## Push container image to registry
 	$(CONTAINER_CMD) push $(IMAGE)
 
+# ---------- ogx image ----------
+
+.PHONY: ogx-image
+ogx-image: ## Build OGX (LlamaStack) UBI9 container image
+	./deploy/build-ogx.sh
+
+.PHONY: ogx-image-push
+ogx-image-push: ## Build and push OGX UBI9 container image
+	./deploy/build-ogx.sh --push
+
 # ---------- dev ----------
 
 .PHONY: install

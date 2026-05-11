@@ -22,6 +22,7 @@
 | **11. Google Sheet Ingestion** | — | Read projects from Google Sheet, filter, select, run pipeline. See [google-sheet-ingestion-plan.md](./google-sheet-ingestion-plan.md) |
 | **12. RHOAI Fitness Evaluation** | 73–82 | Strategy loader, evaluate agent, graph integration, scoring, CLI. See [rhoai-evaluation-plan.md](./rhoai-evaluation-plan.md) |
 | **13. Candidate Comparison** | 83–90 | Pre-filter, PM comments parsing, multi-candidate evaluation, best selection, CLI. See [candidate-comparison-plan.md](./candidate-comparison-plan.md) |
+| **14. OGX LLM Proxy** | 14.1–14.8 ✅ | OGX server deployment, LLM proxy for PoC projects, auto-detect + inject. See [ogx-llm-proxy-plan.md](./ogx-llm-proxy-plan.md) |
 
 **Critical path:** 1 → 2 → 4 → 6,7 → 9 → 13,18 → 20 → 25 → 27 → 33 → 34 → 40 → 42 → 44 → 45,46 → 49 → 54 → 73 → 76 → 77 → 83 → 85
 
@@ -44,6 +45,7 @@
 | **11. Google Sheet Ingestion** | **COMPLETE** | 9/9 | 59 passing |
 | **12. RHOAI Fitness Evaluation** | **COMPLETE** | 10/10 | 59 passing |
 | **13. Candidate Comparison** | **COMPLETE** | 8/8 | 36 passing |
+| **14. OGX LLM Proxy** | **COMPLETE** | 8/8 | 19 passing |
 
 ---
 
