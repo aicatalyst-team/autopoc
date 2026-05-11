@@ -26,6 +26,7 @@ from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
 from autopoc.agents.apply import apply_agent
+from autopoc.agents.blog_post import blog_post_agent
 from autopoc.agents.build import build_agent
 from autopoc.agents.containerize import containerize_agent
 from autopoc.agents.deploy import deploy_agent
@@ -206,6 +207,37 @@ def route_after_poc_execute(state: PoCState) -> str:
     return "poc_report"
 
 
+def route_after_poc_report(state: PoCState) -> str:
+    """Route to blog_post if the PoC was successful, otherwise END.
+
+    The blog post is only generated when a **majority** of test scenarios
+    passed.  If there are no results (e.g. the pipeline was stopped before
+    execution), the blog is skipped.
+    """
+    poc_results = state.get("poc_results", [])
+    if not poc_results:
+        logger.info("Skipping blog post: no test results available.")
+        return "end"
+
+    passed = sum(1 for r in poc_results if r.get("status") == "pass")
+    total = len(poc_results)
+
+    if passed > total / 2:
+        logger.info(
+            "PoC successful (%d/%d passed). Generating blog post.",
+            passed,
+            total,
+        )
+        return "blog_post"
+
+    logger.info(
+        "Skipping blog post: only %d/%d scenarios passed (need majority).",
+        passed,
+        total,
+    )
+    return "end"
+
+
 # Ordered list of pipeline phases for --stop-after validation.
 # This matches the logical pipeline order (not the graph topology).
 PIPELINE_PHASES = [
@@ -219,6 +251,7 @@ PIPELINE_PHASES = [
     "apply",
     "poc_execute",
     "poc_report",
+    "blog_post",
 ]
 
 
@@ -285,6 +318,8 @@ def build_graph(checkpointer=None, *, stop_after: str | None = None) -> Compiled
         graph.add_node("poc_execute", poc_execute_agent)
     if _is_active("poc_report"):
         graph.add_node("poc_report", poc_report_agent)
+    if _is_active("blog_post"):
+        graph.add_node("blog_post", blog_post_agent)
 
     # Wire edges
     graph.set_entry_point("intake")
@@ -414,7 +449,20 @@ def build_graph(checkpointer=None, *, stop_after: str | None = None) -> Compiled
                                         "containerize": "containerize",
                                     },
                                 )
-                                graph.add_edge("poc_report", END)
+
+                                if stop_after == "poc_report":
+                                    graph.add_edge("poc_report", END)
+                                else:
+                                    # poc_report → blog_post (conditional on PoC success)
+                                    graph.add_conditional_edges(
+                                        "poc_report",
+                                        route_after_poc_report,
+                                        {
+                                            "blog_post": "blog_post",
+                                            "end": END,
+                                        },
+                                    )
+                                    graph.add_edge("blog_post", END)
 
     # Compile (with optional checkpointer for state persistence)
     compiled = graph.compile(checkpointer=checkpointer)
@@ -423,7 +471,7 @@ def build_graph(checkpointer=None, *, stop_after: str | None = None) -> Compiled
         logger.info("Graph compiled with --stop-after=%s", stop_after)
     else:
         logger.info(
-            "Graph compiled: intake → evaluate → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ apply → poc_execute → poc_report → END"
+            "Graph compiled: intake → evaluate → [poc_plan ∥ fork] → containerize ⟲ build → deploy ⟲ apply → poc_execute → poc_report → blog_post? → END"
         )
     if checkpointer is not None:
         logger.info("Checkpointer enabled: %s", type(checkpointer).__name__)

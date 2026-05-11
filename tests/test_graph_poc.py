@@ -547,10 +547,11 @@ class TestGraphPoCCompilation:
         assert "fork --> containerize" in mermaid
 
     def test_graph_poc_tail_edges(self):
-        """Verify poc_execute → poc_report → END edges.
+        """Verify poc_execute → poc_report → blog_post? → END edges.
 
         poc_execute uses conditional edges (can route back to containerize),
         so the mermaid format uses -.-> instead of -->.
+        poc_report also uses conditional edges (routes to blog_post or END).
         """
         from autopoc.graph import build_graph
 
@@ -558,7 +559,11 @@ class TestGraphPoCCompilation:
         mermaid = graph.get_graph().draw_mermaid()
         assert "poc_execute -.-> poc_report" in mermaid
         assert "poc_execute -.-> containerize" in mermaid
-        assert "poc_report --> __end__" in mermaid
+        # poc_report conditionally routes to blog_post or END
+        assert "poc_report -.-> blog_post" in mermaid
+        # The "end" branch has a label: poc_report -. &nbsp;end&nbsp; .-> __end__
+        assert "poc_report" in mermaid and "__end__" in mermaid
+        assert "blog_post --> __end__" in mermaid
 
     def test_graph_apply_to_containerize_edge(self):
         """Verify apply can route to containerize (outer loop)."""

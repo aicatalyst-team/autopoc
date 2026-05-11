@@ -997,6 +997,25 @@ code by routing LLM requests through our own vLLM Qwen3-32B backend.
 
 See [ogx-llm-proxy-plan.md](./ogx-llm-proxy-plan.md) for full details.
 
+### Phase 15: Blog Post Generation ✅
+
+**Goal:** Auto-generate a developer blog post from successful PoC results. Uses
+a 3-reviewer autonomous review loop (architect, content, formatting) with
+score-based exit. Produces blog-post.md, blog-seo.md, and blog-preview.html.
+
+| # | Task | Details |
+|---|------|---------|
+| 15.1 | State + phase ✅ | Add `blog_post_path`, `blog_seo_path`, `blog_preview_path`, `BLOG_POST` phase |
+| 15.2 | Draft prompt ✅ | System prompt for developer blog generation from PoC data |
+| 15.3 | Reviewer prompts ✅ | Architect (35%), content (40%), formatting (25%) scoring rubrics |
+| 15.4 | HTML template ✅ | Clean preview template with placeholder substitution |
+| 15.5 | Agent implementation ✅ | Generate → review → revise loop, SEO, HTML preview, artifact commit |
+| 15.6 | Graph integration ✅ | `route_after_poc_report` (majority-pass gate), `--stop-after` support |
+| 15.7 | CLI display ✅ | Show blog artifact paths, skip message |
+| 15.8 | Tests ✅ | Draft generation, review scoring, loop control, routing, non-blocking failures |
+
+See [blog-post-plan.md](./blog-post-plan.md) for full details.
+
 ---
 
 Below are the original phase details (Phases 1-8). Phase 8 is shown in summary form

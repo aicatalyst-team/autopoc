@@ -347,6 +347,18 @@ def _print_results(result: dict, verbose: bool = False) -> None:
                 f"\n[bold]PoC Report:[/bold] {poc_report_path} [yellow](not written)[/yellow]"
             )
 
+    blog_post_path = result.get("blog_post_path", "")
+    if blog_post_path:
+        p = Path(blog_post_path)
+        if p.exists():
+            console.print(f"\n[bold]Blog Post:[/bold] {blog_post_path}")
+            blog_seo = result.get("blog_seo_path", "")
+            if blog_seo and Path(blog_seo).exists():
+                console.print(f"[bold]Blog SEO:[/bold]  {blog_seo}")
+            blog_preview = result.get("blog_preview_path", "")
+            if blog_preview and Path(blog_preview).exists():
+                console.print(f"[bold]Blog Preview:[/bold] {blog_preview}")
+
     if result.get("fork_repo_url"):
         fork_target = result.get("fork_target", "unknown")
         console.print(f"\n[bold]Fork ({fork_target}):[/bold] {result['fork_repo_url']}")

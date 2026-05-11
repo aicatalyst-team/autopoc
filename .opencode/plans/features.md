@@ -7,7 +7,8 @@
 5. [ ] Create JIRA tickets for ODH
 6. [ ] Human in the loop
 7. [ ] Include tests output in the report, or at least as some kind of an appendix
-8. [ ] OGX LLM Proxy for PoC projects (see ogx-llm-proxy-plan.md)
+8. [V] OGX LLM Proxy for PoC projects (see ogx-llm-proxy-plan.md)
+9. [ ] Blog post generation from PoC results (see blog-post-plan.md)
 
 ## Deeper dive
 
