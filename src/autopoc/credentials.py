@@ -204,6 +204,46 @@ def check_anthropic(config: AutoPoCConfig) -> CredentialStatus:
     return CredentialStatus("LLM", False, "no API key or Vertex config provided")
 
 
+def check_llm_fallback(config: AutoPoCConfig, timeout: float = 5.0) -> CredentialStatus | None:
+    """Validate the LLM fallback endpoint (vLLM/OpenAI-compatible).
+
+    Returns None if fallback is not configured, so the caller can skip it.
+    Checks the /models endpoint (free, no inference cost) to verify reachability.
+    """
+    if not config.has_fallback_provider:
+        return None
+
+    url = config.llm_base_url.rstrip("/")
+    # The /models endpoint is standard for OpenAI-compatible APIs
+    models_url = f"{url}/models"
+    model_name = config.llm_model or "unknown"
+
+    try:
+        resp = httpx.get(models_url, timeout=timeout)
+        if resp.status_code == 200:
+            return CredentialStatus(
+                "LLM Fallback (vLLM)",
+                True,
+                f"reachable at {config.llm_base_url}, model={model_name}",
+            )
+        else:
+            return CredentialStatus(
+                "LLM Fallback (vLLM)",
+                False,
+                f"HTTP {resp.status_code} from {models_url}",
+            )
+    except httpx.ConnectError:
+        return CredentialStatus(
+            "LLM Fallback (vLLM)", False, f"cannot connect to {config.llm_base_url}"
+        )
+    except httpx.TimeoutException:
+        return CredentialStatus(
+            "LLM Fallback (vLLM)", False, f"timeout connecting to {config.llm_base_url}"
+        )
+    except Exception as e:
+        return CredentialStatus("LLM Fallback (vLLM)", False, str(e))
+
+
 def validate_credentials(
     config: AutoPoCConfig,
     console: Console | None = None,
@@ -225,6 +265,11 @@ def validate_credentials(
     checks = [
         check_anthropic(config),
     ]
+
+    # Check LLM fallback if configured (non-critical — failure here is a warning)
+    fallback_status = check_llm_fallback(config)
+    if fallback_status is not None:
+        checks.append(fallback_status)
 
     # Validate git hosting credentials based on fork target
     if config.fork_target == "github":
