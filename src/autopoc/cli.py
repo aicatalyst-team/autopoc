@@ -347,6 +347,18 @@ def _print_results(result: dict, verbose: bool = False) -> None:
                 f"\n[bold]PoC Report:[/bold] {poc_report_path} [yellow](not written)[/yellow]"
             )
 
+    blog_post_path = result.get("blog_post_path", "")
+    if blog_post_path:
+        p = Path(blog_post_path)
+        if p.exists():
+            console.print(f"\n[bold]Blog Post:[/bold] {blog_post_path}")
+            blog_seo = result.get("blog_seo_path", "")
+            if blog_seo and Path(blog_seo).exists():
+                console.print(f"[bold]Blog SEO:[/bold]  {blog_seo}")
+            blog_preview = result.get("blog_preview_path", "")
+            if blog_preview and Path(blog_preview).exists():
+                console.print(f"[bold]Blog Preview:[/bold] {blog_preview}")
+
     if result.get("fork_repo_url"):
         fork_target = result.get("fork_target", "unknown")
         console.print(f"\n[bold]Fork ({fork_target}):[/bold] {result['fork_repo_url']}")
@@ -1017,6 +1029,7 @@ def _write_back_poc_results(
     Handles column creation and error recovery gracefully.
     """
     from autopoc.sheet import (
+        _build_blog_url,
         _build_report_url,
         _check_url_exists,
         derive_fork_browse_url,
@@ -1097,6 +1110,21 @@ def _write_back_poc_results(
                     candidate_url,
                 )
 
+        # --- Resolve blog post URL (fallback: check remote existence) ---
+        blog_post_path = pipeline_result.get("blog_post_path")
+        poc_blog_override = None
+        local_blog_exists = blog_post_path and Path(blog_post_path).exists()
+
+        if not local_blog_exists and fork_repo_url:
+            candidate_url = _build_blog_url(fork_repo_url, fork_target)
+            if _check_url_exists(candidate_url):
+                poc_blog_override = candidate_url
+                logger.info(
+                    "Blog post verified remotely for %s: %s",
+                    project.name,
+                    candidate_url,
+                )
+
         write_poc_results(
             service,
             sheet_id,
@@ -1109,6 +1137,8 @@ def _write_back_poc_results(
             poc_report_path=poc_report_path,
             poc_image_override=poc_image_override,
             poc_report_override=poc_report_override,
+            blog_post_path=blog_post_path,
+            poc_blog_override=poc_blog_override,
         )
         console.print(
             f"  [green]Results written to tab '{project.tab_name}' row {project.row_index}[/green]"

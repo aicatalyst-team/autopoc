@@ -22,6 +22,7 @@ class PoCPhase(str, Enum):
     APPLY = "apply"
     POC_EXECUTE = "poc_execute"
     POC_REPORT = "poc_report"
+    BLOG_POST = "blog_post"
     DONE = "done"
     FAILED = "failed"
 
@@ -208,3 +209,8 @@ class PoCState(TypedDict, total=False):
 
     # --- PoC Report output ---
     poc_report_path: str  # Path to poc-report.md in the repo
+
+    # --- Blog Post output ---
+    blog_post_path: str  # Path to blog-post.md (final clean draft)
+    blog_seo_path: str  # Path to blog-seo.md
+    blog_preview_path: str  # Path to blog-preview.html

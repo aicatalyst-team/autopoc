@@ -1060,7 +1060,7 @@ class TestEnsureResultColumns:
     """Tests for ensure_result_columns."""
 
     def test_creates_missing_columns(self) -> None:
-        """Expands grid and appends poc_repo, poc_image, poc_report when missing."""
+        """Expands grid and appends all PoC result columns when missing."""
         mock_service = MagicMock()
         headers = ["title", "link", "category"]
 
@@ -1073,23 +1073,26 @@ class TestEnsureResultColumns:
         append_req = batch_body["requests"][0]["appendDimension"]
         assert append_req["sheetId"] == 42
         assert append_req["dimension"] == "COLUMNS"
-        assert append_req["length"] == 3
+        assert append_req["length"] == 4
 
         # Then should have written the header values
         values_update = mock_service.spreadsheets.return_value.values.return_value.update
         values_update.assert_called_once()
         call_kwargs = values_update.call_args
-        assert call_kwargs.kwargs["body"]["values"] == [["poc_repo", "poc_image", "poc_report"]]
+        assert call_kwargs.kwargs["body"]["values"] == [
+            ["poc_repo", "poc_image", "poc_report", "poc_blog"]
+        ]
 
         # Column indices should be correct
         assert col_indices["poc_repo"] == 3
         assert col_indices["poc_image"] == 4
         assert col_indices["poc_report"] == 5
+        assert col_indices["poc_blog"] == 6
 
     def test_columns_already_exist(self) -> None:
         """No API call when all columns already exist."""
         mock_service = MagicMock()
-        headers = ["title", "link", "poc_repo", "poc_image", "poc_report"]
+        headers = ["title", "link", "poc_repo", "poc_image", "poc_report", "poc_blog"]
 
         col_indices = ensure_result_columns(mock_service, "sheet-123", "Tab1", headers, tab_gid=0)
 
@@ -1100,6 +1103,7 @@ class TestEnsureResultColumns:
         assert col_indices["poc_repo"] == 2
         assert col_indices["poc_image"] == 3
         assert col_indices["poc_report"] == 4
+        assert col_indices["poc_blog"] == 5
 
     def test_partial_columns_exist(self) -> None:
         """Only appends the missing columns and expands grid accordingly."""
@@ -1108,17 +1112,18 @@ class TestEnsureResultColumns:
 
         col_indices = ensure_result_columns(mock_service, "sheet-123", "Tab1", headers, tab_gid=7)
 
-        # Grid should be expanded by 2 (only poc_image and poc_report missing)
+        # Grid should be expanded by 3 (poc_image, poc_report, poc_blog missing)
         batch_body = mock_service.spreadsheets.return_value.batchUpdate.call_args.kwargs["body"]
-        assert batch_body["requests"][0]["appendDimension"]["length"] == 2
+        assert batch_body["requests"][0]["appendDimension"]["length"] == 3
         assert batch_body["requests"][0]["appendDimension"]["sheetId"] == 7
 
         call_kwargs = mock_service.spreadsheets.return_value.values.return_value.update.call_args
-        assert call_kwargs.kwargs["body"]["values"] == [["poc_image", "poc_report"]]
+        assert call_kwargs.kwargs["body"]["values"] == [["poc_image", "poc_report", "poc_blog"]]
 
         assert col_indices["poc_repo"] == 2
         assert col_indices["poc_image"] == 3
         assert col_indices["poc_report"] == 4
+        assert col_indices["poc_blog"] == 5
 
 
 # ---------------------------------------------------------------------------
@@ -1132,7 +1137,7 @@ class TestWritePocResults:
     def test_writes_successful_results(self) -> None:
         """Writes correct values for a successful pipeline run."""
         mock_service = MagicMock()
-        col_indices = {"poc_repo": 3, "poc_image": 4, "poc_report": 5}
+        col_indices = {"poc_repo": 3, "poc_image": 4, "poc_report": 5, "poc_blog": 6}
 
         write_poc_results(
             mock_service,
@@ -1146,14 +1151,14 @@ class TestWritePocResults:
             poc_report_path="/tmp/autopoc/repo/poc-report.md",
         )
 
-        # Should have 3 update calls (one per column)
+        # Should have 4 update calls (one per column)
         update_mock = mock_service.spreadsheets.return_value.values.return_value.update
-        assert update_mock.call_count == 3
+        assert update_mock.call_count == 4
 
     def test_writes_failed_values(self) -> None:
-        """Writes FAILED when artifacts are missing."""
+        """Writes FAILED for required columns, empty for optional (blog)."""
         mock_service = MagicMock()
-        col_indices = {"poc_repo": 3, "poc_image": 4, "poc_report": 5}
+        col_indices = {"poc_repo": 3, "poc_image": 4, "poc_report": 5, "poc_blog": 6}
 
         write_poc_results(
             mock_service,
@@ -1173,12 +1178,17 @@ class TestWritePocResults:
         for c in update_mock.call_args_list:
             written_values.append(c.kwargs["body"]["values"][0][0])
 
-        assert all(v == "FAILED" for v in written_values)
+        # First 3 (poc_repo, poc_image, poc_report) should be FAILED
+        assert written_values[0] == "FAILED"
+        assert written_values[1] == "FAILED"
+        assert written_values[2] == "FAILED"
+        # poc_blog is optional — empty, not FAILED
+        assert written_values[3] == ""
 
     def test_poc_image_override(self) -> None:
         """poc_image_override bypasses built_images logic."""
         mock_service = MagicMock()
-        col_indices = {"poc_repo": 0, "poc_image": 1, "poc_report": 2}
+        col_indices = {"poc_repo": 0, "poc_image": 1, "poc_report": 2, "poc_blog": 3}
 
         write_poc_results(
             mock_service,
@@ -1201,7 +1211,7 @@ class TestWritePocResults:
     def test_poc_report_override(self) -> None:
         """poc_report_override bypasses local file check."""
         mock_service = MagicMock()
-        col_indices = {"poc_repo": 0, "poc_image": 1, "poc_report": 2}
+        col_indices = {"poc_repo": 0, "poc_image": 1, "poc_report": 2, "poc_blog": 3}
 
         write_poc_results(
             mock_service,
@@ -1226,7 +1236,7 @@ class TestWritePocResults:
     def test_overrides_take_precedence(self) -> None:
         """Overrides win even when primary values are available."""
         mock_service = MagicMock()
-        col_indices = {"poc_repo": 0, "poc_image": 1, "poc_report": 2}
+        col_indices = {"poc_repo": 0, "poc_image": 1, "poc_report": 2, "poc_blog": 3}
 
         write_poc_results(
             mock_service,
