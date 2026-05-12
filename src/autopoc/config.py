@@ -3,7 +3,7 @@
 Loads settings from environment variables or a .env file using pydantic-settings.
 """
 
-from pydantic import Field, model_validator
+from pydantic import Field, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -43,6 +43,12 @@ class AutoPoCConfig(BaseSettings):
     llm_max_tokens: int | None = Field(
         default=None,
         description="Max output tokens for LLM responses (auto-detected per provider if unset)",
+    )
+    llm_fallback_enabled: bool = Field(
+        default=True,
+        description="When True and both a cloud provider (Anthropic/Vertex) and LLM_BASE_URL "
+        "are configured, use the cloud provider as primary and LLM_BASE_URL as fallback "
+        "on retryable errors (429, 500, 502, 503, 529). Set to False to disable fallback.",
     )
 
     # OGX LLM Proxy (for PoC projects that need LLM access)
@@ -153,7 +159,11 @@ class AutoPoCConfig(BaseSettings):
 
     @model_validator(mode="after")
     def validate_llm_config(self) -> "AutoPoCConfig":
-        """Ensure we have at least one LLM provider configured."""
+        """Ensure we have at least one LLM provider configured.
+
+        When both a cloud provider and LLM_BASE_URL are set, the cloud provider
+        is primary and LLM_BASE_URL becomes the fallback on retryable errors.
+        """
         if not self.anthropic_api_key and not self.vertex_project and not self.llm_base_url:
             raise ValueError(
                 "At least one LLM provider must be configured: "
@@ -167,6 +177,24 @@ class AutoPoCConfig(BaseSettings):
                 "LLM_MODEL is required when using LLM_BASE_URL (e.g. LLM_MODEL=qwen2.5-coder-32b)."
             )
         return self
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def has_cloud_provider(self) -> bool:
+        """Whether a cloud LLM provider (Anthropic/Vertex) is configured."""
+        return bool(self.anthropic_api_key or self.vertex_project)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def has_fallback_provider(self) -> bool:
+        """Whether a fallback provider (LLM_BASE_URL) is available.
+
+        Fallback is available when:
+        1. A cloud provider is configured (primary)
+        2. LLM_BASE_URL is also configured (fallback)
+        3. LLM_FALLBACK_ENABLED is True
+        """
+        return self.has_cloud_provider and bool(self.llm_base_url) and self.llm_fallback_enabled
 
     @model_validator(mode="after")
     def validate_build_strategy(self) -> "AutoPoCConfig":

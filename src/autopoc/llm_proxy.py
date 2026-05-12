@@ -22,25 +22,31 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # Environment variable names that hold LLM API keys.
-_API_KEY_VARS = frozenset({
-    "OPENAI_API_KEY",
-    "ANTHROPIC_API_KEY",
-})
+_API_KEY_VARS = frozenset(
+    {
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+    }
+)
 
 # Environment variable names that hold LLM base URLs.
-_BASE_URL_VARS = frozenset({
-    "OPENAI_BASE_URL",
-    "OPENAI_API_BASE",
-})
+_BASE_URL_VARS = frozenset(
+    {
+        "OPENAI_BASE_URL",
+        "OPENAI_API_BASE",
+    }
+)
 
 # Environment variable names that hold model names.
-_MODEL_VARS = frozenset({
-    "OPENAI_MODEL",
-    "MODEL_NAME",
-    "LLM_MODEL",
-    "CHAT_MODEL",
-    "MODEL",
-})
+_MODEL_VARS = frozenset(
+    {
+        "OPENAI_MODEL",
+        "MODEL_NAME",
+        "LLM_MODEL",
+        "CHAT_MODEL",
+        "MODEL",
+    }
+)
 
 
 def resolve_llm_env_vars(
