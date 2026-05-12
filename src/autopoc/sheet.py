@@ -45,7 +45,7 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 _METADATA_ROWS = 2
 
 # Columns written by AutoPoC after a PoC run.
-POC_RESULT_COLUMNS = ("poc_repo", "poc_image", "poc_report")
+POC_RESULT_COLUMNS = ("poc_repo", "poc_image", "poc_report", "poc_blog")
 
 # Internal key injected into row dicts to track sheet origin.
 _ORIGIN_KEY = "_origin"
@@ -1075,6 +1075,16 @@ def _build_report_url(fork_repo_url: str, fork_target: str) -> str:
     return f"{base}/blob/{ARTIFACTS_BRANCH}/poc-report.md"
 
 
+def _build_blog_url(fork_repo_url: str, fork_target: str) -> str:
+    """Build a browsable URL to ``blog-post.md`` on the artifacts branch."""
+    from autopoc.tools.git_tools import ARTIFACTS_BRANCH
+
+    base = _strip_credentials_from_url(fork_repo_url)
+    if fork_target == "gitlab":
+        return f"{base}/-/blob/{ARTIFACTS_BRANCH}/blog-post.md"
+    return f"{base}/blob/{ARTIFACTS_BRANCH}/blog-post.md"
+
+
 def ensure_result_columns(
     service,
     sheet_id: str,
@@ -1164,11 +1174,13 @@ def write_poc_results(
     poc_report_path: str | None,
     poc_image_override: str | None = None,
     poc_report_override: str | None = None,
+    blog_post_path: str | None = None,
+    poc_blog_override: str | None = None,
 ) -> None:
     """Write PoC result values to the specified row.
 
-    Only writes to the ``poc_repo``, ``poc_image``, and ``poc_report``
-    cells — no other cells are touched.
+    Only writes to the ``poc_repo``, ``poc_image``, ``poc_report``, and
+    ``poc_blog`` cells — no other cells are touched.
 
     Args:
         service: Authenticated Google Sheets API service.
@@ -1184,6 +1196,10 @@ def write_poc_results(
         poc_image_override: Pre-resolved image URL/value.  When set,
             bypasses the ``built_images`` logic entirely.
         poc_report_override: Pre-resolved report URL.  When set,
+            bypasses the local-file + fork URL derivation.
+        blog_post_path: Local path to blog-post.md (used only to
+            determine if a blog post was generated).
+        poc_blog_override: Pre-resolved blog post URL.  When set,
             bypasses the local-file + fork URL derivation.
     """
     target = fork_target or "github"
@@ -1210,11 +1226,20 @@ def write_poc_results(
     else:
         poc_report_val = "FAILED"
 
+    # poc_blog → override, or derive from fork URL + local file, or empty
+    if poc_blog_override:
+        poc_blog_val = poc_blog_override
+    elif fork_repo_url and blog_post_path and Path(blog_post_path).exists():
+        poc_blog_val = _build_blog_url(fork_repo_url, target)
+    else:
+        poc_blog_val = ""  # empty, not FAILED — blog is optional
+
     # Write each cell individually (they may not be contiguous columns)
     values_to_write = {
         "poc_repo": poc_repo_val,
         "poc_image": poc_image_val,
         "poc_report": poc_report_val,
+        "poc_blog": poc_blog_val,
     }
 
     for col_name, value in values_to_write.items():
@@ -1229,12 +1254,13 @@ def write_poc_results(
         ).execute()
 
     logger.info(
-        "Wrote PoC results to tab '%s' row %d: repo=%s, image=%s, report=%s",
+        "Wrote PoC results to tab '%s' row %d: repo=%s, image=%s, report=%s, blog=%s",
         tab_name,
         row_number,
         poc_repo_val[:60],
         poc_image_val[:60],
         poc_report_val[:60],
+        poc_blog_val[:60] if poc_blog_val else "(none)",
     )
 
 
