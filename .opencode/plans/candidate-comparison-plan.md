@@ -74,7 +74,7 @@ async def _parse_pm_comments(
     llm: BaseChatModel,
 ) -> dict[int, PMCommentSignals]:
     """Parse PM comments for all candidates in a single LLM call.
-    
+
     Returns a dict mapping candidate index to extracted signals.
     """
 ```
@@ -136,12 +136,12 @@ async def evaluate_candidates(
     llm: BaseChatModel | None = None,
 ) -> list[CandidateResult]:
     """Evaluate multiple candidates using the RHOAI fitness evaluation.
-    
+
     For each candidate:
     1. Derives project name from the sheet row
     2. Runs the pipeline with stop_after="evaluate"
     3. Extracts the RHOAIEvaluation from the final state
-    
+
     Returns results sorted by total_score descending.
     """
 ```
@@ -172,12 +172,12 @@ def select_best_candidate(
     results: list[CandidateResult],
 ) -> CandidateResult:
     """Select the best candidate from evaluation results.
-    
+
     Selection priority:
     1. Highest total_score from RHOAI evaluation
     2. If tied, highest heuristic_score from pre-filter
     3. If still tied, first in sheet order (stable sort)
-    
+
     Candidates with evaluation errors are ranked below successful ones.
     """
 ```
@@ -224,19 +224,19 @@ if len(filtered) <= 1 or skip_evaluation:
 else:
     # Multiple candidates — evaluate and pick best
     console.print(f"[bold cyan]Multiple candidates ({len(filtered)}). Evaluating...[/bold cyan]")
-    
+
     # Pre-filter
     prefiltered = await prefilter_candidates(filtered, strategy, llm, max_candidates)
-    
+
     # Full evaluation
     results = await evaluate_candidates(prefiltered, config, max_candidates=max_candidates)
-    
+
     # Display comparison table
     _print_candidate_comparison(results)
-    
+
     # Select best
     winner = select_best_candidate(results)
-    
+
     # Run full pipeline on winner (reuse clone)
     _run_pipeline(winner.project.name, winner.project.repo_url, config, ...)
 ```
