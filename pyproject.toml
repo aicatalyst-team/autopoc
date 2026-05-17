@@ -67,8 +67,9 @@ filterwarnings = [
 [tool.coverage.run]
 source = ["autopoc"]
 omit = [
-    # CLI entry point — tested manually and via e2e
+    # CLI entry points — tested manually and via e2e
     "*/cli.py",
+    "*/cli_batch.py",
     # Infrastructure tools that shell out to kubectl/podman — tested via e2e
     "*/tools/k8s_tools.py",
     "*/tools/podman_tools.py",
@@ -76,12 +77,17 @@ omit = [
     # Agents that call kubectl/podman directly — tested via e2e
     "*/agents/apply.py",
     "*/agents/deploy.py",
+    # Blog post agent — multi-LLM-call agent, tested via e2e
+    "*/agents/blog_post.py",
     # Credential validation — calls external APIs, tested via e2e
     "*/credentials.py",
     # Context compaction — deeply coupled to LangGraph internals
     "*/context.py",
     # Debug utilities
     "*/debug.py",
+    # Sheet evaluation and write-back — tested via e2e (require Sheets API)
+    "*/sheet_eval.py",
+    "*/sheet_write.py",
 ]
 
 [tool.coverage.report]

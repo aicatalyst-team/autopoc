@@ -94,7 +94,7 @@ def _build_cloud_llm(config: AutoPoCConfig, model: str | None = None) -> BaseCha
             model_name=actual_model,
             api_key=config.anthropic_api_key,
             max_retries=config.llm_max_retries,
-            max_tokens=config.llm_max_tokens or ANTHROPIC_MAX_OUTPUT_TOKENS,
+            max_tokens=config.llm_max_tokens or ANTHROPIC_MAX_OUTPUT_TOKENS,  # pyright: ignore[reportCallIssue]
         )  # type: ignore[call-arg]
 
     return None

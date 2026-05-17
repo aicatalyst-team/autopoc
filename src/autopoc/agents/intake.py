@@ -14,6 +14,7 @@ from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.runnables import Runnable
 
 from autopoc.debug import dump_llm_response
 from autopoc.llm import create_llm, strip_think_tags
@@ -114,7 +115,7 @@ def _has_build_files(directory: Path) -> bool:
 async def _fix_component_paths(
     components: list[ComponentInfo],
     clone_path: Path,
-    llm: BaseChatModel,
+    llm: Runnable | BaseChatModel,
 ) -> list[ComponentInfo]:
     """Validate component source_dir paths and fix any that don't exist.
 
@@ -253,7 +254,7 @@ async def _fix_component_paths(
 async def intake_agent(
     state: PoCState,
     *,
-    llm: BaseChatModel | None = None,
+    llm: Runnable | BaseChatModel | None = None,
 ) -> PoCStateUpdate:
     """Analyze a source repository and populate state with component information.
 
@@ -305,6 +306,8 @@ async def intake_agent(
     # Set up LLM
     if llm is None:
         llm = create_llm()
+
+    assert llm is not None
 
     # One-shot LLM call — no ReAct agent, no tools
     user_message = (

@@ -21,6 +21,7 @@ from urllib.parse import urlparse, urlunparse
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.runnables import Runnable
 
 from autopoc.llm import create_llm, strip_think_tags
 from autopoc.state import PoCPhase, PoCState
@@ -62,9 +63,8 @@ def _strip_url_credentials(url: str) -> str:
         parsed = urlparse(url)
         if parsed.username or parsed.password:
             # Rebuild without credentials
-            clean = parsed._replace(
-                netloc=parsed.hostname + (f":{parsed.port}" if parsed.port else "")
-            )
+            hostname = parsed.hostname or ""
+            clean = parsed._replace(netloc=hostname + (f":{parsed.port}" if parsed.port else ""))
             return urlunparse(clean)
     except Exception:
         pass
@@ -460,7 +460,7 @@ def _finalize_draft(draft: str) -> str:
 async def blog_post_agent(
     state: PoCState,
     *,
-    llm: BaseChatModel | None = None,
+    llm: Runnable | BaseChatModel | None = None,
 ) -> dict:
     """Generate a developer blog post from PoC results.
 
@@ -479,6 +479,8 @@ async def blog_post_agent(
 
     if llm is None:
         llm = create_llm()
+
+    assert llm is not None
 
     blog_post_path = str(Path(clone_path or ".") / "blog-post.md")
     blog_seo_path = str(Path(clone_path or ".") / "blog-seo.md")
@@ -542,7 +544,7 @@ async def blog_post_agent(
             reviewer_names = list(reviewer_prompts.keys())
             for i, resp in enumerate(review_responses):
                 name = reviewer_names[i]
-                if isinstance(resp, Exception):
+                if isinstance(resp, BaseException):
                     logger.warning("Reviewer %s failed: %s", name, resp)
                     reviews[name] = f"OVERALL: 5.0/10\n\nReviewer error: {resp}"
                 else:

@@ -15,6 +15,7 @@ from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.runnables import Runnable
 from langgraph.prebuilt import create_react_agent
 
 from autopoc.config import AutoPoCConfig, load_config
@@ -95,7 +96,7 @@ def _fixup_image_pull_policy(k8s_dir: Path) -> None:
 async def deploy_agent(
     state: PoCState,
     app_config: AutoPoCConfig | None = None,
-    llm: BaseChatModel | None = None,
+    llm: Runnable | BaseChatModel | None = None,
 ) -> PoCStateUpdate:
     """Generate Kubernetes manifests for all components.
 
@@ -306,6 +307,7 @@ Components and their built images:
         )
 
     # Create agent with manifest generation tools only
+    assert llm is not None
     agent = create_react_agent(
         model=llm,
         tools=DEPLOY_TOOLS,

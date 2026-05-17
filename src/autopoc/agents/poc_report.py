@@ -15,6 +15,7 @@ from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.runnables import Runnable
 
 from autopoc.llm import create_llm
 from autopoc.state import PoCPhase, PoCState, PoCStateUpdate
@@ -237,7 +238,7 @@ def _strip_preamble(content: str) -> str:
 async def poc_report_agent(
     state: PoCState,
     *,
-    llm: BaseChatModel | None = None,
+    llm: Runnable | BaseChatModel | None = None,
 ) -> PoCStateUpdate:
     """Generate a comprehensive PoC report.
 
@@ -258,6 +259,8 @@ async def poc_report_agent(
 
     if llm is None:
         llm = create_llm()
+
+    assert llm is not None
 
     system_prompt = _load_system_prompt()
     user_message = _build_user_message(state)

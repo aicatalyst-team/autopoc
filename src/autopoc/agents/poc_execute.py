@@ -10,6 +10,7 @@ from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.runnables import Runnable
 from langgraph.prebuilt import create_react_agent
 
 from autopoc.context import make_context_trimmer
@@ -329,7 +330,7 @@ def _detect_container_issue(poc_results: list) -> str | None:
 async def poc_execute_agent(
     state: PoCState,
     *,
-    llm: BaseChatModel | None = None,
+    llm: Runnable | BaseChatModel | None = None,
 ) -> PoCStateUpdate:
     """Generate and execute PoC test scripts.
 
@@ -356,6 +357,7 @@ async def poc_execute_agent(
     system_prompt = _load_system_prompt()
 
     # Create the ReAct agent
+    assert llm is not None
     agent = create_react_agent(
         model=llm,
         tools=POC_EXECUTE_TOOLS,

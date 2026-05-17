@@ -27,6 +27,7 @@ from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.runnables import Runnable
 from langgraph.prebuilt import create_react_agent
 
 from autopoc.config import AutoPoCConfig, load_config
@@ -313,7 +314,7 @@ async def _triage_apply_error(error_text: str) -> str:
 async def apply_agent(
     state: PoCState,
     app_config: AutoPoCConfig | None = None,
-    llm: BaseChatModel | None = None,
+    llm: Runnable | BaseChatModel | None = None,
 ) -> PoCStateUpdate:
     """Apply K8s manifests to the cluster and verify deployment.
 
@@ -447,6 +448,7 @@ Manifests directory: {k8s_dir}
     )
 
     # Create agent
+    assert llm is not None
     agent = create_react_agent(
         model=llm,
         tools=APPLY_TOOLS,

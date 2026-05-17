@@ -12,6 +12,7 @@ from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.runnables import Runnable
 from langgraph.prebuilt import create_react_agent
 
 from autopoc.context import make_context_trimmer
@@ -504,7 +505,7 @@ def _extract_llm_text(response) -> str:
 
 
 async def _generate_markdown_plan(
-    llm: BaseChatModel,
+    llm: Runnable | BaseChatModel,
     state: PoCState,
     parsed_json: dict,
     clone_path: str,
@@ -572,7 +573,7 @@ async def _generate_markdown_plan(
 async def poc_plan_agent(
     state: PoCState,
     *,
-    llm: BaseChatModel | None = None,
+    llm: Runnable | BaseChatModel | None = None,
 ) -> PoCStateUpdate:
     """Generate a PoC plan for the repository.
 
@@ -602,6 +603,8 @@ async def poc_plan_agent(
 
     if llm is None:
         llm = create_llm()
+
+    assert llm is not None
 
     system_prompt = _load_system_prompt()
 

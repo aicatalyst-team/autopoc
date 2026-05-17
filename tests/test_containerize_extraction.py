@@ -10,6 +10,8 @@ import pytest
 
 from autopoc.agents.containerize import (
     _extract_dockerfile_from_response,
+)
+from autopoc.agents.containerize_fixups import (
     _fixup_dockerfile,
     _uses_minimal_base,
 )

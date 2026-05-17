@@ -11,6 +11,7 @@ from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.runnables import Runnable
 from langgraph.prebuilt import create_react_agent
 
 from autopoc.context import make_context_trimmer
@@ -549,7 +550,7 @@ def _parse_containerize_output(raw_output: str, component_path: str) -> dict:
 async def containerize_agent(
     state: PoCState,
     *,
-    llm: BaseChatModel | None = None,
+    llm: Runnable | BaseChatModel | None = None,
 ) -> PoCStateUpdate:
     """Generate Dockerfile.ubi files for each component in the repository.
 
@@ -715,6 +716,7 @@ async def containerize_agent(
         logger.info("Containerizing component: %s", comp_name)
 
         # Create the ReAct agent with context trimming to prevent overflow
+        assert llm is not None
         agent = create_react_agent(
             model=llm,
             tools=CONTAINERIZE_TOOLS,

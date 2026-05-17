@@ -217,7 +217,8 @@ def check_llm_fallback(config: AutoPoCConfig, timeout: float = 5.0) -> Credentia
     if not config.has_fallback_provider:
         return None
 
-    url = config.llm_base_url.rstrip("/")
+    base_url = config.llm_base_url or ""
+    url = base_url.rstrip("/")
     # The /models endpoint is standard for OpenAI-compatible APIs
     models_url = f"{url}/models"
     model_name = config.llm_model or "unknown"

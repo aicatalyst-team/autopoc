@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from langchain_core.language_models import BaseChatModel
+from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from autopoc.llm import create_llm
@@ -414,7 +415,7 @@ def _build_evaluation_markdown(
 async def evaluate_agent(
     state: PoCState,
     *,
-    llm: BaseChatModel | None = None,
+    llm: Runnable | BaseChatModel | None = None,
 ) -> PoCStateUpdate:
     """Evaluate a project's fitness for OpenShift AI PoC.
 
@@ -494,6 +495,7 @@ async def evaluate_agent(
     if llm is None:
         llm = create_llm()
 
+    assert llm is not None
     try:
         response = await llm.ainvoke(
             [
