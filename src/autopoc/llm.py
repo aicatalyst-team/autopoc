@@ -111,7 +111,7 @@ def _build_openai_compat_llm(config: AutoPoCConfig, model: str | None = None) ->
         base_url=config.llm_base_url,
         api_key=api_key,
         max_retries=config.llm_max_retries,
-        max_tokens=max_tokens,
+        max_tokens=max_tokens,  # type: ignore[call-arg]
     )
 
 

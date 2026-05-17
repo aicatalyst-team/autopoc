@@ -28,6 +28,10 @@ class CredentialStatus:
 
 def check_gitlab(config: AutoPoCConfig, timeout: float = 10.0) -> CredentialStatus:
     """Validate GitLab token by calling GET /api/v4/user."""
+    if not config.gitlab_url:
+        return CredentialStatus("GitLab", False, "GITLAB_URL is not set")
+    if not config.gitlab_token:
+        return CredentialStatus("GitLab", False, "GITLAB_TOKEN is not set")
     url = f"{config.gitlab_url.rstrip('/')}/api/v4/user"
     try:
         resp = httpx.get(
@@ -84,7 +88,7 @@ def _check_quay_robot(config: AutoPoCConfig, registry: str, timeout: float) -> C
     try:
         resp = httpx.get(
             url,
-            auth=(config.quay_username, config.quay_token),
+            auth=(config.quay_username or "", config.quay_token),
             params=params,
             timeout=timeout,
             follow_redirects=True,

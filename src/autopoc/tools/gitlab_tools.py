@@ -25,6 +25,10 @@ class GitLabClient:
     """
 
     def __init__(self, config: AutoPoCConfig) -> None:
+        if not config.gitlab_url:
+            raise ValueError("GITLAB_URL is not configured")
+        if not config.gitlab_token:
+            raise ValueError("GITLAB_TOKEN is not configured")
         self.base_url = config.gitlab_url.rstrip("/")
         self.token = config.gitlab_token
         self.group = config.gitlab_group

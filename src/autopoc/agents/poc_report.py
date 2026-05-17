@@ -17,7 +17,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from autopoc.llm import create_llm
-from autopoc.state import PoCPhase, PoCState
+from autopoc.state import PoCPhase, PoCState, PoCStateUpdate
 from autopoc.tools.git_tools import commit_to_artifacts_branch
 
 logger = logging.getLogger(__name__)
@@ -238,7 +238,7 @@ async def poc_report_agent(
     state: PoCState,
     *,
     llm: BaseChatModel | None = None,
-) -> dict:
+) -> PoCStateUpdate:
     """Generate a comprehensive PoC report.
 
     Non-agentic: one-shot LLM call (no ReAct, no tools). All data comes from

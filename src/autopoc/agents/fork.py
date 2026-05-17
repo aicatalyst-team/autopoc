@@ -14,7 +14,7 @@ import logging
 from pathlib import Path
 
 from autopoc.config import AutoPoCConfig
-from autopoc.state import PoCState
+from autopoc.state import PoCState, PoCStateUpdate
 from autopoc.tools.git_tools import git_add_remote, git_clone, git_push
 from autopoc.tools.github_tools import GitHubClient, parse_github_url
 from autopoc.tools.gitlab_tools import GitLabClient
@@ -28,7 +28,7 @@ async def fork_agent(
     app_config: AutoPoCConfig | None = None,
     gitlab_client: GitLabClient | None = None,
     github_client: GitHubClient | None = None,
-) -> dict:
+) -> PoCStateUpdate:
     """Fork the source repo to the configured target platform.
 
     This is a LangGraph node function. It receives the current state and returns
@@ -66,8 +66,8 @@ async def _fork_to_gitlab(
 
     This is the original fork logic, extracted into a helper.
     """
-    project_name = state["project_name"]
-    source_url = state["source_repo_url"]
+    project_name = state.get("project_name", "")
+    source_url = state.get("source_repo_url", "")
 
     logger.info("Starting GitLab fork for %s (%s)", project_name, source_url)
 
@@ -164,8 +164,8 @@ async def _fork_to_github(
     waits for the async fork to be ready, then configures local remotes.
     No explicit push is needed since GitHub forks copy all branches/tags.
     """
-    project_name = state["project_name"]
-    source_url = state["source_repo_url"]
+    project_name = state.get("project_name", "")
+    source_url = state.get("source_repo_url", "")
 
     logger.info("Starting GitHub fork for %s (%s)", project_name, source_url)
 

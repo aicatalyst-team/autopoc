@@ -34,6 +34,7 @@ checkpoint = [
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
     "ruff>=0.6",
     "grandalf>=0.8",
 ]
@@ -62,6 +63,40 @@ filterwarnings = [
     "ignore:'asyncio.iscoroutinefunction' is deprecated:DeprecationWarning",
     "ignore::pytest.PytestUnraisableExceptionWarning",
 ]
+
+[tool.coverage.run]
+source = ["autopoc"]
+omit = [
+    # CLI entry point — tested manually and via e2e
+    "*/cli.py",
+    # Infrastructure tools that shell out to kubectl/podman — tested via e2e
+    "*/tools/k8s_tools.py",
+    "*/tools/podman_tools.py",
+    "*/tools/repo_digest.py",
+    # Agents that call kubectl/podman directly — tested via e2e
+    "*/agents/apply.py",
+    "*/agents/deploy.py",
+    # Credential validation — calls external APIs, tested via e2e
+    "*/credentials.py",
+    # Context compaction — deeply coupled to LangGraph internals
+    "*/context.py",
+    # Debug utilities
+    "*/debug.py",
+]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.",
+    "if TYPE_CHECKING:",
+]
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+include = ["src"]
 
 [tool.ruff]
 target-version = "py312"
