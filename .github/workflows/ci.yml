@@ -41,7 +41,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.lock
-      - run: pip install -e ".[dev]" --no-deps
+      - run: pip install -e ".[dev]"
       - run: make test
 
   security:

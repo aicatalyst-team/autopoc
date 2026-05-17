@@ -82,7 +82,7 @@ install: ## Install in editable mode with dev extras
 
 .PHONY: lock
 lock: ## Regenerate requirements.lock from pyproject.toml
-	pip-compile --generate-hashes --output-file=requirements.lock pyproject.toml
+	pip-compile --upgrade --generate-hashes --output-file=requirements.lock pyproject.toml
 
 .PHONY: test
 test: ## Run unit and integration tests with coverage

@@ -134,8 +134,8 @@ def _get_checkpoint_dir(work_dir: str) -> Path:
 def _has_async_sqlite() -> bool:
     """Check if the async SQLite checkpointer is available."""
     try:
-        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver  # noqa: F401
-        import aiosqlite  # noqa: F401
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver  # noqa: F401  # type: ignore[import-not-found]
+        import aiosqlite  # noqa: F401  # type: ignore[import-not-found]
 
         return True
     except ImportError:
@@ -168,7 +168,7 @@ async def _invoke_graph_async(
     to ``MemorySaver`` if the async SQLite packages are not installed.
     """
     if _has_async_sqlite():
-        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver  # type: ignore[import-not-found]
 
         db_path = _get_checkpoint_dir(work_dir) / "autopoc.db"
         async with AsyncSqliteSaver.from_conn_string(str(db_path)) as checkpointer:
@@ -1181,7 +1181,7 @@ def resume(
         raise typer.Exit(code=1)
 
     async def _do_resume() -> dict:
-        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver  # type: ignore[import-not-found]
 
         db_path = _get_checkpoint_dir(config.work_dir) / "autopoc.db"
         async with AsyncSqliteSaver.from_conn_string(str(db_path)) as checkpointer:
@@ -1258,7 +1258,7 @@ def show_status(
         raise typer.Exit(code=1)
 
     async def _get_state():
-        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver  # type: ignore[import-not-found]
 
         db_path = _get_checkpoint_dir(config.work_dir) / "autopoc.db"
         async with AsyncSqliteSaver.from_conn_string(str(db_path)) as checkpointer:
