@@ -82,15 +82,19 @@ install: ## Install in editable mode with dev extras
 
 .PHONY: lock
 lock: ## Regenerate requirements.lock from pyproject.toml
-	pip-compile --generate-hashes --output-file=requirements.lock pyproject.toml
+	pip-compile --upgrade --generate-hashes --output-file=requirements.lock pyproject.toml
 
 .PHONY: test
-test: ## Run unit and integration tests
-	$(PYTHON) -m pytest tests/ --ignore=tests/e2e -q
+test: ## Run unit and integration tests with coverage
+	$(PYTHON) -m pytest tests/ --ignore=tests/e2e -q --cov --cov-report=term-missing
 
 .PHONY: test-e2e
 test-e2e: ## Run end-to-end tests (requires local infra)
 	$(PYTHON) -m pytest tests/e2e/ --e2e -v
+
+.PHONY: typecheck
+typecheck: ## Type-check with pyright
+	pyright src/
 
 .PHONY: lint
 lint: ## Lint with ruff

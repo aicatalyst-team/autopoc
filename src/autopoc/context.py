@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 
 from langchain_core.messages import (
     AIMessage,
+    BaseMessage,
     HumanMessage,
     ToolMessage,
 )
@@ -189,7 +190,7 @@ def make_context_trimmer(token_budget: int = DEFAULT_TOKEN_BUDGET):
         truncated_groups: list[tuple[_ToolGroup, list, int]] = []
         for group in groups:
             original_tokens = group.tokens
-            summary = [group.ai_msg]
+            summary: list[BaseMessage] = [group.ai_msg]
             for tm in group.tool_msgs:
                 summary.append(_make_truncated_tool_msg(tm, TRUNCATED_TOOL_RESULT_CHARS))
             new_tokens = sum(_estimate_message_tokens(m) for m in summary)

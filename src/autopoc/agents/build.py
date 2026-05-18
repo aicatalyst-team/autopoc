@@ -18,7 +18,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from autopoc.config import AutoPoCConfig
 from autopoc.llm import create_llm, strip_think_tags
-from autopoc.state import PoCPhase, PoCState
+from autopoc.state import PoCPhase, PoCState, PoCStateUpdate
 from autopoc.tools.build_strategy import BuildStrategy, PodmanBuildStrategy, get_build_strategy
 from autopoc.tools.quay_tools import QuayClient
 
@@ -189,7 +189,8 @@ async def _fix_missing_command_in_dockerfile(
                 HumanMessage(content=prompt),
             ]
         )
-        install_line = strip_think_tags(response.content)
+        content = response.content if isinstance(response.content, str) else str(response.content)
+        install_line = strip_think_tags(content)
 
         # Validate: must start with RUN
         if not install_line.upper().startswith("RUN "):
@@ -344,7 +345,7 @@ async def build_agent(
     quay_client: QuayClient | None = None,
     build_strategy: BuildStrategy | None = None,
     llm=None,
-) -> dict:
+) -> PoCStateUpdate:
     """Build and push container images for all components.
 
     Args:
@@ -357,7 +358,7 @@ async def build_agent(
     Returns:
         Partial state update.
     """
-    project_name = state["project_name"]
+    project_name = state.get("project_name", "")
     components = state.get("components", [])
 
     logger.info("Starting build phase for %d component(s)", len(components))
@@ -448,7 +449,7 @@ async def build_agent(
 
     try:
         for comp in components:
-            comp_name = comp["name"]
+            comp_name = comp.get("name", "unknown")
 
             # Skip if we already built this image in a previous attempt
             # or if the component lacks a dockerfile.
@@ -482,12 +483,15 @@ async def build_agent(
 
             logger.info("Building image for %s: %s", comp_name, full_tag)
 
-            try:
-                # If the registry is HTTP (like local E2E), disable TLS verify
-                tls_verify = not app_config.quay_registry.startswith("http://")
+            # If the registry is HTTP (like local E2E), disable TLS verify
+            tls_verify = not app_config.quay_registry.startswith("http://")
 
+            # Resolve the Dockerfile path before the try block so it's
+            # available in the except handler for patching attempts.
+            dockerfile_path = repo_dir / dockerfile
+
+            try:
                 # Verify the Dockerfile exists before attempting the build
-                dockerfile_path = repo_dir / dockerfile
                 if not dockerfile_path.exists():
                     # Log what files are actually in the directory for debugging
                     existing = [str(p.relative_to(repo_dir)) for p in repo_dir.rglob("Dockerfile*")]

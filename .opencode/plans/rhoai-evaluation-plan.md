@@ -151,28 +151,28 @@ def load_strategy_config() -> dict:
 
 def load_strategy(name: str | None = None) -> dict:
     """Load a strategy profile by name.
-    
+
     If name is None, reads the active strategy from strategy_config.yaml.
     Returns the parsed YAML dict from data/strategies/{name}.yaml.
     """
 
 def load_strategy_baseline(path: str) -> dict:
     """Load the strategy baseline YAML.
-    
+
     Path is resolved relative to the project data/ directory.
     Returns the parsed YAML dict.
     """
 
 def get_scoring_dimensions(strategy: dict) -> list[dict]:
     """Extract impact dimensions from a strategy profile.
-    
+
     Returns list of dicts with name, weight, source, etc.
     Used to dynamically build the evaluation prompt.
     """
 
 def compute_max_score(strategy: dict) -> int:
     """Compute the maximum possible score based on strategy dimensions.
-    
+
     For equal-weight dimensions summing to 100:
     max_per_dim = 100 // num_dimensions (e.g. 20 for 5 dims)
     """
@@ -236,7 +236,7 @@ The user message includes:
 # New routing function
 def route_after_evaluate(state: PoCState) -> list[str]:
     """After evaluate, always fan out to poc_plan + fork.
-    
+
     Evaluation failure does not block the pipeline.
     """
     # Check intake error (shouldn't happen - intake catches its own errors)

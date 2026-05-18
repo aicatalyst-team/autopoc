@@ -19,6 +19,7 @@ from autopoc.graph import build_graph
 from autopoc.logging_config import setup_logging
 from autopoc.sheet import (
     SheetProject,
+    SheetRowOrigin,
     _ORIGIN_KEY,
     build_sheets_service,
     ensure_result_columns,
@@ -133,8 +134,8 @@ def _get_checkpoint_dir(work_dir: str) -> Path:
 def _has_async_sqlite() -> bool:
     """Check if the async SQLite checkpointer is available."""
     try:
-        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver  # noqa: F401
-        import aiosqlite  # noqa: F401
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver  # noqa: F401  # type: ignore[import-not-found]
+        import aiosqlite  # noqa: F401  # type: ignore[import-not-found]
 
         return True
     except ImportError:
@@ -167,7 +168,7 @@ async def _invoke_graph_async(
     to ``MemorySaver`` if the async SQLite packages are not installed.
     """
     if _has_async_sqlite():
-        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver  # type: ignore[import-not-found]
 
         db_path = _get_checkpoint_dir(work_dir) / "autopoc.db"
         async with AsyncSqliteSaver.from_conn_string(str(db_path)) as checkpointer:
@@ -1042,7 +1043,9 @@ def _write_back_poc_results(
             tab_rows = [
                 r
                 for r in rows
-                if r.get(_ORIGIN_KEY) and r[_ORIGIN_KEY].tab_name == project.tab_name
+                if (origin := r.get(_ORIGIN_KEY))
+                and isinstance(origin, SheetRowOrigin)
+                and origin.tab_name == project.tab_name
             ]
             if tab_rows:
                 headers = [k for k in tab_rows[0] if k != _ORIGIN_KEY]
@@ -1178,13 +1181,13 @@ def resume(
         raise typer.Exit(code=1)
 
     async def _do_resume() -> dict:
-        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver  # type: ignore[import-not-found]
 
         db_path = _get_checkpoint_dir(config.work_dir) / "autopoc.db"
         async with AsyncSqliteSaver.from_conn_string(str(db_path)) as checkpointer:
             compiled_graph = build_graph(checkpointer=checkpointer)
-            checkpoint_config = {"configurable": {"thread_id": thread_id}}
-            state = await compiled_graph.aget_state(checkpoint_config)
+            checkpoint_config: dict = {"configurable": {"thread_id": thread_id}}
+            state = await compiled_graph.aget_state(checkpoint_config)  # type: ignore[arg-type]
 
             if state is None or not state.values:
                 console.print(
@@ -1205,7 +1208,7 @@ def resume(
                 )
             )
 
-            return await compiled_graph.ainvoke(None, config=checkpoint_config)
+            return await compiled_graph.ainvoke(None, config=checkpoint_config)  # type: ignore[arg-type]
 
     start_time = time.time()
 
@@ -1255,12 +1258,12 @@ def show_status(
         raise typer.Exit(code=1)
 
     async def _get_state():
-        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+        from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver  # type: ignore[import-not-found]
 
         db_path = _get_checkpoint_dir(config.work_dir) / "autopoc.db"
         async with AsyncSqliteSaver.from_conn_string(str(db_path)) as checkpointer:
             compiled_graph = build_graph(checkpointer=checkpointer)
-            return await compiled_graph.aget_state({"configurable": {"thread_id": thread_id}})
+            return await compiled_graph.aget_state({"configurable": {"thread_id": thread_id}})  # type: ignore[arg-type]
 
     state = asyncio.run(_get_state())
 

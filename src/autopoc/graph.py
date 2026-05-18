@@ -21,6 +21,7 @@ a manifest issue, it can escalate to containerize via the outer loop.
 """
 
 import logging
+from collections.abc import Hashable
 
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -346,7 +347,7 @@ def build_graph(checkpointer=None, *, stop_after: str | None = None) -> Compiled
         # evaluate → fan-out to [poc_plan, fork]
         if stop_after in ("poc_plan", "fork"):
             # Only fan out to the phases that are active
-            targets: dict[str, str] = {}
+            targets: dict[Hashable, str] = {}
             if _is_active("poc_plan"):
                 targets["poc_plan"] = "poc_plan"
             if _is_active("fork"):

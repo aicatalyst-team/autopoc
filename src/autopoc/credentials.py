@@ -28,6 +28,10 @@ class CredentialStatus:
 
 def check_gitlab(config: AutoPoCConfig, timeout: float = 10.0) -> CredentialStatus:
     """Validate GitLab token by calling GET /api/v4/user."""
+    if not config.gitlab_url:
+        return CredentialStatus("GitLab", False, "GITLAB_URL is not set")
+    if not config.gitlab_token:
+        return CredentialStatus("GitLab", False, "GITLAB_TOKEN is not set")
     url = f"{config.gitlab_url.rstrip('/')}/api/v4/user"
     try:
         resp = httpx.get(
@@ -84,7 +88,7 @@ def _check_quay_robot(config: AutoPoCConfig, registry: str, timeout: float) -> C
     try:
         resp = httpx.get(
             url,
-            auth=(config.quay_username, config.quay_token),
+            auth=(config.quay_username or "", config.quay_token),
             params=params,
             timeout=timeout,
             follow_redirects=True,
@@ -213,7 +217,8 @@ def check_llm_fallback(config: AutoPoCConfig, timeout: float = 5.0) -> Credentia
     if not config.has_fallback_provider:
         return None
 
-    url = config.llm_base_url.rstrip("/")
+    base_url = config.llm_base_url or ""
+    url = base_url.rstrip("/")
     # The /models endpoint is standard for OpenAI-compatible APIs
     models_url = f"{url}/models"
     model_name = config.llm_model or "unknown"

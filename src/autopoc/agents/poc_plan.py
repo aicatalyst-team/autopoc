@@ -12,12 +12,13 @@ from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.runnables import Runnable
 from langgraph.prebuilt import create_react_agent
 
 from autopoc.context import make_context_trimmer
 from autopoc.debug import dump_llm_response
 from autopoc.llm import create_llm
-from autopoc.state import PoCInfrastructure, PoCScenario, PoCState
+from autopoc.state import PoCInfrastructure, PoCScenario, PoCState, PoCStateUpdate
 from autopoc.tools.file_tools import list_files, read_file, search_files, write_file
 from autopoc.tools.git_tools import commit_to_artifacts_branch
 
@@ -338,7 +339,7 @@ def _build_user_message(state: PoCState, *, include_tool_instructions: bool = Tr
     parts = []
 
     project_name = state.get("project_name", "unknown")
-    clone_path = state.get("local_clone_path", "")
+    clone_path = state.get("local_clone_path") or ""
 
     parts.append("Analyze this project and create a PoC plan.\n")
     parts.append(f"Project name: {project_name}")
@@ -368,16 +369,16 @@ def _build_user_message(state: PoCState, *, include_tool_instructions: bool = Tr
                 f"- **{comp.get('name', '?')}**: {comp.get('language', '?')} "
                 f"({comp.get('build_system', '?')})"
             )
-            if comp.get("port"):
-                parts.append(f"  - Port: {comp['port']}")
-            if comp.get("entry_point"):
-                parts.append(f"  - Entry point: {comp['entry_point']}")
+            if port := comp.get("port"):
+                parts.append(f"  - Port: {port}")
+            if entry_point := comp.get("entry_point"):
+                parts.append(f"  - Entry point: {entry_point}")
             if comp.get("is_ml_workload"):
                 parts.append("  - **ML workload: yes**")
-            if comp.get("existing_dockerfile"):
-                parts.append(f"  - Has Dockerfile: {comp['existing_dockerfile']}")
-            if comp.get("source_dir") and comp["source_dir"] != ".":
-                parts.append(f"  - Source directory: {comp['source_dir']}")
+            if existing_df := comp.get("existing_dockerfile"):
+                parts.append(f"  - Has Dockerfile: {existing_df}")
+            if (source_dir := comp.get("source_dir")) and source_dir != ".":
+                parts.append(f"  - Source directory: {source_dir}")
         parts.append("")
 
     # Existing deployment artifacts
@@ -388,8 +389,8 @@ def _build_user_message(state: PoCState, *, include_tool_instructions: bool = Tr
         existing.append("Kustomize")
     if state.get("has_compose"):
         existing.append("Docker Compose")
-    if state.get("existing_ci_cd"):
-        existing.append(f"CI/CD ({state['existing_ci_cd']})")
+    if ci_cd := state.get("existing_ci_cd"):
+        existing.append(f"CI/CD ({ci_cd})")
 
     if existing:
         parts.append("## Existing Deployment Artifacts")
@@ -504,7 +505,7 @@ def _extract_llm_text(response) -> str:
 
 
 async def _generate_markdown_plan(
-    llm: BaseChatModel,
+    llm: Runnable | BaseChatModel,
     state: PoCState,
     parsed_json: dict,
     clone_path: str,
@@ -572,8 +573,8 @@ async def _generate_markdown_plan(
 async def poc_plan_agent(
     state: PoCState,
     *,
-    llm: BaseChatModel | None = None,
-) -> dict:
+    llm: Runnable | BaseChatModel | None = None,
+) -> PoCStateUpdate:
     """Generate a PoC plan for the repository.
 
     Three-phase approach:
@@ -596,12 +597,14 @@ async def poc_plan_agent(
         Partial state update with PoC plan results.
     """
     project_name = state.get("project_name", "unknown")
-    clone_path = state.get("local_clone_path", "")
+    clone_path = state.get("local_clone_path") or ""
 
     logger.info("Starting PoC plan generation for %s", project_name)
 
     if llm is None:
         llm = create_llm()
+
+    assert llm is not None
 
     system_prompt = _load_system_prompt()
 
@@ -718,6 +721,9 @@ async def poc_plan_agent(
             f"Please complete this by adding concrete test scenarios. "
             f"Read specific source files if needed to determine how to test the application."
         )
+
+    parsed_2: dict = {}
+    scenarios_2: list = []
 
     try:
         result = await agent.ainvoke(

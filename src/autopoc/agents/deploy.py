@@ -15,13 +15,14 @@ from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.runnables import Runnable
 from langgraph.prebuilt import create_react_agent
 
 from autopoc.config import AutoPoCConfig, load_config
 from autopoc.context import make_context_trimmer
 from autopoc.llm import create_llm
 from autopoc.llm_proxy import resolve_llm_env_vars
-from autopoc.state import PoCPhase, PoCState
+from autopoc.state import PoCPhase, PoCState, PoCStateUpdate
 from autopoc.tools.file_tools import list_files, read_file, search_files, write_file
 from autopoc.tools.git_tools import git_commit, git_push
 from autopoc.tools.template_tools import render_template
@@ -95,8 +96,8 @@ def _fixup_image_pull_policy(k8s_dir: Path) -> None:
 async def deploy_agent(
     state: PoCState,
     app_config: AutoPoCConfig | None = None,
-    llm: BaseChatModel | None = None,
-) -> PoCState:
+    llm: Runnable | BaseChatModel | None = None,
+) -> PoCStateUpdate:
     """Generate Kubernetes manifests for all components.
 
     Args:
@@ -121,7 +122,7 @@ async def deploy_agent(
     components = state.get("components", [])
     built_images = state.get("built_images", [])
     project_name = state.get("project_name", "unknown")
-    local_clone_path = state.get("local_clone_path", "")
+    local_clone_path = state.get("local_clone_path") or ""
 
     if not components and not built_images:
         logger.error("No components or built images to deploy — cannot generate manifests")
@@ -306,6 +307,7 @@ Components and their built images:
         )
 
     # Create agent with manifest generation tools only
+    assert llm is not None
     agent = create_react_agent(
         model=llm,
         tools=DEPLOY_TOOLS,

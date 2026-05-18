@@ -4,7 +4,7 @@ All agents read from and write to PoCState as it flows through the graph.
 """
 
 from enum import Enum
-from typing import Annotated, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from langgraph.graph.message import add_messages
 
@@ -214,3 +214,8 @@ class PoCState(TypedDict, total=False):
     blog_post_path: str  # Path to blog-post.md (final clean draft)
     blog_seo_path: str  # Path to blog-seo.md
     blog_preview_path: str  # Path to blog-preview.html
+
+
+# Partial state update returned by agent nodes.
+# LangGraph merges these into the full PoCState after each node runs.
+PoCStateUpdate = dict[str, Any]

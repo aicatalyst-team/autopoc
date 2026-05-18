@@ -22,10 +22,18 @@ from pathlib import Path
 from typing import Any
 
 from langchain_core.language_models import BaseChatModel
+from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from autopoc.llm import create_llm
-from autopoc.state import PoCPhase, PoCState, RHOAIDimensionScore, RHOAIEvaluation
+from autopoc.state import (
+    ComponentInfo,
+    PoCPhase,
+    PoCState,
+    PoCStateUpdate,
+    RHOAIDimensionScore,
+    RHOAIEvaluation,
+)
 from autopoc.tools.strategy import (
     compute_max_score,
     get_max_per_dimension,
@@ -212,7 +220,7 @@ def _build_output_schema(dimensions: list[dict[str, Any]], max_per_dim: int) -> 
     return schema
 
 
-def _format_components_for_prompt(components: list[dict]) -> str:
+def _format_components_for_prompt(components: list[dict] | list[ComponentInfo]) -> str:
     """Format component info for the user message."""
     if not components:
         return "No components detected."
@@ -407,8 +415,8 @@ def _build_evaluation_markdown(
 async def evaluate_agent(
     state: PoCState,
     *,
-    llm: BaseChatModel | None = None,
-) -> dict:
+    llm: Runnable | BaseChatModel | None = None,
+) -> PoCStateUpdate:
     """Evaluate a project's fitness for OpenShift AI PoC.
 
     This is a LangGraph node function.  It:
@@ -487,6 +495,7 @@ async def evaluate_agent(
     if llm is None:
         llm = create_llm()
 
+    assert llm is not None
     try:
         response = await llm.ainvoke(
             [

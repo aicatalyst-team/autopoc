@@ -10,12 +10,13 @@ from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.runnables import Runnable
 from langgraph.prebuilt import create_react_agent
 
 from autopoc.context import make_context_trimmer
 from autopoc.debug import dump_llm_response
 from autopoc.llm import create_llm
-from autopoc.state import PoCPhase, PoCResult, PoCState
+from autopoc.state import PoCPhase, PoCResult, PoCState, PoCStateUpdate
 from autopoc.tools.file_tools import read_file, write_file
 from autopoc.tools.k8s_tools import kubectl_get, kubectl_logs
 from autopoc.tools.git_tools import commit_to_artifacts_branch
@@ -142,10 +143,10 @@ def _build_user_message(state: PoCState) -> str:
             parts.append(f"### {s.get('name', '?')}")
             parts.append(f"- Description: {s.get('description', '')}")
             parts.append(f"- Type: {s.get('type', 'http')}")
-            if s.get("endpoint"):
-                parts.append(f"- Endpoint: {s['endpoint']}")
-            if s.get("input_data"):
-                parts.append(f"- Input: {s['input_data']}")
+            if endpoint := s.get("endpoint"):
+                parts.append(f"- Endpoint: {endpoint}")
+            if input_data := s.get("input_data"):
+                parts.append(f"- Input: {input_data}")
             parts.append(f"- Expected: {s.get('expected_behavior', '')}")
             parts.append(f"- Timeout: {s.get('timeout_seconds', 30)}s")
             parts.append("")
@@ -254,8 +255,8 @@ def _write_raw_test_output(
             name = r.get("scenario_name", "?")
             duration = r.get("duration_seconds", 0)
             lines.append(f"  [{status:5s}] {name} ({duration:.1f}s)")
-            if r.get("error_message"):
-                lines.append(f"         Error: {r['error_message']}")
+            if err_msg := r.get("error_message"):
+                lines.append(f"         Error: {err_msg}")
     else:
         lines.append("No structured results were parsed from test output.")
     lines.append("")
@@ -329,8 +330,8 @@ def _detect_container_issue(poc_results: list) -> str | None:
 async def poc_execute_agent(
     state: PoCState,
     *,
-    llm: BaseChatModel | None = None,
-) -> dict:
+    llm: Runnable | BaseChatModel | None = None,
+) -> PoCStateUpdate:
     """Generate and execute PoC test scripts.
 
     This is a LangGraph node function. It runs after successful deployment
@@ -356,6 +357,7 @@ async def poc_execute_agent(
     system_prompt = _load_system_prompt()
 
     # Create the ReAct agent
+    assert llm is not None
     agent = create_react_agent(
         model=llm,
         tools=POC_EXECUTE_TOOLS,

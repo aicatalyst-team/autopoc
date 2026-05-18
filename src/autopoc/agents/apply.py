@@ -27,12 +27,13 @@ from pathlib import Path
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.runnables import Runnable
 from langgraph.prebuilt import create_react_agent
 
 from autopoc.config import AutoPoCConfig, load_config
 from autopoc.context import make_context_trimmer
 from autopoc.llm import create_llm
-from autopoc.state import PoCPhase, PoCState
+from autopoc.state import PoCPhase, PoCState, PoCStateUpdate
 from autopoc.tools.file_tools import list_files, read_file
 from autopoc.tools.k8s_tools import (
     _run_kubectl,
@@ -313,8 +314,8 @@ async def _triage_apply_error(error_text: str) -> str:
 async def apply_agent(
     state: PoCState,
     app_config: AutoPoCConfig | None = None,
-    llm: BaseChatModel | None = None,
-) -> PoCState:
+    llm: Runnable | BaseChatModel | None = None,
+) -> PoCStateUpdate:
     """Apply K8s manifests to the cluster and verify deployment.
 
     Args:
@@ -337,7 +338,7 @@ async def apply_agent(
 
     # Check prerequisites
     project_name = state.get("project_name", "unknown")
-    local_clone_path = state.get("local_clone_path", "")
+    local_clone_path = state.get("local_clone_path") or ""
     components = state.get("components", [])
     built_images = state.get("built_images", [])
     previous_error = state.get("error")
@@ -447,6 +448,7 @@ Manifests directory: {k8s_dir}
     )
 
     # Create agent
+    assert llm is not None
     agent = create_react_agent(
         model=llm,
         tools=APPLY_TOOLS,

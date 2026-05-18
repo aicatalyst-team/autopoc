@@ -151,7 +151,7 @@ def read_sheet(
 
     tabs_to_read = sheets[: max(1, max_tabs)]
 
-    all_parsed: list[dict[str, str]] = []
+    all_parsed: list[dict[str, Any]] = []
 
     for tab_info in tabs_to_read:
         props = tab_info["properties"]
@@ -197,7 +197,7 @@ def read_sheet(
     return all_parsed
 
 
-def _parse_rows(all_rows: list[list[str]]) -> list[dict[str, str]]:
+def _parse_rows(all_rows: list[list[str]]) -> list[dict[str, Any]]:
     """Parse raw sheet rows into dicts, skipping metadata and using the header.
 
     Exported for testability — ``read_sheet`` delegates to this after
@@ -231,7 +231,7 @@ def _parse_rows(all_rows: list[list[str]]) -> list[dict[str, str]]:
         len(data_rows),
     )
 
-    parsed: list[dict[str, str]] = []
+    parsed: list[dict[str, Any]] = []
     for row in data_rows:
         # Pad ragged rows with empty strings
         padded = row + [""] * (len(header) - len(row))

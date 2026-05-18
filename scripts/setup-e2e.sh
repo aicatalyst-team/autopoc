@@ -235,10 +235,10 @@ with app.app_context():
     all_scopes_str = ",".join(auth.scopes.ALL_SCOPES.keys())
     token_str = oauth.random_string_generator(40)()
     token_obj = oauth.create_user_access_token(
-        u, 
-        my_app.client_id, 
-        all_scopes_str, 
-        access_token=token_str, 
+        u,
+        my_app.client_id,
+        all_scopes_str,
+        access_token=token_str,
         expires_in=315360000
     )
     print(token_str)
