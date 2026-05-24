@@ -56,6 +56,12 @@ RUN curl -fsSL "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OC_V
     | tar xzf - -C /usr/local/bin oc && \
     chmod +x /usr/local/bin/oc
 
+# Install vale (prose linter)
+ARG VALE_VERSION=3.14.2
+RUN curl -fsSL "https://github.com/errata-ai/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_Linux_64-bit.tar.gz" \
+    | tar xzf - -C /usr/local/bin vale && \
+    chmod +x /usr/local/bin/vale
+
 # Copy the shiv binary from builder
 COPY --from=builder /build/dist/autopoc /usr/local/bin/autopoc
 RUN chmod +x /usr/local/bin/autopoc
@@ -71,6 +77,11 @@ RUN git config --global user.email "autopoc@autopoc.local" && \
     git config --global user.name "AutoPoC Agent"
 
 WORKDIR /workspace
+
+# Vale prose linting config — place at /workspace so vale finds it when
+# linting files under /workspace/<project>/
+COPY .vale.ini /workspace/.vale.ini
+RUN vale sync --config /workspace/.vale.ini
 
 # Default working directory for cloned repos and temp files
 ENV WORK_DIR=/workspace
