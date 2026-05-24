@@ -1018,6 +1018,26 @@ See [blog-post-plan.md](./blog-post-plan.md) for full details.
 
 ---
 
+### Phase 15: Vale Prose Linting
+
+**Goal:** Integrate Vale prose linting into the pipeline as a post-generation
+revision loop. After each agent writes a markdown artifact, Vale runs and
+findings are fed back to the LLM for revision (up to N rounds). Improves prose
+quality using the Red Hat style guide while preserving technical accuracy.
+
+| # | Task | Details |
+|---|------|---------|
+| 15.1 | Core vale module | `src/autopoc/vale.py` — `run_vale()`, `format_findings_prompt()`, `vale_lint_and_revise()` |
+| 15.2 | Revision prompt | `src/autopoc/prompts/vale_revision.md` — conservative, selective revision instructions |
+| 15.3 | State & config | `ValeFinding` TypedDict, `vale_results` state field, `max_vale_revisions` config |
+| 15.4 | poc_report integration | Call `vale_lint_and_revise()` after report generation, before git commit |
+| 15.5 | poc_plan integration | Call `vale_lint_and_revise()` after plan markdown generation, before git commit |
+| 15.6 | Tests | `tests/test_vale.py` — mocked subprocess + LLM tests for all code paths |
+
+See [vale-linting-plan.md](./vale-linting-plan.md) for full details.
+
+---
+
 Below are the original phase details (Phases 1-8). Phase 8 is shown in summary form
 above; its full task listing follows.
 
