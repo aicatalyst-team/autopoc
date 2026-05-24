@@ -132,6 +132,12 @@ class AutoPoCConfig(BaseSettings):
         description="Max times apply can escalate to containerize to fix runtime container issues",
     )
 
+    # Vale prose linting
+    max_vale_revisions: int = Field(
+        default=3,
+        description="Max LLM revision passes when Vale finds prose issues in generated markdown",
+    )
+
     # Google Sheet integration (for `run-sheet` command)
     sheet_credentials: str | None = Field(
         default=None,

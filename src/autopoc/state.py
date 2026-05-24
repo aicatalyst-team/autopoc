@@ -215,6 +215,9 @@ class PoCState(TypedDict, total=False):
     blog_seo_path: str  # Path to blog-seo.md
     blog_preview_path: str  # Path to blog-preview.html
 
+    # --- Vale linting output ---
+    vale_findings: list[dict]  # Summary of Vale findings across all linted files
+
 
 # Partial state update returned by agent nodes.
 # LangGraph merges these into the full PoCState after each node runs.
