@@ -1,0 +1,499 @@
+---
+name: run-poc
+description: Run a full Proof-of-Concept pipeline for a GitHub repository on OpenShift AI. Clones the repo, analyzes it, forks to GitLab/GitHub, creates a PoC plan, containerizes with UBI images, builds and pushes to Quay, deploys to Kubernetes, runs validation tests, and generates a PoC report. Use this skill when asked to "run a PoC", "deploy a project to OpenShift", or given a GitHub URL to evaluate.
+---
+
+# run-poc
+
+Automated Proof-of-Concept pipeline for deploying GitHub projects on OpenShift AI (Open Data Hub). Takes a repository URL and project name, then executes an 11-phase pipeline that ends with a validated deployment and comprehensive report.
+
+## Before You Start
+
+1. **Read the state file** if it exists: `$AUTOPOC_WORK_DIR/poc-state.yaml` (default work dir: `/workspace` in pods, `/tmp/autopoc` locally). If a state file exists with completed phases, resume from the last incomplete phase.
+
+2. **Verify credentials** are available as environment variables:
+   - LLM: `ANTHROPIC_API_KEY` or (`VERTEX_PROJECT` + `VERTEX_LOCATION`)
+   - Fork target: `GITLAB_URL` + `GITLAB_TOKEN` + `GITLAB_GROUP` (or `GITHUB_TOKEN` + `GITHUB_ORG`)
+   - Registry: `QUAY_ORG` + `QUAY_TOKEN` + `QUAY_USERNAME`
+   - Cluster: `OPENSHIFT_TOKEN` + `OPENSHIFT_API_URL` (optional if in-cluster)
+
+3. **Set up the work directory**:
+   ```bash
+   WORK_DIR="${AUTOPOC_WORK_DIR:-/tmp/autopoc}"
+   mkdir -p "$WORK_DIR/repos"
+   ```
+
+## Pipeline Overview
+
+```
+Phase 1: Intake      -> Clone and analyze the repository
+Phase 2: Evaluate    -> Score RHOAI fitness (non-blocking)
+Phase 3: Fork        -> Push to GitLab/GitHub
+Phase 4: PoC Plan    -> Create plan with scenarios and infrastructure
+Phase 5: Containerize -> Write UBI-based Dockerfiles
+Phase 6: Build       -> podman build + push to Quay
+Phase 7: Deploy      -> Generate Kubernetes manifests
+Phase 8: Apply       -> kubectl apply + verify pods
+Phase 9: PoC Execute -> Write and run test scripts
+Phase 10: PoC Report -> Generate markdown report
+Phase 11: Blog Post  -> Generate developer blog (if tests pass)
+```
+
+Retry loops:
+- **Build retry**: Phase 6 fails -> back to Phase 5 (fix Dockerfile) -> Phase 6 again
+- **Deploy retry**: Phase 8 fails with manifest issue -> back to Phase 7 (fix manifests) -> Phase 8
+- **Container fix**: Phase 8 or 9 detects container issue -> back to Phase 5 (full rebuild cycle)
+
+Read `references/retry-strategy.md` for the complete retry logic.
+
+## State File
+
+Maintain a progressive YAML state file at `$WORK_DIR/poc-state.yaml`. Read `references/state-schema.md` for the complete schema.
+
+**Update the state file after completing each phase.** This is critical for:
+- Tracking retry counters
+- Providing context to later phases
+- Enabling coarse resume if the pipeline is interrupted
+
+## Phase 1: Intake
+
+**Purpose**: Clone the repository and analyze its structure, components, and technologies.
+
+### Steps
+
+1. Clone the repository:
+   ```bash
+   git clone "$REPO_URL" "$WORK_DIR/repos/$PROJECT_NAME"
+   ```
+
+2. Generate a repository digest:
+   ```bash
+   cd "$WORK_DIR/repos/$PROJECT_NAME"
+   python -m autopoc.tools.repo_digest "$WORK_DIR/repos/$PROJECT_NAME"
+   ```
+   This produces a markdown summary of the repo: file tree, build files, README, entry points, Dockerfiles, CI/CD detection.
+
+3. **Analyze the digest** and identify components. Follow the analysis instructions in `references/intake.md`. For each component, determine:
+   - name, language, build_system, entry_point, port
+   - is_ml_workload (check for torch, tensorflow, transformers, etc.)
+   - source_dir, existing_dockerfile
+
+4. **Validate component paths**: For each component, verify `source_dir` exists on disk:
+   ```bash
+   ls "$WORK_DIR/repos/$PROJECT_NAME/$SOURCE_DIR"
+   ```
+   If it doesn't exist, look for the correct directory and adjust.
+
+5. Update `poc-state.yaml` with the intake results.
+
+### Exit condition
+At least one component identified. If zero components found, set error and stop.
+
+---
+
+## Phase 2: Evaluate
+
+**Purpose**: Score the project's fitness as an OpenShift AI proof-of-concept.
+
+**This phase is NON-BLOCKING.** If evaluation fails, continue the pipeline.
+
+### Steps
+
+1. Load the strategy configuration:
+   ```bash
+   python -m autopoc.tools.strategy load
+   python -m autopoc.tools.strategy load-baseline
+   ```
+
+2. **Score the project** against the strategy dimensions. Read the strategy YAML output and the repo digest/summary from Phase 1. Score each dimension (audience_value, strategic_alignment, strategy_fit, platform_leverage, demo_potential) on a 0-20 scale.
+
+3. Write the evaluation to `$WORK_DIR/repos/$PROJECT_NAME/.autopoc/rhoai-evaluation.md`.
+
+4. Update `poc-state.yaml` with evaluation results.
+
+### Exit condition
+Evaluation written (or skipped on failure). Pipeline continues regardless.
+
+---
+
+## Phase 3: Fork
+
+**Purpose**: Push the repository to the configured forge (GitLab or GitHub).
+
+### Steps
+
+Determine fork target from env vars (`AUTOPOC_FORK_TARGET`, defaults to `gitlab`).
+
+**GitLab path:**
+1. Create the project:
+   ```bash
+   python -m autopoc.tools.gitlab_client create-project "$PROJECT_NAME"
+   ```
+2. Add the remote and push:
+   ```bash
+   cd "$WORK_DIR/repos/$PROJECT_NAME"
+   git remote rename origin github 2>/dev/null || true
+   GITLAB_CLONE_URL=$(python -m autopoc.tools.gitlab_client get-clone-url "$PROJECT_NAME")
+   git remote add origin "$GITLAB_CLONE_URL" 2>/dev/null || git remote set-url origin "$GITLAB_CLONE_URL"
+   git push origin --all --force
+   git push origin --tags --force
+   ```
+
+**GitHub path:**
+1. Fork the repository:
+   ```bash
+   python -m autopoc.tools.github_client fork "$OWNER" "$REPO"
+   ```
+2. Wait for fork completion and reconfigure remotes.
+
+3. Update `poc-state.yaml` with fork URL and target.
+
+### Exit condition
+Fork URL recorded in state.
+
+---
+
+## Phase 4: PoC Plan
+
+**Purpose**: Create a PoC plan with test scenarios and infrastructure requirements.
+
+### Steps
+
+1. Read the repo digest, component list, and evaluation from state.
+
+2. **Generate the PoC plan** following the detailed instructions in `references/poc-plan.md`. This includes:
+   - Classifying the project type (model-serving, rag, web-app, llm-app, etc.)
+   - Determining infrastructure requirements (GPU, PVC, sidecars, resource profile)
+   - Determining deployment model (Deployment vs Job vs CronJob)
+   - Detecting LLM API dependencies
+   - Defining 2-5 test scenarios
+
+3. Write `poc-plan.md` to the repo root.
+
+4. Optionally run Vale linting:
+   ```bash
+   vale --output=JSON "$WORK_DIR/repos/$PROJECT_NAME/poc-plan.md" 2>/dev/null || true
+   ```
+
+5. Commit to artifacts branch:
+   ```bash
+   python -m autopoc.tools.artifacts "$WORK_DIR/repos/$PROJECT_NAME" poc-plan.md
+   ```
+
+6. Update `poc-state.yaml` with poc_type, scenarios, infrastructure, and poc_plan_path.
+
+### Exit condition
+PoC plan written with at least one scenario defined.
+
+---
+
+## Phase 5: Containerize
+
+**Purpose**: Create UBI-based Dockerfiles for each PoC component.
+
+### Steps
+
+1. Read the PoC plan from state for infrastructure requirements and deployment model.
+
+2. For each component that is part of the PoC (check `poc_plan.poc_components` if set, otherwise use all components):
+
+   a. Read the component's existing Dockerfile (if any):
+      ```bash
+      cat "$WORK_DIR/repos/$PROJECT_NAME/$COMPONENT_DIR/Dockerfile" 2>/dev/null
+      ```
+
+   b. Read the component's dependency file (requirements.txt, package.json, etc.)
+
+   c. **Generate `Dockerfile.ubi`** following the rules in `references/containerize.md` and `references/ubi-dockerfile-rules.md`. Key rules:
+      - Use UBI base images (see mapping table in references)
+      - Final USER must be 1001
+      - Add `chgrp -R 0 /opt/app-root && chmod -R g=u /opt/app-root` before final USER
+      - Use dnf for full UBI images, microdnf for ubi-minimal
+      - No privileged ports (80 -> 8080, 443 -> 8443)
+      - Use CPU-only ML package variants unless GPU is needed
+      - Set correct CMD/ENTRYPOINT based on deployment_model
+
+   d. Write the Dockerfile:
+      ```bash
+      # Write Dockerfile.ubi to the component's source directory
+      ```
+
+   e. Create `.dockerignore` if it doesn't exist.
+
+3. If this is a **retry entry** (build error or container fix from state), read the error context and fix the Dockerfile accordingly.
+
+4. Commit and push:
+   ```bash
+   cd "$WORK_DIR/repos/$PROJECT_NAME"
+   git add -A
+   git commit -m "Add UBI Dockerfiles for PoC"
+   git push origin HEAD --force
+   ```
+
+5. Update `poc-state.yaml` with Dockerfile paths.
+
+### Exit condition
+Every PoC component has a `Dockerfile.ubi` written and committed.
+
+---
+
+## Phase 6: Build
+
+**Purpose**: Build container images and push to Quay registry.
+
+### Steps
+
+1. Log in to the registry:
+   ```bash
+   echo "$QUAY_TOKEN" | podman login "${QUAY_REGISTRY:-quay.io}" -u "$QUAY_USERNAME" --password-stdin
+   ```
+
+2. For each component:
+
+   a. Ensure the Quay repository exists:
+      ```bash
+      python -m autopoc.tools.quay_client ensure-repo "$QUAY_ORG" "$PROJECT_NAME-$COMPONENT"
+      ```
+
+   b. Build the image:
+      ```bash
+      cd "$WORK_DIR/repos/$PROJECT_NAME/$COMPONENT_DIR"
+      podman build -t "${QUAY_REGISTRY:-quay.io}/$QUAY_ORG/$PROJECT_NAME-$COMPONENT:latest" \
+        -f Dockerfile.ubi . 2>&1
+      ```
+
+   c. Push the image:
+      ```bash
+      podman push "${QUAY_REGISTRY:-quay.io}/$QUAY_ORG/$PROJECT_NAME-$COMPONENT:latest"
+      ```
+
+3. **On build failure:**
+   - Read the error output
+   - Check if it's a **permanent error** (authentication failure, network unreachable, podman not found) -> FAIL
+   - Check if retries are available (read `retries.build_retries` from state < `retries.max_build_retries`)
+   - If retriable: increment `retries.build_retries`, record the error, go back to Phase 5
+   - If retries exhausted: FAIL
+
+4. Update `poc-state.yaml` with built images.
+
+### Exit condition
+All component images built and pushed successfully.
+
+---
+
+## Phase 7: Deploy
+
+**Purpose**: Generate Kubernetes manifests for the deployment.
+
+### Steps
+
+1. Read built images, PoC plan infrastructure, and scenarios from state.
+
+2. **Generate Kubernetes manifests** following `references/deploy.md`. Create files in `$WORK_DIR/repos/$PROJECT_NAME/kubernetes/`:
+   - `namespace.yaml` (always first)
+   - For each component based on deployment_model:
+     - `deployment` + `listens_on_port`: Deployment + Service
+     - `deployment` + no port: Deployment only (no Service)
+     - `job`: One Job per test scenario
+   - `secret.yaml` for sensitive env vars (API keys, tokens)
+   - `pvc.yaml` if persistent storage needed
+
+3. Handle **LLM proxy** if `infrastructure.needs_llm_api` is true:
+   ```bash
+   python -m autopoc.tools.llm_proxy '{"OPENAI_API_KEY": "required", "OPENAI_BASE_URL": ""}'
+   ```
+   Use the resolved env vars in the manifests.
+
+4. Commit and push manifests:
+   ```bash
+   cd "$WORK_DIR/repos/$PROJECT_NAME"
+   git add kubernetes/
+   git commit -m "Add Kubernetes manifests"
+   git push origin HEAD --force
+   ```
+
+5. If this is a **retry entry** (apply error from state), read the previous error and fix the manifests accordingly.
+
+6. Update `poc-state.yaml` with manifests directory path.
+
+### Exit condition
+All manifest files written and committed.
+
+---
+
+## Phase 8: Apply
+
+**Purpose**: Apply manifests to the Kubernetes cluster and verify deployment.
+
+### Steps
+
+1. Create the namespace:
+   ```bash
+   kubectl create namespace "poc-$PROJECT_NAME" --dry-run=client -o yaml | kubectl apply -f -
+   ```
+
+2. Apply manifests in order:
+   ```bash
+   # Namespace first
+   kubectl apply -f "$WORK_DIR/repos/$PROJECT_NAME/kubernetes/namespace.yaml"
+   # Then PVCs, secrets, deployments, services
+   kubectl apply -f "$WORK_DIR/repos/$PROJECT_NAME/kubernetes/" -n "poc-$PROJECT_NAME"
+   ```
+
+3. Wait for rollout:
+   ```bash
+   # For Deployments
+   kubectl rollout status deployment/$COMPONENT -n "poc-$PROJECT_NAME" --timeout=300s
+   # For Jobs
+   kubectl wait --for=condition=complete job/$JOB_NAME -n "poc-$PROJECT_NAME" --timeout=120s
+   ```
+
+4. Verify pods are healthy:
+   ```bash
+   kubectl get pods -n "poc-$PROJECT_NAME"
+   ```
+   Wait 15 seconds, then check again for CrashLoopBackOff, ImagePullBackOff, etc.
+
+5. Get service URLs:
+   ```bash
+   kubectl get svc -n "poc-$PROJECT_NAME" -o json
+   ```
+
+6. **On failure:** Classify the error per `references/error-triage.md`:
+   - RBAC forbidden -> fix-manifest (back to Phase 7)
+   - Namespace not found -> fix-manifest (back to Phase 7)
+   - CrashLoopBackOff -> fix-dockerfile (back to Phase 5)
+   - ImagePullBackOff -> fix-dockerfile (back to Phase 5)
+   - Command not found in logs -> fix-dockerfile (back to Phase 5)
+   - Other -> analyze logs, classify, route accordingly
+
+   Check retry counters per `references/retry-strategy.md`.
+
+7. Update `poc-state.yaml` with deployed resources, routes, and any errors.
+
+### Exit condition
+All pods healthy and service URLs recorded.
+
+---
+
+## Phase 9: PoC Execute
+
+**Purpose**: Generate and run test scripts to validate the deployment.
+
+### Steps
+
+1. Read scenarios and routes from state.
+
+2. **Write a Python test script** (`poc_test.py`) following `references/poc-execute.md`:
+   - Use only Python stdlib + `urllib.request`
+   - Implement each scenario from the PoC plan
+   - Include retry logic (services may take time to start)
+   - Output structured JSON results to stdout
+
+3. Execute the test script:
+   ```bash
+   cd "$WORK_DIR/repos/$PROJECT_NAME"
+   python poc_test.py "$SERVICE_URL" 2>&1
+   ```
+
+4. Parse the JSON results from stdout.
+
+5. If tests fail, debug with kubectl:
+   ```bash
+   kubectl get pods -n "poc-$PROJECT_NAME"
+   kubectl logs deployment/$COMPONENT -n "poc-$PROJECT_NAME" --tail=50
+   ```
+
+6. **Detect container-level issues** in test failures:
+   - "command not found" -> container fix (back to Phase 5)
+   - "ModuleNotFoundError" -> container fix (back to Phase 5)
+   - "CrashLoopBackOff" -> container fix (back to Phase 5)
+   - "exec format error" -> container fix (back to Phase 5)
+   Check `retries.container_fix_retries` < `retries.max_container_fix_retries`.
+
+7. Commit test artifacts:
+   ```bash
+   python -m autopoc.tools.artifacts "$WORK_DIR/repos/$PROJECT_NAME" poc_test.py
+   ```
+
+8. Update `poc-state.yaml` with test results.
+
+### Exit condition
+Test results recorded in state (pass or fail).
+
+---
+
+## Phase 10: PoC Report
+
+**Purpose**: Generate a comprehensive markdown report summarizing the entire pipeline run.
+
+### Steps
+
+1. Read all state data (all phases).
+
+2. **Generate the report** following `references/poc-report.md`. Include:
+   - Executive summary
+   - Project analysis with component table
+   - PoC objectives
+   - Pipeline execution summary (each phase)
+   - Test results table
+   - Infrastructure deployed
+   - Recommendations
+   - ODH/OpenShift AI considerations
+   - Appendix with links to artifacts
+
+3. Write `poc-report.md`:
+   ```bash
+   # Write report to repo
+   ```
+
+4. Run Vale linting (optional):
+   ```bash
+   vale --output=JSON "$WORK_DIR/repos/$PROJECT_NAME/poc-report.md" 2>/dev/null || true
+   ```
+
+5. Commit to artifacts branch:
+   ```bash
+   python -m autopoc.tools.artifacts "$WORK_DIR/repos/$PROJECT_NAME" poc-report.md
+   ```
+
+6. Update `poc-state.yaml` with report path.
+
+### Exit condition
+Report written and committed.
+
+---
+
+## Phase 11: Blog Post (Conditional)
+
+**Purpose**: Generate a developer blog post about the PoC deployment.
+
+**Only execute this phase if a majority of test scenarios passed.**
+
+### Steps
+
+1. Count pass/fail from `poc_execute.results` in state.
+2. If majority passed: invoke the `blog-create` skill with the PoC context.
+3. The blog-create skill handles the full generation pipeline (draft, review loop, finalize).
+
+### Exit condition
+Blog post written (or phase skipped if tests didn't pass).
+
+---
+
+## Error Handling
+
+- If any phase fails with an unrecoverable error, set `project.current_phase` to the failed phase and add the error to the `errors` array in state.
+- Always check exit codes after bash commands.
+- Capture stderr alongside stdout for debugging: `command 2>&1`
+- For kubectl commands, always specify the namespace explicitly.
+- If a command times out, record the timeout in the error and decide whether to retry.
+
+## Important Reminders
+
+- **Update poc-state.yaml after every phase.** This is your persistent memory.
+- **Always use absolute paths** for file operations and kubectl commands.
+- **Never leave USER root** as the final Dockerfile directive.
+- **Check retry counters before looping back** to a previous phase.
+- **Non-blocking phases** (evaluate, blog post): failures don't stop the pipeline.
+- **Git operations**: always push with `--force` to handle retry scenarios where commits are rewritten.
