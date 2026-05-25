@@ -81,7 +81,9 @@ WORKDIR /workspace
 # Vale prose linting config — place at /workspace so vale finds it when
 # linting files under /workspace/<project>/
 COPY .vale.ini /workspace/.vale.ini
-RUN vale sync --config /workspace/.vale.ini
+RUN vale sync --config /workspace/.vale.ini && \
+    mkdir -p /workspace/.vale/styles && \
+    cp -r "${HOME}/.local/share/vale/styles"/* /workspace/.vale/styles/
 
 # Default working directory for cloned repos and temp files
 ENV WORK_DIR=/workspace
