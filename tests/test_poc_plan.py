@@ -307,7 +307,8 @@ class TestPocPlanAgent:
             ],
         }
 
-        result = await poc_plan_agent(state, llm=mock_llm)
+        with patch("autopoc.agents.poc_plan.vale_lint_and_revise", new_callable=AsyncMock):
+            result = await poc_plan_agent(state, llm=mock_llm)
 
         # poc_plan runs in parallel with fork, so it does NOT set current_phase
         assert "current_phase" not in result
