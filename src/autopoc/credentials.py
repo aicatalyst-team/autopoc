@@ -115,8 +115,14 @@ def _check_quay_robot(config: AutoPoCConfig, registry: str, timeout: float) -> C
 
 
 def _check_quay_oauth(config: AutoPoCConfig, registry: str, timeout: float) -> CredentialStatus:
-    """Validate OAuth token via GET /api/v1/user/."""
-    url = f"{registry.rstrip('/')}/api/v1/user/"
+    """Validate OAuth token via GET /api/v1/repository/{org}/{probe}.
+
+    Uses a repository-scoped endpoint so the token only needs repository
+    read access (no "Read User Information" scope required).  A 404 still
+    proves the token is valid — it just means the probe repo doesn't exist.
+    """
+    probe_repo = "autopoc"
+    url = f"{registry.rstrip('/')}/api/v1/repository/{config.quay_org}/{probe_repo}"
     try:
         resp = httpx.get(
             url,
@@ -124,10 +130,11 @@ def _check_quay_oauth(config: AutoPoCConfig, registry: str, timeout: float) -> C
             timeout=timeout,
             follow_redirects=True,
         )
-        if resp.status_code == 200:
-            data = resp.json()
-            username = data.get("username", "unknown")
-            return CredentialStatus("Quay", True, f"authenticated as {username} (OAuth token)")
+        if resp.status_code in (200, 404):
+            # 200 = repo exists, 404 = repo doesn't exist but token is valid
+            return CredentialStatus(
+                "Quay", True, f"authenticated for org {config.quay_org} (OAuth token)"
+            )
         elif resp.status_code == 401:
             return CredentialStatus("Quay", False, "token is invalid or expired (401)")
         else:

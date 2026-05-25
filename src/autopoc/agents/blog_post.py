@@ -26,6 +26,7 @@ from langchain_core.runnables import Runnable
 from autopoc.llm import create_llm, strip_think_tags
 from autopoc.state import PoCPhase, PoCState
 from autopoc.tools.git_tools import commit_to_artifacts_branch
+from autopoc.tools.vale_lint import vale_lint_and_revise
 
 logger = logging.getLogger(__name__)
 
@@ -647,6 +648,12 @@ async def blog_post_agent(
 
         Path(blog_post_path).write_text(final_draft, encoding="utf-8")
         logger.info("Blog post written to %s (%d words)", blog_post_path, len(final_draft.split()))
+
+        # Vale prose linting with LLM revision loop
+        try:
+            final_draft, _blog_vale_findings = await vale_lint_and_revise(blog_post_path, llm)
+        except Exception as e:
+            logger.warning("Vale lint-and-revise failed for blog-post.md: %s", e)
 
         Path(blog_seo_path).write_text(seo_text, encoding="utf-8")
         logger.info("SEO metadata written to %s", blog_seo_path)

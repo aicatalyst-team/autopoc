@@ -20,6 +20,7 @@ from langchain_core.runnables import Runnable
 from autopoc.llm import create_llm
 from autopoc.state import PoCPhase, PoCState, PoCStateUpdate
 from autopoc.tools.git_tools import commit_to_artifacts_branch
+from autopoc.tools.vale_lint import vale_lint_and_revise
 
 logger = logging.getLogger(__name__)
 
@@ -293,6 +294,13 @@ async def poc_report_agent(
         report_file.write_text(report_content, encoding="utf-8")
         logger.info("PoC report written to %s (%d chars)", poc_report_path, len(report_content))
 
+        # Vale prose linting with LLM revision loop
+        vale_findings: list[dict] = []
+        try:
+            report_content, vale_findings = await vale_lint_and_revise(poc_report_path, llm)
+        except Exception as e:
+            logger.warning("Vale lint-and-revise failed for poc-report.md: %s", e)
+
         # Commit poc-report.md to the artifacts branch and push to GitLab
         if clone_path:
             commit_to_artifacts_branch(
@@ -301,10 +309,13 @@ async def poc_report_agent(
                 message="Add PoC report (poc-report.md)",
             )
 
-        return {
+        result: dict = {
             "current_phase": PoCPhase.POC_REPORT,
             "poc_report_path": poc_report_path,
         }
+        if vale_findings:
+            result["vale_findings"] = vale_findings
+        return result
 
     except Exception as e:
         logger.error("PoC report generation failed: %s", e)

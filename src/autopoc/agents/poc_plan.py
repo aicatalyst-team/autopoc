@@ -21,6 +21,7 @@ from autopoc.llm import create_llm
 from autopoc.state import PoCInfrastructure, PoCScenario, PoCState, PoCStateUpdate
 from autopoc.tools.file_tools import list_files, read_file, search_files, write_file
 from autopoc.tools.git_tools import commit_to_artifacts_branch
+from autopoc.tools.vale_lint import vale_lint_and_revise
 
 logger = logging.getLogger(__name__)
 
@@ -672,6 +673,14 @@ async def poc_plan_agent(
             except Exception as e:
                 logger.warning("Failed to write poc-plan.md: %s", e)
 
+        # Vale prose linting with LLM revision loop
+        vale_findings: list[dict] = []
+        if poc_plan_content and poc_plan_path.exists():
+            try:
+                poc_plan_content, vale_findings = await vale_lint_and_revise(poc_plan_path, llm)
+            except Exception as e:
+                logger.warning("Vale lint-and-revise failed for poc-plan.md: %s", e)
+
         # Commit poc-plan.md to a dedicated branch and push to GitLab
         if clone_path and poc_plan_content:
             commit_to_artifacts_branch(
@@ -680,7 +689,7 @@ async def poc_plan_agent(
                 message="Add PoC plan (poc-plan.md)",
             )
 
-        return {
+        result_state: dict = {
             "poc_plan": poc_plan_content,
             "poc_plan_path": str(poc_plan_path),
             "poc_plan_error": None,
@@ -689,6 +698,9 @@ async def poc_plan_agent(
             "poc_infrastructure": infrastructure,
             "poc_type": poc_type,
         }
+        if vale_findings:
+            result_state["vale_findings"] = vale_findings
+        return result_state
 
     # -------------------------------------------------------------------------
     # Phase 2: ReAct fallback with file tools
@@ -788,6 +800,16 @@ async def poc_plan_agent(
         except Exception as e:
             logger.warning("Failed to write poc-plan.md: %s", e)
 
+    # Vale prose linting with LLM revision loop
+    vale_findings_fallback: list[dict] = []
+    if poc_plan_content and poc_plan_path.exists():
+        try:
+            poc_plan_content, vale_findings_fallback = await vale_lint_and_revise(
+                poc_plan_path, llm
+            )
+        except Exception as e:
+            logger.warning("Vale lint-and-revise failed for poc-plan.md: %s", e)
+
     # Commit poc-plan.md to a dedicated branch and push to GitLab
     if clone_path and poc_plan_content:
         commit_to_artifacts_branch(
@@ -804,7 +826,7 @@ async def poc_plan_agent(
         "yes" if plan_error else "no",
     )
 
-    return {
+    result_state_fallback: dict = {
         "poc_plan": poc_plan_content,
         "poc_plan_path": str(poc_plan_path),
         "poc_plan_error": plan_error,
@@ -813,3 +835,6 @@ async def poc_plan_agent(
         "poc_infrastructure": infrastructure,
         "poc_type": poc_type,
     }
+    if vale_findings_fallback:
+        result_state_fallback["vale_findings"] = vale_findings_fallback
+    return result_state_fallback
