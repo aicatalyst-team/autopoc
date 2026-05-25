@@ -78,12 +78,10 @@ RUN git config --global user.email "autopoc@autopoc.local" && \
 
 WORKDIR /workspace
 
-# Vale prose linting config — place at /workspace so vale finds it when
-# linting files under /workspace/<project>/
+# Vale prose linting config and styles — place at /workspace so vale finds
+# them when linting files under /workspace/<project>/
 COPY .vale.ini /workspace/.vale.ini
-RUN vale sync --config /workspace/.vale.ini && \
-    mkdir -p /workspace/.vale/styles && \
-    cp -r "${HOME}/.local/share/vale/styles"/* /workspace/.vale/styles/
+COPY .vale/styles/ /workspace/.vale/styles/
 
 # Default working directory for cloned repos and temp files
 ENV WORK_DIR=/workspace
