@@ -42,8 +42,10 @@ ARG VALE_VERSION=3.14.2
 RUN curl -fsSL "https://github.com/errata-ai/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_Linux_64-bit.tar.gz" \
     | tar xzf - -C /usr/local/bin vale && chmod +x /usr/local/bin/vale
 
-# Install OpenCode
-RUN curl -fsSL https://opencode.ai/install | bash
+# Install OpenCode (pinned version for reproducible builds)
+ARG OPENCODE_VERSION=v1.15.10
+RUN curl -fsSL "https://github.com/anomalyco/opencode/releases/download/${OPENCODE_VERSION}/opencode-linux-x64.tar.gz" \
+    | tar xzf - -C /usr/local/bin && chmod +x /usr/local/bin/opencode
 
 # ---------------------------------------------------------------------------
 # Python tools (standalone scripts used by OpenCode via bash)
