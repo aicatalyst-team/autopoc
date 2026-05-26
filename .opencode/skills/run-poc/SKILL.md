@@ -240,49 +240,81 @@ Every PoC component has a `Dockerfile.ubi` written and committed.
 
 **Purpose**: Build container images and push to Quay registry.
 
-The build uses the configured `BUILD_STRATEGY` environment variable:
-- `openshift` (default in pods): builds on-cluster via `oc start-build --from-dir`, pushes automatically
-- `podman` (local): builds locally via `podman build`, pushes via `podman push`
+### Build Strategy
 
-The `python -m autopoc.cli_tools build` command abstracts this -- it picks the right strategy automatically based on `BUILD_STRATEGY`.
+Check the `BUILD_STRATEGY` environment variable to decide how to build:
+
+- **`openshift`** (default in pods): Use `oc` to build on-cluster. The cluster does the build and pushes the image -- no local container runtime needed.
+- **`podman`** (local/default if unset): Use `podman` to build locally, then push.
 
 ### Steps
 
-1. Log in to the registry:
+1. Ensure the Quay repository exists:
    ```bash
-   python -m autopoc.cli_tools build login
+   python -m autopoc.cli_tools quay ensure-repo "$QUAY_ORG" "$PROJECT_NAME-$COMPONENT"
    ```
-   This reads `QUAY_REGISTRY`, `QUAY_USERNAME`, and `QUAY_TOKEN` from environment.
 
-2. For each component:
+2. Determine the image tag:
+   ```bash
+   IMAGE_TAG="${QUAY_REGISTRY:-quay.io}/$QUAY_ORG/$PROJECT_NAME-$COMPONENT:latest"
+   ```
 
-   a. Ensure the Quay repository exists:
+3. **If `BUILD_STRATEGY` is `openshift`:**
+
+   a. Create a docker-registry secret for pushing (if not already done):
       ```bash
-      python -m autopoc.cli_tools quay ensure-repo "$QUAY_ORG" "$PROJECT_NAME-$COMPONENT"
+      oc create secret docker-registry autopoc-registry-push \
+        --docker-server="${QUAY_REGISTRY:-quay.io}" \
+        --docker-username="$QUAY_USERNAME" \
+        --docker-password="$QUAY_TOKEN" \
+        -n autopoc-builds --dry-run=client -o yaml | oc apply -f -
+      ```
+
+   b. Create a BuildConfig and start a binary build:
+      ```bash
+      # Create namespace if needed
+      oc create namespace autopoc-builds --dry-run=client -o yaml | oc apply -f -
+
+      # Start binary build -- uploads local source, builds on cluster, pushes to registry
+      oc new-build --name="$PROJECT_NAME-$COMPONENT" \
+        --binary --strategy=docker \
+        --to-docker --to="$IMAGE_TAG" \
+        --push-secret=autopoc-registry-push \
+        -n autopoc-builds --dry-run=client -o yaml | oc apply -f -
+
+      oc start-build "$PROJECT_NAME-$COMPONENT" \
+        --from-dir="$WORK_DIR/repos/$PROJECT_NAME/$COMPONENT_DIR" \
+        --follow --wait \
+        -n autopoc-builds
+      ```
+
+   c. Push is automatic -- the BuildConfig pushes to the registry as part of the build.
+
+4. **If `BUILD_STRATEGY` is `podman` (or unset):**
+
+   a. Log in to the registry:
+      ```bash
+      echo "$QUAY_TOKEN" | podman login "${QUAY_REGISTRY:-quay.io}" -u "$QUAY_USERNAME" --password-stdin
       ```
 
    b. Build the image:
       ```bash
-      IMAGE_TAG="${QUAY_REGISTRY:-quay.io}/$QUAY_ORG/$PROJECT_NAME-$COMPONENT:latest"
-      python -m autopoc.cli_tools build build \
-        --context "$WORK_DIR/repos/$PROJECT_NAME/$COMPONENT_DIR" \
-        --dockerfile "$WORK_DIR/repos/$PROJECT_NAME/$COMPONENT_DIR/Dockerfile.ubi" \
-        --tag "$IMAGE_TAG"
+      podman build -t "$IMAGE_TAG" -f Dockerfile.ubi "$WORK_DIR/repos/$PROJECT_NAME/$COMPONENT_DIR"
       ```
 
-   c. Push the image (no-op for OpenShift strategy, pushes for podman):
+   c. Push the image:
       ```bash
-      python -m autopoc.cli_tools build push --tag "$IMAGE_TAG"
+      podman push "$IMAGE_TAG"
       ```
 
-3. **On build failure:**
-   - Read the error output from the JSON response
+5. **On build failure:**
+   - Read the error output
    - Check if it's a **permanent error** (authentication failure, network unreachable) -> FAIL
    - Check if retries are available (read `retries.build_retries` from state < `retries.max_build_retries`)
    - If retriable: increment `retries.build_retries`, record the error, go back to Phase 5
    - If retries exhausted: FAIL
 
-4. Update `poc-state.yaml` with built images.
+6. Update `poc-state.yaml` with built images.
 
 ### Exit condition
 All component images built and pushed successfully.

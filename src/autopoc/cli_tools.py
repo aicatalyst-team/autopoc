@@ -211,35 +211,6 @@ def cmd_artifacts(args: argparse.Namespace) -> None:
 
 
 # --------------------------------------------------------------------------- #
-# build (container image build via configured strategy)
-# --------------------------------------------------------------------------- #
-
-
-def cmd_build(args: argparse.Namespace) -> None:
-    from autopoc.tools.build_strategy import get_build_strategy
-
-    config = _load_config()
-    strategy = get_build_strategy(config)
-
-    if args.action == "login":
-        registry = args.registry or os.environ.get("QUAY_REGISTRY", "quay.io")
-        username = args.username or os.environ.get("QUAY_USERNAME", "")
-        password = args.password or os.environ.get("QUAY_TOKEN", "")
-        result = strategy.login(registry, username, password)
-        print(json.dumps({"status": "ok", "message": result}))
-    elif args.action == "build":
-        output = strategy.build(
-            context_path=args.context,
-            dockerfile=args.dockerfile,
-            tag=args.tag,
-        )
-        print(json.dumps({"status": "ok", "output": output[:5000]}))
-    elif args.action == "push":
-        output = strategy.push(image=args.tag)
-        print(json.dumps({"status": "ok", "output": output[:2000]}))
-
-
-# --------------------------------------------------------------------------- #
 # vale
 # --------------------------------------------------------------------------- #
 
@@ -382,17 +353,6 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("files", nargs="+", help="Files to commit")
     p.add_argument("--message", default=None, help="Commit message")
     p.set_defaults(func=cmd_artifacts)
-
-    # build
-    p = sub.add_parser("build", help="Build/push container images via configured strategy")
-    p.add_argument("action", choices=["login", "build", "push"])
-    p.add_argument("--registry", default=None, help="Registry hostname")
-    p.add_argument("--username", default=None, help="Registry username")
-    p.add_argument("--password", default=None, help="Registry password/token")
-    p.add_argument("--context", default=".", help="Build context directory")
-    p.add_argument("--dockerfile", default="Dockerfile.ubi", help="Dockerfile path")
-    p.add_argument("--tag", default=None, help="Image tag (e.g. quay.io/org/name:latest)")
-    p.set_defaults(func=cmd_build)
 
     # vale
     p = sub.add_parser("vale", help="Run Vale linting")
