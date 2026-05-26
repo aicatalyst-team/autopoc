@@ -9,14 +9,13 @@ Tests cover:
 
 from __future__ import annotations
 
-import json
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
-from autopoc.cli_tools import build_parser, cmd_repo_digest, cmd_strategy
+from autopoc.cli_tools import build_parser, cmd_repo_digest
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 
@@ -31,12 +30,7 @@ class TestBuildParser:
         command_names = list(subparsers.choices.keys())
         expected = [
             "repo-digest",
-            "gitlab",
-            "github",
-            "quay",
-            "strategy",
             "llm-proxy",
-            "artifacts",
             "sheet-reader",
             "sheet-writer",
         ]
@@ -53,16 +47,6 @@ class TestBuildParser:
         args = parser.parse_args(["repo-digest", "/tmp/test-repo"])
         assert args.repo_path == "/tmp/test-repo"
         assert args.max_chars == 20_000
-
-    def test_strategy_requires_action(self) -> None:
-        parser = build_parser()
-        with pytest.raises(SystemExit):
-            parser.parse_args(["strategy"])
-
-    def test_gitlab_requires_action_and_name(self) -> None:
-        parser = build_parser()
-        with pytest.raises(SystemExit):
-            parser.parse_args(["gitlab"])
 
 
 class TestRepoDigest:
@@ -98,36 +82,6 @@ class TestRepoDigest:
         assert len(output) <= 600  # Some slack for the truncation message
 
 
-class TestStrategy:
-    """Test the strategy subcommand."""
-
-    def test_load_strategy(self, capsys: pytest.CaptureFixture[str]) -> None:
-        parser = build_parser()
-        args = parser.parse_args(["strategy", "load"])
-        cmd_strategy(args)
-        output = capsys.readouterr().out
-        data = json.loads(output)
-        assert "impact_dimensions" in data or "name" in data
-
-    def test_load_baseline(self, capsys: pytest.CaptureFixture[str]) -> None:
-        parser = build_parser()
-        args = parser.parse_args(["strategy", "load-baseline"])
-        cmd_strategy(args)
-        output = capsys.readouterr().out
-        data = json.loads(output)
-        assert isinstance(data, dict)
-
-    def test_dimensions(self, capsys: pytest.CaptureFixture[str]) -> None:
-        parser = build_parser()
-        args = parser.parse_args(["strategy", "dimensions"])
-        cmd_strategy(args)
-        output = capsys.readouterr().out
-        data = json.loads(output)
-        assert "dimensions" in data
-        assert "max_score" in data
-        assert data["max_score"] > 0
-
-
 class TestModuleInvocation:
     """Test that the module can be invoked via python -m."""
 
@@ -140,8 +94,8 @@ class TestModuleInvocation:
         )
         assert result.returncode == 0
         assert "repo-digest" in result.stdout
-        assert "gitlab" in result.stdout
-        assert "strategy" in result.stdout
+        assert "llm-proxy" in result.stdout
+        assert "sheet-reader" in result.stdout
 
     def test_repo_digest_via_module(self) -> None:
         result = subprocess.run(
@@ -158,14 +112,3 @@ class TestModuleInvocation:
         )
         assert result.returncode == 0
         assert "flask" in result.stdout.lower()
-
-    def test_strategy_dimensions_via_module(self) -> None:
-        result = subprocess.run(
-            [sys.executable, "-m", "autopoc.cli_tools", "strategy", "dimensions"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        assert result.returncode == 0
-        data = json.loads(result.stdout)
-        assert "dimensions" in data

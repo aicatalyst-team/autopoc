@@ -72,7 +72,7 @@ For each top candidate (skip if `--skip-evaluation` was requested or only 1 cand
    python -m autopoc.cli_tools repo-digest "$WORK_DIR/repos/$CANDIDATE_NAME"
    ```
 
-3. Score the project using the RHOAI evaluation (you ARE the LLM -- score the project against strategy dimensions from `python -m autopoc.cli_tools strategy load`).
+3. Score the project using the RHOAI evaluation (you ARE the LLM -- read the strategy dimensions from `$AUTOPOC_DATA_DIR/strategies/` YAML files and score against them).
 
 4. Record the total score for each candidate.
 

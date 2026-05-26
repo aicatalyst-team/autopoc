@@ -98,13 +98,12 @@ At least one component identified. If zero components found, set error and stop.
 
 ### Steps
 
-1. Load the strategy configuration:
-   ```bash
-   python -m autopoc.cli_tools strategy load
-   python -m autopoc.cli_tools strategy load-baseline
-   ```
+1. Read the strategy configuration files directly:
+   - Active strategy: `cat $AUTOPOC_DATA_DIR/strategy_config.yaml` to get the strategy name
+   - Strategy profile: `cat $AUTOPOC_DATA_DIR/strategies/<strategy-name>.yaml` for scoring dimensions
+   - Strategy baseline: `cat $AUTOPOC_DATA_DIR/strategy-baseline.yaml` for strategy areas, capability labels, core products
 
-2. **Score the project** against the strategy dimensions. Read the strategy YAML output and the repo digest/summary from Phase 1. Score each dimension (audience_value, strategic_alignment, strategy_fit, platform_leverage, demo_potential) on a 0-20 scale.
+2. **Score the project** against the strategy dimensions. Read the strategy YAML and the repo digest/summary from Phase 1. Score each dimension (audience_value, strategic_alignment, strategy_fit, platform_leverage, demo_potential) on a 0-20 scale.
 
 3. Write the evaluation to `$WORK_DIR/repos/$PROJECT_NAME/.autopoc/rhoai-evaluation.md`.
 
@@ -124,26 +123,37 @@ Evaluation written (or skipped on failure). Pipeline continues regardless.
 Determine fork target from env vars (`AUTOPOC_FORK_TARGET`, defaults to `gitlab`).
 
 **GitLab path:**
-1. Create the project:
+1. Create the project and push:
    ```bash
-   python -m autopoc.cli_tools gitlab create-project "$PROJECT_NAME"
-   ```
-2. Add the remote and push:
-   ```bash
+   # Create the project on GitLab via REST API
+   GROUP_ID=$(curl -s -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+     "$GITLAB_URL/api/v4/groups?search=$GITLAB_GROUP" | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['id'])")
+
+   curl -s -X POST -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+     "$GITLAB_URL/api/v4/projects" \
+     -d "name=$PROJECT_NAME&namespace_id=$GROUP_ID&visibility=internal"
+
+   # Add GitLab as origin and push
    cd "$WORK_DIR/repos/$PROJECT_NAME"
    git remote rename origin github 2>/dev/null || true
-   GITLAB_CLONE_URL=$(python -m autopoc.cli_tools gitlab get-clone-url "$PROJECT_NAME")
-   git remote add origin "$GITLAB_CLONE_URL" 2>/dev/null || git remote set-url origin "$GITLAB_CLONE_URL"
+   git remote add origin "https://oauth2:${GITLAB_TOKEN}@${GITLAB_URL#https://}/${GITLAB_GROUP}/${PROJECT_NAME}.git" \
+     2>/dev/null || git remote set-url origin "https://oauth2:${GITLAB_TOKEN}@${GITLAB_URL#https://}/${GITLAB_GROUP}/${PROJECT_NAME}.git"
    git push origin --all --force
    git push origin --tags --force
    ```
 
 **GitHub path:**
-1. Fork the repository:
+1. Fork the repository using `gh`:
    ```bash
-   python -m autopoc.cli_tools github fork "$OWNER" "$REPO"
+   gh repo fork "$OWNER/$REPO" --org "$GITHUB_ORG" --clone=false
    ```
-2. Wait for fork completion and reconfigure remotes.
+2. Wait for the fork to be ready, then reconfigure remotes:
+   ```bash
+   # gh repo fork waits automatically; add the fork as origin
+   cd "$WORK_DIR/repos/$PROJECT_NAME"
+   git remote rename origin upstream 2>/dev/null || true
+   git remote add origin "https://${GITHUB_TOKEN}@github.com/${GITHUB_ORG}/${REPO}.git"
+   ```
 
 3. Update `poc-state.yaml` with fork URL and target.
 
@@ -174,9 +184,17 @@ Fork URL recorded in state.
    vale --output=JSON "$WORK_DIR/repos/$PROJECT_NAME/poc-plan.md" 2>/dev/null || true
    ```
 
-5. Commit to artifacts branch:
+5. Commit to the `autopoc-artifacts` branch:
    ```bash
-   python -m autopoc.cli_tools artifacts "$WORK_DIR/repos/$PROJECT_NAME" poc-plan.md
+   cd "$WORK_DIR/repos/$PROJECT_NAME"
+   CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+   git stash --quiet 2>/dev/null || true
+   git checkout -B autopoc-artifacts
+   git add poc-plan.md
+   git commit -m "Add PoC plan" --allow-empty
+   git push origin autopoc-artifacts --force
+   git checkout "$CURRENT_BRANCH"
+   git stash pop --quiet 2>/dev/null || true
    ```
 
 6. Update `poc-state.yaml` with poc_type, scenarios, infrastructure, and poc_plan_path.
@@ -249,9 +267,13 @@ Check the `BUILD_STRATEGY` environment variable to decide how to build:
 
 ### Steps
 
-1. Ensure the Quay repository exists:
+1. (Optional) Quay repos are auto-created on push. If you want to pre-create:
    ```bash
-   python -m autopoc.cli_tools quay ensure-repo "$QUAY_ORG" "$PROJECT_NAME-$COMPONENT"
+   curl -s -X POST -H "Authorization: Bearer $QUAY_TOKEN" \
+     "https://${QUAY_REGISTRY:-quay.io}/api/v1/repository" \
+     -H "Content-Type: application/json" \
+     -d '{"repository":"'"$PROJECT_NAME-$COMPONENT"'","namespace":"'"$QUAY_ORG"'","visibility":"public"}' \
+     2>/dev/null || true
    ```
 
 2. Determine the image tag:
@@ -451,9 +473,17 @@ All pods healthy and service URLs recorded.
    - "exec format error" -> container fix (back to Phase 5)
    Check `retries.container_fix_retries` < `retries.max_container_fix_retries`.
 
-7. Commit test artifacts:
+7. Commit test artifacts to the `autopoc-artifacts` branch:
    ```bash
-   python -m autopoc.cli_tools artifacts "$WORK_DIR/repos/$PROJECT_NAME" poc_test.py
+   cd "$WORK_DIR/repos/$PROJECT_NAME"
+   CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+   git stash --quiet 2>/dev/null || true
+   git checkout -B autopoc-artifacts
+   git add poc_test.py
+   git commit -m "Add PoC test script" --allow-empty
+   git push origin autopoc-artifacts --force
+   git checkout "$CURRENT_BRANCH"
+   git stash pop --quiet 2>/dev/null || true
    ```
 
 8. Update `poc-state.yaml` with test results.
@@ -492,9 +522,17 @@ Test results recorded in state (pass or fail).
    vale --output=JSON "$WORK_DIR/repos/$PROJECT_NAME/poc-report.md" 2>/dev/null || true
    ```
 
-5. Commit to artifacts branch:
+5. Commit to the `autopoc-artifacts` branch:
    ```bash
-   python -m autopoc.cli_tools artifacts "$WORK_DIR/repos/$PROJECT_NAME" poc-report.md
+   cd "$WORK_DIR/repos/$PROJECT_NAME"
+   CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+   git stash --quiet 2>/dev/null || true
+   git checkout -B autopoc-artifacts
+   git add poc-report.md
+   git commit -m "Add PoC report" --allow-empty
+   git push origin autopoc-artifacts --force
+   git checkout "$CURRENT_BRANCH"
+   git stash pop --quiet 2>/dev/null || true
    ```
 
 6. Update `poc-state.yaml` with report path.

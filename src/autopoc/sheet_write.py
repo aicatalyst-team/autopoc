@@ -131,7 +131,7 @@ def _build_artifacts_branch_url(fork_repo_url: str, fork_target: str) -> str:
     Returns:
         Human-readable URL to the artifacts branch.
     """
-    from autopoc.tools.git_tools import ARTIFACTS_BRANCH
+    ARTIFACTS_BRANCH = "autopoc-artifacts"
 
     base = _strip_credentials_from_url(fork_repo_url)
     if fork_target == "gitlab":
@@ -142,7 +142,7 @@ def _build_artifacts_branch_url(fork_repo_url: str, fork_target: str) -> str:
 
 def _build_report_url(fork_repo_url: str, fork_target: str) -> str:
     """Build a browsable URL to ``poc-report.md`` on the artifacts branch."""
-    from autopoc.tools.git_tools import ARTIFACTS_BRANCH
+    ARTIFACTS_BRANCH = "autopoc-artifacts"
 
     base = _strip_credentials_from_url(fork_repo_url)
     if fork_target == "gitlab":

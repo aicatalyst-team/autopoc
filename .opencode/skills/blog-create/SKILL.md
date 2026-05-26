@@ -166,9 +166,17 @@ Read `references/scoring.md` for full rules.
    ```bash
    vale --output=JSON final.md 2>/dev/null || true
    ```
-6. Commit to artifacts branch:
+6. Commit to the `autopoc-artifacts` branch:
    ```bash
-   python -m autopoc.cli_tools artifacts "$CLONE_PATH" blog-post.md blog-seo.md blog-preview.html
+   cd "$CLONE_PATH"
+   CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+   git stash --quiet 2>/dev/null || true
+   git checkout -B autopoc-artifacts
+   git add blog-post.md blog-seo.md blog-preview.html
+   git commit -m "Add blog post artifacts" --allow-empty
+   git push origin autopoc-artifacts --force
+   git checkout "$CURRENT_BRANCH"
+   git stash pop --quiet 2>/dev/null || true
    ```
 
 ## Important Reminders
