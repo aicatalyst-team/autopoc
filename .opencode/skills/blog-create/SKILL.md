@@ -168,7 +168,7 @@ Read `references/scoring.md` for full rules.
    ```
 6. Commit to artifacts branch:
    ```bash
-   python -m autopoc.tools.artifacts "$CLONE_PATH" blog-post.md blog-seo.md blog-preview.html
+   python -m autopoc.cli_tools artifacts "$CLONE_PATH" blog-post.md blog-seo.md blog-preview.html
    ```
 
 ## Important Reminders

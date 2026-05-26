@@ -1,41 +1,18 @@
-# AutoPoC — Multi-stage container build
+# AutoPoC — OpenCode-based PoC pipeline container
 #
-# Stage 1: Build the shiv zipapp binary
-# Stage 2: Minimal runtime image with kubectl + git
+# OpenCode is the orchestration harness; Python tools provide API clients
+# and utilities. kubectl, oc, podman, vale, and git are available as CLI tools.
 #
-# Build:  podman build -t autopoc:latest .
-# Run:    podman run --rm --env-file .env autopoc:latest run --name my-project --repo https://github.com/org/repo
+# Build:  podman build -t autopoc-opencode:latest .
+# Run:    podman run --rm --env-file .env autopoc-opencode:latest \
+#           run --dangerously-skip-permissions "Run PoC for my-project from https://github.com/org/repo"
 #
-# Required env vars at runtime — see deploy/secret.yaml.example
+# Required env vars at runtime — see deploy/overlays/example/secret.yaml.example
 
-# ---------------------------------------------------------------------------
-# Stage 1 — Builder
-# ---------------------------------------------------------------------------
-FROM registry.access.redhat.com/ubi9/python-312:latest AS builder
-
-WORKDIR /build
-
-# Install shiv (pinned version)
-RUN pip install --no-cache-dir shiv==1.0.8
-
-# Copy dependency lockfile first for layer caching
-COPY requirements.lock pyproject.toml ./
-
-# Copy source, data, and build assets
-COPY src/ src/
-COPY data/ data/
-COPY Makefile ./
-
-# Build the shiv zipapp binary
-RUN make build
-
-# ---------------------------------------------------------------------------
-# Stage 2 — Runtime
-# ---------------------------------------------------------------------------
 FROM registry.access.redhat.com/ubi9/python-312:latest
 
-LABEL io.k8s.description="AutoPoC — automated proof-of-concept pipeline agent" \
-      io.openshift.tags="autopoc,langgraph,ai-agent" \
+LABEL io.k8s.description="AutoPoC — OpenCode-driven PoC pipeline for OpenShift AI" \
+      io.openshift.tags="autopoc,opencode,ai-agent" \
       maintainer="aicatalyst-team"
 
 USER 0
@@ -46,45 +23,76 @@ RUN dnf update -y --security && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
-# Install kubectl and oc
-ARG KUBECTL_VERSION=v1.36.0
-RUN curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl && \
-    chmod +x /usr/local/bin/kubectl
+# ---------------------------------------------------------------------------
+# System tools: kubectl, oc, vale, opencode
+# ---------------------------------------------------------------------------
 
+# Install kubectl
+ARG KUBECTL_VERSION=v1.36.0
+RUN curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
+    -o /usr/local/bin/kubectl && chmod +x /usr/local/bin/kubectl
+
+# Install oc (OpenShift CLI)
 ARG OC_VERSION=4.21.11
 RUN curl -fsSL "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OC_VERSION}/openshift-client-linux.tar.gz" \
-    | tar xzf - -C /usr/local/bin oc && \
-    chmod +x /usr/local/bin/oc
+    | tar xzf - -C /usr/local/bin oc && chmod +x /usr/local/bin/oc
 
 # Install vale (prose linter)
 ARG VALE_VERSION=3.14.2
 RUN curl -fsSL "https://github.com/errata-ai/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_Linux_64-bit.tar.gz" \
-    | tar xzf - -C /usr/local/bin vale && \
-    chmod +x /usr/local/bin/vale
+    | tar xzf - -C /usr/local/bin vale && chmod +x /usr/local/bin/vale
 
-# Copy the shiv binary from builder
-COPY --from=builder /build/dist/autopoc /usr/local/bin/autopoc
-RUN chmod +x /usr/local/bin/autopoc
+# Install OpenCode
+RUN curl -fsSL https://opencode.ai/install | bash
+
+# ---------------------------------------------------------------------------
+# Python tools (standalone scripts used by OpenCode via bash)
+# ---------------------------------------------------------------------------
+
+# Copy dependency lockfile for layer caching
+COPY requirements.lock /tmp/requirements.lock
+RUN pip install --no-cache-dir -r /tmp/requirements.lock && rm /tmp/requirements.lock
+
+# Copy project source (tools, config, prompts, templates)
+COPY src/ /opt/autopoc/src/
+COPY data/ /opt/autopoc/data/
+
+# Copy OpenCode skills and configuration
+COPY .opencode/ /opt/autopoc/.opencode/
+COPY opencode.json /opt/autopoc/opencode.json
+COPY AGENTS.md /opt/autopoc/AGENTS.md
+
+# ---------------------------------------------------------------------------
+# Workspace and permissions
+# ---------------------------------------------------------------------------
 
 # Create workspace directory writable by default user
-RUN mkdir -p /workspace && chown 1001:0 /workspace
+RUN mkdir -p /workspace && chown 1001:0 /workspace && chmod 775 /workspace
 
-# Switch back to non-root user
+# Ensure project files are accessible
+RUN chgrp -R 0 /opt/autopoc && chmod -R g=u /opt/autopoc
+
+# Switch to non-root user
 USER 1001
 
 # Set git identity for artifact commits inside the container
 RUN git config --global user.email "autopoc@autopoc.local" && \
     git config --global user.name "AutoPoC Agent"
 
-WORKDIR /workspace
+WORKDIR /opt/autopoc
 
-# Vale prose linting config and styles — place at /workspace so vale finds
-# them when linting files under /workspace/<project>/
-COPY .vale.ini /workspace/.vale.ini
-COPY .vale/styles/ /workspace/.vale/styles/
+# Vale prose linting config and styles
+COPY .vale.ini /opt/autopoc/.vale.ini
+COPY .vale/styles/ /opt/autopoc/.vale/styles/
 
-# Default working directory for cloned repos and temp files
-ENV WORK_DIR=/workspace
+# ---------------------------------------------------------------------------
+# Environment
+# ---------------------------------------------------------------------------
 
-ENTRYPOINT ["autopoc"]
-CMD ["--help"]
+ENV PYTHONPATH=/opt/autopoc/src
+ENV AUTOPOC_DATA_DIR=/opt/autopoc/data
+ENV AUTOPOC_WORK_DIR=/workspace
+
+# OpenCode runs in non-interactive mode with all permissions auto-approved
+ENTRYPOINT ["opencode"]
+CMD ["run", "--dangerously-skip-permissions", "Show available skills and current status"]

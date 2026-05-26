@@ -1,8 +1,7 @@
-# AutoPoC Makefile
-# -----------------
+# AutoPoC Makefile (OpenCode harness)
+# ------------------------------------
 # Targets:
-#   make build       - Build a single-file executable (shiv zipapp)
-#   make image       - Build container image
+#   make image       - Build container image (OpenCode + tools)
 #   make image-push  - Push container image to registry
 #   make install     - pip install in editable mode with dev extras
 #   make lock        - Regenerate requirements.lock from pyproject.toml
@@ -25,7 +24,7 @@ BINARY          = $(DIST_DIR)/$(NAME)
 # Container image settings
 IMAGE_REGISTRY ?= quay.io
 IMAGE_ORG      ?= autopoc
-IMAGE_NAME     ?= autopoc
+IMAGE_NAME     ?= autopoc-opencode
 IMAGE_TAG      ?= latest
 IMAGE           = $(IMAGE_REGISTRY)/$(IMAGE_ORG)/$(IMAGE_NAME):$(IMAGE_TAG)
 

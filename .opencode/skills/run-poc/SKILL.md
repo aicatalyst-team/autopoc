@@ -68,8 +68,7 @@ Maintain a progressive YAML state file at `$WORK_DIR/poc-state.yaml`. Read `refe
 
 2. Generate a repository digest:
    ```bash
-   cd "$WORK_DIR/repos/$PROJECT_NAME"
-   python -m autopoc.tools.repo_digest "$WORK_DIR/repos/$PROJECT_NAME"
+   python -m autopoc.cli_tools repo-digest "$WORK_DIR/repos/$PROJECT_NAME"
    ```
    This produces a markdown summary of the repo: file tree, build files, README, entry points, Dockerfiles, CI/CD detection.
 
@@ -101,8 +100,8 @@ At least one component identified. If zero components found, set error and stop.
 
 1. Load the strategy configuration:
    ```bash
-   python -m autopoc.tools.strategy load
-   python -m autopoc.tools.strategy load-baseline
+   python -m autopoc.cli_tools strategy load
+   python -m autopoc.cli_tools strategy load-baseline
    ```
 
 2. **Score the project** against the strategy dimensions. Read the strategy YAML output and the repo digest/summary from Phase 1. Score each dimension (audience_value, strategic_alignment, strategy_fit, platform_leverage, demo_potential) on a 0-20 scale.
@@ -127,13 +126,13 @@ Determine fork target from env vars (`AUTOPOC_FORK_TARGET`, defaults to `gitlab`
 **GitLab path:**
 1. Create the project:
    ```bash
-   python -m autopoc.tools.gitlab_client create-project "$PROJECT_NAME"
+   python -m autopoc.cli_tools gitlab create-project "$PROJECT_NAME"
    ```
 2. Add the remote and push:
    ```bash
    cd "$WORK_DIR/repos/$PROJECT_NAME"
    git remote rename origin github 2>/dev/null || true
-   GITLAB_CLONE_URL=$(python -m autopoc.tools.gitlab_client get-clone-url "$PROJECT_NAME")
+   GITLAB_CLONE_URL=$(python -m autopoc.cli_tools gitlab get-clone-url "$PROJECT_NAME")
    git remote add origin "$GITLAB_CLONE_URL" 2>/dev/null || git remote set-url origin "$GITLAB_CLONE_URL"
    git push origin --all --force
    git push origin --tags --force
@@ -142,7 +141,7 @@ Determine fork target from env vars (`AUTOPOC_FORK_TARGET`, defaults to `gitlab`
 **GitHub path:**
 1. Fork the repository:
    ```bash
-   python -m autopoc.tools.github_client fork "$OWNER" "$REPO"
+   python -m autopoc.cli_tools github fork "$OWNER" "$REPO"
    ```
 2. Wait for fork completion and reconfigure remotes.
 
@@ -177,7 +176,7 @@ Fork URL recorded in state.
 
 5. Commit to artifacts branch:
    ```bash
-   python -m autopoc.tools.artifacts "$WORK_DIR/repos/$PROJECT_NAME" poc-plan.md
+   python -m autopoc.cli_tools artifacts "$WORK_DIR/repos/$PROJECT_NAME" poc-plan.md
    ```
 
 6. Update `poc-state.yaml` with poc_type, scenarios, infrastructure, and poc_plan_path.
@@ -252,7 +251,7 @@ Every PoC component has a `Dockerfile.ubi` written and committed.
 
    a. Ensure the Quay repository exists:
       ```bash
-      python -m autopoc.tools.quay_client ensure-repo "$QUAY_ORG" "$PROJECT_NAME-$COMPONENT"
+      python -m autopoc.cli_tools quay ensure-repo "$QUAY_ORG" "$PROJECT_NAME-$COMPONENT"
       ```
 
    b. Build the image:
@@ -300,7 +299,7 @@ All component images built and pushed successfully.
 
 3. Handle **LLM proxy** if `infrastructure.needs_llm_api` is true:
    ```bash
-   python -m autopoc.tools.llm_proxy '{"OPENAI_API_KEY": "required", "OPENAI_BASE_URL": ""}'
+   python -m autopoc.cli_tools llm-proxy '{"OPENAI_API_KEY": "required", "OPENAI_BASE_URL": ""}'
    ```
    Use the resolved env vars in the manifests.
 
@@ -413,7 +412,7 @@ All pods healthy and service URLs recorded.
 
 7. Commit test artifacts:
    ```bash
-   python -m autopoc.tools.artifacts "$WORK_DIR/repos/$PROJECT_NAME" poc_test.py
+   python -m autopoc.cli_tools artifacts "$WORK_DIR/repos/$PROJECT_NAME" poc_test.py
    ```
 
 8. Update `poc-state.yaml` with test results.
@@ -454,7 +453,7 @@ Test results recorded in state (pass or fail).
 
 5. Commit to artifacts branch:
    ```bash
-   python -m autopoc.tools.artifacts "$WORK_DIR/repos/$PROJECT_NAME" poc-report.md
+   python -m autopoc.cli_tools artifacts "$WORK_DIR/repos/$PROJECT_NAME" poc-report.md
    ```
 
 6. Update `poc-state.yaml` with report path.

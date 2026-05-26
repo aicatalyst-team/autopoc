@@ -29,7 +29,7 @@ Step 7: Write Back        -> Update the sheet with results
 ## Step 1: Read Sheet
 
 ```bash
-python -m autopoc.tools.sheet_reader \
+python -m autopoc.cli_tools sheet-reader \
   --sheet-id "$AUTOPOC_SHEET_ID" \
   --credentials "$AUTOPOC_SHEET_CREDENTIALS" \
   --max-tabs "${MAX_EVALUATED_SHEETS:-4}"
@@ -69,10 +69,10 @@ For each top candidate (skip if `--skip-evaluation` was requested or only 1 cand
 
 2. Run repo digest:
    ```bash
-   python -m autopoc.tools.repo_digest "$WORK_DIR/repos/$CANDIDATE_NAME"
+   python -m autopoc.cli_tools repo-digest "$WORK_DIR/repos/$CANDIDATE_NAME"
    ```
 
-3. Score the project using the RHOAI evaluation (you ARE the LLM -- score the project against strategy dimensions from `python -m autopoc.tools.strategy load`).
+3. Score the project using the RHOAI evaluation (you ARE the LLM -- score the project against strategy dimensions from `python -m autopoc.cli_tools strategy load`).
 
 4. Record the total score for each candidate.
 
@@ -97,7 +97,7 @@ Run pipelines **sequentially** (not in parallel) to avoid resource contention.
 After each pipeline completes (success or failure), update the Google Sheet:
 
 ```bash
-python -m autopoc.tools.sheet_writer \
+python -m autopoc.cli_tools sheet-writer \
   --sheet-id "$AUTOPOC_SHEET_ID" \
   --credentials "$AUTOPOC_SHEET_CREDENTIALS" \
   --tab "$TAB_NAME" \

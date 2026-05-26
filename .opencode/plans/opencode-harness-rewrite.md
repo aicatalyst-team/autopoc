@@ -44,10 +44,11 @@ K8s Job created in namespace "autopoc"
 Pod starts with OpenCode container image (UBI9 + opencode + kubectl + podman + vale)
   |
   v
-OpenCode launches with: opencode --skill run-poc --prompt "Run PoC for <name> <url>"
+OpenCode launches with: opencode run --dangerously-skip-permissions "Run PoC for <name> from <url>"
   |
   v
-OpenCode loads .opencode/skills/run-poc/SKILL.md
+OpenCode auto-discovers .opencode/skills/run-poc/SKILL.md (via skill description matching)
+OpenCode loads the skill and follows its instructions
   |
   v
 OpenCode follows the skill instructions:
