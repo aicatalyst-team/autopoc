@@ -91,8 +91,12 @@ class AutoPoCConfig(BaseSettings):
 
     # Quay
     quay_registry: str = Field(default="quay.io", description="Quay registry hostname")
-    quay_org: str = Field(description="Quay organization or username for pushed images")
-    quay_token: str = Field(description="Quay token (robot account token or OAuth token)")
+    quay_org: str | None = Field(
+        default=None, description="Quay organization or username for pushed images"
+    )
+    quay_token: str | None = Field(
+        default=None, description="Quay token (robot account token or OAuth token)"
+    )
     quay_username: str | None = Field(
         default=None,
         description="Quay username for registry auth (e.g. 'myuser+robotname' for robot accounts). "
