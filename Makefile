@@ -14,12 +14,9 @@
 
 PYTHON         ?= python
 PIP            ?= pip
-SHIV           ?= shiv
 CONTAINER_CMD  ?= podman
 NAME            = autopoc
 VERSION         = $(shell $(PYTHON) -c "from autopoc import __version__; print(__version__)" 2>/dev/null || echo 0.1.0)
-DIST_DIR        = dist
-BINARY          = $(DIST_DIR)/$(NAME)
 
 # Container image settings
 IMAGE_REGISTRY ?= quay.io
@@ -29,24 +26,6 @@ IMAGE_TAG      ?= latest
 IMAGE           = $(IMAGE_REGISTRY)/$(IMAGE_ORG)/$(IMAGE_NAME):$(IMAGE_TAG)
 
 .DEFAULT_GOAL := help
-
-# ---------- build ----------
-
-.PHONY: build
-build: $(BINARY) ## Build single-file executable with shiv
-
-$(BINARY): pyproject.toml src/autopoc/**/*.py src/autopoc/prompts/*.md src/autopoc/templates/*.j2
-	@mkdir -p $(DIST_DIR)
-	$(SHIV) \
-		--console-script $(NAME) \
-		--output-file $(BINARY) \
-		--python "/usr/bin/env python3" \
-		--compressed \
-		".[checkpoint]"
-	@chmod +x $(BINARY)
-	@echo ""
-	@echo "Built: $(BINARY) ($(shell du -h $(BINARY) | cut -f1))"
-	@echo "Run:   ./$(BINARY) --help"
 
 # ---------- image ----------
 
@@ -77,7 +56,7 @@ ogx-image-push: ## Build and push OGX UBI9 container image
 .PHONY: install
 install: ## Install in editable mode with dev extras
 	$(PIP) install -r requirements.lock
-	$(PIP) install -e ".[dev,checkpoint]" --no-deps
+	$(PIP) install -e ".[dev]" --no-deps
 
 .PHONY: lock
 lock: ## Regenerate requirements.lock from pyproject.toml
@@ -108,7 +87,7 @@ fmt: ## Auto-format with ruff
 
 .PHONY: clean
 clean: ## Remove build artifacts
-	rm -rf $(DIST_DIR) build/ *.egg-info src/*.egg-info
+	rm -rf build/ *.egg-info src/*.egg-info
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
 
