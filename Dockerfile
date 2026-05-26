@@ -87,6 +87,10 @@ RUN mkdir -p /opt/app-root/src/.local/share/opencode && \
     chown -R 1001:0 /opt/app-root/src/.local /opt/app-root/src/.config && \
     chmod -R 775 /opt/app-root/src/.local /opt/app-root/src/.config
 
+# Debug entrypoint
+COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Ensure project files are accessible (after git init so .git is included)
 RUN chgrp -R 0 /opt/autopoc && chmod -R g=u /opt/autopoc
 
@@ -108,5 +112,5 @@ ENV AUTOPOC_DATA_DIR=/opt/autopoc/data
 ENV AUTOPOC_WORK_DIR=/workspace
 
 # OpenCode runs in non-interactive mode with all permissions auto-approved
-ENTRYPOINT ["opencode"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["run", "--dangerously-skip-permissions", "Show available skills and current status"]
