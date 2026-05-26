@@ -22,13 +22,11 @@ def test_podman_build_success(mock_run):
     mock_run.return_value.stdout = "Build successful"
     mock_run.return_value.stderr = ""
 
-    result = podman_build.invoke(
-        {
-            "context_path": ".",
-            "dockerfile": "Dockerfile",
-            "tag": "my-image:latest",
-            "build_args": {"VERSION": "1.0"},
-        }
+    result = podman_build(
+        context_path=".",
+        dockerfile="Dockerfile",
+        tag="my-image:latest",
+        build_args={"VERSION": "1.0"},
     )
 
     mock_run.assert_called_once_with(
@@ -56,12 +54,10 @@ def test_podman_build_failure(mock_run):
     mock_run.return_value.stderr = "Error: build failed"
 
     with pytest.raises(RuntimeError) as exc:
-        podman_build.invoke(
-            {
-                "context_path": ".",
-                "dockerfile": "Dockerfile",
-                "tag": "my-image:latest",
-            }
+        podman_build(
+            context_path=".",
+            dockerfile="Dockerfile",
+            tag="my-image:latest",
         )
 
     assert "build failed" in str(exc.value)
@@ -72,7 +68,7 @@ def test_podman_push(mock_run):
     mock_run.return_value.stdout = "Pushed successfully"
     mock_run.return_value.stderr = ""
 
-    result = podman_push.invoke({"image": "my-image:latest"})
+    result = podman_push(image="my-image:latest")
 
     mock_run.assert_called_once_with(
         ["podman", "push", "my-image:latest"],
@@ -88,7 +84,7 @@ def test_podman_inspect(mock_run):
     mock_run.return_value.stdout = '[{"Id": "123"}]'
     mock_run.return_value.stderr = ""
 
-    result = podman_inspect.invoke({"image": "my-image:latest"})
+    result = podman_inspect(image="my-image:latest")
 
     mock_run.assert_called_once_with(
         ["podman", "inspect", "my-image:latest"],
@@ -104,7 +100,7 @@ def test_podman_tag(mock_run):
     mock_run.return_value.stdout = ""
     mock_run.return_value.stderr = ""
 
-    podman_tag.invoke({"image": "my-image:latest", "new_tag": "my-image:v1"})
+    podman_tag(image="my-image:latest", new_tag="my-image:v1")
 
     mock_run.assert_called_once_with(
         ["podman", "tag", "my-image:latest", "my-image:v1"],
@@ -118,6 +114,6 @@ def test_podman_timeout(mock_run):
     mock_run.side_effect = subprocess.TimeoutExpired(cmd="podman push", timeout=120)
 
     with pytest.raises(RuntimeError) as exc:
-        podman_push.invoke({"image": "my-image:latest"})
+        podman_push(image="my-image:latest")
 
     assert "timed out after 120s" in str(exc.value)

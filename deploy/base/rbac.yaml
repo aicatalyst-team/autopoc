@@ -22,6 +22,10 @@ rules:
   - apiGroups: ["build.openshift.io"]
     resources: ["buildconfigs/instantiatebinary"]
     verbs: ["create"]
+  # ImageStreams (required by oc new-build)
+  - apiGroups: ["image.openshift.io"]
+    resources: ["imagestreams", "imagestreamtags", "imagestreammappings"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   # Namespace management
   - apiGroups: [""]
     resources: ["namespaces"]

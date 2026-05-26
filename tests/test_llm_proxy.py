@@ -6,8 +6,9 @@ import os
 from unittest.mock import patch
 
 from autopoc.config import AutoPoCConfig
+from typing import Any
+
 from autopoc.llm_proxy import resolve_llm_env_vars
-from autopoc.state import PoCInfrastructure
 
 
 def _make_config(**overrides: str) -> AutoPoCConfig:
@@ -50,7 +51,7 @@ class TestResolveLlmEnvVars:
         """When OGX is not configured, env vars pass through unchanged."""
         config = _make_config_no_ogx()
         env_vars = {"OPENAI_API_KEY": "required", "DATABASE_URL": "postgres://..."}
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": "openai"}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": "openai"}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -60,7 +61,7 @@ class TestResolveLlmEnvVars:
         """When project doesn't need LLM API, env vars pass through unchanged."""
         config = _make_config()
         env_vars = {"DATABASE_URL": "postgres://...", "PORT": "8080"}
-        infra: PoCInfrastructure = {"needs_llm_api": False, "llm_env_pattern": None}
+        infra: dict[str, Any] = {"needs_llm_api": False, "llm_env_pattern": None}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -70,7 +71,7 @@ class TestResolveLlmEnvVars:
         """When needs_llm_api is not set at all, env vars pass through."""
         config = _make_config()
         env_vars = {"OPENAI_API_KEY": "required"}
-        infra: PoCInfrastructure = {}  # type: ignore[typeddict-item]
+        infra: dict[str, Any] = {}  # type: ignore[typeddict-item]
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -80,7 +81,7 @@ class TestResolveLlmEnvVars:
         """OpenAI pattern: substitutes API key and adds base URL."""
         config = _make_config()
         env_vars = {"OPENAI_API_KEY": "required", "OPENAI_MODEL": "gpt-4"}
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": "openai"}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": "openai"}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -92,7 +93,7 @@ class TestResolveLlmEnvVars:
         """OpenAI pattern: adds OPENAI_BASE_URL even if not in original vars."""
         config = _make_config()
         env_vars = {"OPENAI_API_KEY": "required"}
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": "openai"}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": "openai"}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -107,7 +108,7 @@ class TestResolveLlmEnvVars:
             "OPENAI_API_KEY": "required",
             "OPENAI_BASE_URL": "https://api.openai.com/v1",
         }
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": "openai"}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": "openai"}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -118,7 +119,7 @@ class TestResolveLlmEnvVars:
         """Anthropic pattern: substitutes ANTHROPIC_API_KEY."""
         config = _make_config()
         env_vars = {"ANTHROPIC_API_KEY": "required"}
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": "anthropic"}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": "anthropic"}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -130,7 +131,7 @@ class TestResolveLlmEnvVars:
         """LangChain pattern: same as openai — OPENAI_BASE_URL and OPENAI_API_KEY."""
         config = _make_config()
         env_vars = {"OPENAI_API_KEY": "required"}
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": "langchain"}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": "langchain"}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -141,7 +142,7 @@ class TestResolveLlmEnvVars:
         """Custom pattern: ensures at least OPENAI_BASE_URL is set."""
         config = _make_config()
         env_vars = {"CUSTOM_LLM_KEY": "required"}
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": "custom"}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": "custom"}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -155,7 +156,7 @@ class TestResolveLlmEnvVars:
         """Catch-all: any *_API_KEY with value 'required' gets replaced."""
         config = _make_config()
         env_vars = {"MY_LLM_API_KEY": "required", "OTHER_API_KEY": "placeholder-replace-me"}
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": "openai"}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": "openai"}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -166,7 +167,7 @@ class TestResolveLlmEnvVars:
         """Catch-all: *_API_KEY with a real value (not 'required') is untouched."""
         config = _make_config()
         env_vars = {"MY_SERVICE_API_KEY": "actual-key-123"}
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": "openai"}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": "openai"}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -182,7 +183,7 @@ class TestResolveLlmEnvVars:
             "PORT": "8080",
             "DEBUG": "true",
         }
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": "openai"}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": "openai"}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -202,7 +203,7 @@ class TestResolveLlmEnvVars:
             "CHAT_MODEL": "gpt-3.5-turbo",
             "MODEL": "some-model",
         }
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": "openai"}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": "openai"}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -218,7 +219,7 @@ class TestResolveLlmEnvVars:
             "OPENAI_API_KEY": "required",
             "OPENAI_API_BASE": "https://api.openai.com",
         }
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": "openai"}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": "openai"}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -228,7 +229,7 @@ class TestResolveLlmEnvVars:
         """Custom OGX model name is used when configured."""
         config = _make_config(OGX_MODEL="llama-3.3-70b")
         env_vars = {"OPENAI_API_KEY": "required", "OPENAI_MODEL": "gpt-4"}
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": "openai"}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": "openai"}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -238,7 +239,7 @@ class TestResolveLlmEnvVars:
         """Custom OGX API key is used when configured."""
         config = _make_config(OGX_API_KEY="my-secret-key")
         env_vars = {"OPENAI_API_KEY": "required"}
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": "openai"}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": "openai"}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -248,7 +249,7 @@ class TestResolveLlmEnvVars:
         """Empty env vars dict still gets OPENAI_BASE_URL and OPENAI_API_KEY added."""
         config = _make_config()
         env_vars: dict[str, str] = {}
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": "openai"}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": "openai"}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -259,7 +260,7 @@ class TestResolveLlmEnvVars:
         """When llm_env_pattern is None, defaults to openai behavior."""
         config = _make_config()
         env_vars = {"OPENAI_API_KEY": "required"}
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": None}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": None}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 
@@ -270,7 +271,7 @@ class TestResolveLlmEnvVars:
         """The original env vars dict is not mutated — a new dict is returned."""
         config = _make_config()
         env_vars = {"OPENAI_API_KEY": "required"}
-        infra: PoCInfrastructure = {"needs_llm_api": True, "llm_env_pattern": "openai"}
+        infra: dict[str, Any] = {"needs_llm_api": True, "llm_env_pattern": "openai"}
 
         result = resolve_llm_env_vars(env_vars, infra, config)
 

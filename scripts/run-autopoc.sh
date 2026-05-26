@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 #
-# Run an AutoPoC pipeline as a Kubernetes Job.
+# Run an AutoPoC pipeline as a Kubernetes Job (OpenCode harness).
 #
 # Usage:
 #   scripts/run-autopoc.sh <project-name> <repo-url> [options]
 #
 # Examples:
 #   scripts/run-autopoc.sh my-project https://github.com/org/repo
-#   scripts/run-autopoc.sh my-project https://github.com/org/repo --stop-after build
 #   scripts/run-autopoc.sh my-project https://github.com/org/repo --dry-run
 #
 # Prerequisites (assumed already in place):
@@ -20,10 +19,7 @@ set -euo pipefail
 
 # ── Defaults ─────────────────────────────────────────────────────────
 NAMESPACE="autopoc-test"
-IMAGE="quay.io/aicatalyst/autopoc:latest"
-STOP_AFTER=""
-DEBUG=""
-SKIP_VALIDATION=""
+IMAGE="quay.io/aicatalyst/autopoc-opencode:latest"
 DRY_RUN=false
 
 # ── Usage ────────────────────────────────────────────────────────────
@@ -39,11 +35,7 @@ Positional arguments:
 
 Options:
   -n, --namespace NS    Kubernetes namespace (default: autopoc-test)
-  -i, --image IMAGE     Container image (default: quay.io/aicatalyst/autopoc:latest)
-  -s, --stop-after PH   Stop after phase: intake, evaluate, poc_plan, fork,
-                         containerize, build, deploy, apply, poc_execute, poc_report
-      --debug           Pass --debug to autopoc (dump failed LLM parses)
-      --skip-validation Pass --skip-validation to autopoc
+  -i, --image IMAGE     Container image (default: quay.io/aicatalyst/autopoc-opencode:latest)
       --dry-run         Print the Job manifest without applying
   -h, --help            Show this help message
 EOF
@@ -57,9 +49,6 @@ while [[ $# -gt 0 ]]; do
         -h|--help)        usage ;;
         -n|--namespace)   NAMESPACE="$2"; shift 2 ;;
         -i|--image)       IMAGE="$2"; shift 2 ;;
-        -s|--stop-after)  STOP_AFTER="$2"; shift 2 ;;
-        --debug)          DEBUG="true"; shift ;;
-        --skip-validation) SKIP_VALIDATION="true"; shift ;;
         --dry-run)        DRY_RUN=true; shift ;;
         -*)               echo "Unknown option: $1" >&2; echo >&2; usage 1 ;;
         *)                POSITIONAL+=("$1"); shift ;;
@@ -88,24 +77,8 @@ SHORT_ID="$(date +%s | tail -c 5)"
 JOB_NAME="autopoc-${PROJECT_NAME}-${SHORT_ID}"
 
 # ── Build container args ─────────────────────────────────────────────
-ARGS_YAML='          args:
-            - "run"'
-
-if [[ -n "$STOP_AFTER" ]]; then
-    ARGS_YAML="${ARGS_YAML}
-            - \"--stop-after\"
-            - \"${STOP_AFTER}\""
-fi
-
-if [[ -n "$DEBUG" ]]; then
-    ARGS_YAML="${ARGS_YAML}
-            - \"--debug\""
-fi
-
-if [[ -n "$SKIP_VALIDATION" ]]; then
-    ARGS_YAML="${ARGS_YAML}
-            - \"--skip-validation\""
-fi
+# OpenCode runs in non-interactive mode with the run-poc skill
+PROMPT="Run PoC for ${PROJECT_NAME} from ${REPO_URL}"
 
 # ── Generate manifest ────────────────────────────────────────────────
 MANIFEST=$(cat <<EOF
@@ -131,7 +104,10 @@ spec:
       containers:
         - name: autopoc
           image: ${IMAGE}
-${ARGS_YAML}
+          args:
+            - "run"
+            - "--dangerously-skip-permissions"
+            - "${PROMPT}"
           env:
             # --- Project configuration ---
             - name: AUTOPOC_PROJECT_NAME
@@ -140,7 +116,9 @@ ${ARGS_YAML}
               value: "${REPO_URL}"
             - name: BUILD_STRATEGY
               value: "openshift"
-            - name: WORK_DIR
+            - name: AUTOPOC_FORK_TARGET
+              value: "github"
+            - name: AUTOPOC_WORK_DIR
               value: "/workspace"
 
             # --- Google Sheet (for run-sheet, optional) ---
@@ -166,18 +144,22 @@ ${ARGS_YAML}
                   name: autopoc-credentials
                   key: VERTEX_PROJECT
                   optional: true
+            # OpenCode expects GOOGLE_CLOUD_PROJECT
+            - name: GOOGLE_CLOUD_PROJECT
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: VERTEX_PROJECT
+                  optional: true
             - name: VERTEX_LOCATION
               valueFrom:
                 secretKeyRef:
                   name: autopoc-credentials
                   key: VERTEX_LOCATION
                   optional: true
+            # Path to the mounted SA credentials file
             - name: GOOGLE_APPLICATION_CREDENTIALS
-              valueFrom:
-                secretKeyRef:
-                  name: autopoc-credentials
-                  key: GOOGLE_APPLICATION_CREDENTIALS
-                  optional: true
+              value: "/etc/autopoc/google-sa/credentials.json"
             - name: LLM_BASE_URL
               valueFrom:
                 secretKeyRef:
@@ -324,9 +306,6 @@ echo "Repo:       ${REPO_URL}"
 echo "Namespace:  ${NAMESPACE}"
 echo "Image:      ${IMAGE}"
 echo "Job:        ${JOB_NAME}"
-if [[ -n "$STOP_AFTER" ]]; then
-    echo "Stop after: ${STOP_AFTER}"
-fi
 echo
 
 echo "$MANIFEST" | oc apply -f -

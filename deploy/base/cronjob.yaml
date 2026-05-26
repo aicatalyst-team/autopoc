@@ -1,4 +1,4 @@
-# AutoPoC CronJob — runs `run-sheet` daily at midnight UTC.
+# AutoPoC CronJob (OpenCode harness) — runs `run-sheet` daily at midnight UTC.
 # Credentials come from the autopoc-credentials Secret.
 # Schedule and args can be overridden via overlay patches.
 apiVersion: batch/v1
@@ -29,9 +29,11 @@ spec:
 
           containers:
             - name: autopoc
-              image: quay.io/autopoc/autopoc:latest
+              image: quay.io/autopoc/autopoc-opencode:latest
               args:
-                - "run-sheet"
+                - "run"
+                - "--dangerously-skip-permissions"
+                - "Read candidates from the Google Sheet and run PoCs for the top picks"
               env:
                 # --- Project configuration (for 'run' command) ---
                 - name: AUTOPOC_PROJECT_NAME

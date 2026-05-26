@@ -59,16 +59,14 @@ class TestAutoPoCConfig:
             # Verify the error mentions the missing field requirement
             assert "At least one LLM provider must be configured" in str(exc_info.value)
 
-    def test_missing_multiple_required_vars(self) -> None:
-        """Missing multiple required vars reports all of them."""
+    def test_missing_llm_provider_is_only_required_field(self) -> None:
+        """With no env vars set, only the LLM provider validator fires."""
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(ValidationError) as exc_info:
                 AutoPoCConfig(_env_file=None)  # type: ignore[call-arg]
             error_str = str(exc_info.value)
-            # quay_org and quay_token are always required at field level
-            # (openshift_api_url and openshift_token are optional for in-cluster usage)
-            assert "quay_org" in error_str
-            assert "quay_token" in error_str
+            # quay_org and quay_token are optional (default None)
+            assert "At least one LLM provider must be configured" in error_str
 
     def test_gitlab_target_requires_gitlab_fields(self) -> None:
         """fork_target=gitlab requires GITLAB_URL, GITLAB_TOKEN, GITLAB_GROUP."""

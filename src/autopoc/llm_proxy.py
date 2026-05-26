@@ -13,11 +13,10 @@ are routed through OGX to our own Qwen3-32B inference server.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from autopoc.config import AutoPoCConfig
-    from autopoc.state import PoCInfrastructure
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +50,7 @@ _MODEL_VARS = frozenset(
 
 def resolve_llm_env_vars(
     extra_env_vars: dict[str, str],
-    infrastructure: PoCInfrastructure,
+    infrastructure: dict[str, Any],
     config: AutoPoCConfig,
 ) -> dict[str, str]:
     """Resolve LLM-related env vars by substituting OGX proxy details.

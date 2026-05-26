@@ -7,8 +7,6 @@ import logging
 import subprocess
 from typing import Dict, Optional
 
-from langchain_core.tools import tool
-
 logger = logging.getLogger(__name__)
 
 # Timeout for podman build (10 minutes)
@@ -51,7 +49,6 @@ def _run_podman(
         raise RuntimeError(f"podman {' '.join(args)} timed out after {timeout}s")
 
 
-@tool
 def podman_build(
     context_path: str,
     dockerfile: str,
@@ -117,7 +114,6 @@ def podman_login(registry: str, username: str, password: str, tls_verify: bool =
         raise RuntimeError(f"podman login timed out after {DEFAULT_TIMEOUT}s")
 
 
-@tool
 def podman_push(image: str, tls_verify: bool = True) -> str:
     """Push a container image to a registry.
 
@@ -135,7 +131,6 @@ def podman_push(image: str, tls_verify: bool = True) -> str:
     return _run_podman(args)
 
 
-@tool
 def podman_inspect(image: str) -> str:
     """Inspect a container image.
 
@@ -148,7 +143,6 @@ def podman_inspect(image: str) -> str:
     return _run_podman(["inspect", image])
 
 
-@tool
 def podman_tag(image: str, new_tag: str) -> str:
     """Tag an existing container image.
 

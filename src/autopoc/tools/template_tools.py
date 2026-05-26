@@ -8,7 +8,6 @@ deploy agent to generate K8s manifests.
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
-from langchain_core.tools import tool
 
 # Templates directory
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
@@ -27,7 +26,6 @@ def get_available_templates() -> list[str]:
     return sorted(_env.list_templates(extensions=["j2"]))
 
 
-@tool
 def render_template(template_name: str, variables: dict) -> str:
     """Render a Jinja2 template with the given variables.
 

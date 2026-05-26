@@ -1,3 +1,3 @@
-"""AutoPoC — LangGraph-based multi-agent system for automating PoC deployments on OpenShift AI."""
+"""AutoPoC — OpenCode skill-driven PoC pipeline for OpenShift AI deployments."""
 
 __version__ = "0.1.0"

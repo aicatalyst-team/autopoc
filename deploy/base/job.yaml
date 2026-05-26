@@ -1,6 +1,6 @@
-# AutoPoC Kubernetes Job template.
+# AutoPoC Kubernetes Job template (OpenCode harness).
 # Credentials come from the autopoc-credentials Secret.
-# The command (run vs run-sheet) and args are set via overlay patches.
+# The prompt is set via overlay patches or scripts/run-autopoc.sh.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -21,18 +21,22 @@ spec:
 
       containers:
         - name: autopoc
-          image: quay.io/autopoc/autopoc:latest
+          image: quay.io/autopoc/autopoc-opencode:latest
           args:
             - "run"
+            - "--dangerously-skip-permissions"
+            - "Run PoC for PLACEHOLDER_PROJECT from PLACEHOLDER_REPO"
           env:
-            # --- Project configuration (for 'run' command) ---
+            # --- Project configuration ---
             - name: AUTOPOC_PROJECT_NAME
               value: "PLACEHOLDER_PROJECT"
             - name: AUTOPOC_REPO_URL
               value: "PLACEHOLDER_REPO"
             - name: BUILD_STRATEGY
               value: "openshift"
-            - name: WORK_DIR
+            - name: AUTOPOC_FORK_TARGET
+              value: "github"
+            - name: AUTOPOC_WORK_DIR
               value: "/workspace"
 
             # --- Google Sheet configuration (for 'run-sheet' command) ---
@@ -58,18 +62,22 @@ spec:
                   name: autopoc-credentials
                   key: VERTEX_PROJECT
                   optional: true
+            # OpenCode expects GOOGLE_CLOUD_PROJECT (not VERTEX_PROJECT)
+            - name: GOOGLE_CLOUD_PROJECT
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: VERTEX_PROJECT
+                  optional: true
             - name: VERTEX_LOCATION
               valueFrom:
                 secretKeyRef:
                   name: autopoc-credentials
                   key: VERTEX_LOCATION
                   optional: true
+            # Path to the mounted SA credentials file
             - name: GOOGLE_APPLICATION_CREDENTIALS
-              valueFrom:
-                secretKeyRef:
-                  name: autopoc-credentials
-                  key: GOOGLE_APPLICATION_CREDENTIALS
-                  optional: true
+              value: "/etc/autopoc/google-sa/credentials.json"
             - name: LLM_BASE_URL
               valueFrom:
                 secretKeyRef:

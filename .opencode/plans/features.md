@@ -9,6 +9,7 @@
 7. [ ] Include tests output in the report, or at least as some kind of an appendix
 8. [V] OGX LLM Proxy for PoC projects (see ogx-llm-proxy-plan.md)
 9. [ ] Blog post generation from PoC results (see blog-post-plan.md)
+10. [WIP] **OpenCode Harness Rewrite** - Replace LangGraph agents with OpenCode skills (see opencode-harness-rewrite.md)
 
 ## Deeper dive
 
