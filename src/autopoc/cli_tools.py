@@ -8,7 +8,6 @@ Usage:
     python -m autopoc.cli_tools <command> [args...]
 
 Commands:
-    repo-digest <repo_path>                     Build repo digest (text output)
     llm-proxy <env_vars_json>                   Resolve LLM env vars (JSON output)
     sheet-reader [--sheet-id ID] [--credentials PATH] [--max-tabs N]
     sheet-writer [--sheet-id ID] [--credentials PATH] [--tab TAB]
@@ -29,18 +28,6 @@ def _load_config():
     from autopoc.config import AutoPoCConfig
 
     return AutoPoCConfig()
-
-
-# --------------------------------------------------------------------------- #
-# repo-digest
-# --------------------------------------------------------------------------- #
-
-
-def cmd_repo_digest(args: argparse.Namespace) -> None:
-    from autopoc.tools.repo_digest import build_repo_digest
-
-    digest = build_repo_digest(args.repo_path, max_total_chars=args.max_chars)
-    print(digest)
 
 
 # --------------------------------------------------------------------------- #
@@ -145,12 +132,6 @@ def build_parser() -> argparse.ArgumentParser:
         description="Standalone CLI wrappers for AutoPoC tools",
     )
     sub = parser.add_subparsers(dest="command", required=True)
-
-    # repo-digest
-    p = sub.add_parser("repo-digest", help="Build repo digest")
-    p.add_argument("repo_path", help="Path to cloned repository")
-    p.add_argument("--max-chars", type=int, default=20_000, help="Max output chars")
-    p.set_defaults(func=cmd_repo_digest)
 
     # llm-proxy
     p = sub.add_parser("llm-proxy", help="Resolve LLM env vars via OGX proxy")

@@ -67,10 +67,7 @@ For each top candidate (skip if `--skip-evaluation` was requested or only 1 cand
    git clone "$CANDIDATE_URL" "$WORK_DIR/repos/$CANDIDATE_NAME"
    ```
 
-2. Run repo digest:
-   ```bash
-   python -m autopoc.cli_tools repo-digest "$WORK_DIR/repos/$CANDIDATE_NAME"
-   ```
+2. Explore the repo (read README, build files, source structure) to understand what it does.
 
 3. Score the project using the RHOAI evaluation (you ARE the LLM -- read the strategy dimensions from `$AUTOPOC_DATA_DIR/strategies/` YAML files and score against them).
 

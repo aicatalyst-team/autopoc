@@ -66,13 +66,16 @@ Maintain a progressive YAML state file at `$WORK_DIR/poc-state.yaml`. Read `refe
    git clone "$REPO_URL" "$WORK_DIR/repos/$PROJECT_NAME"
    ```
 
-2. Generate a repository digest:
-   ```bash
-   python -m autopoc.cli_tools repo-digest "$WORK_DIR/repos/$PROJECT_NAME"
-   ```
-   This produces a markdown summary of the repo: file tree, build files, README, entry points, Dockerfiles, CI/CD detection.
+2. **Explore the repository** to understand its structure. Look at:
+   - File tree (use `ls` or `find` to see the layout)
+   - README.md (read it for project description, setup instructions, usage)
+   - Build files (requirements.txt, package.json, go.mod, pyproject.toml, pom.xml, Cargo.toml)
+   - Entry points (main.py, app.py, server.py, index.js, main.go, Dockerfile CMD/ENTRYPOINT)
+   - Existing Dockerfiles and docker-compose.yml
+   - CI/CD config (.github/workflows/, .gitlab-ci.yml)
+   - Helm charts (Chart.yaml) or Kustomize (kustomization.yaml)
 
-3. **Analyze the digest** and identify components. Follow the analysis instructions in `references/intake.md`. For each component, determine:
+3. **Identify components**. Follow the analysis instructions in `references/intake.md`. For each component, determine:
    - name, language, build_system, entry_point, port
    - is_ml_workload (check for torch, tensorflow, transformers, etc.)
    - source_dir, existing_dockerfile
