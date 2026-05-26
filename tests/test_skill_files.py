@@ -193,3 +193,32 @@ class TestSkillContentQuality:
         assert "Build Retry Loop" in content
         assert "Deploy Retry Loop" in content
         assert "Container Fix" in content
+
+    def test_run_poc_has_mandatory_phase_classification(self) -> None:
+        content = (SKILLS_DIR / "run-poc" / "SKILL.md").read_text(encoding="utf-8")
+        assert "MANDATORY" in content
+        assert "NON-BLOCKING" in content
+        assert "Never hallucinate success" in content
+
+    def test_poc_report_mentions_mermaid(self) -> None:
+        content = (SKILLS_DIR / "run-poc" / "references" / "poc-report.md").read_text(
+            encoding="utf-8"
+        )
+        assert "mermaid" in content.lower()
+
+    def test_blog_create_mentions_mermaid(self) -> None:
+        content = (SKILLS_DIR / "blog-create" / "SKILL.md").read_text(encoding="utf-8")
+        assert "mermaid" in content.lower()
+
+    def test_html_template_has_mermaid_js(self) -> None:
+        content = (SKILLS_DIR / "blog-create" / "assets" / "blog-template.html").read_text(
+            encoding="utf-8"
+        )
+        assert "mermaid" in content
+        assert "cdn.jsdelivr.net" in content
+
+    def test_html_preview_guide_has_mermaid_section(self) -> None:
+        content = (SKILLS_DIR / "blog-create" / "references" / "html-preview-guide.md").read_text(
+            encoding="utf-8"
+        )
+        assert "Mermaid" in content

@@ -76,6 +76,30 @@ For failed scenarios: what went wrong, error messages, fix suggestions.
 - Build/deploy errors encountered
 - Retry attempts
 
+## Mermaid Diagrams
+
+Include inline Mermaid diagrams where they aid understanding. Good candidates:
+
+- **Section 4 (Pipeline Execution)**: A flowchart showing the phases that ran and their pass/fail status
+- **Section 6 (Infrastructure Deployed)**: A diagram showing the deployment topology (namespace, pods, services, PVCs, routes)
+- **Section 2 (Project Analysis)**: A component architecture diagram (if the project has multiple interacting components)
+
+Use the Red Hat brand theme in every diagram:
+````
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EE0000', 'primaryTextColor': '#fff', 'primaryBorderColor': '#A30000', 'lineColor': '#6A6E73', 'secondaryColor': '#F0F0F0', 'tertiaryColor': '#0066CC'}}}%%
+graph LR
+    A[Component] --> B[Component]
+```
+````
+
+Choose the right diagram type:
+- `graph TD` / `graph LR` for architecture and flow
+- `sequenceDiagram` for request/response flows
+- `flowchart` for pipelines with decision points
+
+Do NOT force diagrams where they don't add value. A simple two-component project doesn't need an architecture diagram.
+
 ## Formatting Rules
 - Use proper markdown (headers, tables, code blocks, bullet lists)
 - Use checkmarks for pass and crosses for fail in tables

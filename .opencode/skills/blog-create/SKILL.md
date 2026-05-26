@@ -84,8 +84,27 @@ Generate the first draft at `$WORK_DIR/repos/$PROJECT_NAME/.autopoc/blog/drafts/
 ### Target Word Count
 800-1300 words for a standard PoC blog post.
 
-### Image Placeholders
-Include 2-3 image placeholders with generation prompts:
+### Diagrams and Image Placeholders
+
+When a visual describes a **diagram** (architecture, flow, pipeline, component interaction, deployment topology, comparison), generate it as an **inline Mermaid code block** directly in the markdown:
+
+````markdown
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EE0000', 'primaryTextColor': '#fff', 'primaryBorderColor': '#A30000', 'lineColor': '#6A6E73', 'secondaryColor': '#F0F0F0', 'tertiaryColor': '#0066CC'}}}%%
+graph LR
+    A[Clone & Analyze] --> B[Containerize]
+    B --> C[Build on OpenShift]
+    C --> D[Deploy & Test]
+```
+````
+
+Choose the right Mermaid diagram type:
+- `graph TD` / `graph LR` for architecture and flow
+- `sequenceDiagram` for request/response or interaction flows
+- `flowchart` for pipelines with decision points
+- `classDiagram` for component relationships
+
+For visuals that are NOT diagrams (hero images, photos, screenshots), use the image placeholder format:
 
 ```
 --------------------
@@ -97,6 +116,8 @@ Include 2-3 image placeholders with generation prompts:
 
 --------------------
 ```
+
+Prefer Mermaid diagrams over image placeholders whenever the content is diagrammable. Mermaid renders natively on GitHub, GitLab, and in the HTML preview.
 
 ### Writing Rules
 - First person plural ("we")
@@ -159,14 +180,17 @@ Read `references/scoring.md` for full rules.
 ## Phase 5: Finalize
 
 1. Strip internal changelog from passing draft
-2. Write `final.md` with clean draft
-3. Generate `seo.md` with meta title, description, keywords, slug
-4. Generate `blog-preview.html` using template from `assets/blog-template.html` -- read `references/html-preview-guide.md` for conversion rules
-5. Run Vale linting (optional):
+
+2. **Convert remaining diagram placeholders to Mermaid.** Scan for any `--------------------` delimited image placeholders that describe diagrams (architecture, flow, pipeline, topology). Convert them to inline mermaid code blocks with the Red Hat theme. This catches diagrams that were introduced during the review loop but weren't in the original draft.
+
+3. Write `final.md` with clean draft
+4. Generate `seo.md` with meta title, description, keywords, slug
+5. Generate `blog-preview.html` using template from `assets/blog-template.html` -- read `references/html-preview-guide.md` for conversion rules (includes Mermaid rendering)
+6. Run Vale linting (optional):
    ```bash
    vale --output=JSON final.md 2>/dev/null || true
    ```
-6. Commit to the `autopoc-artifacts` branch:
+7. Commit to the `autopoc-artifacts` branch:
    ```bash
    cd "$CLONE_PATH"
    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)

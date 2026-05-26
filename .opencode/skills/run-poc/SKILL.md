@@ -532,17 +532,39 @@ Test results recorded in state (pass or fail).
    - ODH/OpenShift AI considerations
    - Appendix with links to artifacts
 
-3. Write `poc-report.md`:
-   ```bash
-   # Write report to repo
-   ```
+3. Write `poc-report.md` to the repo root.
 
-4. Run Vale linting (optional):
+4. **Add Mermaid diagrams** to the report. For sections that describe architectures, flows, or deployment topologies, add inline mermaid code blocks. Typical diagrams for a PoC report:
+
+   - **Pipeline flow**: The phases that executed and their results
+   - **Deployment topology**: Namespace, pods, services, PVCs, and how they connect
+   - **Component architecture**: How the project's components interact (if multi-component)
+
+   Use the Red Hat brand theme:
+   ````markdown
+   ```mermaid
+   %%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EE0000', 'primaryTextColor': '#fff', 'primaryBorderColor': '#A30000', 'lineColor': '#6A6E73', 'secondaryColor': '#F0F0F0', 'tertiaryColor': '#0066CC'}}}%%
+   graph LR
+       A[Phase 1: Intake] --> B[Phase 3: Fork]
+       B --> C[Phase 5: Containerize]
+       C --> D[Phase 6: Build]
+       D --> E[Phase 8: Apply]
+       E --> F[Phase 9: Test]
+   ```
+   ````
+
+   Choose the right diagram type for the content:
+   - `graph TD` or `graph LR` for architecture and flow diagrams
+   - `sequenceDiagram` for request/response or interaction flows
+   - `flowchart` for pipelines with decision points
+   - `classDiagram` for component relationships
+
+5. Run Vale linting (optional):
    ```bash
    vale --output=JSON "$WORK_DIR/repos/$PROJECT_NAME/poc-report.md" 2>/dev/null || true
    ```
 
-5. Commit to the `autopoc-artifacts` branch:
+6. Commit to the `autopoc-artifacts` branch:
    ```bash
    cd "$WORK_DIR/repos/$PROJECT_NAME"
    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -555,7 +577,7 @@ Test results recorded in state (pass or fail).
    git stash pop --quiet 2>/dev/null || true
    ```
 
-6. Update `poc-state.yaml` with report path.
+7. Update `poc-state.yaml` with report path.
 
 ### Exit condition
 Report written and committed.

@@ -39,9 +39,33 @@ Convert a finalized blog post into a branded HTML preview using the template at 
 | Numbered list | `<ol><li>...</li></ol>` |
 | Code block | `<pre><code>...</code></pre>` |
 
+## Mermaid Diagrams
+
+When the markdown contains fenced mermaid code blocks:
+
+````markdown
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {...}}}%%
+graph TD
+  A --> B
+```
+````
+
+Convert to an HTML div that Mermaid.js will render client-side:
+
+```html
+<div class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EE0000', 'primaryTextColor': '#fff', 'primaryBorderColor': '#A30000', 'lineColor': '#6A6E73', 'secondaryColor': '#F0F0F0', 'tertiaryColor': '#0066CC'}}}%%
+graph TD
+  A --> B
+</div>
+```
+
+The HTML template includes the Mermaid.js CDN script which renders these automatically on page load.
+
 ## Image Placeholders
 
-Convert `--------------------` delimited blocks to:
+For non-diagram visuals, convert `--------------------` delimited blocks to:
 ```html
 <div class="image-placeholder">
   <div class="ph-icon"><svg>...</svg></div>

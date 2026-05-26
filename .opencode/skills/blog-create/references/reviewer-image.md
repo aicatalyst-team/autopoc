@@ -27,6 +27,14 @@ You evaluate image placement and placeholder quality. Focus on:
 - Neutrals: #151515, #383838, #6A6E73, #F0F0F0, #FFFFFF
 - Extended: Blue #0066CC, Teal #147878, Purple #3D2785, Green #3D7317, Orange #F0561D
 
+## Mermaid Diagrams
+
+When a visual is rendered as an inline Mermaid diagram instead of an image placeholder:
+- Evaluate on **diagram clarity** (is the diagram readable and accurate?) and **diagram type** (is flowchart/sequence/class the right choice?)
+- Do NOT penalize for missing brand colors or aspect ratios -- Mermaid handles theming via the `%%{init}%%` directive
+- DO check that the `%%{init}%%` theme block is present with Red Hat brand variables
+- Recommend converting remaining image placeholders to Mermaid if they describe diagrammable content
+
 ## Output Format
 
 Write to `drafts/reviews/vN-image.md` with scores table, per-image feedback, missing image opportunities, and summary.
