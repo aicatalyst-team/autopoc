@@ -9,8 +9,6 @@ import logging
 import subprocess
 from pathlib import Path
 
-from langchain_core.tools import tool
-
 logger = logging.getLogger(__name__)
 
 
@@ -141,7 +139,6 @@ def _check_skip_on_exists(manifest_path: str, namespace: str) -> str | None:
         return None
 
 
-@tool
 def kubectl_apply(manifest_path: str, namespace: str) -> str:
     """Apply a Kubernetes manifest file.
 
@@ -178,7 +175,6 @@ def kubectl_apply(manifest_path: str, namespace: str) -> str:
         raise
 
 
-@tool
 def kubectl_apply_from_string(manifest: str, namespace: str) -> str:
     """Apply a Kubernetes manifest from a YAML string.
 
@@ -221,7 +217,6 @@ def kubectl_apply_from_string(manifest: str, namespace: str) -> str:
         Path(temp_path).unlink(missing_ok=True)
 
 
-@tool
 def kubectl_create_namespace(name: str) -> str:
     """Create a Kubernetes namespace if it doesn't exist.
 
@@ -241,7 +236,6 @@ def kubectl_create_namespace(name: str) -> str:
         return output
 
 
-@tool
 def kubectl_get(resource: str, name: str, namespace: str) -> str:
     """Get a Kubernetes resource or list all resources of a type.
 
@@ -261,7 +255,6 @@ def kubectl_get(resource: str, name: str, namespace: str) -> str:
     return _run_kubectl(args)
 
 
-@tool
 def kubectl_logs(pod: str, namespace: str, tail: int = 100) -> str:
     """Get logs from a pod.
 
@@ -276,7 +269,6 @@ def kubectl_logs(pod: str, namespace: str, tail: int = 100) -> str:
     return _run_kubectl(["logs", pod, "-n", namespace, f"--tail={tail}"])
 
 
-@tool
 def kubectl_wait_for_rollout(deployment: str, namespace: str, timeout: int = 300) -> str:
     """Wait for a deployment to roll out successfully.
 
@@ -294,7 +286,6 @@ def kubectl_wait_for_rollout(deployment: str, namespace: str, timeout: int = 300
     )
 
 
-@tool
 def kubectl_get_service_url(service: str, namespace: str) -> str:
     """Get the external URL for a service.
 
@@ -344,7 +335,6 @@ def kubectl_get_service_url(service: str, namespace: str) -> str:
     return f"http://{cluster_ip}:{port} (cluster-internal only)"
 
 
-@tool
 def kubectl_delete(resource: str, name: str, namespace: str) -> str:
     """Delete a Kubernetes resource.
 

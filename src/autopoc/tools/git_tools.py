@@ -8,8 +8,6 @@ import logging
 import subprocess
 from pathlib import Path
 
-from langchain_core.tools import tool
-
 logger = logging.getLogger(__name__)
 
 # Timeout for git operations (seconds)
@@ -53,7 +51,6 @@ def _run_git(
         raise RuntimeError(f"git {' '.join(args)}: timed out after {timeout}s")
 
 
-@tool
 def git_clone(url: str, dest: str) -> str:
     """Clone a git repository.
 
@@ -73,7 +70,6 @@ def git_clone(url: str, dest: str) -> str:
     return str(dest_path)
 
 
-@tool
 def git_add_remote(repo_path: str, name: str, url: str) -> str:
     """Add a remote to a git repository.
 
@@ -108,7 +104,6 @@ def git_add_remote(repo_path: str, name: str, url: str) -> str:
 _BLOCKED_PUSH_HOSTS = {"gitlab.com", "bitbucket.org", "codeberg.org"}
 
 
-@tool
 def git_push(
     repo_path: str,
     remote: str = "origin",
@@ -162,7 +157,6 @@ def git_push(
     return output or f"Pushed {ref} to {remote}"
 
 
-@tool
 def git_commit(
     repo_path: str,
     message: str,
@@ -188,7 +182,6 @@ def git_commit(
     return output
 
 
-@tool
 def git_checkout_branch(
     repo_path: str,
     branch: str,

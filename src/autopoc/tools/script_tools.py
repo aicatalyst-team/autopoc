@@ -11,8 +11,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from langchain_core.tools import tool
-
 logger = logging.getLogger(__name__)
 
 
@@ -76,7 +74,6 @@ def truncate_output(text: str, max_bytes: int = MAX_SCENARIO_OUTPUT_BYTES) -> st
     return marker + tail
 
 
-@tool
 def run_script(
     script_path: str,
     timeout: int = 300,

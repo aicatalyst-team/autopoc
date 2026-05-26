@@ -12,11 +12,9 @@ class TestRunScript:
         script = tmp_path / "test.py"
         script.write_text('print("hello world")')
 
-        result = run_script.invoke(
-            {
-                "script_path": str(script),
-                "timeout": 30,
-            }
+        result = run_script(
+            script_path=str(script),
+            timeout=30,
         )
 
         assert "EXIT_CODE: 0" in result
@@ -27,11 +25,9 @@ class TestRunScript:
         script = tmp_path / "fail.py"
         script.write_text("import sys; sys.exit(1)")
 
-        result = run_script.invoke(
-            {
-                "script_path": str(script),
-                "timeout": 30,
-            }
+        result = run_script(
+            script_path=str(script),
+            timeout=30,
         )
 
         assert "EXIT_CODE: 1" in result
@@ -41,11 +37,9 @@ class TestRunScript:
         script = tmp_path / "stderr.py"
         script.write_text('import sys; print("error msg", file=sys.stderr)')
 
-        result = run_script.invoke(
-            {
-                "script_path": str(script),
-                "timeout": 30,
-            }
+        result = run_script(
+            script_path=str(script),
+            timeout=30,
         )
 
         assert "EXIT_CODE: 0" in result
@@ -54,11 +48,9 @@ class TestRunScript:
 
     def test_script_not_found(self):
         """Test with a non-existent script."""
-        result = run_script.invoke(
-            {
-                "script_path": "/nonexistent/script.py",
-                "timeout": 30,
-            }
+        result = run_script(
+            script_path="/nonexistent/script.py",
+            timeout=30,
         )
 
         assert "ERROR: Script not found" in result
@@ -68,11 +60,9 @@ class TestRunScript:
         script = tmp_path / "test.sh"
         script.write_text("echo hello")
 
-        result = run_script.invoke(
-            {
-                "script_path": str(script),
-                "timeout": 30,
-            }
+        result = run_script(
+            script_path=str(script),
+            timeout=30,
         )
 
         assert "ERROR: Not a Python script" in result
@@ -82,11 +72,9 @@ class TestRunScript:
         script = tmp_path / "slow.py"
         script.write_text("import time; time.sleep(60)")
 
-        result = run_script.invoke(
-            {
-                "script_path": str(script),
-                "timeout": 1,  # 1 second timeout
-            }
+        result = run_script(
+            script_path=str(script),
+            timeout=1,  # 1 second timeout
         )
 
         assert "timed out" in result
@@ -102,12 +90,10 @@ class TestRunScript:
         """)
         )
 
-        result = run_script.invoke(
-            {
-                "script_path": str(script),
-                "timeout": 30,
-                "script_args": "arg1 arg2",
-            }
+        result = run_script(
+            script_path=str(script),
+            timeout=30,
+            script_args="arg1 arg2",
         )
 
         assert "EXIT_CODE: 0" in result
@@ -128,11 +114,9 @@ class TestRunScript:
         """)
         )
 
-        result = run_script.invoke(
-            {
-                "script_path": str(script),
-                "timeout": 30,
-            }
+        result = run_script(
+            script_path=str(script),
+            timeout=30,
         )
 
         assert "EXIT_CODE: 0" in result
@@ -141,11 +125,9 @@ class TestRunScript:
 
     def test_not_a_file(self, tmp_path):
         """Test with a directory path."""
-        result = run_script.invoke(
-            {
-                "script_path": str(tmp_path),
-                "timeout": 30,
-            }
+        result = run_script(
+            script_path=str(tmp_path),
+            timeout=30,
         )
 
         assert "ERROR" in result

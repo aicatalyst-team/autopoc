@@ -5,21 +5,14 @@ build-backend = "hatchling.build"
 [project]
 name = "autopoc"
 version = "0.1.0"
-description = "LangGraph-based multi-agent system for automating PoC deployments on OpenShift AI"
+description = "OpenCode skill-driven PoC pipeline for OpenShift AI deployments"
 requires-python = ">=3.12"
 license = "MIT"
 dependencies = [
-    "langgraph>=0.2",
-    "langchain-anthropic>=0.3",
-    "langchain-google-vertexai>=1.0",
-    "langchain-openai>=0.3",
-    "langchain-core>=0.3",
-    "typer>=0.12",
     "python-dotenv>=1.0",
     "jinja2>=3.1",
     "pyyaml>=6.0",
     "httpx>=0.27",
-    "rich>=13.0",
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
     "google-api-python-client>=2.0",
@@ -27,20 +20,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-checkpoint = [
-    "langgraph-checkpoint-sqlite>=2.0",
-    "aiosqlite>=0.20",
-]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
     "pytest-cov>=6.0",
     "ruff>=0.6",
-    "grandalf>=0.8",
 ]
 
 [project.scripts]
-autopoc = "autopoc.cli:app"
+autopoc-tools = "autopoc.cli_tools:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/autopoc"]
@@ -57,36 +45,18 @@ asyncio_mode = "auto"
 norecursedirs = ["tests/fixtures"]
 filterwarnings = [
     "error",
-    "ignore:Core Pydantic V1 functionality:UserWarning:langchain_core",
-    "ignore:Support for google-cloud-storage:FutureWarning:google.cloud.aiplatform",
-    "ignore:'_UnionGenericAlias' is deprecated:DeprecationWarning:google.genai",
-    "ignore:'asyncio.iscoroutinefunction' is deprecated:DeprecationWarning",
     "ignore::pytest.PytestUnraisableExceptionWarning",
+    "ignore::DeprecationWarning",
 ]
 
 [tool.coverage.run]
 source = ["autopoc"]
 omit = [
-    # CLI entry points — tested manually and via e2e
-    "*/cli.py",
-    "*/cli_batch.py",
     # Infrastructure tools that shell out to kubectl/podman — tested via e2e
     "*/tools/k8s_tools.py",
     "*/tools/podman_tools.py",
     "*/tools/repo_digest.py",
-    # Agents that call kubectl/podman directly — tested via e2e
-    "*/agents/apply.py",
-    "*/agents/deploy.py",
-    # Blog post agent — multi-LLM-call agent, tested via e2e
-    "*/agents/blog_post.py",
-    # Credential validation — calls external APIs, tested via e2e
-    "*/credentials.py",
-    # Context compaction — deeply coupled to LangGraph internals
-    "*/context.py",
-    # Debug utilities
-    "*/debug.py",
-    # Sheet evaluation and write-back — tested via e2e (require Sheets API)
-    "*/sheet_eval.py",
+    # Sheet write-back — tested via e2e (requires Sheets API)
     "*/sheet_write.py",
 ]
 

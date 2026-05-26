@@ -7,8 +7,6 @@ All paths must be absolute. Path traversal outside the working tree is rejected.
 import re
 from pathlib import Path
 
-from langchain_core.tools import tool
-
 # Maximum file size to read (20KB — keeps context manageable across many reads)
 MAX_READ_BYTES = 20 * 1024
 
@@ -120,7 +118,6 @@ def _is_in_skip_dir(rel_path: Path) -> bool:
     return any(part in SKIP_DIRS for part in rel_path.parts)
 
 
-@tool
 def list_files(path: str, pattern: str = "**/*") -> str:
     """List files in a directory tree, optionally filtered by glob pattern.
 
@@ -159,7 +156,6 @@ def list_files(path: str, pattern: str = "**/*") -> str:
     return "\n".join(matches)
 
 
-@tool
 def read_file(path: str) -> str:
     """Read the contents of a file.
 
@@ -221,7 +217,6 @@ def read_file(path: str) -> str:
         return f"Error reading {path}: {e}"
 
 
-@tool
 def write_file(path: str, content: str) -> str:
     """Write content to a file, creating parent directories if needed.
 
@@ -242,7 +237,6 @@ def write_file(path: str, content: str) -> str:
         return f"Error writing {path}: {e}"
 
 
-@tool
 def search_files(path: str, pattern: str, file_glob: str = "**/*") -> str:
     """Search for a regex pattern across files in a directory tree.
 

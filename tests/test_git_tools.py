@@ -59,7 +59,7 @@ def local_repo(tmp_path: Path, bare_repo: Path) -> Path:
 class TestGitClone:
     def test_clone_local_bare_repo(self, bare_repo: Path, tmp_path: Path) -> None:
         dest = str(tmp_path / "cloned")
-        result = git_clone.invoke({"url": str(bare_repo), "dest": dest})
+        result = git_clone(url=str(bare_repo), dest=dest)
         assert dest in result
         assert Path(dest).is_dir()
         assert (Path(dest) / ".git").is_dir()
@@ -67,7 +67,7 @@ class TestGitClone:
     def test_clone_dest_already_exists(self, bare_repo: Path, tmp_path: Path) -> None:
         dest = tmp_path / "existing"
         dest.mkdir()
-        result = git_clone.invoke({"url": str(bare_repo), "dest": str(dest)})
+        result = git_clone(url=str(bare_repo), dest=str(dest))
         assert result == str(dest.resolve())
 
 
@@ -76,9 +76,7 @@ class TestGitAddRemote:
         other_bare = tmp_path / "other.git"
         other_bare.mkdir()
         subprocess.run(["git", "init", "--bare", str(other_bare)], check=True, capture_output=True)
-        result = git_add_remote.invoke(
-            {"repo_path": str(local_repo), "name": "gitlab", "url": str(other_bare)}
-        )
+        result = git_add_remote(repo_path=str(local_repo), name="gitlab", url=str(other_bare))
         assert "Added remote" in result
         assert "gitlab" in result
 
@@ -92,9 +90,7 @@ class TestGitAddRemote:
         assert "gitlab" in remotes.stdout
 
     def test_remote_already_exists_updates_url(self, local_repo: Path) -> None:
-        result = git_add_remote.invoke(
-            {"repo_path": str(local_repo), "name": "origin", "url": "https://other.com"}
-        )
+        result = git_add_remote(repo_path=str(local_repo), name="origin", url="https://other.com")
         assert "Updated remote" in result
 
         # Verify it actually updated
@@ -110,7 +106,7 @@ class TestGitAddRemote:
 class TestGitCommit:
     def test_commit_all_changes(self, local_repo: Path) -> None:
         (local_repo / "new_file.txt").write_text("hello")
-        result = git_commit.invoke({"repo_path": str(local_repo), "message": "add new file"})
+        result = git_commit(repo_path=str(local_repo), message="add new file")
         assert "add new file" in result
 
         # Verify commit exists in log
@@ -125,12 +121,10 @@ class TestGitCommit:
     def test_commit_specific_files(self, local_repo: Path) -> None:
         (local_repo / "a.txt").write_text("aaa")
         (local_repo / "b.txt").write_text("bbb")
-        result = git_commit.invoke(
-            {
-                "repo_path": str(local_repo),
-                "message": "add only a",
-                "files": ["a.txt"],
-            }
+        result = git_commit(
+            repo_path=str(local_repo),
+            message="add only a",
+            files=["a.txt"],
         )
         assert "add only a" in result
 
@@ -164,15 +158,13 @@ class TestGitPush:
             text=True,
         ).stdout.strip()
 
-        result = git_push.invoke({"repo_path": str(local_repo), "remote": "origin", "ref": branch})
+        result = git_push(repo_path=str(local_repo), remote="origin", ref=branch)
         assert "Pushed" in result or result == ""  # git push may produce empty stdout
 
 
 class TestGitCheckoutBranch:
     def test_create_and_checkout_branch(self, local_repo: Path) -> None:
-        result = git_checkout_branch.invoke(
-            {"repo_path": str(local_repo), "branch": "feature-x", "create": True}
-        )
+        result = git_checkout_branch(repo_path=str(local_repo), branch="feature-x", create=True)
         assert "feature-x" in result
 
         # Verify we're on the new branch
@@ -210,5 +202,5 @@ class TestGitCheckoutBranch:
             capture_output=True,
         )
 
-        result = git_checkout_branch.invoke({"repo_path": str(local_repo), "branch": "existing"})
+        result = git_checkout_branch(repo_path=str(local_repo), branch="existing")
         assert "existing" in result
