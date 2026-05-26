@@ -26,20 +26,26 @@ Automated Proof-of-Concept pipeline for deploying GitHub projects on OpenShift A
 ## Pipeline Overview
 
 ```
-Phase 1: Intake      -> Clone and analyze the repository
-Phase 2: Evaluate    -> Score RHOAI fitness (non-blocking)
-Phase 3: Fork        -> Push to GitLab/GitHub
-Phase 4: PoC Plan    -> Create plan with scenarios and infrastructure
-Phase 5: Containerize -> Write UBI-based Dockerfiles
-Phase 6: Build       -> podman build + push to Quay
-Phase 7: Deploy      -> Generate Kubernetes manifests
-Phase 8: Apply       -> kubectl apply + verify pods
-Phase 9: PoC Execute -> Write and run test scripts
-Phase 10: PoC Report -> Generate markdown report
-Phase 11: Blog Post  -> Generate developer blog (if tests pass)
+Phase 1: Intake       -> Clone and analyze the repository          [MANDATORY]
+Phase 2: Evaluate     -> Score RHOAI fitness                       [NON-BLOCKING]
+Phase 3: Fork         -> Push to GitHub/GitLab                     [MANDATORY]
+Phase 4: PoC Plan     -> Create plan with scenarios                [MANDATORY]
+Phase 5: Containerize -> Write UBI-based Dockerfiles               [MANDATORY]
+Phase 6: Build        -> Build + push images to Quay               [MANDATORY]
+Phase 7: Deploy       -> Generate Kubernetes manifests             [MANDATORY]
+Phase 8: Apply        -> kubectl apply + verify pods               [MANDATORY]
+Phase 9: PoC Execute  -> Write and run test scripts                [MANDATORY]
+Phase 10: PoC Report  -> Generate markdown report                  [NON-BLOCKING]
+Phase 11: Blog Post   -> Generate developer blog (if tests pass)   [NON-BLOCKING]
 ```
 
-Retry loops:
+### Phase Classification
+
+**MANDATORY phases MUST succeed before continuing.** If a mandatory phase fails and retries are exhausted, **STOP the pipeline immediately.** Do NOT simulate, skip, or pretend the phase succeeded. Write the error to `poc-state.yaml` and exit.
+
+**NON-BLOCKING phases** may fail without stopping the pipeline. If they fail, note the failure in state and continue to the next phase.
+
+### Retry loops
 - **Build retry**: Phase 6 fails -> back to Phase 5 (fix Dockerfile) -> Phase 6 again
 - **Deploy retry**: Phase 8 fails with manifest issue -> back to Phase 7 (fix manifests) -> Phase 8
 - **Container fix**: Phase 8 or 9 detects container issue -> back to Phase 5 (full rebuild cycle)
@@ -119,16 +125,36 @@ Evaluation written (or skipped on failure). Pipeline continues regardless.
 
 ## Phase 3: Fork
 
-**Purpose**: Push the repository to the configured forge (GitLab or GitHub).
+**Purpose**: Push the repository to the configured forge (GitHub or GitLab).
+
+**This phase is MANDATORY.** If the fork fails, STOP the pipeline.
 
 ### Steps
 
-Determine fork target from env vars (`AUTOPOC_FORK_TARGET`, defaults to `gitlab`).
-
-**GitLab path:**
-1. Create the project and push:
+1. Check fork target:
    ```bash
-   # Create the project on GitLab via REST API
+   echo "Fork target: ${AUTOPOC_FORK_TARGET:-github}"
+   ```
+
+2. **If `AUTOPOC_FORK_TARGET` is `github` (default):**
+
+   Fork the repository using `gh`:
+   ```bash
+   gh repo fork "$OWNER/$REPO" --org "$GITHUB_ORG" --clone=false
+   ```
+   Then reconfigure remotes:
+   ```bash
+   cd "$WORK_DIR/repos/$PROJECT_NAME"
+   git remote rename origin upstream 2>/dev/null || true
+   git remote add origin "https://${GITHUB_TOKEN}@github.com/${GITHUB_ORG}/${REPO}.git"
+   git push origin --all --force
+   git push origin --tags --force
+   ```
+
+3. **If `AUTOPOC_FORK_TARGET` is `gitlab`:**
+
+   Create the project on GitLab via REST API:
+   ```bash
    GROUP_ID=$(curl -s -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
      "$GITLAB_URL/api/v4/groups?search=$GITLAB_GROUP" | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['id'])")
 
@@ -136,7 +162,6 @@ Determine fork target from env vars (`AUTOPOC_FORK_TARGET`, defaults to `gitlab`
      "$GITLAB_URL/api/v4/projects" \
      -d "name=$PROJECT_NAME&namespace_id=$GROUP_ID&visibility=internal"
 
-   # Add GitLab as origin and push
    cd "$WORK_DIR/repos/$PROJECT_NAME"
    git remote rename origin github 2>/dev/null || true
    git remote add origin "https://oauth2:${GITLAB_TOKEN}@${GITLAB_URL#https://}/${GITLAB_GROUP}/${PROJECT_NAME}.git" \
@@ -145,20 +170,7 @@ Determine fork target from env vars (`AUTOPOC_FORK_TARGET`, defaults to `gitlab`
    git push origin --tags --force
    ```
 
-**GitHub path:**
-1. Fork the repository using `gh`:
-   ```bash
-   gh repo fork "$OWNER/$REPO" --org "$GITHUB_ORG" --clone=false
-   ```
-2. Wait for the fork to be ready, then reconfigure remotes:
-   ```bash
-   # gh repo fork waits automatically; add the fork as origin
-   cd "$WORK_DIR/repos/$PROJECT_NAME"
-   git remote rename origin upstream 2>/dev/null || true
-   git remote add origin "https://${GITHUB_TOKEN}@github.com/${GITHUB_ORG}/${REPO}.git"
-   ```
-
-3. Update `poc-state.yaml` with fork URL and target.
+4. Update `poc-state.yaml` with fork URL and target.
 
 ### Exit condition
 Fork URL recorded in state.
@@ -286,31 +298,36 @@ Check the `BUILD_STRATEGY` environment variable to decide how to build:
 
 3. **If `BUILD_STRATEGY` is `openshift`:**
 
-   a. Create a docker-registry secret for pushing (if not already done):
+   The builds namespace is derived from `OPENSHIFT_NAMESPACE_PREFIX` (defaults to `poc`):
+   ```bash
+   BUILDS_NS="${OPENSHIFT_NAMESPACE_PREFIX:-poc}-builds"
+   ```
+
+   a. Create the builds namespace and registry push secret:
       ```bash
+      oc create namespace "$BUILDS_NS" --dry-run=client -o yaml | oc apply -f -
+
       oc create secret docker-registry autopoc-registry-push \
         --docker-server="${QUAY_REGISTRY:-quay.io}" \
         --docker-username="$QUAY_USERNAME" \
         --docker-password="$QUAY_TOKEN" \
-        -n autopoc-builds --dry-run=client -o yaml | oc apply -f -
+        -n "$BUILDS_NS" --dry-run=client -o yaml | oc apply -f -
       ```
 
    b. Create a BuildConfig and start a binary build:
       ```bash
-      # Create namespace if needed
-      oc create namespace autopoc-builds --dry-run=client -o yaml | oc apply -f -
-
-      # Start binary build -- uploads local source, builds on cluster, pushes to registry
+      # Create the BuildConfig (oc new-build creates it + an ImageStream)
       oc new-build --name="$PROJECT_NAME-$COMPONENT" \
         --binary --strategy=docker \
         --to-docker --to="$IMAGE_TAG" \
         --push-secret=autopoc-registry-push \
-        -n autopoc-builds --dry-run=client -o yaml | oc apply -f -
+        -n "$BUILDS_NS" 2>&1 || true  # ignore "already exists" errors
 
+      # Start binary build -- uploads local source, builds on cluster, pushes to registry
       oc start-build "$PROJECT_NAME-$COMPONENT" \
         --from-dir="$WORK_DIR/repos/$PROJECT_NAME/$COMPONENT_DIR" \
         --follow --wait \
-        -n autopoc-builds
+        -n "$BUILDS_NS"
       ```
 
    c. Push is automatic -- the BuildConfig pushes to the registry as part of the build.
@@ -564,7 +581,35 @@ Blog post written (or phase skipped if tests didn't pass).
 
 ## Error Handling
 
-- If any phase fails with an unrecoverable error, set `project.current_phase` to the failed phase and add the error to the `errors` array in state.
+**CRITICAL: Never simulate, fake, or pretend a failed phase succeeded.**
+
+If a MANDATORY phase fails:
+1. Record the error in `poc-state.yaml` (errors array + phase status = "failed")
+2. **STOP the pipeline immediately.** Do not proceed to the next phase.
+3. Report what failed and why in your final output.
+
+If a NON-BLOCKING phase fails (Evaluate, PoC Report, Blog Post):
+1. Record the failure in state
+2. Continue to the next phase
+
+### Phase classification reminder
+
+| Phase | Classification |
+|-------|---------------|
+| 1. Intake | MANDATORY |
+| 2. Evaluate | NON-BLOCKING |
+| 3. Fork | MANDATORY |
+| 4. PoC Plan | MANDATORY |
+| 5. Containerize | MANDATORY |
+| 6. Build | MANDATORY |
+| 7. Deploy | MANDATORY |
+| 8. Apply | MANDATORY |
+| 9. PoC Execute | MANDATORY |
+| 10. PoC Report | NON-BLOCKING |
+| 11. Blog Post | NON-BLOCKING |
+
+### General rules
+
 - Always check exit codes after bash commands.
 - Capture stderr alongside stdout for debugging: `command 2>&1`
 - For kubectl commands, always specify the namespace explicitly.
@@ -576,5 +621,5 @@ Blog post written (or phase skipped if tests didn't pass).
 - **Always use absolute paths** for file operations and kubectl commands.
 - **Never leave USER root** as the final Dockerfile directive.
 - **Check retry counters before looping back** to a previous phase.
-- **Non-blocking phases** (evaluate, blog post): failures don't stop the pipeline.
 - **Git operations**: always push with `--force` to handle retry scenarios where commits are rewritten.
+- **Never hallucinate success.** If a build fails, it failed. If an image doesn't exist, don't deploy it. If a pod is crashing, don't pretend tests passed.

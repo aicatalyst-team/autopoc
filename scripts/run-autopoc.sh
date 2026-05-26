@@ -116,6 +116,8 @@ spec:
               value: "${REPO_URL}"
             - name: BUILD_STRATEGY
               value: "openshift"
+            - name: AUTOPOC_FORK_TARGET
+              value: "github"
             - name: AUTOPOC_WORK_DIR
               value: "/workspace"
 

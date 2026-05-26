@@ -47,6 +47,11 @@ ARG OPENCODE_VERSION=v1.15.10
 RUN curl -fsSL "https://github.com/anomalyco/opencode/releases/download/${OPENCODE_VERSION}/opencode-linux-x64.tar.gz" \
     | tar xzf - -C /usr/local/bin && chmod +x /usr/local/bin/opencode
 
+# Install GitHub CLI (for gh repo fork)
+ARG GH_VERSION=2.74.0
+RUN curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz" \
+    | tar xzf - --strip-components=1 -C /usr/local && chmod +x /usr/local/bin/gh
+
 # ---------------------------------------------------------------------------
 # Python tools (standalone scripts used by OpenCode via bash)
 # ---------------------------------------------------------------------------
