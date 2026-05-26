@@ -1,5 +1,5 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "permission": "allow",
-  "model": "vertexai/claude-opus-4-6"
+  "model": "vertexai/claude-sonnet-4-20250514"
 }
