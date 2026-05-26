@@ -69,6 +69,10 @@ COPY AGENTS.md /opt/autopoc/AGENTS.md
 # Create workspace directory writable by default user
 RUN mkdir -p /workspace && chown 1001:0 /workspace && chmod 775 /workspace
 
+# Vale prose linting config and styles
+COPY .vale.ini /opt/autopoc/.vale.ini
+COPY .vale/styles/ /opt/autopoc/.vale/styles/
+
 # Ensure project files are accessible
 RUN chgrp -R 0 /opt/autopoc && chmod -R g=u /opt/autopoc
 
@@ -80,10 +84,6 @@ RUN git config --global user.email "autopoc@autopoc.local" && \
     git config --global user.name "AutoPoC Agent"
 
 WORKDIR /opt/autopoc
-
-# Vale prose linting config and styles
-COPY .vale.ini /opt/autopoc/.vale.ini
-COPY .vale/styles/ /opt/autopoc/.vale/styles/
 
 # ---------------------------------------------------------------------------
 # Environment

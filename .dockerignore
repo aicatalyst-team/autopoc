@@ -19,10 +19,14 @@ __pycache__
 tests/
 
 # Documentation and planning
-*.md
-!README.md
 docs/
-.opencode/
+
+# OpenCode internal state (not skills)
+.opencode/plans/
+.opencode/node_modules/
+.opencode/package.json
+.opencode/package-lock.json
+.opencode/.gitignore
 
 # IDE and editor
 .idea/
