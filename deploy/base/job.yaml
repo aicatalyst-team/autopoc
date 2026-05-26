@@ -60,18 +60,22 @@ spec:
                   name: autopoc-credentials
                   key: VERTEX_PROJECT
                   optional: true
+            # OpenCode expects GOOGLE_CLOUD_PROJECT (not VERTEX_PROJECT)
+            - name: GOOGLE_CLOUD_PROJECT
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: VERTEX_PROJECT
+                  optional: true
             - name: VERTEX_LOCATION
               valueFrom:
                 secretKeyRef:
                   name: autopoc-credentials
                   key: VERTEX_LOCATION
                   optional: true
+            # Path to the mounted SA credentials file
             - name: GOOGLE_APPLICATION_CREDENTIALS
-              valueFrom:
-                secretKeyRef:
-                  name: autopoc-credentials
-                  key: GOOGLE_APPLICATION_CREDENTIALS
-                  optional: true
+              value: "/etc/autopoc/google-sa/credentials.json"
             - name: LLM_BASE_URL
               valueFrom:
                 secretKeyRef:
