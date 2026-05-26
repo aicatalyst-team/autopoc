@@ -240,12 +240,19 @@ Every PoC component has a `Dockerfile.ubi` written and committed.
 
 **Purpose**: Build container images and push to Quay registry.
 
+The build uses the configured `BUILD_STRATEGY` environment variable:
+- `openshift` (default in pods): builds on-cluster via `oc start-build --from-dir`, pushes automatically
+- `podman` (local): builds locally via `podman build`, pushes via `podman push`
+
+The `python -m autopoc.cli_tools build` command abstracts this -- it picks the right strategy automatically based on `BUILD_STRATEGY`.
+
 ### Steps
 
 1. Log in to the registry:
    ```bash
-   echo "$QUAY_TOKEN" | podman login "${QUAY_REGISTRY:-quay.io}" -u "$QUAY_USERNAME" --password-stdin
+   python -m autopoc.cli_tools build login
    ```
+   This reads `QUAY_REGISTRY`, `QUAY_USERNAME`, and `QUAY_TOKEN` from environment.
 
 2. For each component:
 
@@ -256,19 +263,21 @@ Every PoC component has a `Dockerfile.ubi` written and committed.
 
    b. Build the image:
       ```bash
-      cd "$WORK_DIR/repos/$PROJECT_NAME/$COMPONENT_DIR"
-      podman build -t "${QUAY_REGISTRY:-quay.io}/$QUAY_ORG/$PROJECT_NAME-$COMPONENT:latest" \
-        -f Dockerfile.ubi . 2>&1
+      IMAGE_TAG="${QUAY_REGISTRY:-quay.io}/$QUAY_ORG/$PROJECT_NAME-$COMPONENT:latest"
+      python -m autopoc.cli_tools build build \
+        --context "$WORK_DIR/repos/$PROJECT_NAME/$COMPONENT_DIR" \
+        --dockerfile "$WORK_DIR/repos/$PROJECT_NAME/$COMPONENT_DIR/Dockerfile.ubi" \
+        --tag "$IMAGE_TAG"
       ```
 
-   c. Push the image:
+   c. Push the image (no-op for OpenShift strategy, pushes for podman):
       ```bash
-      podman push "${QUAY_REGISTRY:-quay.io}/$QUAY_ORG/$PROJECT_NAME-$COMPONENT:latest"
+      python -m autopoc.cli_tools build push --tag "$IMAGE_TAG"
       ```
 
 3. **On build failure:**
-   - Read the error output
-   - Check if it's a **permanent error** (authentication failure, network unreachable, podman not found) -> FAIL
+   - Read the error output from the JSON response
+   - Check if it's a **permanent error** (authentication failure, network unreachable) -> FAIL
    - Check if retries are available (read `retries.build_retries` from state < `retries.max_build_retries`)
    - If retriable: increment `retries.build_retries`, record the error, go back to Phase 5
    - If retries exhausted: FAIL

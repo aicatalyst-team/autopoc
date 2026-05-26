@@ -120,19 +120,17 @@ class PodmanBuildStrategy(BuildStrategy):
     def build(self, context_path, dockerfile, tag, *, tls_verify=True):
         from autopoc.tools.podman_tools import podman_build
 
-        return podman_build.invoke(
-            {
-                "context_path": context_path,
-                "dockerfile": dockerfile,
-                "tag": tag,
-                "tls_verify": tls_verify,
-            }
+        return podman_build(
+            context_path=context_path,
+            dockerfile=dockerfile,
+            tag=tag,
+            tls_verify=tls_verify,
         )
 
     def push(self, image, *, tls_verify=True):
         from autopoc.tools.podman_tools import podman_push
 
-        return podman_push.invoke({"image": image, "tls_verify": tls_verify})
+        return podman_push(image=image, tls_verify=tls_verify)
 
 
 class OpenShiftBuildStrategy(BuildStrategy):
