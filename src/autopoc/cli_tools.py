@@ -24,7 +24,6 @@ Commands:
     strategy dimensions                         Get scoring dimensions (JSON output)
     llm-proxy <env_vars_json>                   Resolve LLM env vars (JSON output)
     artifacts <clone_path> <files...>           Commit files to artifacts branch
-    vale <file_path>                            Run Vale linting (JSON output)
     sheet-reader [--sheet-id ID] [--credentials PATH] [--max-tabs N]
     sheet-writer [--sheet-id ID] [--credentials PATH] [--tab TAB]
                  [--row ROW] [--results JSON]
@@ -211,18 +210,6 @@ def cmd_artifacts(args: argparse.Namespace) -> None:
 
 
 # --------------------------------------------------------------------------- #
-# vale
-# --------------------------------------------------------------------------- #
-
-
-def cmd_vale(args: argparse.Namespace) -> None:
-    from autopoc.tools.vale_lint import run_vale
-
-    findings = run_vale(args.file_path)
-    print(json.dumps(findings, indent=2))
-
-
-# --------------------------------------------------------------------------- #
 # sheet-reader
 # --------------------------------------------------------------------------- #
 
@@ -353,11 +340,6 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("files", nargs="+", help="Files to commit")
     p.add_argument("--message", default=None, help="Commit message")
     p.set_defaults(func=cmd_artifacts)
-
-    # vale
-    p = sub.add_parser("vale", help="Run Vale linting")
-    p.add_argument("file_path", help="Path to markdown file")
-    p.set_defaults(func=cmd_vale)
 
     # sheet-reader
     p = sub.add_parser("sheet-reader", help="Read candidates from Google Sheet")

@@ -4,7 +4,6 @@ Tests cover:
 - Argument parser construction and subcommand registration
 - repo-digest subcommand against test fixtures
 - strategy subcommand (load, load-baseline, dimensions)
-- vale subcommand (delegates to run_vale)
 - Error handling (missing args, invalid subcommands)
 """
 
@@ -17,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from autopoc.cli_tools import build_parser, cmd_repo_digest, cmd_strategy, cmd_vale
+from autopoc.cli_tools import build_parser, cmd_repo_digest, cmd_strategy
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 
@@ -38,7 +37,6 @@ class TestBuildParser:
             "strategy",
             "llm-proxy",
             "artifacts",
-            "vale",
             "sheet-reader",
             "sheet-writer",
         ]
@@ -65,11 +63,6 @@ class TestBuildParser:
         parser = build_parser()
         with pytest.raises(SystemExit):
             parser.parse_args(["gitlab"])
-
-    def test_vale_requires_file_path(self) -> None:
-        parser = build_parser()
-        with pytest.raises(SystemExit):
-            parser.parse_args(["vale"])
 
 
 class TestRepoDigest:
@@ -133,28 +126,6 @@ class TestStrategy:
         assert "dimensions" in data
         assert "max_score" in data
         assert data["max_score"] > 0
-
-
-class TestVale:
-    """Test the vale subcommand."""
-
-    def test_vale_on_missing_file(self, capsys: pytest.CaptureFixture[str]) -> None:
-        parser = build_parser()
-        args = parser.parse_args(["vale", "/nonexistent/file.md"])
-        cmd_vale(args)
-        output = capsys.readouterr().out
-        findings = json.loads(output)
-        assert findings == []
-
-    def test_vale_on_real_file(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-        md = tmp_path / "test.md"
-        md.write_text("# Hello\n\nSome text here.\n")
-        parser = build_parser()
-        args = parser.parse_args(["vale", str(md)])
-        cmd_vale(args)
-        output = capsys.readouterr().out
-        findings = json.loads(output)
-        assert isinstance(findings, list)
 
 
 class TestModuleInvocation:
