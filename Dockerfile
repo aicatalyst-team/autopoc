@@ -60,9 +60,19 @@ COPY src/ /opt/autopoc/src/
 COPY data/ /opt/autopoc/data/
 
 # Copy OpenCode skills and configuration
-COPY .opencode/ /opt/autopoc/.opencode/
+COPY .opencode/skills/ /opt/autopoc/.opencode/skills/
 COPY opencode.json /opt/autopoc/opencode.json
 COPY AGENTS.md /opt/autopoc/AGENTS.md
+
+# Vale prose linting config and styles
+COPY .vale.ini /opt/autopoc/.vale.ini
+COPY .vale/styles/ /opt/autopoc/.vale/styles/
+
+# Initialize a git repo so OpenCode discovers project-local skills.
+# Must happen after all COPY commands that write to /opt/autopoc.
+RUN git init /opt/autopoc && \
+    git -C /opt/autopoc add -A && \
+    git -C /opt/autopoc -c user.email=build@autopoc -c user.name=build commit -m "init" --quiet
 
 # ---------------------------------------------------------------------------
 # Workspace and permissions
@@ -71,11 +81,13 @@ COPY AGENTS.md /opt/autopoc/AGENTS.md
 # Create workspace directory writable by default user
 RUN mkdir -p /workspace && chown 1001:0 /workspace && chmod 775 /workspace
 
-# Vale prose linting config and styles
-COPY .vale.ini /opt/autopoc/.vale.ini
-COPY .vale/styles/ /opt/autopoc/.vale/styles/
+# OpenCode stores session data and config here
+RUN mkdir -p /opt/app-root/src/.local/share/opencode && \
+    mkdir -p /opt/app-root/src/.config/opencode && \
+    chown -R 1001:0 /opt/app-root/src/.local /opt/app-root/src/.config && \
+    chmod -R 775 /opt/app-root/src/.local /opt/app-root/src/.config
 
-# Ensure project files are accessible
+# Ensure project files are accessible (after git init so .git is included)
 RUN chgrp -R 0 /opt/autopoc && chmod -R g=u /opt/autopoc
 
 # Switch to non-root user
