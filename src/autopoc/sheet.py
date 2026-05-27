@@ -177,7 +177,7 @@ def read_sheet(
     sheet_id: str,
     *,
     max_tabs: int = 1,
-    monthly_mode: bool = False,
+    monthly_mode: bool = True,
     target_month: str | None = None,
 ) -> list[dict[str, str]]:
     """Read data rows from one or more tabs of a Google Sheet.
@@ -187,7 +187,7 @@ def read_sheet(
     as the header, and returns all data rows aggregated into a single
     list.
 
-    When monthly_mode=True, ignores max_tabs and instead looks for a monthly
+    When monthly_mode=True (default), ignores max_tabs and instead looks for a monthly
     report tab for the specified month (or current month if not specified).
 
     Each returned dict has an extra ``_origin`` key containing a
@@ -197,8 +197,8 @@ def read_sheet(
     Args:
         credentials_file: Path to the Google service account JSON key file.
         sheet_id: The spreadsheet ID (from the Google Sheets URL).
-        max_tabs: Maximum number of tabs to scan (default 1, leftmost first).
-        monthly_mode: If True, look for monthly report tab instead of using max_tabs.
+        max_tabs: Maximum number of tabs to scan (default 1, leftmost first, ignored in monthly mode).
+        monthly_mode: If True (default), look for monthly report tab instead of using max_tabs.
         target_month: Month in format "YYYY-MM" (e.g., "2026-05") or None for current month.
 
     Returns:

@@ -453,7 +453,7 @@ class TestReadSheet:
             ) as mock_auth,
             patch("autopoc.sheet.build", return_value=mock_service) as mock_build,
         ):
-            result = read_sheet("/fake/sa.json", "sheet-id-123")
+            result = read_sheet("/fake/sa.json", "sheet-id-123", monthly_mode=False)
 
         # Verify auth — scope is read-write for write-back support
         mock_auth.assert_called_once_with(
@@ -491,7 +491,7 @@ class TestReadSheet:
             patch("autopoc.sheet.build", return_value=mock_service),
         ):
             with pytest.raises(ValueError, match="has no tabs"):
-                read_sheet("/fake/sa.json", "sheet-id-123")
+                read_sheet("/fake/sa.json", "sheet-id-123", monthly_mode=False)
 
     def test_read_sheet_multi_tab(self) -> None:
         """read_sheet with max_tabs=2 reads two tabs and aggregates rows."""
@@ -538,7 +538,7 @@ class TestReadSheet:
             patch("autopoc.sheet.Credentials.from_service_account_file", return_value=mock_creds),
             patch("autopoc.sheet.build", return_value=mock_service),
         ):
-            result = read_sheet("/fake/sa.json", "sheet-id-123", max_tabs=2)
+            result = read_sheet("/fake/sa.json", "sheet-id-123", max_tabs=2, monthly_mode=False)
 
         # Should have 3 rows total (1 from tab1 + 2 from tab2)
         assert len(result) == 3
@@ -594,7 +594,7 @@ class TestReadSheet:
             patch("autopoc.sheet.Credentials.from_service_account_file", return_value=mock_creds),
             patch("autopoc.sheet.build", return_value=mock_service),
         ):
-            result = read_sheet("/fake/sa.json", "sheet-id", max_tabs=2)
+            result = read_sheet("/fake/sa.json", "sheet-id", max_tabs=2, monthly_mode=False)
 
         assert len(result) == 1
         assert result[0]["title"] == "A"
@@ -632,7 +632,7 @@ class TestReadSheet:
             patch("autopoc.sheet.Credentials.from_service_account_file", return_value=mock_creds),
             patch("autopoc.sheet.build", return_value=mock_service),
         ):
-            result = read_sheet("/fake/sa.json", "sheet-id", max_tabs=3)
+            result = read_sheet("/fake/sa.json", "sheet-id", max_tabs=3, monthly_mode=False)
 
         # Should have read exactly 3 tabs
         assert call_count == 3
@@ -1459,3 +1459,33 @@ class TestReadSheetMonthlyMode:
                 monthly_mode=True,
                 target_month="2026-05",
             )
+
+    @patch("autopoc.sheet.build_sheets_service")
+    def test_monthly_mode_is_default(self, mock_build_service) -> None:
+        """Monthly mode should be the default when no mode is specified."""
+        mock_service = MagicMock()
+        mock_build_service.return_value = mock_service
+
+        # Mock spreadsheet metadata with a monthly report tab for current month
+        from datetime import datetime
+
+        current_month = datetime.now().strftime("%Y-%m")
+        mock_service.spreadsheets.return_value.get.return_value.execute.return_value = {
+            "sheets": [
+                {"properties": {"title": "Sheet1", "sheetId": 1}},
+                {"properties": {"title": f"Monthly Report {current_month}", "sheetId": 2}},
+            ]
+        }
+
+        # Mock the sheet data
+        mock_service.spreadsheets.return_value.values.return_value.get.return_value.execute.return_value = {
+            "values": _load_csv_rows()
+        }
+
+        # Call without specifying monthly_mode (should default to True)
+        result = read_sheet(credentials_file="dummy.json", sheet_id="test-sheet-id")
+
+        # Should have used monthly mode by default and found current month's tab
+        assert len(result) > 0
+        values_call = mock_service.spreadsheets.return_value.values.return_value.get.call_args
+        assert f"'Monthly Report {current_month}'!A1:ZZ" in values_call[1]["range"]

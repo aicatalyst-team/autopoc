@@ -4,7 +4,7 @@ This document describes how to use the new monthly mode functionality for proces
 
 ## Overview
 
-The monthly mode feature allows AutoPoC to:
+Monthly mode is now the **default behavior** for AutoPoC. It allows the system to:
 1. **Read from monthly report tabs** instead of the last N tabs
 2. **Automatically find** tabs with monthly naming patterns (e.g., "Monthly Report 2026-05", "May 2026", etc.)
 3. **Process approved projects** that haven't had PoCs run yet
@@ -17,8 +17,9 @@ The monthly mode feature allows AutoPoC to:
 Add these to your `.env` file:
 
 ```bash
-# Enable monthly mode
-AUTOPOC_MONTHLY_MODE=true
+# Monthly mode is enabled by default
+# Set to false only to disable monthly mode
+# AUTOPOC_MONTHLY_MODE=false
 
 # Target month (optional - defaults to current month)
 AUTOPOC_TARGET_MONTH=2026-05
@@ -33,7 +34,7 @@ In `AutoPoCConfig`:
 
 ```python
 monthly_mode: bool = Field(
-    default=False,
+    default=True,
     validation_alias="AUTOPOC_MONTHLY_MODE",
     description="If True, read from monthly report tab instead of last N tabs",
 )
@@ -50,21 +51,32 @@ max_monthly_pocs: int = Field(
 
 ## CLI Usage
 
-### Reading from Monthly Report Tabs
+### Reading from Monthly Report Tabs (Default Behavior)
 
 ```bash
-# Read from current month's report tab
+# Read from current month's report tab (default behavior)
 python -m autopoc.cli_tools sheet-reader \
   --sheet-id "$AUTOPOC_SHEET_ID" \
-  --credentials "$AUTOPOC_SHEET_CREDENTIALS" \
-  --monthly-mode
+  --credentials "$AUTOPOC_SHEET_CREDENTIALS"
 
 # Read from specific month's report tab  
 python -m autopoc.cli_tools sheet-reader \
   --sheet-id "$AUTOPOC_SHEET_ID" \
   --credentials "$AUTOPOC_SHEET_CREDENTIALS" \
-  --monthly-mode \
   --target-month "2026-05"
+
+# Explicitly enable monthly mode (redundant since it's default)
+python -m autopoc.cli_tools sheet-reader \
+  --sheet-id "$AUTOPOC_SHEET_ID" \
+  --credentials "$AUTOPOC_SHEET_CREDENTIALS" \
+  --monthly-mode
+
+# Use legacy mode (last N tabs)
+python -m autopoc.cli_tools sheet-reader \
+  --sheet-id "$AUTOPOC_SHEET_ID" \
+  --credentials "$AUTOPOC_SHEET_CREDENTIALS" \
+  --no-monthly-mode \
+  --max-tabs 4
 ```
 
 ### Finding Approved Unprocessed Projects
@@ -157,26 +169,25 @@ If no approved unprocessed projects are found:
 
 ## Backward Compatibility
 
-The new monthly mode is **fully backward compatible**:
+The new default monthly mode maintains **backward compatibility**:
 
-- When `monthly_mode=False` (default), behavior is unchanged
+- Set `AUTOPOC_MONTHLY_MODE=false` or use `--no-monthly-mode` to get legacy behavior
 - All existing CLI commands and environment variables continue to work
-- The `max_tabs` parameter is ignored when `monthly_mode=True`
-- Standard mode still processes the last N tabs as before
+- The `max_tabs` parameter is ignored when `monthly_mode=True` (default)
+- Legacy mode still processes the last N tabs when explicitly disabled
 
 ## Example Workflow
 
 ```bash
-# 1. Check what approved projects need PoCs
+# 1. Check what approved projects need PoCs (uses monthly mode by default)
 python -m autopoc.cli_tools monthly-pocs \
   --sheet-id "your-sheet-id" \
   --credentials "/path/to/credentials.json" \
   --target-month "2026-05"
 
 # 2. If projects found, run the PoCs using run-sheet skill
-export AUTOPOC_MONTHLY_MODE=true
 export AUTOPOC_TARGET_MONTH=2026-05  
 export MAX_MONTHLY_POCS=3
 
-# Use run-sheet skill which will automatically use monthly mode
+# Use run-sheet skill which will automatically use monthly mode (default)
 ```

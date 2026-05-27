@@ -9,7 +9,7 @@ Usage:
 
 Commands:
     llm-proxy <env_vars_json>                   Resolve LLM env vars (JSON output)
-    sheet-reader [--sheet-id ID] [--credentials PATH] [--max-tabs N] [--monthly-mode] [--target-month YYYY-MM]
+    sheet-reader [--sheet-id ID] [--credentials PATH] [--max-tabs N] [--monthly-mode | --no-monthly-mode] [--target-month YYYY-MM]
     sheet-writer [--sheet-id ID] [--credentials PATH] [--tab TAB]
                  [--row ROW] [--results JSON]
     monthly-pocs [--sheet-id ID] [--credentials PATH] [--target-month YYYY-MM] [--max-pocs N]
@@ -64,7 +64,15 @@ def cmd_sheet_reader(args: argparse.Namespace) -> None:
         "AUTOPOC_SHEET_CREDENTIALS", "/etc/autopoc/google-sa/credentials.json"
     )
     max_tabs = args.max_tabs or int(os.environ.get("MAX_EVALUATED_SHEETS", "4"))
-    monthly_mode = args.monthly_mode or os.environ.get("AUTOPOC_MONTHLY_MODE", "").lower() == "true"
+    # Monthly mode is enabled by default, disable only if explicitly disabled
+    if args.no_monthly_mode:
+        monthly_mode = False
+    elif args.monthly_mode:
+        monthly_mode = True
+    else:
+        # Check environment variable, default to True (monthly mode enabled)
+        env_value = os.environ.get("AUTOPOC_MONTHLY_MODE", "true").lower()
+        monthly_mode = env_value not in ("false", "no", "0", "off")
     target_month = args.target_month or os.environ.get("AUTOPOC_TARGET_MONTH")
 
     if not sheet_id:
@@ -192,7 +200,13 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--sheet-id", default=None, help="Google Sheet ID")
     p.add_argument("--credentials", default=None, help="SA credentials JSON path")
     p.add_argument("--max-tabs", type=int, default=None, help="Max tabs to read")
-    p.add_argument("--monthly-mode", action="store_true", help="Read from monthly report tab")
+    monthly_group = p.add_mutually_exclusive_group()
+    monthly_group.add_argument(
+        "--monthly-mode", action="store_true", help="Read from monthly report tab (default)"
+    )
+    monthly_group.add_argument(
+        "--no-monthly-mode", action="store_true", help="Use legacy mode (last N tabs)"
+    )
     p.add_argument("--target-month", default=None, help="Target month in YYYY-MM format")
     p.set_defaults(func=cmd_sheet_reader)
 
