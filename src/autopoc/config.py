@@ -161,6 +161,20 @@ class AutoPoCConfig(BaseSettings):
         default=2,
         description="Maximum number of PoC pipelines to run in a single session",
     )
+    max_monthly_pocs: int = Field(
+        default=5,
+        description="Maximum number of PoCs to run from monthly report (when monthly_mode=True)",
+    )
+    monthly_mode: bool = Field(
+        default=False,
+        validation_alias="AUTOPOC_MONTHLY_MODE",
+        description="If True, read from monthly report tab instead of last N tabs",
+    )
+    target_month: str | None = Field(
+        default=None,
+        validation_alias="AUTOPOC_TARGET_MONTH",
+        description="Target month for monthly mode in YYYY-MM format (defaults to current month)",
+    )
 
     # Working directory
     work_dir: str = Field(

@@ -14,6 +14,11 @@ Verify these environment variables are set:
 - `AUTOPOC_SHEET_CREDENTIALS` -- Path to Google Service Account credentials JSON (default: `/etc/autopoc/google-sa/credentials.json`)
 - All credentials required by the `run-poc` skill (LLM, fork, registry, cluster)
 
+Optional environment variables for monthly mode:
+- `AUTOPOC_MONTHLY_MODE` -- Set to "true" to enable monthly report mode
+- `AUTOPOC_TARGET_MONTH` -- Target month in YYYY-MM format (defaults to current month)
+- `MAX_MONTHLY_POCS` -- Maximum number of PoCs to run from monthly report (default: 5)
+
 ## Workflow
 
 ```
@@ -28,12 +33,28 @@ Step 7: Write Back        -> Update the sheet with results
 
 ## Step 1: Read Sheet
 
+### Standard Mode (Multiple Tabs)
 ```bash
 python -m autopoc.cli_tools sheet-reader \
   --sheet-id "$AUTOPOC_SHEET_ID" \
   --credentials "$AUTOPOC_SHEET_CREDENTIALS" \
   --max-tabs "${MAX_EVALUATED_SHEETS:-4}"
 ```
+
+### Monthly Mode (Monthly Report Tab)
+```bash
+python -m autopoc.cli_tools sheet-reader \
+  --sheet-id "$AUTOPOC_SHEET_ID" \
+  --credentials "$AUTOPOC_SHEET_CREDENTIALS" \
+  --monthly-mode \
+  --target-month "${AUTOPOC_TARGET_MONTH:-$(date +%Y-%m)}"
+```
+
+**Monthly Mode Behavior:**
+- Ignores `--max-tabs` and instead looks for a monthly report tab
+- Searches for tabs with names like "Monthly Report 2026-05", "May 2026", "Report-2026-05", etc.
+- If `--target-month` is not specified, uses current month in YYYY-MM format
+- When approved projects are found that haven't run PoCs yet, runs up to `MAX_MONTHLY_POCS` (default 5) PoCs
 
 This outputs a JSON array of candidate rows with fields: `title`, `link`, `category`, `pm_decision`, `tab_name`, `row_number`, and any existing result columns (`poc_repo`, `poc_image`, `poc_report`).
 
@@ -75,7 +96,9 @@ For each top candidate (skip if `--skip-evaluation` was requested or only 1 cand
 
 ## Step 5: Select
 
-Pick the top `MAX_BATCHED_POC` (default 2) candidates by evaluation score.
+**Standard Mode:** Pick the top `MAX_BATCHED_POC` (default 2) candidates by evaluation score.
+
+**Monthly Mode:** Pick up to `MAX_MONTHLY_POCS` (default 5) approved unprocessed candidates.
 
 If evaluation was skipped, use the heuristic pre-filter scores.
 
