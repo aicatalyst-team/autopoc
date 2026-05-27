@@ -1,4 +1,5 @@
 # AutoPoC CronJob (OpenCode harness) — runs `run-sheet` daily at midnight UTC.
+# Uses monthly mode by default to process current month's approved projects.
 # Credentials come from the autopoc-credentials Secret.
 # Schedule and args can be overridden via overlay patches.
 apiVersion: batch/v1
@@ -33,7 +34,7 @@ spec:
               args:
                 - "run"
                 - "--dangerously-skip-permissions"
-                - "Read candidates from the Google Sheet and run PoCs for the top picks"
+                - "Read approved projects from this month's report tab and run up to 5 PoCs"
               env:
                 # --- Project configuration (for 'run' command) ---
                 - name: AUTOPOC_PROJECT_NAME
@@ -54,6 +55,26 @@ spec:
                       optional: true
                 - name: AUTOPOC_SHEET_CREDENTIALS
                   value: "/etc/autopoc/google-sa/credentials.json"
+                
+                # --- Monthly Mode configuration (default behavior) ---
+                - name: AUTOPOC_MONTHLY_MODE
+                  valueFrom:
+                    secretKeyRef:
+                      name: autopoc-credentials
+                      key: AUTOPOC_MONTHLY_MODE
+                      optional: true
+                - name: AUTOPOC_TARGET_MONTH
+                  valueFrom:
+                    secretKeyRef:
+                      name: autopoc-credentials
+                      key: AUTOPOC_TARGET_MONTH
+                      optional: true
+                - name: MAX_MONTHLY_POCS
+                  valueFrom:
+                    secretKeyRef:
+                      name: autopoc-credentials
+                      key: MAX_MONTHLY_POCS
+                      optional: true
 
                 # --- LLM providers (configure one) ---
                 - name: ANTHROPIC_API_KEY
