@@ -6,145 +6,157 @@
 
 Given a GitHub repo URL, AutoPoC analyzes the project, generates a PoC plan, containerizes it with UBI-based images, deploys to Kubernetes, runs test scenarios, and produces a report -- all without human intervention.
 
-Built with [LangGraph](https://github.com/langchain-ai/langgraph) and [Claude](https://www.anthropic.com/claude).
+Built as an [OpenCode](https://opencode.ai) agent with specialized skills and powered by [Claude](https://www.anthropic.com/claude).
 
 ## How It Works
 
 ```bash
-autopoc run --name mempalace --repo https://github.com/MemPalace/mempalace
+scripts/run-autopoc.sh myproject https://github.com/org/repo
 ```
 
-AutoPoC runs a pipeline of 10 specialized agents:
+AutoPoC runs as an OpenCode agent following a 11-phase skill-driven pipeline:
 
 ```
-intake --> evaluate --> [poc_plan || fork] --> containerize <-> build --> deploy <-> apply --> poc_execute --> poc_report
+intake --> evaluate --> fork --> poc_plan --> containerize --> build --> deploy --> apply --> poc_execute --> poc_report --> blog
 ```
 
-| Agent | Type | What it does |
-|-------|------|-------------|
-| **Intake** | Procedural + LLM | Clones repo, builds structural digest, identifies components |
-| **Evaluate** | One-shot LLM | Scores project fitness for OpenShift AI (non-blocking) |
-| **PoC Plan** | One-shot + fallback | Classifies project, defines infrastructure needs and test scenarios |
-| **Fork** | Procedural | Forks to GitHub or GitLab (parallel with PoC Plan) |
-| **Containerize** | ReAct agent | Generates UBI-based Dockerfiles |
-| **Build** | Procedural + LLM | Builds with Podman, pushes to Quay, diagnoses failures |
-| **Deploy** | ReAct agent | Generates Kubernetes manifests |
-| **Apply** | ReAct agent | Applies manifests, verifies pods, extracts routes |
-| **PoC Execute** | ReAct agent | Runs test scenarios against deployed application |
-| **PoC Report** | One-shot | Generates markdown report with results |
+| Phase | What it does |
+|-------|-------------|
+| **Intake** | Clones repo, builds structural digest, identifies components |
+| **Evaluate** | Scores project fitness for OpenShift AI using strategic evaluation |
+| **Fork** | Forks to GitHub or GitLab for tracking |
+| **PoC Plan** | Classifies project type, defines infrastructure needs and test scenarios |
+| **Containerize** | Generates UBI-based Dockerfiles with proper build context |
+| **Build** | Builds with Podman, pushes to Quay registry |
+| **Deploy** | Generates Kubernetes manifests (Deployment, Service, Route) |
+| **Apply** | Applies manifests, verifies pods, extracts accessible routes |
+| **PoC Execute** | Runs test scenarios against the deployed application |
+| **PoC Report** | Generates comprehensive markdown report with results |
+| **Blog** | Creates a developer blog post about the PoC (optional) |
 
-Build failures loop back to Containerize for Dockerfile fixes (up to 3 retries). Apply failures loop back to Deploy for manifest fixes (up to 2 retries).
+The agent uses progressive state tracking in YAML files and includes retry logic for build and deployment failures.
 
 ## Quickstart
 
 ### Prerequisites
 
-- Python 3.12+
-- [Podman](https://podman.io/) for container builds
-- Access to a Quay registry and Kubernetes/OpenShift cluster
-- An LLM provider: Anthropic API key, Vertex AI project, or OpenAI-compatible endpoint
+- Access to a Kubernetes/OpenShift cluster for deployment
+- [OpenCode](https://opencode.ai) installed and configured
+- Container registry access (Quay.io recommended)
+- GitHub/GitLab access for forking repositories
+- Google Cloud Vertex AI or Anthropic API access for LLM
 
 ### Install
 
 ```bash
 git clone https://github.com/aicatalyst-team/autopoc.git
 cd autopoc
-pip install -e ".[checkpoint]"
+# Python tools are installed as part of the container image
 ```
 
 ### Configure
 
+Set up the necessary environment variables for the deployment:
+
 ```bash
-cp .env.example .env
-# Edit .env — see docs/configuration.md for all variables
+# Copy and edit the K8s secret template
+cp deploy/secrets.yaml.example deploy/secrets.yaml
+# Edit deploy/secrets.yaml with your credentials
 ```
 
-At minimum, set one LLM provider (`ANTHROPIC_API_KEY`, `VERTEX_PROJECT`, or `LLM_BASE_URL`), registry credentials (`QUAY_*`), fork target credentials (`GITLAB_*` or `GITHUB_*`), and cluster access (`OPENSHIFT_*`).
+Required configuration:
+- **LLM**: Either `ANTHROPIC_API_KEY` or Vertex AI project settings
+- **Registry**: `QUAY_ORG`, `QUAY_TOKEN` for Quay.io
+- **Forking**: `GITLAB_URL`, `GITLAB_TOKEN`, `GITLAB_GROUP` or GitHub credentials
+- **Cluster**: OpenShift cluster access for deployments
 
 ### Run
 
 ```bash
-# Single project
-autopoc run --name my-project --repo https://github.com/org/repo
+# Single project PoC
+scripts/run-autopoc.sh myproject https://github.com/org/repo
 
-# Fork to GitHub instead of GitLab
-autopoc run --name my-project --repo https://github.com/org/repo --target github
+# Process candidates from Google Sheet
+scripts/run-sheet.sh sheet-id-here path/to/service-account.json
 
-# From a Google Sheet of candidates
-autopoc run-sheet --sheet-id 1ABCxyz... --credentials sa-key.json
-
-# Resume an interrupted run
-autopoc resume --thread-id my-project-a1b2c3d4
+# Check status of running PoC
+kubectl get pods -l app=autopoc
+kubectl logs -f pod/autopoc-myproject-xxxxx
 ```
 
-## CLI Reference
+## Available Skills
 
-| Command | Description |
-|---------|-------------|
-| `autopoc run` | Run full pipeline for a single project |
-| `autopoc run-sheet` | Read candidates from Google Sheet, evaluate, run top pick |
-| `autopoc resume` | Resume from last checkpoint (requires `.[checkpoint]`) |
-| `autopoc status` | Show current state of a pipeline run |
-| `autopoc graph` | Print pipeline graph (mermaid or ASCII) |
+The AutoPoC OpenCode agent provides three specialized skills:
+
+| Skill | Description |
+|-------|-------------|
+| **run-poc** | Complete 11-phase PoC pipeline for a single GitHub repository |
+| **run-sheet** | Batch process PoC candidates from Google Sheets |
+| **blog-create** | Generate developer blog posts from PoC results |
+
+Each skill provides comprehensive instructions for OpenCode to follow, including error handling and retry logic.
 
 ## Architecture
 
+AutoPoC is built as an OpenCode agent with skill-driven architecture:
+
 ```mermaid
 graph TD;
-    intake --> evaluate;
-    evaluate --> poc_plan;
-    evaluate --> fork;
-    poc_plan --> containerize;
-    fork --> containerize;
-    containerize --> build;
-    build -->|success| deploy;
-    build -->|retry| containerize;
-    deploy --> apply;
-    apply -->|success| poc_execute;
-    apply -->|fix manifest| deploy;
-    apply -->|fix container| containerize;
-    poc_execute --> poc_report;
-    poc_report --> END;
+    A[OpenCode Agent] --> B[Load run-poc skill];
+    B --> C[11-Phase Pipeline];
+    C --> D[intake];
+    D --> E[evaluate];
+    E --> F[fork];
+    F --> G[poc_plan];
+    G --> H[containerize];
+    H --> I[build];
+    I --> J[deploy];
+    J --> K[apply];
+    K --> L[poc_execute];
+    L --> M[poc_report];
+    M --> N[blog];
+    
+    I -->|retry| H;
+    J -->|retry| H;
+    K -->|retry| J;
 ```
+
+**Key Architecture Principles:**
+- **Single Agent**: OpenCode is the sole agent, following detailed skill instructions
+- **Progressive State**: Each phase updates a YAML state file for tracking and recovery
+- **Skill-Driven**: Complex logic encoded in skill instructions rather than code
+- **Containerized Execution**: Runs in Kubernetes pods for scalability and isolation
+- **Retry Logic**: Built-in error handling and retry mechanisms per phase
 
 Key design decisions are documented as [Architecture Decision Records](docs/adr/).
 
-## Building
+## Development
 
 ```bash
-make build          # Single-file executable (dist/autopoc)
-make install        # Editable install with dev deps
-make test           # Unit tests with 80% coverage gate
+make install        # Install Python tools in editable mode
+make test           # Unit tests with coverage
 make lint           # Lint with ruff
 make typecheck      # Type-check with pyright
 make fmt            # Auto-format
-make image          # Container image
+make image          # Build container image
 make lock           # Regenerate requirements.lock
 ```
 
 ## Debugging
 
-- **LangSmith**: Set `LANGCHAIN_TRACING_V2=true` and `LANGCHAIN_API_KEY` for full LLM tracing
-- **LangGraph Studio**: Open the project in [Studio](https://github.com/langchain-ai/langgraph-studio) (uses `langgraph.json`)
-- **Verbose mode**: `autopoc run --verbose` for detailed logs
+- **Pod logs**: `kubectl logs -f pod/autopoc-<project>-xxxxx` for real-time execution logs
+- **State tracking**: Check `poc-state.yaml` in the working directory for current phase status
+- **OpenCode tracing**: Set appropriate environment variables for LLM call tracing
+- **Skill validation**: Run `pytest tests/test_skill_files.py` to validate skill structure
 
 ## Documentation
 
-- [Configuration reference](docs/configuration.md) -- all environment variables
-- [Architecture details](docs/architecture.md) -- agent-by-agent documentation
-- [Architecture Decision Records](docs/adr/) -- why things are built this way
+- [Configuration reference](docs/configuration.md) -- environment variables and secrets
+- [Architecture details](docs/architecture.md) -- skill-based architecture
+- [Architecture Decision Records](docs/adr/) -- design decisions and rationale
+- [OpenCode skills](.opencode/skills/) -- detailed skill instructions and reference files
 - [LLM proxy setup](docs/llm-proxy.md) -- OGX proxy for PoC projects
-- [Local E2E testing](docs/e2e-testing.md) -- local GitLab + Quay + Kubernetes
-
-## Development
-
-```bash
-make install        # Install with dev deps
-make test           # Run tests (enforces 80% coverage)
-make lint           # Lint
-make typecheck      # Type-check
-autopoc graph       # View pipeline graph
-```
+- [Local E2E testing](docs/e2e-testing.md) -- local testing setup
 
 ## License
 

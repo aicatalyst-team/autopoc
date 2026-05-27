@@ -4,7 +4,7 @@ Date: 2025-03
 
 ## Status
 
-Accepted
+Superseded by [ADR-0011: OpenCode Agent Refactor](0011-opencode-agent-refactor.md)
 
 ## Context
 

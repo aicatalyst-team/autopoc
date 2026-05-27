@@ -1,6 +1,6 @@
-# Agent Operating Procedures
+# OpenCode Agent Operating Procedures
 
-> **CRITICAL INSTRUCTION FOR ALL AI AGENTS:**
+> **CRITICAL INSTRUCTION FOR THE OPENCODE AGENT:**
 >
 > Whenever you complete a task or a phase, you **MUST** immediately update the project planning documents to mark that task as completed.
 >
@@ -18,18 +18,18 @@
 
 ## Project Overview
 
-AutoPoC is a LangGraph-based multi-agent system that automates Proof-of-Concept (PoC) deployments on OpenShift AI. It takes a GitHub repository URL and automatically:
+AutoPoC is an OpenCode agent-based system that automates Proof-of-Concept (PoC) deployments on OpenShift AI. It runs as a single OpenCode agent following detailed skill instructions to:
 
-1. Analyzes the codebase to identify components
-2. Forks it to GitLab
-3. Generates PoC plans with test scenarios
-4. Containerizes applications with UBI-based Dockerfiles
-5. Builds and pushes images to Quay.io
-6. Deploys to OpenShift/Kubernetes
-7. Executes PoC validation tests
-8. Generates a comprehensive PoC report
+1. Analyze GitHub repositories to identify components
+2. Fork repositories to GitLab/GitHub for tracking
+3. Generate strategic PoC plans with test scenarios  
+4. Containerize applications with UBI-based Dockerfiles
+5. Build and push images to Quay.io registry
+6. Deploy to OpenShift/Kubernetes with proper manifests
+7. Execute comprehensive PoC validation tests
+8. Generate detailed PoC reports and blog posts
 
-The system is designed to be resilient with retry loops for build and deployment failures, parallel execution where possible, and checkpointing for resumable runs.
+The system uses skill-driven architecture with progressive state tracking, built-in retry logic, and containerized execution for scalability.
 
 ## Development Setup
 
@@ -105,53 +105,67 @@ make test-e2e         # pytest tests/e2e/ (requires infra)
 
 ## Architecture
 
-### Pipeline Flow
+### OpenCode Agent with Skills
 
-The system uses LangGraph to orchestrate a directed acyclic graph (DAG) with conditional routing and retry loops:
+The system is built as a single OpenCode agent that follows detailed skill instructions:
 
 ```
-intake -> [poc_plan || fork] -> containerize <-> build -> deploy -> apply <-> poc_execute -> poc_report -> END
+OpenCode Agent -> Load Skill -> Follow 11-Phase Pipeline
+```
+
+**11-Phase Pipeline Flow:**
+```
+intake → evaluate → fork → poc_plan → containerize → build → deploy → apply → poc_execute → poc_report → blog
 ```
 
 Key features:
-- **Parallel execution**: `poc_plan` and `fork` run concurrently after `intake`
-- **Fan-in**: `containerize` waits for both to complete
-- **Build retry loop**: Failed builds retry up to `MAX_BUILD_RETRIES` by looping back to `containerize`
-- **Deploy/Apply split**: `deploy` generates K8s manifests, `apply` runs kubectl
-- **Apply retry loop**: Failed applies retry up to `MAX_DEPLOY_RETRIES` by looping back to `deploy`
+- **Single Agent**: OpenCode is the sole intelligent agent
+- **Skill-driven**: Complex logic encoded in markdown skill instructions  
+- **Progressive state**: YAML state file tracks progress through phases
+- **Built-in retry**: Each phase includes error handling and retry logic
+- **Containerized**: Runs in Kubernetes pods for scalability
 
-### Agent Types
+### Available Skills
 
-**Two-phase agents** (procedural then LLM):
-- **intake**: Uses `repo_digest.py` for deterministic repo summary, then LLM analyzes it
-- **poc_plan**: Tries one-shot JSON generation first, falls back to ReAct if parsing fails
+**run-poc** - Main PoC pipeline:
+- 11 sequential phases from intake to blog post generation
+- Progressive state tracking in `poc-state.yaml`
+- Retry logic for build and deployment failures
+- Comprehensive error handling instructions
 
-**ReAct agents** (agentic with tools):
-- **containerize**: Creates UBI-based Dockerfiles with build context awareness
-- **deploy**: Generates Kubernetes manifests (Deployment, Service, Route)
-- **poc_execute**: Generates and runs test scripts based on PoC scenarios
+**run-sheet** - Batch processing:
+- Read PoC candidates from Google Sheets
+- Evaluate and rank projects
+- Run PoCs for top picks automatically
 
-**Procedural agents** (no LLM):
-- **fork**: Clones from GitHub, pushes to GitLab
-- **build**: Runs `podman build` and pushes to Quay
-- **apply**: Runs `kubectl apply` on generated manifests
-- **poc_report**: Aggregates test results into markdown report
+**blog-create** - Content generation:
+- Multi-reviewer pipeline with iterative improvement
+- Generate developer blog posts from PoC results
 
 ### State Management
 
-All agents read from and write to `PoCState` (defined in `src/autopoc/state.py`). Key state fields:
+OpenCode maintains progressive state in YAML files instead of shared memory:
 
-- **Input**: `project_name`, `source_repo_url`
-- **Phase tracking**: `current_phase`, `error`, `messages`
-- **Repo analysis**: `repo_digest`, `repo_summary`, `components[]`
-- **PoC plan**: `poc_plan`, `poc_scenarios[]`, `poc_infrastructure`, `poc_type`
-- **Build output**: `built_images[]`, `build_retries`
-- **Deploy output**: `deployed_resources[]`, `routes[]`, `deploy_retries`
-- **Test results**: `poc_results[]`, `poc_script_path`, `poc_report_path`
+- **`poc-state.yaml`**: Main state file tracking current phase and accumulated data
+- **Phase-specific outputs**: Results stored in dedicated files (Dockerfiles, manifests, reports)
+- **Working directory**: All operations under `/tmp/autopoc/` with project subdirectories
 
-### Checkpointing
+State includes:
+- **Project info**: `project_name`, `source_repo_url`, `current_phase`
+- **Repo analysis**: Repository digest, components, technology stack
+- **PoC plan**: Project type, infrastructure requirements, test scenarios
+- **Build artifacts**: Image names, registry URLs, build logs
+- **Deploy resources**: Kubernetes manifests, routes, service endpoints  
+- **Test results**: Validation outputs, performance metrics, accessibility reports
 
-Runs are checkpointed using LangGraph's `SqliteSaver` (requires `langgraph-checkpoint-sqlite`). Checkpoints stored in `{WORK_DIR}/checkpoints/autopoc.db`. Resume with `autopoc resume --thread-id <id>`.
+### Error Handling and Retry Logic
+
+Each phase includes built-in retry capabilities:
+
+- **Build failures**: Retry up to 3 times with Dockerfile improvements
+- **Deploy failures**: Retry up to 2 times with manifest fixes
+- **Apply failures**: Retry with corrected resource definitions
+- **State tracking**: Retry counts and error details preserved in YAML
 
 ## Pattern References
 
@@ -175,15 +189,14 @@ cp docs/adr/0001-langgraph-orchestration.md docs/adr/NNNN-your-decision.md
 # Edit: Status, Context, Decision, Alternatives, Consequences
 ```
 
-Existing ADRs cover: LangGraph orchestration, agent type taxonomy, UBI images, retry loops, state management, OGX LLM proxy, strategy-driven evaluation, and dependency pinning.
+Existing ADRs cover: OpenCode refactor, LangGraph orchestration (superseded), agent type taxonomy, UBI images, retry loops, state management, OGX LLM proxy, strategy-driven evaluation, and dependency pinning.
 
 ## Code Organization
 
 ```
 src/autopoc/
-  agents/          # Agent implementations (one per pipeline node)
-  tools/           # LangGraph tool functions by domain
-  prompts/         # Agent prompt templates (markdown)
+  tools/           # Standalone Python CLI scripts by domain
+  prompts/         # Prompt templates (retained as references)
   templates/       # Jinja2 templates (Dockerfiles, manifests)
   state.py         # PoCState TypedDict
   graph.py         # LangGraph pipeline definition
@@ -194,6 +207,9 @@ tests/
   fixtures/        # Sample repos for testing
   e2e/             # End-to-end tests (require infra)
 ```
+
+Skills provide specialized instructions and workflows for specific tasks.
+Use the skill tool to load a skill when a task matches its description.
 
 ## Important Conventions
 
@@ -235,3 +251,6 @@ All generated Dockerfiles use Red Hat UBI for OpenShift compatibility:
 - Python: `registry.access.redhat.com/ubi9/python-312`
 - Node: `registry.access.redhat.com/ubi9/nodejs-20`
 - Go: `registry.access.redhat.com/ubi9/go-toolset`
+
+Skills provide specialized instructions and workflows for specific tasks.
+Use the skill tool to load a skill when a task matches its description.
