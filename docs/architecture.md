@@ -1,27 +1,31 @@
 # Architecture
 
-AutoPoC is a LangGraph-based pipeline of specialized agents. Each agent is a node in a state graph, reading from and writing to a shared `PoCState` TypedDict.
+AutoPoC is an OpenCode agent-based system that follows detailed skill instructions to execute proof-of-concept deployments. The system uses a single OpenCode agent with skill-driven architecture rather than multiple specialized agents.
 
 ## Pipeline Overview
 
 ```
-intake -> [poc_plan || fork] -> containerize <-> build -> deploy -> apply <-> poc_execute -> poc_report -> END
+intake -> evaluate -> fork -> poc_plan -> containerize -> build -> deploy -> apply -> poc_execute -> poc_report -> blog
 ```
 
-The pipeline has two parallel branches after intake (`poc_plan` and `fork` run concurrently), two retry loops (build and apply), and a linear tail for PoC execution and reporting.
+The pipeline consists of 11 sequential phases executed by OpenCode following skill instructions, with built-in retry logic for build and deployment failures.
 
-## State
+## State Management
 
-All agents share a single `PoCState` (defined in `state.py`). It's a `TypedDict` with `total=False` -- fields are populated progressively as agents execute.
+OpenCode maintains progressive state in YAML files rather than shared memory. The primary state file is `poc-state.yaml` which tracks progress through each phase.
 
 Key state fields:
 
 | Field | Set by | Description |
 |-------|--------|-------------|
-| `project_name` | CLI | User-provided project name |
-| `source_repo_url` | CLI | GitHub URL |
+| `project_name` | intake | User-provided project name |
+| `source_repo_url` | intake | GitHub URL |
+| `current_phase` | each phase | Tracks current pipeline position |
 | `repo_digest` | intake | Procedural text summary of the repo (~10KB) |
 | `components` | intake | Detected components (name, language, port, etc.) |
+| `evaluation_score` | evaluate | Strategic fitness score (0-10) |
+| `evaluation_reasons` | evaluate | Detailed scoring rationale |
+| `forked_repo_url` | fork | GitLab/GitHub fork URL |
 | `poc_type` | poc_plan | Project classification (model-serving, rag, llm-app, etc.) |
 | `poc_components` | poc_plan | Which components are relevant for the PoC |
 | `poc_infrastructure` | poc_plan | Infrastructure needs (GPU, vector DB, PVC, deployment model) |
@@ -30,165 +34,241 @@ Key state fields:
 | `deployed_resources` | apply | Created K8s resources |
 | `routes` | apply | Accessible URLs |
 | `poc_results` | poc_execute | Test execution results (pass/fail per scenario) |
-| `error` | any | Set on failure, checked by routing functions |
+| `build_retries` | build | Number of build retry attempts |
+| `deploy_retries` | deploy | Number of deployment retry attempts |
 
-## Agents in Detail
+## Skills and Phases in Detail
 
-### Intake (non-agentic)
+### run-poc Skill
 
-**File:** `agents/intake.py`
+The main skill provides OpenCode with detailed instructions for executing an 11-phase PoC pipeline. Each phase includes:
 
-Not a ReAct agent. Uses a two-step process:
+- **Detailed instructions** for what OpenCode should accomplish
+- **Expected inputs** and **outputs** for the phase
+- **Error handling** guidance and retry logic
+- **State management** requirements for YAML updates
 
-1. **Repo digest** (`tools/repo_digest.py`): Procedurally scans the cloned repo and builds a ~10KB text summary. Reads the file tree, primary build file (pyproject.toml, package.json, etc.), README, entry point headers, existing Dockerfiles, and CI/CD config. Also detects documentation sites (VitePress, Docusaurus, etc.) to exclude them from components. No LLM calls. Runs in under 1 second.
+### Phase 1: Intake
 
-2. **One-shot LLM call**: Sends the digest to the LLM with a simplified prompt. The LLM produces a JSON analysis of components, languages, build systems, and ports. One call, ~5 seconds.
+**Purpose:** Clone repository and build comprehensive analysis
 
-**Why not agentic:** Earlier versions used a ReAct agent with file-reading tools. The LLM would explore the repo, reading 5-15 files, and occasionally exhaust its step budget before producing output. The procedural digest approach is simpler, faster, cheaper, and more reliable.
+**Process:**
+1. Clone the GitHub repository to local working directory
+2. Run `python -m autopoc.tools.repo_digest` to generate structural summary
+3. Use OpenCode's analysis capabilities to identify components, languages, and build systems
+4. Update `poc-state.yaml` with repository analysis results
 
-### PoC Plan (one-shot + fallback)
+**Key outputs:** `repo_digest`, `components`, `technology_stack`
 
-**File:** `agents/poc_plan.py`
+### Phase 2: Evaluate  
 
-Two-phase approach:
+**Purpose:** Strategic evaluation of project fitness for OpenShift AI
 
-1. **Phase 1 (one-shot):** Single LLM call with the repo digest + intake results. The LLM produces a `poc-plan.md` markdown document and a JSON object with `poc_type`, `infrastructure`, `poc_components`, and `scenarios`. No tools needed in ~90% of cases.
+**Process:**
+1. Use strategic evaluation framework from `data/strategies/` YAML files
+2. Score project on multiple dimensions (0-10 scale)
+3. Generate detailed rationale for scoring decisions
+4. Store evaluation results for later PoC report inclusion
 
-2. **Phase 2 (ReAct fallback):** Only triggered when phase 1 fails to produce test scenarios. Creates a ReAct agent with file tools (`read_file`, `search_files`, `write_file`) for deeper analysis. Receives phase 1's partial output to avoid re-doing work.
+**Key outputs:** `evaluation_score`, `evaluation_reasons`, `evaluation_summary`
 
-The PoC plan determines:
-- **Deployment model:** `deployment` (long-running server), `job` (batch), `cli-only` (CLI tool -- no Deployment/Service)
-- **Infrastructure:** GPU needs, vector DB, PVC, embedding models, sidecar containers
-- **Test scenarios:** HTTP requests, CLI commands, or exec-based tests
-- **PoC components:** Which components to actually containerize (skips docs sites, example apps, etc.)
+### Phase 3: Fork
 
-### Fork
+**Purpose:** Create tracked copy of repository on GitLab/GitHub
 
-**File:** `agents/fork.py`
+**Process:**
+1. Use GitLab or GitHub API to fork/create project copy
+2. Set up git remotes and push source code
+3. Store forked repository URL for build context
+4. Ensure proper access permissions for CI/CD
 
-Pushes the source repo to a self-hosted GitLab instance using the GitLab API. Creates the project in a configured group, sets up the git remote, and pushes. Runs in parallel with PoC Plan.
+**Key outputs:** `forked_repo_url`, `fork_api_details`
 
-### Containerize (ReAct agent)
+### Phase 4: PoC Plan
 
-**File:** `agents/containerize.py`
+**Purpose:** Generate strategic PoC plan with infrastructure requirements
 
-A ReAct agent with file tools + template rendering. For each PoC-relevant component:
+**Process:**
+1. Analyze repository digest and components for project classification
+2. Determine deployment model (service, job, cli-only)
+3. Identify infrastructure needs (GPU, storage, vector DB)
+4. Create comprehensive test scenarios for validation
+5. Generate detailed PoC plan markdown document
 
-1. Reads the source code and build files
-2. Generates a `Dockerfile.ubi` using UBI (Red Hat Universal Base Image) base images
-3. Handles Python, Node.js, Go, Java with OpenShift-compatible settings (non-root, security context)
-4. Writes the Dockerfile, commits, and pushes to GitLab
+**Key outputs:** `poc_type`, `poc_infrastructure`, `poc_scenarios`, `poc_components`
 
-Respects the `deployment_model` from the PoC plan: CLI tools get `ENTRYPOINT/CMD` with no `EXPOSE`, servers get the appropriate port exposed.
+### Phase 5: Containerize
 
-On build failures, the pipeline routes back here with the error message. The agent reads the error and modifies the Dockerfile to fix it.
+**Purpose:** Generate UBI-based Dockerfiles for OpenShift compatibility
 
-### Build
+**Process:**
+1. Analyze each PoC-relevant component for language and framework
+2. Generate appropriate UBI-based Dockerfile using templates
+3. Handle Python, Node.js, Go, Java with OpenShift-compatible settings
+4. Ensure non-root user and proper security contexts
+5. Commit Dockerfiles to forked repository
 
-**File:** `agents/build.py`
+**Key outputs:** `dockerfiles_created`, `containerization_strategy`
 
-Not a ReAct agent. Procedural:
+**Retry logic:** On build failures, receives error messages and improves Dockerfiles
 
-1. For each component with a Dockerfile, runs `podman build`
-2. Pushes the image to the Quay registry
-3. Loads the image into kind (for local E2E testing)
-4. On failure, classifies errors as permanent (auth, network) vs. retryable (Dockerfile bugs)
-5. For retryable errors, uses an LLM to diagnose the build log and stores the diagnosis for the containerize agent
+### Phase 6: Build
 
-### Deploy (ReAct agent)
+**Purpose:** Build and push container images to registry
 
-**File:** `agents/deploy.py`
+**Process:**
+1. Run `podman build` for each component with Dockerfile
+2. Push successful builds to Quay.io registry
+3. Track build logs and handle failures appropriately
+4. Classify failures as permanent vs. retriable
 
-Generates Kubernetes manifests based on the built images and PoC plan. Creates:
+**Key outputs:** `built_images`, `build_logs`, `build_retries`
 
-- `namespace.yaml`
-- `deployment.yaml` / `job.yaml` (depending on deployment model)
-- `service.yaml` (only for components that listen on ports)
-- `pvc.yaml` (if persistent storage needed)
+**Retry logic:** Retriable failures loop back to containerize phase with error context
 
-Commits manifests to the GitLab repo. Does NOT apply them -- that's the apply agent's job.
+### Phase 7: Deploy
 
-### Apply (ReAct agent)
+**Purpose:** Generate Kubernetes deployment manifests
 
-**File:** `agents/apply.py`
+**Process:**
+1. Create namespace, deployment, service, and route manifests
+2. Configure based on PoC plan infrastructure requirements
+3. Handle GPU requests, PVC mounts, and service exposure
+4. Validate manifest syntax and OpenShift compatibility
 
-Applies the manifests generated by deploy:
+**Key outputs:** `k8s_manifests`, `deployment_strategy`
 
-1. `kubectl apply` in dependency order (namespace -> RBAC -> PVC -> Deployment -> Service)
-2. `kubectl wait` for rollouts
-3. Verifies pods are running
-4. Extracts service URLs (NodePort for local, Route for OpenShift)
+### Phase 8: Apply
 
-On failure, returns the error (with pod logs) and the pipeline routes back to deploy to fix manifests.
+**Purpose:** Deploy manifests to Kubernetes cluster
 
-### PoC Execute (ReAct agent)
+**Process:**
+1. Apply manifests in dependency order (namespace → PVC → deployment → service)
+2. Wait for pod rollouts and readiness
+3. Extract accessible routes and service endpoints
+4. Verify deployment health and capture logs
 
-**File:** `agents/poc_execute.py`
+**Key outputs:** `deployed_resources`, `routes`, `deploy_retries`
 
-Runs the test scenarios defined by the PoC plan. Generates and executes test scripts using `curl`, `kubectl run`, or `kubectl exec` depending on the test strategy.
+**Retry logic:** Failures loop back to deploy phase for manifest fixes
 
-### PoC Report (one-shot, no tools)
+### Phase 9: PoC Execute
 
-**File:** `agents/poc_report.py`
+**Purpose:** Run comprehensive test scenarios against deployed application
 
-Non-agentic. All data comes from pipeline state -- the LLM receives the full context (components, images, manifests, test results, logs) and produces a structured markdown report in a single call. The report is written to disk procedurally.
+**Process:**
+1. Execute test scenarios defined in PoC plan
+2. Run HTTP requests, CLI commands, or exec-based tests
+3. Capture test outputs and measure performance
+4. Generate pass/fail results for each scenario
 
-## Routing and Retry Logic
+**Key outputs:** `poc_results`, `test_logs`, `performance_metrics`
 
-Defined in `graph.py`:
+### Phase 10: PoC Report
 
-```python
-route_after_intake(state):
-    if error: return ["failed"]     # -> END
-    return ["poc_plan", "fork"]     # parallel fan-out
+**Purpose:** Generate comprehensive PoC report with results
 
-route_after_build(state):
-    if error is None: return "deploy"
-    if retries < max: return "containerize"  # fix Dockerfile, rebuild
-    return "failed"                          # -> END
+**Process:**
+1. Aggregate all pipeline data and test results
+2. Create structured markdown report with findings
+3. Include deployment details, test outcomes, and recommendations
+4. Store report for stakeholder review
 
-route_after_apply(state):
-    if error is None: return "poc_execute"
-    if container_fix_action == "fix-dockerfile":
-        if container_fix_retries < max: return "containerize"  # outer loop
-    if retries < max: return "deploy"        # inner loop: fix manifests
-    return "failed"                          # -> END
+**Key outputs:** `poc_report_path`, `report_summary`
+
+### Phase 11: Blog (Optional)
+
+**Purpose:** Generate developer blog post about the PoC
+
+**Process:**
+1. Transform PoC results into engaging blog content
+2. Use multi-reviewer pipeline for quality improvement
+3. Create developer-focused narrative about the experience
+4. Include technical insights and lessons learned
+
+**Key outputs:** `blog_post`, `publication_ready_content`
+
+## Skill-Driven Execution
+
+OpenCode follows detailed skill instructions that include:
+
+### Error Handling and Retry Logic
+
+Each phase includes comprehensive error handling instructions:
+
+- **Build failures:** Retry up to 3 times, with Dockerfile improvements based on error analysis
+- **Deploy failures:** Retry up to 2 times, with manifest corrections
+- **Apply failures:** Retry with corrected resource definitions
+- **State tracking:** All retry counts and error details preserved in YAML state
+
+### Progressive State Management
+
+OpenCode updates the `poc-state.yaml` file after each phase completion:
+
+```yaml
+project_name: example-project
+source_repo_url: https://github.com/org/repo
+current_phase: containerize
+build_retries: 1
+components:
+  - name: api-server
+    language: python
+    port: 8000
 ```
 
-## Context Management
+### Working Directory Structure
 
-Agents that use ReAct (`containerize`, `deploy`, `apply`, `poc_execute`, `poc_report`) have a `pre_model_hook` that prevents token overflow. The hook (`context.py`) runs before each LLM call and:
+All operations occur under `/tmp/autopoc/` with organized subdirectories:
 
-1. Estimates total token count (pessimistic: 2 chars/token)
-2. If over budget (120K estimated tokens), truncates older tool results to 300-char previews
-3. If still over, drops entire tool groups (always as atomic AIMessage + ToolMessage pairs to preserve API invariants)
-4. If still over, progressively truncates the most recent tool results (4K -> 2K -> 1K -> 500 chars)
+```
+/tmp/autopoc/
+├── repos/{project_name}/          # Cloned source repository
+├── poc-state.yaml                # Progressive state file
+├── poc-plan.md                   # Generated PoC strategy
+├── dockerfiles/                  # Generated Dockerfiles
+├── manifests/                    # Kubernetes manifests
+├── test-scripts/                 # Generated test scenarios
+└── reports/                      # PoC reports and logs
+```
 
-This is a safety net -- with procedural pre-processing (repo digest) and one-shot LLM calls, most agents don't accumulate enough context to trigger compaction.
+## Available Skills
+
+The system provides three specialized skills:
+
+### run-poc Skill
+- **Location:** `.opencode/skills/run-poc/`
+- **Purpose:** Complete 11-phase PoC pipeline execution
+- **Features:** Progressive state tracking, retry logic, comprehensive error handling
+- **Reference files:** 14+ supporting files with detailed instructions
+
+### run-sheet Skill  
+- **Location:** `.opencode/skills/run-sheet/`
+- **Purpose:** Batch processing of PoC candidates from Google Sheets
+- **Features:** Project evaluation, ranking, automated PoC execution
+
+### blog-create Skill
+- **Location:** `.opencode/skills/blog-create/`  
+- **Purpose:** Generate developer blog posts from PoC results
+- **Features:** Multi-reviewer pipeline, iterative content improvement
 
 ## Configuration
 
-`config.py` uses Pydantic Settings to load from environment variables. See `.env.example` for all options.
+Configuration is handled through environment variables and Kubernetes secrets:
 
-The `AutoPoCConfig` class validates at startup and provides a `masked_summary()` method for displaying config without exposing secrets.
+- **LLM Access:** Anthropic API key or Vertex AI project credentials
+- **Container Registry:** Quay.io organization and token
+- **Source Control:** GitLab/GitHub API access for forking
+- **Cluster Access:** OpenShift/Kubernetes API credentials
 
-## Credential Validation
-
-`credentials.py` validates GitLab, Quay, and LLM credentials at pipeline start:
-
-- **GitLab:** `GET /api/v4/user` with the token
-- **Quay:** `GET /api/v1/user/` with Bearer token
-- **LLM:** API key format check (Anthropic) or project/location check (Vertex AI)
-
-Results are displayed as a Rich table. Failures warn but don't hard-block (use `--skip-validation` to bypass).
+See `deploy/secrets.yaml.example` for required environment variables.
 
 ## Templates
 
-Jinja2 templates in `templates/`:
+Jinja2 templates in `src/autopoc/templates/`:
 
 - `Dockerfile.ubi.j2` -- Single-stage UBI Dockerfile
-- `Dockerfile.ubi-builder.j2` -- Multi-stage builder pattern
+- `Dockerfile.ubi-builder.j2` -- Multi-stage builder pattern  
 - `deployment.yaml.j2` -- Kubernetes Deployment
 - `service.yaml.j2` -- Kubernetes Service
 
-Agents can use these via the `render_template` tool, or generate manifests from scratch.
+OpenCode uses these templates through bash commands and file operations during the containerize and deploy phases.
