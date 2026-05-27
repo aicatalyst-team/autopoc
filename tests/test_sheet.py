@@ -24,6 +24,8 @@ from autopoc.sheet import (
     derive_quay_search_url,
     ensure_result_columns,
     filter_projects,
+    find_approved_unprocessed_projects,
+    find_monthly_report_tab,
     read_sheet,
     select_project,
     write_poc_results,
@@ -451,7 +453,7 @@ class TestReadSheet:
             ) as mock_auth,
             patch("autopoc.sheet.build", return_value=mock_service) as mock_build,
         ):
-            result = read_sheet("/fake/sa.json", "sheet-id-123")
+            result = read_sheet("/fake/sa.json", "sheet-id-123", monthly_mode=False)
 
         # Verify auth — scope is read-write for write-back support
         mock_auth.assert_called_once_with(
@@ -489,7 +491,7 @@ class TestReadSheet:
             patch("autopoc.sheet.build", return_value=mock_service),
         ):
             with pytest.raises(ValueError, match="has no tabs"):
-                read_sheet("/fake/sa.json", "sheet-id-123")
+                read_sheet("/fake/sa.json", "sheet-id-123", monthly_mode=False)
 
     def test_read_sheet_multi_tab(self) -> None:
         """read_sheet with max_tabs=2 reads two tabs and aggregates rows."""
@@ -536,7 +538,7 @@ class TestReadSheet:
             patch("autopoc.sheet.Credentials.from_service_account_file", return_value=mock_creds),
             patch("autopoc.sheet.build", return_value=mock_service),
         ):
-            result = read_sheet("/fake/sa.json", "sheet-id-123", max_tabs=2)
+            result = read_sheet("/fake/sa.json", "sheet-id-123", max_tabs=2, monthly_mode=False)
 
         # Should have 3 rows total (1 from tab1 + 2 from tab2)
         assert len(result) == 3
@@ -592,7 +594,7 @@ class TestReadSheet:
             patch("autopoc.sheet.Credentials.from_service_account_file", return_value=mock_creds),
             patch("autopoc.sheet.build", return_value=mock_service),
         ):
-            result = read_sheet("/fake/sa.json", "sheet-id", max_tabs=2)
+            result = read_sheet("/fake/sa.json", "sheet-id", max_tabs=2, monthly_mode=False)
 
         assert len(result) == 1
         assert result[0]["title"] == "A"
@@ -630,7 +632,7 @@ class TestReadSheet:
             patch("autopoc.sheet.Credentials.from_service_account_file", return_value=mock_creds),
             patch("autopoc.sheet.build", return_value=mock_service),
         ):
-            result = read_sheet("/fake/sa.json", "sheet-id", max_tabs=3)
+            result = read_sheet("/fake/sa.json", "sheet-id", max_tabs=3, monthly_mode=False)
 
         # Should have read exactly 3 tabs
         assert call_count == 3
@@ -1256,3 +1258,234 @@ class TestWritePocResults:
         written_values = [c.kwargs["body"]["values"][0][0] for c in update_mock.call_args_list]
         assert written_values[1] == "override-image-url"
         assert written_values[2] == "override-report-url"
+
+
+# ---------------------------------------------------------------------------
+# Monthly Mode Functions
+# ---------------------------------------------------------------------------
+
+
+class TestMonthlyReportTab:
+    """Test find_monthly_report_tab function."""
+
+    def test_exact_match_monthly_report(self) -> None:
+        """Should find exact matches for Monthly Report patterns."""
+        sheets = [
+            {"properties": {"title": "Sheet1", "sheetId": 1}},
+            {"properties": {"title": "Monthly Report 2026-05", "sheetId": 2}},
+            {"properties": {"title": "Sheet2", "sheetId": 3}},
+        ]
+
+        result = find_monthly_report_tab(sheets, "2026-05")
+        assert result is not None
+        assert result["properties"]["title"] == "Monthly Report 2026-05"
+        assert result["properties"]["sheetId"] == 2
+
+    def test_fuzzy_match_monthly_tab(self) -> None:
+        """Should find fuzzy matches for monthly tabs."""
+        sheets = [
+            {"properties": {"title": "Sheet1", "sheetId": 1}},
+            {"properties": {"title": "May 2026 Report", "sheetId": 2}},
+            {"properties": {"title": "Sheet2", "sheetId": 3}},
+        ]
+
+        result = find_monthly_report_tab(sheets, "2026-05")
+        assert result is not None
+        assert result["properties"]["title"] == "May 2026 Report"
+
+    def test_case_insensitive_match(self) -> None:
+        """Should match case-insensitively."""
+        sheets = [
+            {"properties": {"title": "monthly report 2026-05", "sheetId": 1}},
+        ]
+
+        result = find_monthly_report_tab(sheets, "2026-05")
+        assert result is not None
+        assert result["properties"]["title"] == "monthly report 2026-05"
+
+    def test_no_match_found(self) -> None:
+        """Should return None when no monthly tab is found."""
+        sheets = [
+            {"properties": {"title": "Sheet1", "sheetId": 1}},
+            {"properties": {"title": "Sheet2", "sheetId": 2}},
+        ]
+
+        result = find_monthly_report_tab(sheets, "2026-05")
+        assert result is None
+
+    def test_current_month_default(self) -> None:
+        """Should use current month when target_month is None."""
+        from datetime import datetime
+
+        current_month = datetime.now().strftime("%Y-%m")
+
+        sheets = [
+            {"properties": {"title": f"Monthly Report {current_month}", "sheetId": 1}},
+        ]
+
+        result = find_monthly_report_tab(sheets, None)
+        assert result is not None
+        assert result["properties"]["title"] == f"Monthly Report {current_month}"
+
+
+class TestApprovedUnprocessedProjects:
+    """Test find_approved_unprocessed_projects function."""
+
+    def test_find_approved_unprocessed(self) -> None:
+        """Should find approved projects without PoC results."""
+        rows = [
+            {
+                "title": "Project 1",
+                "link": "https://github.com/org/project1",
+                "pm_decision": "approve",
+                "poc_repo": "",
+                "poc_image": "",
+                "poc_report": "",
+            },
+            {
+                "title": "Project 2",
+                "link": "https://github.com/org/project2",
+                "pm_decision": "approve",
+                "poc_repo": "https://github.com/org/project2-poc",
+                "poc_image": "",
+                "poc_report": "",
+            },
+            {
+                "title": "Project 3",
+                "link": "https://github.com/org/project3",
+                "pm_decision": "approve",
+                "poc_repo": "",
+                "poc_image": "",
+                "poc_report": "",
+            },
+        ]
+
+        result = find_approved_unprocessed_projects(rows, max_projects=5)
+        assert len(result) == 2  # Only projects 1 and 3 (project 2 has poc_repo)
+        assert result[0]["title"] == "Project 1"
+        assert result[1]["title"] == "Project 3"
+
+    def test_limit_max_projects(self) -> None:
+        """Should limit results to max_projects."""
+        rows = [
+            {
+                "title": f"Project {i}",
+                "link": f"https://github.com/org/project{i}",
+                "pm_decision": "approve",
+                "poc_repo": "",
+                "poc_image": "",
+                "poc_report": "",
+            }
+            for i in range(1, 8)  # 7 projects
+        ]
+
+        result = find_approved_unprocessed_projects(rows, max_projects=3)
+        assert len(result) == 3
+
+    def test_no_approved_projects(self) -> None:
+        """Should return empty list when no approved projects found."""
+        rows = [
+            {
+                "title": "Project 1",
+                "link": "https://github.com/org/project1",
+                "pm_decision": "reject",
+                "poc_repo": "",
+                "poc_image": "",
+                "poc_report": "",
+            },
+        ]
+
+        result = find_approved_unprocessed_projects(rows, max_projects=5)
+        assert len(result) == 0
+
+
+class TestReadSheetMonthlyMode:
+    """Test read_sheet with monthly_mode=True."""
+
+    @patch("autopoc.sheet.build_sheets_service")
+    def test_monthly_mode_success(self, mock_build_service) -> None:
+        """Should read from monthly report tab when monthly_mode=True."""
+        # Mock the service and spreadsheet response
+        mock_service = MagicMock()
+        mock_build_service.return_value = mock_service
+
+        # Mock spreadsheet metadata with a monthly report tab
+        mock_service.spreadsheets.return_value.get.return_value.execute.return_value = {
+            "sheets": [
+                {"properties": {"title": "Sheet1", "sheetId": 1}},
+                {"properties": {"title": "Monthly Report 2026-05", "sheetId": 2}},
+            ]
+        }
+
+        # Mock the sheet data
+        mock_service.spreadsheets.return_value.values.return_value.get.return_value.execute.return_value = {
+            "values": _load_csv_rows()
+        }
+
+        # Call with monthly mode
+        result = read_sheet(
+            credentials_file="dummy.json",
+            sheet_id="test-sheet-id",
+            monthly_mode=True,
+            target_month="2026-05",
+        )
+
+        # Should have found the monthly tab and read from it
+        assert len(result) > 0
+        get_call = mock_service.spreadsheets.return_value.get.call_args
+        assert get_call[1]["spreadsheetId"] == "test-sheet-id"
+
+        values_call = mock_service.spreadsheets.return_value.values.return_value.get.call_args
+        assert "'Monthly Report 2026-05'!A1:ZZ" in values_call[1]["range"]
+
+    @patch("autopoc.sheet.build_sheets_service")
+    def test_monthly_mode_tab_not_found(self, mock_build_service) -> None:
+        """Should raise ValueError when monthly tab is not found."""
+        mock_service = MagicMock()
+        mock_build_service.return_value = mock_service
+
+        # Mock spreadsheet without monthly report tab
+        mock_service.spreadsheets.return_value.get.return_value.execute.return_value = {
+            "sheets": [
+                {"properties": {"title": "Sheet1", "sheetId": 1}},
+                {"properties": {"title": "Sheet2", "sheetId": 2}},
+            ]
+        }
+
+        with pytest.raises(ValueError, match="No monthly report tab found for 2026-05"):
+            read_sheet(
+                credentials_file="dummy.json",
+                sheet_id="test-sheet-id",
+                monthly_mode=True,
+                target_month="2026-05",
+            )
+
+    @patch("autopoc.sheet.build_sheets_service")
+    def test_monthly_mode_is_default(self, mock_build_service) -> None:
+        """Monthly mode should be the default when no mode is specified."""
+        mock_service = MagicMock()
+        mock_build_service.return_value = mock_service
+
+        # Mock spreadsheet metadata with a monthly report tab for current month
+        from datetime import datetime
+
+        current_month = datetime.now().strftime("%Y-%m")
+        mock_service.spreadsheets.return_value.get.return_value.execute.return_value = {
+            "sheets": [
+                {"properties": {"title": "Sheet1", "sheetId": 1}},
+                {"properties": {"title": f"Monthly Report {current_month}", "sheetId": 2}},
+            ]
+        }
+
+        # Mock the sheet data
+        mock_service.spreadsheets.return_value.values.return_value.get.return_value.execute.return_value = {
+            "values": _load_csv_rows()
+        }
+
+        # Call without specifying monthly_mode (should default to True)
+        result = read_sheet(credentials_file="dummy.json", sheet_id="test-sheet-id")
+
+        # Should have used monthly mode by default and found current month's tab
+        assert len(result) > 0
+        values_call = mock_service.spreadsheets.return_value.values.return_value.get.call_args
+        assert f"'Monthly Report {current_month}'!A1:ZZ" in values_call[1]["range"]

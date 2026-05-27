@@ -25,6 +25,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -88,6 +89,76 @@ class SheetProject:
     """Numeric sheet ID (gid) of the tab."""
 
 
+def find_monthly_report_tab(
+    sheets: list[dict[str, Any]], target_month: str | None = None
+) -> dict[str, Any] | None:
+    """Find the monthly report tab for the specified month.
+
+    Args:
+        sheets: List of sheet properties from Google Sheets API
+        target_month: Month in format "YYYY-MM" (e.g., "2026-05") or None for current month
+
+    Returns:
+        Sheet properties dict for the monthly report tab, or None if not found
+    """
+    if target_month is None:
+        target_month = datetime.now().strftime("%Y-%m")
+
+    # Common patterns for monthly report tabs
+    patterns = [
+        f"Monthly Report {target_month}",
+        f"Monthly-{target_month}",
+        f"Report-{target_month}",
+        f"{target_month} Monthly Report",
+        f"{target_month}-Monthly",
+        f"{target_month} Report",
+    ]
+
+    # Also try without year for tabs that might use just month names
+    month_name = datetime.strptime(target_month, "%Y-%m").strftime("%B %Y")  # e.g., "May 2026"
+    month_short = datetime.strptime(target_month, "%Y-%m").strftime("%b %Y")  # e.g., "May 2026"
+    patterns.extend(
+        [
+            f"Monthly Report {month_name}",
+            f"Monthly Report {month_short}",
+            f"Report {month_name}",
+            f"Report {month_short}",
+            month_name,
+            month_short,
+        ]
+    )
+
+    for sheet in sheets:
+        tab_name = sheet["properties"]["title"]
+
+        # Direct match (case-insensitive)
+        for pattern in patterns:
+            if pattern.lower() == tab_name.lower():
+                logger.info(
+                    "Found monthly report tab: '%s' (exact match for pattern '%s')",
+                    tab_name,
+                    pattern,
+                )
+                return sheet
+
+        # Fuzzy match - check if the tab contains month identifier and "report"/"monthly"
+        tab_lower = tab_name.lower()
+        if any(
+            month_part in tab_lower
+            for month_part in [target_month.lower(), month_name.lower(), month_short.lower()]
+        ):
+            if any(keyword in tab_lower for keyword in ["report", "monthly"]):
+                logger.info("Found monthly report tab: '%s' (fuzzy match)", tab_name)
+                return sheet
+
+    logger.warning(
+        "No monthly report tab found for %s. Available tabs: %s",
+        target_month,
+        [sheet["properties"]["title"] for sheet in sheets],
+    )
+    return None
+
+
 def build_sheets_service(credentials_file: str):
     """Create an authenticated Google Sheets API service.
 
@@ -106,6 +177,8 @@ def read_sheet(
     sheet_id: str,
     *,
     max_tabs: int = 1,
+    monthly_mode: bool = True,
+    target_month: str | None = None,
 ) -> list[dict[str, str]]:
     """Read data rows from one or more tabs of a Google Sheet.
 
@@ -114,6 +187,9 @@ def read_sheet(
     as the header, and returns all data rows aggregated into a single
     list.
 
+    When monthly_mode=True (default), ignores max_tabs and instead looks for a monthly
+    report tab for the specified month (or current month if not specified).
+
     Each returned dict has an extra ``_origin`` key containing a
     :class:`SheetRowOrigin` instance that tracks which tab and row the
     data came from.  This metadata is used by write-back functions.
@@ -121,7 +197,9 @@ def read_sheet(
     Args:
         credentials_file: Path to the Google service account JSON key file.
         sheet_id: The spreadsheet ID (from the Google Sheets URL).
-        max_tabs: Maximum number of tabs to scan (default 1, leftmost first).
+        max_tabs: Maximum number of tabs to scan (default 1, leftmost first, ignored in monthly mode).
+        monthly_mode: If True (default), look for monthly report tab instead of using max_tabs.
+        target_month: Month in format "YYYY-MM" (e.g., "2026-05") or None for current month.
 
     Returns:
         List of dicts, one per data row, keyed by header column names.
@@ -144,7 +222,15 @@ def read_sheet(
     if not sheets:
         raise ValueError(f"Spreadsheet {sheet_id} has no tabs")
 
-    tabs_to_read = sheets[: max(1, max_tabs)]
+    if monthly_mode:
+        # Look for monthly report tab
+        monthly_tab = find_monthly_report_tab(sheets, target_month)
+        if monthly_tab is None:
+            target_month_display = target_month or datetime.now().strftime("%Y-%m")
+            raise ValueError(f"No monthly report tab found for {target_month_display}")
+        tabs_to_read = [monthly_tab]
+    else:
+        tabs_to_read = sheets[: max(1, max_tabs)]
 
     all_parsed: list[dict[str, Any]] = []
 
@@ -298,6 +384,39 @@ def filter_projects(rows: list[dict[str, str]]) -> list[dict[str, str]]:
         )
 
     return candidates
+
+
+def find_approved_unprocessed_projects(
+    rows: list[dict[str, str]], max_projects: int = 5
+) -> list[dict[str, str]]:
+    """Find approved projects that haven't been processed yet and are ready for PoC.
+
+    This is specifically for the monthly report mode where we want to find
+    projects that have been approved but haven't had their PoCs run yet.
+
+    Args:
+        rows: Parsed sheet rows (list of dicts from ``read_sheet``)
+        max_projects: Maximum number of projects to return
+
+    Returns:
+        List of approved, unprocessed projects ready for PoC (up to max_projects)
+    """
+    # First apply the standard filters to get approved, unprocessed projects
+    filtered = filter_projects(rows)
+
+    # Limit to max_projects
+    selected = filtered[:max_projects]
+
+    if selected:
+        logger.info(
+            "Found %d approved unprocessed projects for PoC (limited to %d max)",
+            len(selected),
+            max_projects,
+        )
+    else:
+        logger.info("No approved unprocessed projects found for PoC")
+
+    return selected
 
 
 def select_project(
