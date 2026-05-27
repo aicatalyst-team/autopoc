@@ -50,17 +50,13 @@ spec:
               value: "/etc/autopoc/google-sa/credentials.json"
             
             # --- Monthly Mode configuration (default behavior) ---
+            # AUTOPOC_MONTHLY_MODE defaults to true, automatically uses current month
+            # Only override these if you need non-default behavior
             - name: AUTOPOC_MONTHLY_MODE
               valueFrom:
                 secretKeyRef:
                   name: autopoc-credentials
                   key: AUTOPOC_MONTHLY_MODE
-                  optional: true
-            - name: AUTOPOC_TARGET_MONTH
-              valueFrom:
-                secretKeyRef:
-                  name: autopoc-credentials
-                  key: AUTOPOC_TARGET_MONTH
                   optional: true
             - name: MAX_MONTHLY_POCS
               valueFrom:

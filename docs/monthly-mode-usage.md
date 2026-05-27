@@ -17,15 +17,16 @@ Monthly mode is now the **default behavior** for AutoPoC. It allows the system t
 Add these to your `.env` file:
 
 ```bash
-# Monthly mode is enabled by default
+# Monthly mode is enabled by default - automatically uses current month
 # Set to false only to disable monthly mode
 # AUTOPOC_MONTHLY_MODE=false
 
-# Target month (optional - defaults to current month)
-AUTOPOC_TARGET_MONTH=2026-05
-
 # Maximum number of PoCs to run from monthly report
 MAX_MONTHLY_POCS=5
+
+# NOTE: AUTOPOC_TARGET_MONTH is usually NOT set - system auto-detects current month
+# Only set this for testing or processing historical months
+# AUTOPOC_TARGET_MONTH=2026-05
 ```
 
 ### Configuration Values
@@ -41,7 +42,7 @@ monthly_mode: bool = Field(
 target_month: str | None = Field(
     default=None,
     validation_alias="AUTOPOC_TARGET_MONTH", 
-    description="Target month for monthly mode in YYYY-MM format (defaults to current month)",
+    description="Target month in YYYY-MM format (defaults to current month - rarely needed)",
 )
 max_monthly_pocs: int = Field(
     default=5,
@@ -179,15 +180,14 @@ The new default monthly mode maintains **backward compatibility**:
 ## Example Workflow
 
 ```bash
-# 1. Check what approved projects need PoCs (uses monthly mode by default)
+# 1. Check what approved projects need PoCs (automatically uses current month)
 python -m autopoc.cli_tools monthly-pocs \
   --sheet-id "your-sheet-id" \
-  --credentials "/path/to/credentials.json" \
-  --target-month "2026-05"
+  --credentials "/path/to/credentials.json"
 
-# 2. If projects found, run the PoCs using run-sheet skill
-export AUTOPOC_TARGET_MONTH=2026-05  
+# 2. If projects found, run the PoCs using run-sheet skill  
 export MAX_MONTHLY_POCS=3
 
-# Use run-sheet skill which will automatically use monthly mode (default)
+# Use run-sheet skill - automatically detects current month and processes it
+# No need to specify AUTOPOC_TARGET_MONTH unless testing specific months
 ```

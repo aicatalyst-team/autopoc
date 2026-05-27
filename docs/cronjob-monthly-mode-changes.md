@@ -76,14 +76,15 @@ The cronjob header comment now mentions monthly mode:
 
 ## Behavior Changes
 
-### **Default Behavior (No Configuration)**
+### **Default Behavior (Zero Configuration Required)**
 
-Without any monthly mode environment variables set:
+With no environment variables set, the system automatically:
 
-- ✅ **Monthly mode enabled** by default
-- ✅ **Current month** automatically detected (e.g., "2026-05")
-- ✅ **Up to 5 PoCs** run per execution (up from 2 in legacy mode)
-- ✅ **Daily runs** to catch newly approved projects throughout the month
+- ✅ **Enables monthly mode** by default
+- ✅ **Detects current month** automatically (e.g., May 2026 → looks for "Monthly Report 2026-05" tab)
+- ✅ **Runs up to 5 PoCs** per execution (increased from 2 in legacy mode)
+- ✅ **Updates monthly throughout the month** - daily runs catch newly approved projects
+- ✅ **Transitions automatically** to next month on the 1st (no manual intervention needed)
 
 ### **Customization Options**
 
@@ -92,9 +93,11 @@ Without any monthly mode environment variables set:
 AUTOPOC_MONTHLY_MODE: "false"
 ```
 
-#### **Target Specific Month**
+#### **Target Specific Month (Testing Only)**
 ```yaml
-AUTOPOC_TARGET_MONTH: "2026-04"  # Process April 2026 report
+# Only use this for testing or processing historical months
+# Normal operations should NOT set this - let the system auto-detect
+AUTOPOC_TARGET_MONTH: "2026-04"  # Process April 2026 report instead of current month
 ```
 
 #### **Limit Number of PoCs**
@@ -113,8 +116,9 @@ MAX_EVALUATED_SHEETS: "2"  # Use legacy mode with 2 tabs
 ### **For Existing Deployments**
 
 1. **No action required** - monthly mode will work with existing configurations
-2. **Optional**: Add monthly mode environment variables to your secret for explicit control
-3. **Optional**: Update your monitoring/alerting to expect the new behavior
+2. **No monthly updates needed** - system automatically transitions to new months
+3. **Optional**: Add `AUTOPOC_MONTHLY_MODE: "false"` only if you want legacy behavior
+4. **Optional**: Update your monitoring/alerting to expect the new behavior
 
 ### **For New Deployments**
 
