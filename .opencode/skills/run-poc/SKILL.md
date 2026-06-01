@@ -594,10 +594,19 @@ Report written and committed.
 
 1. Count pass/fail from `poc_execute.results` in state.
 2. If majority passed: invoke the `blog-create` skill with the PoC context.
-3. The blog-create skill handles the full generation pipeline (draft, review loop, finalize).
+3. The blog-create skill handles the content generation (draft, review loop, finalize).
+4. **Run Vale linting on final blog post:**
+   ```bash
+   cd "$WORK_DIR/repos/$PROJECT_NAME/.autopoc/blog"
+   vale --output=JSON final.md 2>/dev/null || true
+   ```
+5. **Upload to Google Docs (if configured):**
+   ```bash
+   python -m autopoc.cli_tools google-docs-upload final.md --project-name "$PROJECT_NAME"
+   ```
 
 ### Exit condition
-Blog post written (or phase skipped if tests didn't pass).
+Blog post written, linted, and uploaded (or phase skipped if tests didn't pass).
 
 ---
 

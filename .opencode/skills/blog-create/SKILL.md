@@ -186,11 +186,7 @@ Read `references/scoring.md` for full rules.
 3. Write `final.md` with clean draft
 4. Generate `seo.md` with meta title, description, keywords, slug
 5. Generate `blog-preview.html` using template from `assets/blog-template.html` -- read `references/html-preview-guide.md` for conversion rules (includes Mermaid rendering)
-6. Run Vale linting (optional):
-   ```bash
-   vale --output=JSON final.md 2>/dev/null || true
-   ```
-7. Commit to the `autopoc-artifacts` branch:
+6. Commit to the `autopoc-artifacts` branch:
    ```bash
    cd "$CLONE_PATH"
    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)

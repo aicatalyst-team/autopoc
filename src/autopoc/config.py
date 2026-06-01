@@ -181,6 +181,16 @@ class AutoPoCConfig(BaseSettings):
         default="/tmp/autopoc", description="Directory for cloned repos and temp files"
     )
 
+    # Google Docs integration (for blog-create skill)
+    google_docs_folder_id: str | None = Field(
+        default=None,
+        validation_alias="GOOGLE_DOCS_FOLDER_ID",
+        description="Google Drive folder ID where blog docs should be created",
+    )
+    google_docs_folder_id: str | None = Field(
+        default=None, description="Google Drive folder ID where blog docs should be created"
+    )
+
     @model_validator(mode="after")
     def validate_llm_config(self) -> "AutoPoCConfig":
         """Ensure we have at least one LLM provider configured.
