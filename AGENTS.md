@@ -57,6 +57,7 @@ Copy `.env.example` to `.env` and fill in the required credentials:
 - **GitLab**: `GITLAB_URL`, `GITLAB_TOKEN`, `GITLAB_GROUP`
 - **Quay**: `QUAY_ORG`, `QUAY_TOKEN`
 - **OpenShift**: `OPENSHIFT_API_URL`, `OPENSHIFT_TOKEN`
+- **Google Docs** (optional): `GOOGLE_DOCS_CREDENTIALS`, `GOOGLE_DOCS_FOLDER_ID`
 
 ## Dependency Management
 
@@ -141,6 +142,7 @@ Key features:
 **blog-create** - Content generation:
 - Multi-reviewer pipeline with iterative improvement
 - Generate developer blog posts from PoC results
+- Optional Google Docs integration for automatic upload
 
 ### State Management
 

@@ -186,17 +186,54 @@ Read `references/scoring.md` for full rules.
 3. Write `final.md` with clean draft
 4. Generate `seo.md` with meta title, description, keywords, slug
 5. Generate `blog-preview.html` using template from `assets/blog-template.html` -- read `references/html-preview-guide.md` for conversion rules (includes Mermaid rendering)
-6. Run Vale linting (optional):
+6. **Upload to Google Docs (if configured)**: If `GOOGLE_DOCS_CREDENTIALS` environment variable is set, upload the blog post as a Google Doc:
+   ```python
+   from autopoc.tools.google_docs_tools import create_google_docs_service, extract_blog_metadata
+   from autopoc.config import load_config
+   
+   config = load_config()
+   if config.google_docs_credentials:
+       try:
+           # Create Google Docs service
+           docs_service = create_google_docs_service(config.google_docs_credentials)
+           
+           # Extract metadata for template table
+           final_md_content = Path("final.md").read_text()
+           table_data = extract_blog_metadata(final_md_content)
+           
+           # Create document title
+           project_name = # extract from state or use default
+           doc_title = f"[AutoPoC] {table_data.get('Title', project_name)} Blog Post"
+           
+           # Upload to Google Docs
+           doc_url = docs_service.upload_blog_as_doc(
+               markdown_path="final.md",
+               doc_title=doc_title,
+               parent_folder_id=config.google_docs_folder_id,
+               table_data=table_data
+           )
+           
+           print(f"✅ Blog post uploaded to Google Docs: {doc_url}")
+           
+           # Add to blog state for reference
+           with open("blog-urls.txt", "a") as f:
+               f.write(f"Google Docs: {doc_url}\n")
+               
+       except Exception as e:
+           print(f"⚠️ Failed to upload to Google Docs: {e}")
+           # Continue with rest of process - Google Docs upload is optional
+   ```
+7. Run Vale linting (optional):
    ```bash
    vale --output=JSON final.md 2>/dev/null || true
    ```
-7. Commit to the `autopoc-artifacts` branch:
+9. Commit to the `autopoc-artifacts` branch:
    ```bash
    cd "$CLONE_PATH"
    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
    git stash --quiet 2>/dev/null || true
    git checkout -B autopoc-artifacts
-   git add blog-post.md blog-seo.md blog-preview.html
+   git add blog-post.md blog-seo.md blog-preview.html blog-urls.txt
    git commit -m "Add blog post artifacts" --allow-empty
    git push origin autopoc-artifacts --force
    git checkout "$CURRENT_BRANCH"
