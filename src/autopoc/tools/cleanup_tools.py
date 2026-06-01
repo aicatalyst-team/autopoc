@@ -55,15 +55,15 @@ def cleanup_previous_build_failure(
 
         if build_strategy == "openshift":
             # Clean up OpenShift build resources
-            cleanup_result = cleanup_openshift_build_resources(
-                namespace="poc-builds", project_name=project_name, keep_current=True
+            cleanup_result = cleanup_openshift_build_resources.invoke(
+                {"namespace": "poc-builds", "project_name": project_name, "keep_current": True}
             )
             results.append(f"OpenShift: {cleanup_result}")
 
         elif build_strategy == "podman":
             # Clean up local podman images
-            cleanup_result = cleanup_local_build_images(
-                project_name=project_name, keep_current=True
+            cleanup_result = cleanup_local_build_images.invoke(
+                {"project_name": project_name, "keep_current": True}
             )
             results.append(f"Podman: {cleanup_result}")
 
@@ -267,7 +267,9 @@ def cleanup_failed_deployment(
 
         # Capture state before cleanup if requested
         if capture_state:
-            result["captured_state"] = capture_deployment_failure_state(namespace, project_name)
+            result["captured_state"] = capture_deployment_failure_state.invoke(
+                {"namespace": namespace, "project_name": project_name}
+            )
 
         # Get all deployments in the namespace
         deployments = _run_kubectl(["get", "deployment", "-n", namespace], check=False)
@@ -443,8 +445,8 @@ def reset_deployment_namespace(namespace: str, project_name: str) -> str:
     """
     try:
         # First capture state, then clean up everything
-        cleanup_result = cleanup_failed_deployment(
-            namespace=namespace, project_name=project_name, capture_state=True
+        cleanup_result = cleanup_failed_deployment.invoke(
+            {"namespace": namespace, "project_name": project_name, "capture_state": True}
         )
 
         if cleanup_result["status"] == "error":

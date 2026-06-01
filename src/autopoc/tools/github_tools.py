@@ -183,7 +183,7 @@ def is_autopoc_repository(owner: str, repo: str) -> dict:
         Dict with AutoPoC detection results and metadata
     """
     try:
-        topics_result = get_repository_topics(owner, repo)
+        topics_result = get_repository_topics.invoke({"owner": owner, "repo": repo})
 
         if not topics_result["success"]:
             return {
@@ -511,7 +511,9 @@ def list_autopoc_repositories(organization: str, github_token: Optional[str] = N
                 # Check each repository for AutoPoC topics
                 for repo in repos:
                     repo_name = repo["name"]
-                    autopoc_check = is_autopoc_repository(organization, repo_name)
+                    autopoc_check = is_autopoc_repository.invoke(
+                        {"owner": organization, "repo": repo_name}
+                    )
 
                     if autopoc_check["is_autopoc"]:
                         autopoc_repos.append(
@@ -598,7 +600,9 @@ def create_autopoc_fork(
         results.append(f"Created fork {target_repo}")
 
         # Add AutoPoC topics to the new fork
-        topics_result = set_repository_topics(target_org, source_name, autopoc_topics)
+        topics_result = set_repository_topics.invoke(
+            {"owner": target_org, "repo": source_name, "topics": autopoc_topics}
+        )
         results.append(f"Topics: {topics_result}")
 
         return f"Successfully created AutoPoC fork: {'; '.join(results)}"
