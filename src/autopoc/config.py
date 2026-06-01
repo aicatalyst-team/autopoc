@@ -176,6 +176,32 @@ class AutoPoCConfig(BaseSettings):
         description="Target month for monthly mode in YYYY-MM format (defaults to current month)",
     )
 
+    # Cleanup policies
+    cleanup_build_failures: bool = Field(
+        default=True, description="Clean up build failures before retry to prevent storage bloat"
+    )
+    cleanup_deploy_failures: bool = Field(
+        default=True, description="Clean up deployment failures before retry to avoid conflicts"
+    )
+    keep_failure_logs: bool = Field(
+        default=True, description="Preserve failure logs and state information during cleanup"
+    )
+    max_build_history: int = Field(
+        default=1, description="Maximum number of build failures to keep for debugging"
+    )
+    max_deploy_history: int = Field(
+        default=1, description="Maximum number of deployment failures to keep for debugging"
+    )
+
+    # GitHub repository management
+    github_autopoc_topics: list[str] = Field(
+        default=["autopoc", "poc", "automated-deployment", "openshift"],
+        description="Topics to add to AutoPoC-created GitHub repositories",
+    )
+    force_sync_existing_repos: bool = Field(
+        default=True, description="Force sync existing AutoPoC repositories instead of failing"
+    )
+
     # Working directory
     work_dir: str = Field(
         default="/tmp/autopoc", description="Directory for cloned repos and temp files"

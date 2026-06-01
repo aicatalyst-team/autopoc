@@ -156,6 +156,23 @@ def podman_tag(image: str, new_tag: str) -> str:
     return _run_podman(["tag", image, new_tag])
 
 
+def podman_remove_image(image_id: str, force: bool = True) -> str:
+    """Remove a container image.
+
+    Args:
+        image_id: Image ID or tag to remove.
+        force: Whether to force removal (ignore if image is being used).
+
+    Returns:
+        Remove output.
+    """
+    args = ["rmi"]
+    if force:
+        args.append("--force")
+    args.append(image_id)
+    return _run_podman(args)
+
+
 def kind_load_image(image: str, cluster_name: str = "autopoc-e2e") -> str:
     """Load a podman image into a kind cluster.
 

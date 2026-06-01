@@ -131,24 +131,65 @@ Evaluation written (or skipped on failure). Pipeline continues regardless.
 
 ### Steps
 
-1. Check fork target:
+1. Check fork target and prepare for smart fork handling:
    ```bash
    echo "Fork target: ${AUTOPOC_FORK_TARGET:-github}"
    ```
 
 2. **If `AUTOPOC_FORK_TARGET` is `github` (default):**
 
-   Fork the repository using `gh`:
+   **Step 2a: Check if repository already exists**
    ```bash
-   gh repo fork "$OWNER/$REPO" --org "$GITHUB_ORG" --clone=false
+   # Check if repository already exists
+   EXISTING_REPO=$(gh repo view "$GITHUB_ORG/$PROJECT_NAME" --json name,description 2>/dev/null || echo "")
    ```
-   Then reconfigure remotes:
+
+   **Step 2b: Handle existing repository**
    ```bash
-   cd "$WORK_DIR/repos/$PROJECT_NAME"
-   git remote rename origin upstream 2>/dev/null || true
-   git remote add origin "https://${GITHUB_TOKEN}@github.com/${GITHUB_ORG}/${REPO}.git"
-   git push origin --all --force
-   git push origin --tags --force
+   if [ -n "$EXISTING_REPO" ]; then
+     echo "Repository $GITHUB_ORG/$PROJECT_NAME already exists"
+     
+     # Check if it's an AutoPoC repository using topics
+     REPO_TOPICS=$(gh api "/repos/$GITHUB_ORG/$PROJECT_NAME/topics" --jq '.names[]' 2>/dev/null || echo "")
+     IS_AUTOPOC=$(echo "$REPO_TOPICS" | grep -q "autopoc" && echo "true" || echo "false")
+     
+     if [ "$IS_AUTOPOC" = "true" ]; then
+       echo "Existing repository is AutoPoC-created. Force-syncing with source..."
+       # Force sync the existing AutoPoC repository
+       cd "$WORK_DIR/repos/$PROJECT_NAME"
+       git remote add source "$REPO_URL" 2>/dev/null || git remote set-url source "$REPO_URL"
+       git fetch source
+       SOURCE_BRANCH=$(git ls-remote --symref source HEAD | awk '/^ref:/ {sub("refs/heads/", "", $2); print $2}')
+       git reset --hard "source/${SOURCE_BRANCH:-main}"
+       git remote rename origin upstream 2>/dev/null || true
+       git remote add origin "https://${GITHUB_TOKEN}@github.com/${GITHUB_ORG}/${PROJECT_NAME}.git" \
+         2>/dev/null || git remote set-url origin "https://${GITHUB_TOKEN}@github.com/${GITHUB_ORG}/${PROJECT_NAME}.git"
+       git push origin --all --force
+       git push origin --tags --force
+       echo "Force-sync completed"
+     else
+       echo "ERROR: Repository $GITHUB_ORG/$PROJECT_NAME exists but is not AutoPoC-created"
+       echo "Cannot proceed without manual intervention"
+       exit 1
+     fi
+   else
+     # Create new fork
+     echo "Creating new fork..."
+     gh repo fork "$OWNER/$REPO" --org "$GITHUB_ORG" --clone=false
+     
+     # Set AutoPoC topics on the new fork
+     AUTOPOC_TOPICS='["autopoc", "poc", "automated-deployment", "openshift"]'
+     echo "Setting AutoPoC topics on $GITHUB_ORG/$PROJECT_NAME..."
+     gh api "/repos/$GITHUB_ORG/$PROJECT_NAME/topics" --method PUT --raw-field names="$AUTOPOC_TOPICS" || echo "Warning: Failed to set topics"
+     
+     # Configure remotes
+     cd "$WORK_DIR/repos/$PROJECT_NAME"
+     git remote rename origin upstream 2>/dev/null || true
+     git remote add origin "https://${GITHUB_TOKEN}@github.com/${GITHUB_ORG}/${PROJECT_NAME}.git"
+     git push origin --all --force
+     git push origin --tags --force
+     echo "New AutoPoC fork created and tagged"
+   fi
    ```
 
 3. **If `AUTOPOC_FORK_TARGET` is `gitlab`:**
@@ -225,7 +266,44 @@ PoC plan written with at least one scenario defined.
 
 ### Steps
 
-1. Read the PoC plan from state for infrastructure requirements and deployment model.
+1. **Clean up previous build failures** (if this is a retry):
+   ```bash
+   # Check if we're retrying (build_retries > 0 in state)
+   BUILD_RETRIES=$(python3 -c "import yaml; state = yaml.safe_load(open('$WORK_DIR/poc-state.yaml')); print(state.get('retries', {}).get('build_retries', 0))" 2>/dev/null || echo "0")
+   
+   if [ "$BUILD_RETRIES" -gt 0 ]; then
+     echo "Cleaning up previous build failure (retry #$BUILD_RETRIES)..."
+     
+     # Clean up based on build strategy
+     BUILD_STRATEGY="${AUTOPOC_BUILD_STRATEGY:-podman}"
+     if [ "$BUILD_STRATEGY" = "openshift" ]; then
+       # Clean up OpenShift build resources
+       BUILDS_NAMESPACE="${OPENSHIFT_NAMESPACE_PREFIX:-poc}-builds"
+       echo "Cleaning OpenShift builds in namespace: $BUILDS_NAMESPACE"
+       kubectl delete buildconfig,imagestream -l app="$PROJECT_NAME" -n "$BUILDS_NAMESPACE" --ignore-not-found=true
+       kubectl delete pod -l openshift.io/build.name="$PROJECT_NAME" -n "$BUILDS_NAMESPACE" --ignore-not-found=true
+     else
+       # Clean up podman images (keep only most recent)
+       echo "Cleaning local podman images for project: $PROJECT_NAME"
+       IMAGES=$(podman images --filter "label=project=$PROJECT_NAME" --format "{{.ID}} {{.Created}} {{.Repository}}:{{.Tag}}" | sort -k2 -r)
+       if [ -n "$IMAGES" ]; then
+         echo "$IMAGES" | tail -n +2 | while read -r image_id created repo_tag; do
+           echo "Removing old image: $repo_tag ($image_id)"
+           podman rmi "$image_id" --force 2>/dev/null || true
+         done
+       fi
+     fi
+     
+     # Clean up old build logs (keep only the most recent)
+     if [ -d "$WORK_DIR/repos/$PROJECT_NAME" ]; then
+       find "$WORK_DIR/repos/$PROJECT_NAME" -name "build-*.log" -type f | sort -V | head -n -1 | xargs rm -f 2>/dev/null || true
+     fi
+     
+     echo "Build cleanup completed"
+   fi
+   ```
+
+2. Read the PoC plan from state for infrastructure requirements and deployment model.
 
 2. For each component that is part of the PoC (check `poc_plan.poc_components` if set, otherwise use all components):
 
@@ -369,7 +447,52 @@ All component images built and pushed successfully.
 
 ### Steps
 
-1. Read built images, PoC plan infrastructure, and scenarios from state.
+1. **Clean up previous deployment failures** (if this is a retry):
+   ```bash
+   # Check if we're retrying (deploy_retries > 0 in state)
+   DEPLOY_RETRIES=$(python3 -c "import yaml; state = yaml.safe_load(open('$WORK_DIR/poc-state.yaml')); print(state.get('retries', {}).get('deploy_retries', 0))" 2>/dev/null || echo "0")
+   
+   if [ "$DEPLOY_RETRIES" -gt 0 ]; then
+     echo "Cleaning up previous deployment failure (retry #$DEPLOY_RETRIES)..."
+     
+     # Target namespace for the deployment
+     DEPLOY_NAMESPACE="poc-$PROJECT_NAME"
+     
+     # Capture failure state before cleanup for debugging
+     echo "Capturing failure state before cleanup..."
+     kubectl get pods,deployments,services,configmaps,secrets -n "$DEPLOY_NAMESPACE" -o wide > "$WORK_DIR/failure-state-$DEPLOY_RETRIES.log" 2>/dev/null || true
+     kubectl get events -n "$DEPLOY_NAMESPACE" --sort-by='.lastTimestamp' > "$WORK_DIR/failure-events-$DEPLOY_RETRIES.log" 2>/dev/null || true
+     
+     # Get pod logs before cleanup (for debugging)
+     kubectl get pods -n "$DEPLOY_NAMESPACE" --no-headers 2>/dev/null | while read -r pod_name ready status restarts age; do
+       if [ -n "$pod_name" ] && [ "$pod_name" != "No" ]; then
+         echo "Capturing logs for pod: $pod_name"
+         kubectl logs "$pod_name" -n "$DEPLOY_NAMESPACE" --all-containers=true > "$WORK_DIR/pod-logs-$pod_name-$DEPLOY_RETRIES.log" 2>/dev/null || true
+       fi
+     done
+     
+     # Clean up all deployment resources except namespace
+     echo "Cleaning up deployment resources in namespace: $DEPLOY_NAMESPACE"
+     kubectl delete deployments,services,configmaps,secrets,jobs,pods --all -n "$DEPLOY_NAMESPACE" --ignore-not-found=true --timeout=60s
+     
+     # Wait for cleanup to complete
+     echo "Waiting for resource cleanup to complete..."
+     sleep 10
+     
+     # Verify namespace is clean
+     REMAINING_RESOURCES=$(kubectl get all -n "$DEPLOY_NAMESPACE" --no-headers 2>/dev/null | wc -l)
+     if [ "$REMAINING_RESOURCES" -gt 0 ]; then
+       echo "Warning: $REMAINING_RESOURCES resources still remain in namespace"
+       kubectl get all -n "$DEPLOY_NAMESPACE"
+     else
+       echo "Namespace successfully cleaned"
+     fi
+     
+     echo "Deployment cleanup completed. Failure state preserved in $WORK_DIR/failure-*.log files"
+   fi
+   ```
+
+2. Read built images, PoC plan infrastructure, and scenarios from state.
 
 2. **Generate Kubernetes manifests** following `references/deploy.md`. Create files in `$WORK_DIR/repos/$PROJECT_NAME/kubernetes/`:
    - `namespace.yaml` (always first)
