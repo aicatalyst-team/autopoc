@@ -49,6 +49,14 @@ spec:
             - name: AUTOPOC_SHEET_CREDENTIALS
               value: "/etc/autopoc/google-sa/credentials.json"
             
+            # --- Google Docs integration (for blog-create skill) ---
+            - name: GOOGLE_DOCS_FOLDER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: GOOGLE_DOCS_FOLDER_ID
+                  optional: true
+            
             # --- Monthly Mode configuration (default behavior) ---
             # AUTOPOC_MONTHLY_MODE defaults to true, automatically uses current month
             # Only override these if you need non-default behavior
