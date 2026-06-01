@@ -182,9 +182,10 @@ class AutoPoCConfig(BaseSettings):
     )
 
     # Google Docs integration (for blog-create skill)
-    google_docs_credentials: str | None = Field(
+    google_docs_folder_id: str | None = Field(
         default=None,
-        description="Path to Google service account credentials JSON for Docs API access",
+        validation_alias="GOOGLE_DOCS_FOLDER_ID",
+        description="Google Drive folder ID where blog docs should be created",
     )
     google_docs_folder_id: str | None = Field(
         default=None, description="Google Drive folder ID where blog docs should be created"
@@ -273,7 +274,6 @@ class AutoPoCConfig(BaseSettings):
             "quay_token",
             "openshift_token",
             "ogx_api_key",
-            "google_docs_credentials",
         }
         result = {}
         for field_name in self.__class__.model_fields:

@@ -1,59 +1,47 @@
 # Google Docs Integration Setup
 
-The AutoPoC blog-create skill can automatically upload generated blog posts to Google Docs with a standardized template table. This feature is optional and requires Google service account credentials.
+The AutoPoC blog-create skill can automatically upload generated blog posts to Google Docs with a standardized template table. This feature is optional and uses the same Google service account credentials as the sheet integration feature.
 
 ## Prerequisites
 
-1. Google Cloud Project with Docs and Drive APIs enabled
-2. Service account with appropriate permissions
-3. Target Google Drive folder (optional)
+1. Existing Google service account with Sheet, Docs and Drive API access (same as used for sheet integration)
+2. Target Google Drive folder (optional)
 
 ## Setup Steps
 
-### 1. Enable APIs
+### 1. Verify API Access
+
+Ensure your existing Google service account (used for `AUTOPOC_SHEET_CREDENTIALS`) has access to:
+- Google Sheets API (already enabled for sheet integration)  
+- Google Docs API (needs to be enabled)
+- Google Drive API (needs to be enabled)
 
 In your Google Cloud Console:
-
 1. Go to APIs & Services > Library
-2. Enable "Google Docs API"
-3. Enable "Google Drive API"
+2. Enable "Google Docs API" (if not already enabled)
+3. Enable "Google Drive API" (if not already enabled)
 
-### 2. Create Service Account
+### 2. No New Service Account Needed
 
-1. Go to IAM & Admin > Service Accounts
-2. Click "Create Service Account"
-3. Name: `autopoc-blog-docs`
-4. Description: `AutoPoC blog post upload to Google Docs`
-5. Click "Create and Continue"
-6. No additional roles needed (we'll grant permissions directly to folders)
-7. Click "Done"
+The Google Docs integration reuses the existing service account configured via `AUTOPOC_SHEET_CREDENTIALS`. No additional credentials are needed.
 
-### 3. Generate Credentials
-
-1. Click on your new service account
-2. Go to the "Keys" tab
-3. Click "Add Key" > "Create new key"
-4. Choose "JSON" format
-5. Download the credentials file
-6. Store it securely (e.g., `/path/to/autopoc-blog-docs-credentials.json`)
-
-### 4. Configure Folder Permissions
+### 3. Configure Folder Permissions
 
 1. Create a Google Drive folder for blog posts (optional but recommended)
 2. Right-click the folder > Share
-3. Add the service account email (from the JSON file) as an Editor
+3. Add the service account email (from the existing credentials JSON file used for sheets) as an Editor
 4. Copy the folder ID from the URL:
    ```
    https://drive.google.com/drive/folders/1ABC-DEF-GHI-FOLDER-ID-HERE
    ```
 
-### 5. Environment Configuration
+### 4. Environment Configuration
 
-Add to your `.env` file:
+Add to your `.env` file (the service account credentials are already configured via `AUTOPOC_SHEET_CREDENTIALS`):
 
 ```bash
 # Google Docs integration (optional)
-GOOGLE_DOCS_CREDENTIALS=/path/to/autopoc-blog-docs-credentials.json
+# Uses existing AUTOPOC_SHEET_CREDENTIALS for authentication
 GOOGLE_DOCS_FOLDER_ID=1ABC-DEF-GHI-FOLDER-ID-HERE  # optional
 ```
 
@@ -106,8 +94,9 @@ If you get Google API errors:
 ### Feature Not Working
 
 The Google Docs feature is optional and will be skipped if:
-- `GOOGLE_DOCS_CREDENTIALS` is not set
+- `AUTOPOC_SHEET_CREDENTIALS` is not set
 - Credentials file doesn't exist or is invalid
+- Service account doesn't have Docs/Drive API access
 - API calls fail (errors are logged but don't stop the blog creation process)
 
 Check the logs for error messages starting with "⚠️ Failed to upload to Google Docs".

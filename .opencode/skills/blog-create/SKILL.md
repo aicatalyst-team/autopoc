@@ -186,16 +186,16 @@ Read `references/scoring.md` for full rules.
 3. Write `final.md` with clean draft
 4. Generate `seo.md` with meta title, description, keywords, slug
 5. Generate `blog-preview.html` using template from `assets/blog-template.html` -- read `references/html-preview-guide.md` for conversion rules (includes Mermaid rendering)
-6. **Upload to Google Docs (if configured)**: If `GOOGLE_DOCS_CREDENTIALS` environment variable is set, upload the blog post as a Google Doc:
+6. **Upload to Google Docs (if configured)**: If `AUTOPOC_SHEET_CREDENTIALS` environment variable is set, upload the blog post as a Google Doc:
    ```python
    from autopoc.tools.google_docs_tools import create_google_docs_service, extract_blog_metadata
    from autopoc.config import load_config
    
    config = load_config()
-   if config.google_docs_credentials:
+   if config.sheet_credentials:
        try:
            # Create Google Docs service
-           docs_service = create_google_docs_service(config.google_docs_credentials)
+           docs_service = create_google_docs_service(config.sheet_credentials)
            
            # Extract metadata for template table
            final_md_content = Path("final.md").read_text()

@@ -29,6 +29,9 @@ build/
 .opencode/
 CLAUDE.md
 
+# Blog templates (deployed as secrets)
+.opencode/skills/blog-create/templates/google-docs-template.md
+
 # Journal
 journal/
 

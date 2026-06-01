@@ -80,12 +80,12 @@ For more information, visit the [AutoPoC documentation](https://example.com/auto
         # Load configuration
         config = load_config()
         
-        if not config.google_docs_credentials:
+        if not config.sheet_credentials:
             print("❌ Google Docs integration not configured")
-            print("Set GOOGLE_DOCS_CREDENTIALS in your .env file to enable this feature")
+            print("Set AUTOPOC_SHEET_CREDENTIALS in your .env file to enable this feature")
             return
             
-        print("✅ Google Docs credentials found")
+        print("✅ Google service account credentials found")
         
         # Extract metadata for the template table
         table_data = extract_blog_metadata(blog_content)
@@ -93,7 +93,7 @@ For more information, visit the [AutoPoC documentation](https://example.com/auto
         
         # Create Google Docs service
         try:
-            docs_service = create_google_docs_service(config.google_docs_credentials)
+            docs_service = create_google_docs_service(config.sheet_credentials)
             print("✅ Google Docs service initialized")
         except Exception as e:
             print(f"❌ Failed to initialize Google Docs service: {e}")
