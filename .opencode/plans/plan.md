@@ -98,3 +98,37 @@ model changes fundamentally. See `opencode-harness-rewrite.md` for full architec
 | Write skill validation tests (48 tests) | Done |
 | Run full test suite (348 passed) | Done |
 | Lint + format clean | Done |
+
+---
+
+# AutoPoC Cleanup Improvements
+
+## Overview
+
+Implement comprehensive cleanup functionality to address resource accumulation and improve retry success rates. Includes build/deployment failure cleanup, GitHub repository tagging, and smart fork detection.
+
+## Phase 1: Core Infrastructure ✅
+
+| Task | Status |
+|------|--------|
+| Create ADR 0012 for cleanup improvements | ✅ Done |
+| Implement cleanup_tools.py module | ✅ Done |
+| Implement github_tools.py module | ✅ Done |
+| Add cleanup configuration options | ✅ Done |
+
+## Phase 2: Integration ✅
+
+| Task | Status |
+|------|--------|
+| Update Phase 3 (Fork) with smart GitHub detection | ✅ Done |
+| Update Phase 5 (Containerize) with build cleanup | ✅ Done |
+| Update Phase 7 (Deploy) with deployment cleanup | ✅ Done |
+| Update tools/__init__.py exports | ✅ Done |
+
+## Phase 3: Testing 🔄
+
+| Task | Status |
+|------|--------|
+| Write cleanup tools unit tests | 🔄 Pending |
+| Write GitHub tools unit tests | 🔄 Pending |
+| Validate integration with run-poc skill | 🔄 Pending |
