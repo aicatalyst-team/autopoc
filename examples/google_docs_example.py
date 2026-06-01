@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Example of using the Google Docs integration feature.
+Example of using the Google Docs integration CLI tool.
 
-This script demonstrates how the blog-create skill uploads blog posts to Google Docs.
+This script demonstrates how to use the external CLI tool for uploading blog posts
+to Google Docs (now separate from the blog-create skill).
 """
 
 import tempfile
@@ -13,7 +14,7 @@ from autopoc.tools.google_docs_tools import create_google_docs_service, extract_
 
 
 def example_blog_to_google_docs():
-    """Example of converting a blog post to Google Docs."""
+    """Example of converting a blog post to Google Docs using the CLI tool."""
     
     # Example blog post content
     blog_content = """# Deploying FastAPI on OpenShift AI
@@ -99,22 +100,27 @@ For more information, visit the [AutoPoC documentation](https://example.com/auto
             print(f"❌ Failed to initialize Google Docs service: {e}")
             return
             
-        # Upload to Google Docs
+        # Upload to Google Docs using CLI tool
         try:
-            doc_title = f"[AutoPoC Example] {table_data.get('Title', 'Blog Post')}"
+            import subprocess
             
-            doc_url = docs_service.upload_blog_as_doc(
-                markdown_path=md_path,
-                doc_title=doc_title,
-                parent_folder_id=config.google_docs_folder_id,
-                table_data=table_data
-            )
+            result = subprocess.run([
+                "python", "-m", "autopoc.cli_tools", 
+                "google-docs-upload", md_path,
+                "--project-name", "example-project"
+            ], capture_output=True, text=True, cwd="/home/egeiger/src/autopoc/feature/create-blog-google-doc")
             
-            print(f"🎉 Blog post uploaded successfully!")
-            print(f"📄 Google Docs URL: {doc_url}")
+            if result.returncode == 0:
+                import json
+                output = json.loads(result.stdout)
+                print(f"🎉 Blog post uploaded successfully!")
+                print(f"📄 Google Docs URL: {output['doc_url']}")
+                print(f"📋 Document Title: {output['doc_title']}")
+            else:
+                print(f"❌ Failed to upload: {result.stderr}")
             
         except Exception as e:
-            print(f"❌ Failed to upload to Google Docs: {e}")
+            print(f"❌ Failed to run CLI tool: {e}")
             
     finally:
         # Clean up temporary file

@@ -13,6 +13,7 @@ Commands:
     sheet-writer [--sheet-id ID] [--credentials PATH] [--tab TAB]
                  [--row ROW] [--results JSON]
     monthly-pocs [--sheet-id ID] [--credentials PATH] [--target-month YYYY-MM] [--max-pocs N]
+    google-docs-upload <markdown_file> [--project-name NAME] [--credentials PATH] [--folder-id ID]
 """
 
 from __future__ import annotations
@@ -178,7 +179,73 @@ def cmd_monthly_pocs(args: argparse.Namespace) -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Argument parser
+# google-docs-upload
+# --------------------------------------------------------------------------- #
+
+
+def cmd_google_docs_upload(args: argparse.Namespace) -> None:
+    """Upload a blog post to Google Docs with template table."""
+    from autopoc.tools.google_docs_tools import create_google_docs_service, extract_blog_metadata
+
+    config = _load_config()
+
+    # Use provided credentials or fall back to config
+    credentials_path = args.credentials or config.sheet_credentials
+    folder_id = args.folder_id or config.google_docs_folder_id
+
+    if not credentials_path:
+        print(json.dumps({"error": "No Google credentials available"}), file=sys.stderr)
+        sys.exit(1)
+
+    if not Path(str(credentials_path)).exists():
+        print(
+            json.dumps({"error": f"Credentials file not found: {credentials_path}"}),
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    if not Path(args.markdown_file).exists():
+        print(
+            json.dumps({"error": f"Markdown file not found: {args.markdown_file}"}), file=sys.stderr
+        )
+        sys.exit(1)
+
+    try:
+        # Create Google Docs service
+        docs_service = create_google_docs_service(credentials_path)
+
+        # Extract metadata for template table
+        markdown_content = Path(args.markdown_file).read_text(encoding="utf-8")
+        table_data = extract_blog_metadata(markdown_content)
+
+        # Create document title
+        project_name = args.project_name or "Project"
+        doc_title = f"[AutoPoC] {table_data.get('Title', project_name)} Blog Post"
+
+        # Upload to Google Docs
+        doc_url = docs_service.upload_blog_as_doc(
+            markdown_path=args.markdown_file,
+            doc_title=doc_title,
+            parent_folder_id=folder_id,
+            table_data=table_data,
+        )
+
+        # Output result as JSON
+        result = {
+            "success": True,
+            "doc_url": doc_url,
+            "doc_title": doc_title,
+            "table_data": table_data,
+        }
+        print(json.dumps(result, indent=2))
+
+    except Exception as e:
+        print(json.dumps({"error": f"Failed to upload to Google Docs: {e}"}), file=sys.stderr)
+        sys.exit(1)
+
+
+# --------------------------------------------------------------------------- #
+# Build parser & main
 # --------------------------------------------------------------------------- #
 
 
@@ -228,6 +295,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--target-month", default=None, help="Target month in YYYY-MM format")
     p.add_argument("--max-pocs", type=int, default=None, help="Maximum number of PoCs to find")
     p.set_defaults(func=cmd_monthly_pocs)
+
+    # google-docs-upload
+    p = sub.add_parser("google-docs-upload", help="Upload blog post to Google Docs")
+    p.add_argument("markdown_file", help="Path to markdown file to upload")
+    p.add_argument("--project-name", default=None, help="Project name for document title")
+    p.add_argument(
+        "--credentials", default=None, help="Google service account credentials JSON path"
+    )
+    p.add_argument("--folder-id", default=None, help="Google Drive folder ID")
+    p.set_defaults(func=cmd_google_docs_upload)
 
     return parser
 
