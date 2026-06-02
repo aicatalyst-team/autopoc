@@ -204,6 +204,14 @@ spec:
                       key: OPENSHIFT_NAMESPACE_PREFIX
                       optional: true
 
+                # --- Google Docs (blog upload) ---
+                - name: GOOGLE_DOCS_FOLDER_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: autopoc-credentials
+                      key: GOOGLE_DOCS_FOLDER_ID
+                      optional: true
+
                 # --- Tuning ---
                 - name: MAX_BUILD_RETRIES
                   valueFrom:
