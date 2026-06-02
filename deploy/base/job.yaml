@@ -245,6 +245,9 @@ spec:
             - name: google-sa
               mountPath: /etc/autopoc/google-sa
               readOnly: true
+            - name: blog-template
+              mountPath: /.opencode/skills/blog-create/templates
+              readOnly: true
 
       volumes:
         - name: work
@@ -252,4 +255,8 @@ spec:
         - name: google-sa
           secret:
             secretName: autopoc-google-sa
+            optional: true
+        - name: blog-template
+          secret:
+            secretName: blog-template
             optional: true
