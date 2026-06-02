@@ -1235,6 +1235,53 @@ class TestWritePocResults:
             written_values[2] == "https://github.com/org/repo/blob/autopoc-artifacts/poc-report.md"
         )
 
+    def test_url_in_poc_report_path_treated_as_override(self) -> None:
+        """When poc_report_path is a URL (not a local path), use it directly."""
+        mock_service = MagicMock()
+        col_indices = {"poc_repo": 0, "poc_image": 1, "poc_report": 2, "poc_blog": 3}
+
+        report_url = "https://github.com/org/repo/blob/autopoc-artifacts/poc-report.md"
+        write_poc_results(
+            mock_service,
+            "sheet-123",
+            "Tab1",
+            row_number=4,
+            col_indices=col_indices,
+            fork_repo_url="https://github.com/org/repo",
+            fork_target="github",
+            built_images=["quay.io/org/img:latest"],
+            poc_report_path=report_url,
+        )
+
+        update_mock = mock_service.spreadsheets.return_value.values.return_value.update
+        written_values = [c.kwargs["body"]["values"][0][0] for c in update_mock.call_args_list]
+        # poc_report should be the URL, not FAILED
+        assert written_values[2] == report_url
+
+    def test_url_in_blog_post_path_treated_as_override(self) -> None:
+        """When blog_post_path is a URL (not a local path), use it directly."""
+        mock_service = MagicMock()
+        col_indices = {"poc_repo": 0, "poc_image": 1, "poc_report": 2, "poc_blog": 3}
+
+        blog_url = "https://github.com/org/repo/blob/autopoc-artifacts/.autopoc/blog/final.md"
+        write_poc_results(
+            mock_service,
+            "sheet-123",
+            "Tab1",
+            row_number=4,
+            col_indices=col_indices,
+            fork_repo_url="https://github.com/org/repo",
+            fork_target="github",
+            built_images=["quay.io/org/img:latest"],
+            poc_report_path="/tmp/some-report.md",  # would fail exists() check
+            blog_post_path=blog_url,
+        )
+
+        update_mock = mock_service.spreadsheets.return_value.values.return_value.update
+        written_values = [c.kwargs["body"]["values"][0][0] for c in update_mock.call_args_list]
+        # poc_blog should be the URL, not empty
+        assert written_values[3] == blog_url
+
     def test_overrides_take_precedence(self) -> None:
         """Overrides win even when primary values are available."""
         mock_service = MagicMock()

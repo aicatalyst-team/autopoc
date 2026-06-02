@@ -277,9 +277,12 @@ def write_poc_results(
     else:
         poc_image_val = "FAILED"
 
-    # poc_report → override, or derive from fork URL + local file, or FAILED
+    # poc_report → override, or URL-in-path, or derive from local file, or FAILED
     if poc_report_override:
         poc_report_val = poc_report_override
+    elif poc_report_path and poc_report_path.startswith(("http://", "https://")):
+        # Caller passed a URL instead of a local path — treat it as an override
+        poc_report_val = poc_report_path
     elif fork_repo_url and poc_report_path and Path(poc_report_path).exists():
         poc_report_val = _build_report_url(fork_repo_url, target)
     else:
