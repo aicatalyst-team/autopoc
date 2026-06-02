@@ -7,6 +7,21 @@ description: Read PoC candidate projects from a Google Sheet, evaluate and rank 
 
 Batch PoC pipeline that reads candidate projects from a Google Sheet (PoC Explorer spreadsheet), evaluates their fitness for OpenShift AI, ranks them, and runs full PoC pipelines for the top candidates.
 
+## ⚠️ CRITICAL EXECUTION REQUIREMENTS
+
+**YOU MUST COMPLETE ALL STEPS TO COMPLETION:**
+
+1. **NO EARLY TERMINATION**: Do not stop, summarize, or describe what "would happen next" — actually execute each step
+2. **NO SHORTCUTS**: Do not substitute summaries for actual work — complete every pipeline phase
+3. **SEQUENTIAL COMPLETION**: Each selected PoC must reach either successful completion (with sheet write-back) OR explicit FAILED status
+4. **MANDATORY WRITE-BACK**: Results must be written back to the Google Sheet for each PoC attempt
+5. **CONTEXT MANAGEMENT**: If context gets long, focus on completing the current PoC before starting the next one
+
+**Acceptable completion states per PoC:**
+- ✅ SUCCESS: All 11 phases completed + results written to sheet
+- ❌ EXPLICIT FAILURE: Clear error recorded + "FAILED" written to sheet
+- 🚫 UNACCEPTABLE: Stopping mid-pipeline to "summarize remaining work"
+
 ## Before You Start
 
 Verify these environment variables are set:
@@ -112,7 +127,13 @@ For each selected candidate, invoke the `run-poc` skill:
 - Project name: derived from the GitHub URL (owner/repo -> repo name)
 - Repo URL: the candidate's GitHub URL
 
-Run pipelines **sequentially** (not in parallel) to avoid resource contention.
+**EXECUTION REQUIREMENTS:**
+- Run pipelines **sequentially** (not in parallel) to avoid resource contention
+- **COMPLETE EACH POC FULLY** before starting the next one
+- Each PoC must progress through ALL 11 phases: intake → evaluate → fork → poc_plan → containerize → build → deploy → apply → poc_execute → poc_report → blog
+- **DO NOT** summarize what would happen — actually execute each phase
+- **DO NOT** stop early due to context length — finish the current PoC first
+- If a PoC fails at any phase, record the failure and continue to the next PoC
 
 ## Step 7: Write Back
 

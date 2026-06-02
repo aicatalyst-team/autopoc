@@ -1,5 +1,5 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "permission": "allow",
-  "model": "google-vertex/claude-sonnet-4@20250514"
+  "model": "google-vertex/claude-opus-4-6"
 }

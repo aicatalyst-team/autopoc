@@ -34,7 +34,7 @@ spec:
               args:
                 - "run"
                 - "--dangerously-skip-permissions"
-                - "Read approved projects from this month's report tab and run up to 5 PoCs"
+                - "Process the PoC candidates sheet using the run-sheet skill. You MUST complete the full pipeline for each selected project — all phases through report generation and sheet write-back. Do NOT summarize remaining work. Do NOT stop until every selected PoC has been fully processed or has explicitly failed."
               env:
                 # --- Project configuration (for 'run' command) ---
                 - name: AUTOPOC_PROJECT_NAME

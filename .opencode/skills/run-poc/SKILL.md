@@ -7,6 +7,21 @@ description: Run a full Proof-of-Concept pipeline for a GitHub repository on Ope
 
 Automated Proof-of-Concept pipeline for deploying GitHub projects on OpenShift AI (Open Data Hub). Takes a repository URL and project name, then executes an 11-phase pipeline that ends with a validated deployment and comprehensive report.
 
+## ⚠️ CRITICAL EXECUTION REQUIREMENTS
+
+**THIS PIPELINE MUST RUN TO COMPLETION:**
+
+1. **COMPLETE ALL 11 PHASES**: The pipeline has 11 sequential phases that must ALL be completed
+2. **NO EARLY TERMINATION**: Do not stop, summarize, or describe "what would happen next" — execute every phase
+3. **NO PHASE SKIPPING**: Each phase must be completed before proceeding to the next
+4. **PROPER STATE TRACKING**: Update the poc-state.yaml file after each completed phase
+5. **EXPLICIT FAILURE HANDLING**: If any phase fails, record the failure in state and exit with clear error message
+
+**Acceptable completion states:**
+- ✅ SUCCESS: All phases 1-11 completed with working deployment and generated report
+- ❌ EXPLICIT FAILURE: Clear error at specific phase with failure reason recorded
+- 🚫 UNACCEPTABLE: Stopping mid-pipeline to describe remaining phases
+
 ## Before You Start
 
 1. **Read the state file** if it exists: `$AUTOPOC_WORK_DIR/poc-state.yaml` (default work dir: `/workspace` in pods, `/tmp/autopoc` locally). If a state file exists with completed phases, resume from the last incomplete phase.
