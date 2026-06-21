@@ -722,29 +722,34 @@ Report written and committed.
 
 ---
 
-## Phase 11: Blog Post (Conditional)
-
-**Purpose**: Generate a developer blog post about the PoC deployment.
-
-**Only execute this phase if a majority of test scenarios passed.**
-
-### Steps
-
-1. Count pass/fail from `poc_execute.results` in state.
-2. If majority passed: invoke the `blog-create` skill with the PoC context.
-3. The blog-create skill handles the content generation (draft, review loop, finalize).
-4. **Run Vale linting on final blog post:**
-   ```bash
-   cd "$WORK_DIR/repos/$PROJECT_NAME/.autopoc/blog"
-   vale --output=JSON final.md 2>/dev/null || true
-   ```
-5. **Upload to Google Docs (if configured):**
-   ```bash
-   python -m autopoc.cli_tools google-docs-upload final.md --project-name "$PROJECT_NAME"
-   ```
-
-### Exit condition
-Blog post written, linted, and uploaded (or phase skipped if tests didn't pass).
+ ## Phase 11: Blog Post (Conditional)
+ 
+ **Purpose**: Generate a developer blog post about the PoC deployment.
+ 
+ **Only execute this phase if a majority of test scenarios passed.**
+ 
+ ### Steps
+ 
+ 1. Count pass/fail from `poc_execute.results` in state.
+ 2. If majority passed: invoke the `blog-create` skill with the PoC context.
+ 3. The blog-create skill handles the content generation (draft, review loop, finalize).
+ 4. **Run Vale linting on final blog post:**
+    ```bash
+    cd "$WORK_DIR/repos/$PROJECT_NAME/.autopoc/blog"
+    vale --output=JSON final.md 2>/dev/null || true
+    ```
+ 5. **MANDATORY — Upload to Google Docs (if GOOGLE_DOCS_FOLDER_ID is set):**
+    Do NOT skip this step. After committing the blog to the artifacts branch,
+    run the upload command before moving on to sheet write-back or the next PoC.
+    ```bash
+    python -m autopoc.cli_tools google-docs-upload \
+      "$WORK_DIR/repos/$PROJECT_NAME/.autopoc/blog/final.md" \
+      --project-name "$PROJECT_NAME"
+    ```
+    If `GOOGLE_DOCS_FOLDER_ID` is not set, log a warning and continue.
+ 
+ ### Exit condition
+ Blog post written, linted, and uploaded to Google Docs (or upload skipped only if `GOOGLE_DOCS_FOLDER_ID` is not set). Phase is skipped entirely only if tests didn't pass.
 
 ---
 
