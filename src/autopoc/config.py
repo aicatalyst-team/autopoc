@@ -211,10 +211,21 @@ class AutoPoCConfig(BaseSettings):
     google_docs_folder_id: str | None = Field(
         default=None,
         validation_alias="GOOGLE_DOCS_FOLDER_ID",
-        description="Google Drive folder ID where blog docs should be created",
+        description="Google Drive folder ID where blog docs and demo videos are stored",
     )
-    google_docs_folder_id: str | None = Field(
-        default=None, description="Google Drive folder ID where blog docs should be created"
+
+    # OpenShift Console credentials (for record-demo skill)
+    openshift_idp_name: str = Field(
+        default="keycloak",
+        description="Identity provider name on the OpenShift OAuth page (button text to click)",
+    )
+    openshift_console_username: str | None = Field(
+        default=None,
+        description="Username for OpenShift Console login (used by demo video recording)",
+    )
+    openshift_console_password: str | None = Field(
+        default=None,
+        description="Password for OpenShift Console login (used by demo video recording)",
     )
 
     @model_validator(mode="after")
@@ -299,6 +310,7 @@ class AutoPoCConfig(BaseSettings):
             "github_token",
             "quay_token",
             "openshift_token",
+            "openshift_console_password",
             "ogx_api_key",
         }
         result = {}

@@ -148,6 +148,17 @@ blog_post:
   seo_path: ""
   preview_path: ""
 
+# Demo video recording (populated by record-demo skill, not part of the
+# standard run-poc pipeline — included here for state file completeness)
+demo_video:
+  status: "pending"           # pending | in_progress | completed | failed | skipped
+  script_path: ""             # Path to generated Playwright script (record.py)
+  video_path: ""              # Local path to recorded video file
+  drive_url: ""               # Google Drive URL after upload
+  duration_seconds: 0         # Video duration in seconds
+  resolution: "1920x1080"     # Video resolution
+  format: "webm"              # Video container format
+
 # Retry tracking
 retries:
   build_retries: 0

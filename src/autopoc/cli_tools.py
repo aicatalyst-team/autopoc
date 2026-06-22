@@ -14,6 +14,7 @@ Commands:
                  [--row ROW] [--results JSON]
     monthly-pocs [--sheet-id ID] [--credentials PATH] [--target-month YYYY-MM] [--max-pocs N]
     google-docs-upload <markdown_file> [--project-name NAME] [--credentials PATH] [--folder-id ID]
+    google-drive-upload <file_path> [--file-name NAME] [--credentials PATH] [--folder-id ID]
 """
 
 from __future__ import annotations
@@ -245,6 +246,63 @@ def cmd_google_docs_upload(args: argparse.Namespace) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# google-drive-upload
+# --------------------------------------------------------------------------- #
+
+
+def cmd_google_drive_upload(args: argparse.Namespace) -> None:
+    """Upload a file (video, image, etc.) to Google Drive."""
+    from autopoc.tools.google_drive_tools import create_google_drive_service
+
+    config = _load_config()
+
+    # Use provided credentials or fall back to config
+    credentials_path = args.credentials or config.sheet_credentials
+    folder_id = args.folder_id or config.google_docs_folder_id
+
+    if not credentials_path:
+        print(json.dumps({"error": "No Google credentials available"}), file=sys.stderr)
+        sys.exit(1)
+
+    if not Path(str(credentials_path)).exists():
+        print(
+            json.dumps({"error": f"Credentials file not found: {credentials_path}"}),
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    file_path = Path(args.file_path)
+    if not file_path.exists():
+        print(
+            json.dumps({"error": f"File not found: {args.file_path}"}),
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    try:
+        drive_service = create_google_drive_service(str(credentials_path))
+
+        result = drive_service.upload_file(
+            file_path=str(file_path),
+            file_name=args.file_name,
+            folder_id=folder_id,
+        )
+
+        output = {
+            "success": True,
+            "file_id": result["file_id"],
+            "web_view_link": result["web_view_link"],
+            "file_name": result["file_name"],
+            "size_bytes": result["size_bytes"],
+        }
+        print(json.dumps(output, indent=2))
+
+    except Exception as e:
+        print(json.dumps({"error": f"Failed to upload to Google Drive: {e}"}), file=sys.stderr)
+        sys.exit(1)
+
+
+# --------------------------------------------------------------------------- #
 # Build parser & main
 # --------------------------------------------------------------------------- #
 
@@ -305,6 +363,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--folder-id", default=None, help="Google Drive folder ID")
     p.set_defaults(func=cmd_google_docs_upload)
+
+    # google-drive-upload
+    p = sub.add_parser("google-drive-upload", help="Upload a file to Google Drive")
+    p.add_argument("file_path", help="Path to file to upload (video, image, etc.)")
+    p.add_argument("--file-name", default=None, help="Name for the file in Google Drive")
+    p.add_argument(
+        "--credentials", default=None, help="Google service account credentials JSON path"
+    )
+    p.add_argument("--folder-id", default=None, help="Google Drive folder ID")
+    p.set_defaults(func=cmd_google_drive_upload)
 
     return parser
 
