@@ -1,8 +1,9 @@
 # AutoPoC Recorder — Demo video recording container
 #
-# Extends the base autopoc toolset with browser automation, virtual display,
-# screen capture, and web terminal dependencies for recording demo videos
-# of PoC deployments on OpenShift.
+# Records demo videos of PoC deployments on OpenShift using headless
+# Playwright (Chromium) for browser automation and ffmpeg for video
+# compositing. No X11/Xvfb needed — Playwright records each browser
+# context as WebM, then ffmpeg composites them side-by-side.
 #
 # Build:  podman build -f Dockerfile.record-demo -t autopoc-recorder:latest .
 # Run:    podman run --rm --env-file .env autopoc-recorder:latest \
@@ -53,35 +54,30 @@ RUN curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_$
 # Video recording dependencies
 # ---------------------------------------------------------------------------
 
-# Xvfb — virtual framebuffer (headless display)
-# Also install X11 libraries needed by Chromium
+# Chromium shared library dependencies (Playwright headless still needs these)
+# No Xvfb needed — Playwright records video in headless mode natively.
 RUN dnf install -y \
-        xorg-x11-server-Xvfb \
-        xorg-x11-utils \
-        mesa-libGL \
-        mesa-libEGL \
+        nss \
+        nspr \
+        atk \
+        at-spi2-atk \
+        cups-libs \
+        libdrm \
         libXcomposite \
         libXdamage \
         libXrandr \
         libXi \
         libXtst \
         libXScrnSaver \
-        alsa-lib \
-        atk \
-        at-spi2-atk \
-        cups-libs \
-        libdrm \
+        mesa-libgbm \
         pango \
-        nss \
-        nspr \
+        alsa-lib \
         gtk3 \
         dbus-libs \
     && dnf clean all && rm -rf /var/cache/dnf
 
-# ffmpeg — screen capture and video encoding
-# UBI9 doesn't ship ffmpeg. Install from RPM Fusion or use a static build.
-# Using static build for predictability.
-ARG FFMPEG_VERSION=7.1
+# ffmpeg — video compositing (hstack two recordings side-by-side)
+# UBI9 doesn't ship ffmpeg. Install static build for predictability.
 RUN curl -fsSL "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" \
     | tar xJf - --strip-components=1 -C /usr/local/bin \
         --wildcards '*/ffmpeg' '*/ffprobe' && \
@@ -100,10 +96,11 @@ RUN curl -fsSL "https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION
 COPY requirements.lock /tmp/requirements.lock
 RUN pip install --no-cache-dir -r /tmp/requirements.lock && rm /tmp/requirements.lock
 
-# Install Playwright and its browser dependencies
+# Install Playwright and download Chromium browser
+# NOTE: We skip `playwright install-deps` because it uses apt-get (Debian).
+# The Chromium shared library dependencies are installed via dnf above.
 RUN pip install --no-cache-dir playwright && \
-    playwright install chromium && \
-    playwright install-deps chromium
+    playwright install chromium
 
 # Copy project source (tools, config, prompts, templates)
 COPY src/ /opt/autopoc/src/
@@ -133,10 +130,13 @@ RUN mkdir -p /opt/app-root/src/.local/share/opencode && \
     chown -R 1001:0 /opt/app-root/src/.local /opt/app-root/src/.config && \
     chmod -R 775 /opt/app-root/src/.local /opt/app-root/src/.config
 
-# Playwright browser cache is under /opt/app-root/src/.cache
+# Playwright browser cache and ttyd temp files
 RUN mkdir -p /opt/app-root/src/.cache && \
     chown -R 1001:0 /opt/app-root/src/.cache && \
     chmod -R 775 /opt/app-root/src/.cache
+
+# Ensure /tmp is writable for ttyd and temp files
+RUN chmod 1777 /tmp
 
 # Debug entrypoint
 COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh

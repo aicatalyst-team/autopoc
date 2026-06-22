@@ -31,29 +31,29 @@ sanity tests.
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  K8s Pod (autopoc-recorder image)                           │
-│                                                             │
-│  ┌──────────────────────────────────────────────────┐       │
-│  │  Xvfb (virtual display :99, 1920x1080)           │       │
-│  │                                                  │       │
-│  │  ┌──────────────┐  ┌───────────────────┐         │       │
-│  │  │ Chromium      │  │ Chromium          │         │       │
-│  │  │ Window 1      │  │ Window 2          │         │       │
-│  │  │ (960x1080)    │  │ (960x1080)        │         │       │
-│  │  │               │  │                   │         │       │
-│  │  │ OpenShift     │  │ ttyd              │         │       │
-│  │  │ Console       │  │ (web terminal)    │         │       │
-│  │  │ Topology View │  │ Running tests     │         │       │
-│  │  │               │  │                   │         │       │
-│  │  └──────────────┘  └───────────────────┘         │       │
-│  └──────────────────────────────────────────────────┘       │
-│                                                             │
-│  ffmpeg -f x11grab -i :99 → demo.webm                      │
-│                                                             │
-│  OpenCode agent (generates + runs Playwright script)        │
-│  ttyd -W -p 7681 bash (web terminal server)                 │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  K8s Pod (autopoc-recorder image)                               │
+│                                                                 │
+│  ┌──────────────────┐        ┌──────────────────┐               │
+│  │ Playwright        │        │ Playwright        │               │
+│  │ Context 1         │        │ Context 2         │               │
+│  │ (headless)        │        │ (headless)        │               │
+│  │                   │        │                   │               │
+│  │ OpenShift Console │        │ ttyd              │               │
+│  │ Topology View     │        │ (web terminal)    │               │
+│  │                   │        │                   │               │
+│  │ record_video_dir  │        │ record_video_dir  │               │
+│  │  ↓                │        │  ↓                │               │
+│  │ left.webm         │        │ right.webm        │               │
+│  └──────────────────┘        └──────────────────┘               │
+│           │                           │                          │
+│           └─────────┬─────────────────┘                          │
+│                     ▼                                            │
+│  ffmpeg -filter_complex hstack → demo.webm (1920x1080)          │
+│                                                                 │
+│  OpenCode agent (generates + runs Playwright script)            │
+│  ttyd -W -p 7681 bash (web terminal server)                     │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Recording Pipeline
@@ -63,15 +63,16 @@ sanity tests.
 3. Optionally reads the blog post or PoC report for narrative context.
 4. **Generates a Playwright Python script** (`record.py`) customized per project.
 5. The script:
-   - Starts **Xvfb** (virtual display at `:99`, 1920x1080).
    - Starts **ttyd** (web terminal on `localhost:7681`).
-   - Starts **ffmpeg** x11grab capturing the virtual display.
-   - Launches **Chromium** via Playwright (non-headless, displayed on Xvfb).
-   - Opens two windows, positioned side-by-side (960x1080 each).
-   - Window 1: OpenShift Console → login via Keycloak → Topology view.
-   - Window 2: ttyd web terminal → runs PoC sanity tests.
+   - Launches **Chromium** via Playwright in **headless** mode (no display needed).
+   - Creates two browser contexts, each with `record_video_dir` set so
+     Playwright records each context's viewport as a WebM file.
+   - Context 1: OpenShift Console → login via Keycloak → Topology view.
+   - Context 2: ttyd web terminal → runs PoC sanity tests.
    - Waits for test completion, pauses to show results.
-   - Stops ffmpeg, producing `demo.webm`.
+   - Closes both contexts (this finalizes the per-context WebM recordings).
+   - Runs **ffmpeg** with an `hstack` filter to composite the two recordings
+     into a single side-by-side `demo.webm` (1920x1080).
 6. **Uploads** the video to Google Drive.
 7. **Updates** `poc-state.yaml` with video info.
 
@@ -81,23 +82,25 @@ sanity tests.
 
 | Component | Tool | Purpose |
 |-----------|------|---------|
-| Virtual display | **Xvfb** (`xorg-x11-server-Xvfb`) | Provides a pixel buffer for the browser to render into |
-| Browser automation | **Playwright** (Python, Chromium) | Controls browser windows, navigation, typing |
-| Screen capture | **ffmpeg** (`-f x11grab`) | Captures the entire virtual display as video |
+| Browser automation | **Playwright** (Python, Chromium, headless) | Controls browser contexts, navigation, typing; records each context via `record_video_dir` |
+| Video compositing | **ffmpeg** (`-filter_complex hstack`) | Composites two per-context WebM recordings into a single side-by-side video |
 | Web terminal | **ttyd** | Serves a bash session over HTTP/WebSocket via xterm.js |
 | Video format | **WebM** (VP9 codec) | Output format — good compression, web-compatible |
 | Upload | **Google Drive API** | Resumable upload of video to shared Drive folder |
 
 ### Why This Stack
 
-- **Xvfb + x11grab** (vs separate recordings + compositing): A single virtual
-  display with two positioned windows gives one unified video without complex
-  FFmpeg filter chains. The positioning is deterministic.
+- **Playwright headless + `record_video_dir`** (vs Xvfb + x11grab): Playwright
+  natively records each browser context's viewport as a WebM file in headless
+  mode. No virtual display (Xvfb), no screen capture (x11grab), no window
+  positioning via CDP or JavaScript. Each context records independently, and
+  ffmpeg composites them afterward with a simple `hstack` filter. This is
+  simpler, more reliable in containers, and eliminates an entire class of
+  positioning/display bugs.
 
 - **ttyd** (vs VHS): Playwright controls everything — both the console and the
-  terminal — in a single Python script. No separate `.tape` file, no VHS binary,
-  no FFmpeg compositing. xterm.js in the browser renders beautiful colored
-  terminal output.
+  terminal — in a single Python script. No separate `.tape` file, no VHS binary.
+  xterm.js in the browser renders beautiful colored terminal output.
 
 - **LLM-generated script** (vs static template): Each PoC has different test
   commands, different topology, different number of pods. The LLM customizes the
@@ -137,16 +140,15 @@ Separate image based on UBI9 with additional dependencies:
 
 | Dependency | Purpose | Approx Size |
 |------------|---------|-------------|
-| Chromium (via Playwright) | Browser for automation | ~400MB |
-| Playwright Python | Browser control library | ~5MB |
-| Xvfb (`xorg-x11-server-Xvfb`) | Virtual display | ~30MB |
-| ffmpeg | Screen capture + encoding | ~80MB |
+| Chromium (via Playwright) | Browser for automation (headless) | ~400MB |
+| Playwright Python | Browser control + per-context video recording | ~5MB |
+| ffmpeg | Video compositing (hstack two WebMs side-by-side) | ~80MB |
 | ttyd | Web-based terminal server | ~2MB |
 | kubectl, oc | Cluster CLI operations | ~120MB (shared with base) |
 | OpenCode | Agent harness | ~50MB (shared with base) |
 | Python + autopoc tools | Config, Drive upload | ~200MB (shared with base) |
 
-Estimated total: ~900MB — 1.2GB.
+Estimated total: ~850MB — 1.1GB.
 
 ### 3. Launcher Script — `scripts/record-demo.sh`
 
@@ -159,7 +161,7 @@ Generates a K8s Job that:
 - Reads existing `poc-state.yaml` from a shared PVC or ConfigMap.
 - Mounts `autopoc-credentials` + video-specific credentials.
 - Sets OpenCode prompt: `"Record demo video for <project-name>"`.
-- Higher resource limits: 1Gi–4Gi memory (Chromium + Xvfb + ffmpeg).
+- Higher resource limits: 1Gi–4Gi memory (Chromium headless + ffmpeg compositing).
 
 ### 4. Google Drive Upload Tool — `src/autopoc/tools/google_drive_tools.py`
 
@@ -287,9 +289,16 @@ Where `namespace` comes from `poc-state.yaml` → `apply.namespace`.
 |------|--------|------------|
 | OpenShift Console DOM changes between OCP versions | Broken selectors | Use `data-test` attributes (OCP's own e2e convention); document version-tested |
 | Keycloak login form theme varies | Login automation fails | Use standard element IDs (`#username`, `#password`, `#kc-login`) which are stable across themes |
-| High resource usage (Chromium + Xvfb + ffmpeg) | Pod OOM | Set generous limits (4Gi memory); profile and tune |
+| High resource usage (Chromium headless + ffmpeg) | Pod OOM | Set generous limits (4Gi memory); profile and tune. Headless mode uses less memory than Xvfb + headed browser |
 | Long-running tests extend video duration | Large files, timing issues | Use `PlaybackSpeed` in ffmpeg or cap recording duration |
 | ttyd not available in UBI repos | Build failure | Install from GitHub releases binary |
+| Playwright `record_video_dir` output resolution | Video quality varies | Set explicit `record_video_size` in context options to ensure 960x1080 per pane |
+
+> **Note:** The headless recording approach (Playwright `record_video_dir` +
+> ffmpeg hstack) is significantly simpler than the previous Xvfb + x11grab
+> design. It eliminates virtual display management, window positioning (CDP),
+> and real-time screen capture. Each browser context records independently,
+> and compositing is a single ffmpeg post-processing step.
 
 ---
 
@@ -299,10 +308,10 @@ Where `namespace` comes from `poc-state.yaml` → `apply.namespace`.
    the previous PoC run? Options: shared PVC, ConfigMap, or re-read from the
    fork repo where state was committed.
 
-2. **Fallback if side-by-side fails**: If window positioning is unreliable,
-   fall back to sequential recording (show topology first, then switch to
-   terminal). The skill instructions should document this fallback.
-
-3. **Video post-processing**: Should we trim dead time (e.g., waiting for
+2. **Video post-processing**: Should we trim dead time (e.g., waiting for
    login redirects)? Could use ffmpeg to speed up or cut segments. Deferred to
    future iteration.
+
+3. **Playwright video codec control**: Playwright's `record_video_dir` uses
+   VP8 by default. The ffmpeg hstack step can re-encode to VP9 for better
+   compression. Verify quality and file size tradeoffs.

@@ -1,6 +1,6 @@
 ---
 name: record-demo
-description: Record a demo video of a completed PoC deployment on OpenShift. Captures a side-by-side view of the OpenShift Console topology and a terminal running sanity tests. Uses Playwright, Xvfb, ffmpeg, and ttyd in a headless container. Uploads to Google Drive. Use this skill when asked to "record a demo", "create a demo video", or "capture a demo" for an existing PoC project.
+description: Record a demo video of a completed PoC deployment on OpenShift. Captures a side-by-side view of the OpenShift Console topology and a terminal running sanity tests. Uses Playwright headless with record_video_dir, ffmpeg hstack compositing, and ttyd in a container. Uploads to Google Drive. Use this skill when asked to "record a demo", "create a demo video", or "capture a demo" for an existing PoC project.
 ---
 
 # Record-Demo Skill
@@ -136,7 +136,10 @@ project-specific parts:
    It should only depend on:
    - `playwright` (Python package, pre-installed in the container).
    - Python stdlib (`subprocess`, `time`, `os`, `signal`, `json`, `pathlib`).
-5. The script MUST handle cleanup (kill Xvfb, ttyd, ffmpeg) even on failure.
+5. The script MUST handle cleanup (kill ttyd) even on failure.
+   No Xvfb or ffmpeg processes to manage during recording — Playwright records
+   each context natively via `record_video_dir`, and ffmpeg runs only once as
+   a post-processing step.
 6. The script MUST exit with code 0 on success, non-zero on failure.
 
 ### What the Script Does
@@ -144,24 +147,24 @@ project-specific parts:
 The generated script follows this sequence:
 
 ```
-1. Start Xvfb on display :99 (1920x1080x24)
-2. Start ttyd on port 7681 (writable mode, bash shell)
-3. Wait 2s for services to initialize
-4. Start ffmpeg x11grab capturing display :99 → demo.webm
-5. Launch Chromium (non-headless, on display :99)
-6. Create two browser windows, position side-by-side:
-   - Window 1 (left):  x=0,   y=0, width=960, height=1080
-   - Window 2 (right): x=960, y=0, width=960, height=1080
-7. Window 1: Navigate to console → login → topology view
+1. Start ttyd on port 7681 (writable mode, bash shell)
+2. Wait 2s for ttyd to initialize
+3. Launch Chromium via Playwright in headless mode (no display needed)
+4. Create two browser contexts with record_video_dir:
+   - Context 1 (left pane):  viewport 960x1080, records to left.webm
+   - Context 2 (right pane): viewport 960x1080, records to right.webm
+5. Context 1: Navigate to console → login → topology view
    - Wait for topology to render
    - Pause 5s to show the topology
-8. Window 2: Navigate to ttyd (http://localhost:7681)
+6. Context 2: Navigate to ttyd (http://localhost:7681)
    - Wait for terminal prompt
    - Type and execute the test commands
    - Wait for tests to complete
-9. Pause 5s to show final state (both panes visible)
-10. Stop ffmpeg (SIGINT for clean shutdown)
-11. Kill ttyd, Xvfb
+7. Pause 5s to show final state (both contexts still recording)
+8. Close both contexts (this finalizes the WebM recordings)
+9. Close the browser
+10. Kill ttyd
+11. Run ffmpeg hstack to composite left.webm + right.webm → demo.webm (1920x1080)
 12. Output the video path
 ```
 
@@ -198,7 +201,7 @@ The generated script follows this sequence:
    ```bash
    python $AUTOPOC_WORK_DIR/<project>/demo/record.py
    ```
-   - Set `DISPLAY=:99` is handled inside the script (Xvfb manages this).
+   - No `DISPLAY` variable needed — Playwright runs in headless mode.
    - Timeout: **10 minutes** maximum. If the script hasn't finished, kill it.
 
 4. **Verify the output:**
@@ -228,7 +231,8 @@ If the recording script fails:
      namespace. Verify with `kubectl get all -n <namespace>`.
    - **ttyd connection failed**: ttyd might not have started. Check if port 7681
      is listening.
-   - **ffmpeg error**: Display :99 might not be running. Check Xvfb startup.
+   - **ffmpeg hstack failed**: Check that both per-context WebM files were
+     created. Verify libvpx codec is available.
    - **Timeout**: Tests took too long. Consider reducing test scope or
      increasing the timeout.
 3. Set `demo_video.status: "failed"` and add error to `errors[]`.
@@ -324,15 +328,17 @@ If upload fails:
 
 ## Fallback: Sequential Recording
 
-If the side-by-side window positioning proves unreliable in the container
-environment, fall back to a **sequential** recording:
+If the side-by-side compositing produces unexpected results (e.g., mismatched
+durations between the two context recordings), fall back to a **sequential**
+recording using a single browser context with `record_video_dir`:
 
-1. Record the OpenShift Console topology view (full screen, ~15s).
-2. Switch the browser to the ttyd terminal (full screen).
+1. Record the OpenShift Console topology view (full viewport, ~15s).
+2. Navigate the same page to the ttyd terminal.
 3. Run the tests and record until completion.
 
-This produces a single video with a natural "tab switch" transition. Modify the
-generated script to use a single browser window instead of two.
+This produces a single video with a natural page navigation transition. No
+ffmpeg compositing step is needed. Modify the generated script to use a single
+browser context instead of two.
 
 The LLM should note this option in the generated script as a commented-out
 alternative path.
