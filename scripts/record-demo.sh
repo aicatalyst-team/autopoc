@@ -169,18 +169,11 @@ spec:
                   optional: true
 
             # --- OpenShift ---
-            - name: OPENSHIFT_API_URL
-              valueFrom:
-                secretKeyRef:
-                  name: autopoc-credentials
-                  key: OPENSHIFT_API_URL
-                  optional: true
-            - name: OPENSHIFT_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: autopoc-credentials
-                  key: OPENSHIFT_TOKEN
-                  optional: true
+            # NOTE: OPENSHIFT_API_URL and OPENSHIFT_TOKEN are NOT needed
+            # when running in-cluster. kubectl/oc use the mounted
+            # ServiceAccount token automatically. The console URL is
+            # derived at runtime via:
+            #   oc get consoles.config.openshift.io cluster -o jsonpath='{.status.consoleURL}'
             - name: OPENSHIFT_NAMESPACE_PREFIX
               valueFrom:
                 secretKeyRef:

@@ -43,7 +43,31 @@ from pathlib import Path
 
 PROJECT_NAME = "{{ project_name }}"
 NAMESPACE = "{{ namespace }}"
-CONSOLE_URL = "{{ console_url }}"
+
+# Derive console URL from the cluster (works with in-cluster ServiceAccount).
+# Falls back to OPENSHIFT_CONSOLE_URL env var if oc is unavailable.
+def _get_console_url():
+    """Get the OpenShift Console URL from the cluster."""
+    try:
+        result = subprocess.run(
+            ["oc", "get", "consoles.config.openshift.io", "cluster",
+             "-o", "jsonpath={.status.consoleURL}"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except Exception:
+        pass
+    # Fallback to env var
+    url = os.environ.get("OPENSHIFT_CONSOLE_URL", "")
+    if url:
+        return url
+    raise RuntimeError(
+        "Cannot determine console URL. "
+        "Ensure oc is logged in or set OPENSHIFT_CONSOLE_URL."
+    )
+
+CONSOLE_URL = _get_console_url()
 TOPOLOGY_URL = f"{CONSOLE_URL}/topology/ns/{NAMESPACE}"
 
 # Auth

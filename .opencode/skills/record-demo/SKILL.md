@@ -64,22 +64,20 @@ script.
    - Log the pod names and statuses.
 
 4. **Verify required environment variables:**
-   - `OPENSHIFT_API_URL` or ability to derive console URL from cluster.
    - `OPENSHIFT_CONSOLE_USERNAME` — for console login.
    - `OPENSHIFT_CONSOLE_PASSWORD` — for console login.
    - `OPENSHIFT_IDP_NAME` — identity provider name (default: `keycloak`).
    - FAIL if console credentials are missing.
+   - Note: `OPENSHIFT_API_URL` and `OPENSHIFT_TOKEN` are NOT needed when
+     running in-cluster. kubectl/oc use the mounted ServiceAccount token.
 
 5. **Derive the OpenShift Console URL:**
-   Preferred method — query the cluster:
+   Query the cluster using the in-cluster ServiceAccount:
    ```bash
    oc get consoles.config.openshift.io cluster -o jsonpath='{.status.consoleURL}'
    ```
-   Fallback — derive from `OPENSHIFT_API_URL`:
-   ```
-   https://api.cluster.example.com:6443
-   → https://console-openshift-console.apps.cluster.example.com
-   ```
+   This works automatically when running as a pod with the `autopoc-runner`
+   ServiceAccount. No `OPENSHIFT_API_URL` env var needed.
 
 6. **Verify console is reachable:**
    ```bash
@@ -314,15 +312,18 @@ If upload fails:
 |----------|----------|---------|-------------|
 | `AUTOPOC_PROJECT_NAME` | Yes | — | Project name |
 | `AUTOPOC_WORK_DIR` | No | `/tmp/autopoc` | Working directory |
-| `OPENSHIFT_API_URL` | Yes* | — | OpenShift API URL |
-| `OPENSHIFT_TOKEN` | Yes* | — | Bearer token for kubectl/oc |
 | `OPENSHIFT_IDP_NAME` | No | `keycloak` | IDP button name on OAuth page |
 | `OPENSHIFT_CONSOLE_USERNAME` | Yes | — | Console login username |
 | `OPENSHIFT_CONSOLE_PASSWORD` | Yes | — | Console login password |
 | `AUTOPOC_SHEET_CREDENTIALS` | No | — | Path to Google SA credentials |
 | `GOOGLE_DOCS_FOLDER_ID` | No | — | Google Drive folder for upload |
 
-\* Not required when running in-cluster with ServiceAccount auth.
+`OPENSHIFT_API_URL` and `OPENSHIFT_TOKEN` are NOT needed when running as a
+pod with the `autopoc-runner` ServiceAccount. kubectl/oc use the mounted SA
+token automatically. The console URL is derived at runtime via:
+```bash
+oc get consoles.config.openshift.io cluster -o jsonpath='{.status.consoleURL}'
+```
 
 ---
 
