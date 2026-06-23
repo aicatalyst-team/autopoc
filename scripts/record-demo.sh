@@ -78,6 +78,21 @@ if [[ "$DRY_RUN" == false ]]; then
     fi
 fi
 
+# ── Derive console URL from the cluster ──────────────────────────────
+# Done here (caller's oc session) because the pod's SA may not have
+# permission to read consoles.config.openshift.io.
+if [[ "$DRY_RUN" == false ]]; then
+    CONSOLE_URL=$(oc get consoles.config.openshift.io cluster -o jsonpath='{.status.consoleURL}' 2>/dev/null || true)
+    if [[ -z "$CONSOLE_URL" ]]; then
+        echo "Error: could not derive OpenShift Console URL from cluster." >&2
+        echo "Ensure 'oc get consoles.config.openshift.io cluster' works." >&2
+        exit 1
+    fi
+    echo "Console URL: ${CONSOLE_URL}"
+else
+    CONSOLE_URL="https://console-openshift-console.apps.example.com"
+fi
+
 # ── Job name ─────────────────────────────────────────────────────────
 SHORT_ID="$(date +%s | tail -c 5)"
 JOB_NAME="autopoc-record-${PROJECT_NAME}-${SHORT_ID}"
@@ -169,11 +184,11 @@ spec:
                   optional: true
 
             # --- OpenShift ---
-            # NOTE: OPENSHIFT_API_URL and OPENSHIFT_TOKEN are NOT needed
-            # when running in-cluster. kubectl/oc use the mounted
-            # ServiceAccount token automatically. The console URL is
-            # derived at runtime via:
-            #   oc get consoles.config.openshift.io cluster -o jsonpath='{.status.consoleURL}'
+            # Console URL is derived at script launch time from the
+            # caller's oc session (see above). API auth uses the
+            # pod's mounted ServiceAccount token automatically.
+            - name: OPENSHIFT_CONSOLE_URL
+              value: "${CONSOLE_URL}"
             - name: OPENSHIFT_NAMESPACE_PREFIX
               valueFrom:
                 secretKeyRef:

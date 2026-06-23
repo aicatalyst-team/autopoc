@@ -64,24 +64,24 @@ script.
    - Log the pod names and statuses.
 
 4. **Verify required environment variables:**
+   - `OPENSHIFT_CONSOLE_URL` — console URL (injected by `record-demo.sh`).
    - `OPENSHIFT_CONSOLE_USERNAME` — for console login.
    - `OPENSHIFT_CONSOLE_PASSWORD` — for console login.
    - `OPENSHIFT_IDP_NAME` — identity provider name (default: `keycloak`).
-   - FAIL if console credentials are missing.
-   - Note: `OPENSHIFT_API_URL` and `OPENSHIFT_TOKEN` are NOT needed when
-     running in-cluster. kubectl/oc use the mounted ServiceAccount token.
+   - FAIL if console credentials or console URL are missing.
 
-5. **Derive the OpenShift Console URL:**
-   Query the cluster using the in-cluster ServiceAccount:
+5. **Grant the console user view access to the PoC namespace:**
+   The console user needs `view` access to see the Topology view.
+   This is done per-recording since each PoC uses a different namespace.
    ```bash
-   oc get consoles.config.openshift.io cluster -o jsonpath='{.status.consoleURL}'
+   oc adm policy add-role-to-user view "$OPENSHIFT_CONSOLE_USERNAME" -n <namespace>
    ```
-   This works automatically when running as a pod with the `autopoc-runner`
-   ServiceAccount. No `OPENSHIFT_API_URL` env var needed.
+   This uses the pod's ServiceAccount (autopoc-runner) which has permission
+   to create RoleBindings.
 
 6. **Verify console is reachable:**
    ```bash
-   curl -sSk -o /dev/null -w '%{http_code}' <console_url>
+   curl -sSk -o /dev/null -w '%{http_code}' "$OPENSHIFT_CONSOLE_URL"
    ```
    Expect a redirect (302) or success (200).
 
@@ -312,18 +312,17 @@ If upload fails:
 |----------|----------|---------|-------------|
 | `AUTOPOC_PROJECT_NAME` | Yes | — | Project name |
 | `AUTOPOC_WORK_DIR` | No | `/tmp/autopoc` | Working directory |
-| `OPENSHIFT_IDP_NAME` | No | `keycloak` | IDP button name on OAuth page |
+| `OPENSHIFT_CONSOLE_URL` | Yes | — | Console URL (injected by `record-demo.sh`) |
 | `OPENSHIFT_CONSOLE_USERNAME` | Yes | — | Console login username |
 | `OPENSHIFT_CONSOLE_PASSWORD` | Yes | — | Console login password |
+| `OPENSHIFT_IDP_NAME` | No | `keycloak` | IDP button name on OAuth page |
 | `AUTOPOC_SHEET_CREDENTIALS` | No | — | Path to Google SA credentials |
 | `GOOGLE_DOCS_FOLDER_ID` | No | — | Google Drive folder for upload |
 
 `OPENSHIFT_API_URL` and `OPENSHIFT_TOKEN` are NOT needed when running as a
-pod with the `autopoc-runner` ServiceAccount. kubectl/oc use the mounted SA
-token automatically. The console URL is derived at runtime via:
-```bash
-oc get consoles.config.openshift.io cluster -o jsonpath='{.status.consoleURL}'
-```
+pod. kubectl/oc use the mounted ServiceAccount token automatically.
+`OPENSHIFT_CONSOLE_URL` is derived by `record-demo.sh` from the caller's
+`oc` session and injected into the Job manifest.
 
 ---
 
