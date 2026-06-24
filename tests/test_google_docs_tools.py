@@ -82,6 +82,18 @@ class TestGoogleDocsService:
         doc_id = service.create_document("Test Document", "parent_folder_id")
         assert doc_id == "test_doc_id"
 
+        # Verify supportsAllDrives is passed for Shared Drive compatibility
+        mock_drive_service.files.return_value.get.assert_called_with(
+            fileId="test_doc_id", fields="parents", supportsAllDrives=True
+        )
+        mock_drive_service.files.return_value.update.assert_called_with(
+            fileId="test_doc_id",
+            addParents="parent_folder_id",
+            removeParents="old_parent",
+            fields="id, parents",
+            supportsAllDrives=True,
+        )
+
     def test_markdown_to_docs_requests(self):
         """Test markdown conversion to docs requests."""
         service = GoogleDocsService("/fake/path")

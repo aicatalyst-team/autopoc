@@ -121,12 +121,16 @@ class GoogleDriveService:
         )
 
         # Execute the upload
+        # supportsAllDrives is required when uploading to Shared Drives.
+        # Service accounts have no personal Drive quota, so all uploads
+        # must target a Shared Drive folder.
         file = (
             self.service.files()
             .create(
                 body=file_metadata,
                 media_body=media,
                 fields="id, name, webViewLink, size, mimeType",
+                supportsAllDrives=True,
             )
             .execute()
         )

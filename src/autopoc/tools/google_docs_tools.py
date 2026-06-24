@@ -82,7 +82,11 @@ class GoogleDocsService:
             # Move to parent folder if specified
             if parent_folder_id:
                 # Get the current file
-                file = self.drive_service.files().get(fileId=doc_id, fields="parents").execute()
+                file = (
+                    self.drive_service.files()
+                    .get(fileId=doc_id, fields="parents", supportsAllDrives=True)
+                    .execute()
+                )
                 previous_parents = ",".join(file.get("parents"))
 
                 # Move to new parent
@@ -91,6 +95,7 @@ class GoogleDocsService:
                     addParents=parent_folder_id,
                     removeParents=previous_parents,
                     fields="id, parents",
+                    supportsAllDrives=True,
                 ).execute()
 
             return doc_id
