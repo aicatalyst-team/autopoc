@@ -94,7 +94,7 @@ FINAL_PAUSE_SECONDS = 5          # How long to show final state
 RECORDING_TIMEOUT_SECONDS = 600  # Max recording duration (10 min)
 
 # Test commands to run in the terminal
-# The LLM fills these in based on poc-state.yaml
+# The LLM fills these in based on cluster discovery from Phase 1
 TEST_COMMANDS = [
     {{ test_commands }}
 ]
@@ -437,8 +437,9 @@ CONSOLE_URL = "https://console-openshift-console.apps.mycluster.example.com"
 
 ### 2. Test Commands
 
-Based on `poc_execute.test_script_path` and `poc_execute.results` from
-`poc-state.yaml`, generate the terminal commands. Typical patterns:
+Based on the services discovered from the live cluster in Phase 1 (and
+optionally a `poc_test.py` fetched from the GitHub `autopoc-artifacts`
+branch), generate the terminal commands. Typical patterns:
 
 **For HTTP-based tests (services with routes):**
 ```python

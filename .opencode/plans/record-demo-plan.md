@@ -23,7 +23,7 @@ sanity tests.
 - The AI generates the *script* (Playwright automation code) that drives the
   browser and terminal; the video is the faithful capture of that execution.
 - Runs in a Kubernetes pod (headless, no physical display).
-- Assumes the PoC is already deployed (reads existing `poc-state.yaml`).
+- Assumes the PoC is already deployed on the cluster.
 - Uploads the final video to Google Drive.
 
 ---
@@ -59,9 +59,10 @@ sanity tests.
 ### Recording Pipeline
 
 1. **OpenCode** loads the `record-demo` skill.
-2. Reads `poc-state.yaml` for project context (namespace, routes, test script).
-3. Optionally reads the blog post or PoC report for narrative context.
-4. **Generates a Playwright Python script** (`record.py`) customized per project.
+2. Discovers project context from the **live cluster** (pods, services, ports,
+   images) via kubectl. Optionally fetches the PoC report or test script from
+   the GitHub `autopoc-artifacts` branch for narrative context.
+3. **Generates a Playwright Python script** (`record.py`) customized per project.
 5. The script:
    - Starts **ttyd** (web terminal on `localhost:7681`).
    - Launches **Chromium** via Playwright in **headless** mode (no display needed).
@@ -74,7 +75,7 @@ sanity tests.
    - Runs **ffmpeg** with an `hstack` filter to composite the two recordings
      into a single side-by-side `demo.webm` (1920x1080).
 6. **Uploads** the video to Google Drive.
-7. **Updates** `poc-state.yaml` with video info.
+7. **Uploads** the video to Google Drive and reports results.
 
 ---
 
@@ -128,11 +129,11 @@ record-demo/
 
 | # | Phase | Classification | Purpose |
 |---|-------|---------------|---------|
-| 1 | Validate | MANDATORY | Verify poc-state.yaml, deployment health, env vars |
+| 1 | Validate | MANDATORY | Discover deployment from cluster, verify health, check env vars |
 | 2 | Script | MANDATORY | Generate Playwright recording script |
 | 3 | Record | MANDATORY | Execute script, produce demo.webm |
 | 4 | Upload | NON-BLOCKING | Upload video to Google Drive |
-| 5 | Update | MANDATORY | Update poc-state.yaml with artifacts |
+| 5 | Report | MANDATORY | Write summary of results |
 
 ### 2. Container Image — `Dockerfile.record-demo`
 
@@ -158,7 +159,7 @@ scripts/record-demo.sh <project-name> [options]
 
 Generates a K8s Job that:
 - Uses the `autopoc-recorder` image.
-- Reads existing `poc-state.yaml` from a shared PVC or ConfigMap.
+- Discovers PoC context from the live cluster (pods, services, ports).
 - Mounts `autopoc-credentials` + video-specific credentials.
 - Sets OpenCode prompt: `"Record demo video for <project-name>"`.
 - Higher resource limits: 1Gi–4Gi memory (Chromium headless + ffmpeg compositing).
@@ -193,20 +194,13 @@ openshift_console_username: str | None = None
 openshift_console_password: str | None = None
 ```
 
-### 7. State Extension — `poc-state.yaml`
+### 7. Output Artifacts
 
-New `demo_video` section:
-
-```yaml
-demo_video:
-  status: "pending"       # pending | in_progress | completed | failed | skipped
-  script_path: ""         # Path to generated record.py
-  video_path: ""          # Local path to recorded video
-  drive_url: ""           # Google Drive URL after upload
-  duration_seconds: 0
-  resolution: "1920x1080"
-  format: "webm"
-```
+The recording produces:
+- `$AUTOPOC_WORK_DIR/<project>/demo/record.py` — generated Playwright script
+- `$AUTOPOC_WORK_DIR/<project>/demo/poc_test.sh` — generated test script
+- `$AUTOPOC_WORK_DIR/<project>/demo/demo.webm` — final composited video
+- Google Drive URL (if upload succeeds)
 
 ---
 
@@ -263,7 +257,7 @@ oc get consoles.config.openshift.io cluster -o jsonpath='{.status.consoleURL}'
 {console_url}/topology/ns/{namespace}
 ```
 
-Where `namespace` comes from `poc-state.yaml` → `apply.namespace`.
+Where `namespace` is `poc-<project-name>`, derived from `AUTOPOC_PROJECT_NAME`.
 
 ---
 
@@ -304,14 +298,10 @@ Where `namespace` comes from `poc-state.yaml` → `apply.namespace`.
 
 ## Open Questions
 
-1. **PVC sharing**: How does the record-demo pod access `poc-state.yaml` from
-   the previous PoC run? Options: shared PVC, ConfigMap, or re-read from the
-   fork repo where state was committed.
-
-2. **Video post-processing**: Should we trim dead time (e.g., waiting for
+1. **Video post-processing**: Should we trim dead time (e.g., waiting for
    login redirects)? Could use ffmpeg to speed up or cut segments. Deferred to
    future iteration.
 
-3. **Playwright video codec control**: Playwright's `record_video_dir` uses
+2. **Playwright video codec control**: Playwright's `record_video_dir` uses
    VP8 by default. The ffmpeg hstack step can re-encode to VP9 for better
    compression. Verify quality and file size tradeoffs.

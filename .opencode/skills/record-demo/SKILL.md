@@ -11,9 +11,8 @@ running the PoC sanity tests.
 
 ## Prerequisites
 
-- A completed PoC run with `poc-state.yaml` present in the working directory.
-- The PoC deployment is still active on the cluster (pods running, services
-  accessible).
+- A completed PoC deployment still active on the cluster (pods running,
+  services accessible) in namespace `poc-<project-name>`.
 - Required environment variables are set (see Phase 1).
 
 ## Invocation
@@ -41,69 +40,79 @@ script.
 
 ### Steps
 
-1. **Read `poc-state.yaml`** from `$AUTOPOC_WORK_DIR/poc-state.yaml`.
-   - FAIL if the file does not exist.
-   - FAIL if `poc_execute.status` is not `completed`.
-   - WARN if `poc_execute.results` contains any `fail` or `error` scenarios
-     (recording will still proceed — failed tests are valid demo content).
+1. **Determine the PoC namespace:**
+   The namespace is `poc-<project-name>`, derived from `AUTOPOC_PROJECT_NAME`.
 
-2. **Extract required context from state:**
-   - `project.name` — project name.
-   - `apply.namespace` — Kubernetes namespace where the PoC is deployed.
-   - `apply.routes` — any routes/URLs exposed by the deployment.
-   - `poc_execute.test_script_path` — path to the test script.
-   - `poc_execute.results` — test scenario names and outcomes.
-   - `intake.components` — component names and ports.
-   - `intake.repo_summary` — brief project description.
-
-3. **Verify the deployment is still alive:**
+2. **Discover the deployment from the live cluster:**
+   There is no `poc-state.yaml` available — it was ephemeral in the original
+   PoC Job pod. Instead, gather all context from the live cluster:
    ```bash
-   kubectl get pods -n <namespace> --no-headers
+   # List running pods
+   kubectl get pods -n poc-<project-name> --no-headers
+
+   # List services with ports
+   kubectl get svc -n poc-<project-name> -o jsonpath='{range .items[*]}{.metadata.name}:{.spec.ports[0].port}{"\n"}{end}'
+
+   # List deployments with images
+   kubectl get deployments -n poc-<project-name> -o jsonpath='{range .items[*]}{.metadata.name} -> {.spec.template.spec.containers[0].image}{"\n"}{end}'
+
+   # List routes (if any)
+   kubectl get routes -n poc-<project-name> --no-headers
    ```
    - FAIL if no pods are running.
-   - Log the pod names and statuses.
+   - Log the pod names, services, ports, and images.
 
-4. **Verify required environment variables:**
+3. **Health-check the services:**
+   For each service with a port, try hitting `/health`:
+   ```python
+   for svc_name, port in services:
+       url = f"http://{svc_name}.poc-<project-name>.svc:{port}/health"
+       # GET request with 5s timeout
+   ```
+   Log which services are healthy. This information feeds into the test
+   script generation in Phase 2.
+
+4. **Look for existing PoC artifacts on GitHub** (optional context):
+   If `GITHUB_TOKEN` and `GITHUB_ORG` are available, check for the fork repo's
+   `autopoc-artifacts` branch which may contain the PoC report, test script,
+   and blog post:
+   ```bash
+   # Check if the fork repo and artifacts branch exist
+   gh api repos/<org>/<project-name>/branches/autopoc-artifacts --jq .name 2>/dev/null
+   ```
+   If available, fetch the PoC report and/or test script for narrative context:
+   ```bash
+   curl -sS https://raw.githubusercontent.com/<org>/<project-name>/autopoc-artifacts/poc-report.md
+   curl -sS https://raw.githubusercontent.com/<org>/<project-name>/autopoc-artifacts/poc_test.py
+   ```
+   This is optional — the recording works without it.
+
+5. **Verify required environment variables:**
    - `OPENSHIFT_CONSOLE_URL` — console URL (injected by `record-demo.sh`).
    - `OPENSHIFT_CONSOLE_USERNAME` — for console login.
    - `OPENSHIFT_CONSOLE_PASSWORD` — for console login.
    - `OPENSHIFT_IDP_NAME` — identity provider name (default: `keycloak`).
    - FAIL if console credentials or console URL are missing.
 
-5. **Grant the console user view access to the PoC namespace:**
+6. **Grant the console user view access to the PoC namespace:**
    The console user needs `view` access to see the Topology view.
    This is done per-recording since each PoC uses a different namespace.
    ```bash
-   oc adm policy add-role-to-user view "$OPENSHIFT_CONSOLE_USERNAME" -n <namespace>
+   oc adm policy add-role-to-user view "$OPENSHIFT_CONSOLE_USERNAME" -n poc-<project-name>
    ```
    This uses the pod's ServiceAccount (autopoc-runner) which has permission
    to create RoleBindings.
 
-6. **Verify console is reachable:**
+7. **Verify console is reachable:**
    ```bash
    curl -sSk -o /dev/null -w '%{http_code}' "$OPENSHIFT_CONSOLE_URL"
    ```
    Expect a redirect (302) or success (200).
 
-7. **Check for blog post or PoC report** (optional context):
-   - Look for `blog_post.blog_path` or `poc_report.report_path` in state.
-   - If present, read the file for additional narrative context when generating
-     the script. This is optional — the recording works without it.
-
-8. **Set state:**
-   ```yaml
-   demo_video:
-     status: "in_progress"
-   ```
-
 ### Failure Behavior
 
-If validation fails, set:
-```yaml
-demo_video:
-  status: "failed"
-```
-And add an error entry. Do NOT proceed to Phase 2.
+If validation fails (no pods running, missing credentials), do NOT proceed
+to Phase 2. Report the error and exit.
 
 ---
 
@@ -115,13 +124,16 @@ And add an error entry. Do NOT proceed to Phase 2.
 
 Load the reference template from `references/recording-script-template.md`.
 This template provides the complete structure. You **customize** the following
-project-specific parts:
+project-specific parts based on the cluster discovery from Phase 1:
 
 - **Console URL and namespace** for the Topology view.
 - **Login credentials** and IDP name.
-- **Terminal commands** — the test script path and any setup commands.
+- **Terminal commands** — write a shell test script based on the discovered
+  services and ports. Use health-check endpoints, test the service-specific
+  APIs (e.g., POST /filter for filter services). If a `poc_test.py` was
+  found on the GitHub `autopoc-artifacts` branch, base the commands on that.
 - **Wait conditions** — what patterns to look for in terminal output to know
-  tests are done (e.g., `"passed"`, `"failed"`, `"results"`).
+  tests are done. Use a sentinel like `echo DEMO_DONE` at the end.
 - **Timing** — how long to pause on the topology view, how long tests take.
 
 ### Script Generation Rules
@@ -168,12 +180,8 @@ The generated script follows this sequence:
 
 ### Output
 
-- File: `$AUTOPOC_WORK_DIR/<project>/demo/record.py`
-- Update state:
-  ```yaml
-  demo_video:
-    script_path: "<path to record.py>"
-  ```
+- Recording script: `$AUTOPOC_WORK_DIR/<project>/demo/record.py`
+- Test script (if generated): `$AUTOPOC_WORK_DIR/<project>/demo/poc_test.sh`
 
 ---
 
@@ -210,14 +218,7 @@ The generated script follows this sequence:
      ffprobe -v quiet -print_format json -show_format demo.webm
      ```
 
-5. **Update state:**
-   ```yaml
-   demo_video:
-     video_path: "<path to demo.webm>"
-     duration_seconds: <from ffprobe>
-     resolution: "1920x1080"
-     format: "webm"
-   ```
+5. **Log the output** — report the video path, file size, and duration.
 
 ### Failure Handling
 
@@ -225,6 +226,8 @@ If the recording script fails:
 1. Check stderr/stdout for error messages.
 2. Common failures:
    - **Console login failed**: Check credentials, IDP name, console URL.
+     If the OAuth redirect is stuck, the script should fall back to
+     terminal-only recording mode.
    - **Topology didn't load**: Namespace might be wrong, or no resources in the
      namespace. Verify with `kubectl get all -n <namespace>`.
    - **ttyd connection failed**: ttyd might not have started. Check if port 7681
@@ -233,8 +236,7 @@ If the recording script fails:
      created. Verify libvpx codec is available.
    - **Timeout**: Tests took too long. Consider reducing test scope or
      increasing the timeout.
-3. Set `demo_video.status: "failed"` and add error to `errors[]`.
-4. Do NOT retry automatically — the user should review the error and re-run.
+3. Do NOT retry automatically — the user should review the error and re-run.
 
 ---
 
@@ -245,49 +247,36 @@ If the recording script fails:
 ### Steps
 
 1. **Check prerequisites:**
-   - `demo_video.video_path` exists and is a valid file.
+   - The demo video file exists at `$AUTOPOC_WORK_DIR/<project>/demo/demo.webm`.
    - `AUTOPOC_SHEET_CREDENTIALS` or credentials path is available.
    - `GOOGLE_DOCS_FOLDER_ID` is set (upload to same folder as blog docs).
 
 2. **Upload using the CLI tool:**
    ```bash
    python -m autopoc.cli_tools google-drive-upload \
-     <video_path> \
+     $AUTOPOC_WORK_DIR/<project>/demo/demo.webm \
      --file-name "[AutoPoC] <project_name> Demo Video" \
      --credentials <credentials_path> \
      --folder-id <folder_id>
    ```
 
-3. **Parse the JSON output** for the Drive URL.
-
-4. **Update state:**
-   ```yaml
-   demo_video:
-     drive_url: "<Google Drive URL>"
-   ```
+3. **Parse the JSON output** for the Drive URL and report it.
 
 ### Failure Handling
 
 If upload fails:
 - Log the error but do NOT fail the pipeline.
-- The video is still available locally at `demo_video.video_path`.
-- Set `demo_video.drive_url: "upload_failed"`.
+- The video is still available locally.
 
 ---
 
-## Phase 5: Update ✦ MANDATORY
+## Phase 5: Report ✦ MANDATORY
 
-**Goal:** Finalize the state file and report results.
+**Goal:** Write a final summary of the recording.
 
 ### Steps
 
-1. **Update `poc-state.yaml`:**
-   ```yaml
-   demo_video:
-     status: "completed"
-   ```
-
-2. **Write a summary** to stdout:
+1. **Write a summary** to stdout:
    ```
    === Demo Video Recording Complete ===
    Project:    <project_name>
@@ -296,12 +285,6 @@ If upload fails:
    Resolution: 1920x1080
    Format:     WebM
    Drive URL:  <drive_url or "not uploaded">
-   ```
-
-3. **Commit state** (if in a git repo context):
-   ```bash
-   cd $AUTOPOC_WORK_DIR && git add poc-state.yaml && \
-     git commit -m "record-demo: completed for <project_name>"
    ```
 
 ---
