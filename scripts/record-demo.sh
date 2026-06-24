@@ -123,6 +123,8 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: autopoc-runner
+      imagePullSecrets:
+        - name: quay-pull-secret
       containers:
         - name: recorder
           image: ${IMAGE}
