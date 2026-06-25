@@ -220,6 +220,63 @@ def login_to_console(page):
 
 
 # ---------------------------------------------------------------------------
+# Dismiss banners and modals
+# ---------------------------------------------------------------------------
+
+def dismiss_console_banners(page):
+    """
+    Dismiss any welcome tour, guided tour, or notification banners that
+    overlay the console UI. These block the topology view in recordings.
+
+    Common banners:
+    - "Welcome to the new OpenShift experience" guided tour popover
+    - Quick start side panel
+    - Notification drawer alerts
+    """
+    # Known selectors for dismiss/skip/close buttons on tour modals.
+    # Try each one — they vary by OpenShift version and theme.
+    dismiss_selectors = [
+        # Guided tour "Skip tour" or "Close" buttons
+        "[data-test='tour-step-footer-secondary']",
+        "button[data-test='tour-step-footer-secondary']",
+        # PatternFly popover close button
+        ".pf-c-popover__close button",
+        ".pf-v5-c-popover__close button",
+        # Generic close buttons on modals/alerts
+        "button[aria-label='Close']",
+        "button[aria-label='close']",
+        # "Skip tour" link text
+        "button:has-text('Skip tour')",
+        "button:has-text('skip tour')",
+        # "No thanks" or "Maybe later" on welcome modals
+        "button:has-text('No thanks')",
+        "button:has-text('Maybe later')",
+        # Notification drawer close
+        "[data-test='notification-drawer-close']",
+    ]
+
+    dismissed = False
+    for selector in dismiss_selectors:
+        try:
+            element = page.wait_for_selector(selector, timeout=2000)
+            if element and element.is_visible():
+                element.click()
+                print(f"[console] Dismissed banner (selector: {selector})")
+                dismissed = True
+                time.sleep(0.5)
+                break
+        except Exception:
+            continue
+
+    if not dismissed:
+        print("[console] No banners to dismiss")
+
+    # Also press Escape as a catch-all for any remaining modals/popovers
+    page.keyboard.press("Escape")
+    time.sleep(0.5)
+
+
+# ---------------------------------------------------------------------------
 # Console navigation
 # ---------------------------------------------------------------------------
 
@@ -358,7 +415,9 @@ def main():
 
             # 4. Console: Login and navigate to topology
             login_to_console(console_page)
+            dismiss_console_banners(console_page)
             navigate_to_topology(console_page)
+            dismiss_console_banners(console_page)  # May reappear on topology page
 
             # 5. Pause on topology view
             print(f"[recording] Showing topology view for {TOPOLOGY_PAUSE_SECONDS}s")

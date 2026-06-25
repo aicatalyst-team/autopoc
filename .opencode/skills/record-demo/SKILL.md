@@ -163,7 +163,9 @@ The generated script follows this sequence:
 4. Create two browser contexts with record_video_dir:
    - Context 1 (left pane):  viewport 960x1080, records to left.webm
    - Context 2 (right pane): viewport 960x1080, records to right.webm
-5. Context 1: Navigate to console → login → topology view
+5. Context 1: Navigate to console → login → dismiss banners → topology view
+   - After login, dismiss any "Welcome to OpenShift" tour/popover banners
+   - Navigate to topology, dismiss banners again if they reappear
    - Wait for topology to render
    - Pause 5s to show the topology
 6. Context 2: Navigate to ttyd (http://localhost:7681)
