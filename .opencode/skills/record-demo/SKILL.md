@@ -244,23 +244,36 @@ If the recording script fails:
 
 **Goal:** Upload the recorded video to Google Drive.
 
+> **CRITICAL: You MUST use the CLI tool below. Do NOT write inline Google
+> Drive API code.** The CLI tool handles Shared Drive compatibility
+> (`supportsAllDrives=True`) and folder targeting. Without these, the upload
+> will fail with "Service Accounts do not have storage quota." because
+> service accounts cannot own files in personal Drive — they can only
+> write to Shared Drives via the tool's `--folder-id` parameter.
+
 ### Steps
 
 1. **Check prerequisites:**
    - The demo video file exists at `$AUTOPOC_WORK_DIR/<project>/demo/demo.webm`.
-   - `AUTOPOC_SHEET_CREDENTIALS` or credentials path is available.
-   - `GOOGLE_DOCS_FOLDER_ID` is set (upload to same folder as blog docs).
+   - `AUTOPOC_SHEET_CREDENTIALS` env var points to the Google SA credentials
+     JSON (typically `/etc/autopoc/google-sa/credentials.json`).
+   - `GOOGLE_DOCS_FOLDER_ID` env var is set (the target Shared Drive folder).
+   - If either is missing, skip upload and report "not uploaded".
 
-2. **Upload using the CLI tool:**
+2. **Upload using the CLI tool (mandatory — do not use inline code):**
    ```bash
    python -m autopoc.cli_tools google-drive-upload \
-     $AUTOPOC_WORK_DIR/<project>/demo/demo.webm \
+     "$AUTOPOC_WORK_DIR/<project>/demo/demo.webm" \
      --file-name "[AutoPoC] <project_name> Demo Video" \
-     --credentials <credentials_path> \
-     --folder-id <folder_id>
+     --credentials "$AUTOPOC_SHEET_CREDENTIALS" \
+     --folder-id "$GOOGLE_DOCS_FOLDER_ID"
+   ```
+   This outputs JSON on success:
+   ```json
+   {"success": true, "file_id": "...", "web_view_link": "...", "file_name": "...", "size_bytes": ...}
    ```
 
-3. **Parse the JSON output** for the Drive URL and report it.
+3. **Parse the JSON output** for `web_view_link` and report it as the Drive URL.
 
 ### Failure Handling
 
