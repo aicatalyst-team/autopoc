@@ -23,7 +23,6 @@ dev = [
     "pytest-asyncio>=0.24",
     "pytest-cov>=6.0",
     "ruff>=0.6",
-    "langchain-core>=0.1.0",  # Required by legacy tools (cleanup_tools.py, github_tools.py) for testing
 ]
 
 [project.scripts]
@@ -54,8 +53,6 @@ omit = [
     # Infrastructure tools that shell out to kubectl/podman — tested via e2e
     "*/tools/k8s_tools.py",
     "*/tools/podman_tools.py",
-    "*/tools/cleanup_tools.py",
-    "*/tools/github_tools.py",
     # Thin CLI dispatcher — logic tested via sheet.py and llm_proxy.py
     "*/cli_tools.py",
     # Sheet write-back — tested via e2e (requires Sheets API)
