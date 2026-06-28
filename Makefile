@@ -1,8 +1,8 @@
 # AutoPoC Makefile (OpenCode harness)
 # ------------------------------------
 # Targets:
-#   make image       - Build container image (OpenCode + tools)
-#   make image-push  - Push container image to registry
+#   make image       - Build both container images (opencode + recorder)
+#   make image-push  - Push both container images to registry
 #   make install     - pip install in editable mode with dev extras
 #   make lock        - Regenerate requirements.lock from pyproject.toml
 #   make test        - Run unit/integration tests
@@ -21,21 +21,23 @@ VERSION         = $(shell $(PYTHON) -c "from autopoc import __version__; print(_
 # Container image settings
 IMAGE_REGISTRY ?= quay.io
 IMAGE_ORG      ?= autopoc
-IMAGE_NAME     ?= autopoc-opencode
 IMAGE_TAG      ?= latest
-IMAGE           = $(IMAGE_REGISTRY)/$(IMAGE_ORG)/$(IMAGE_NAME):$(IMAGE_TAG)
+IMAGE_OPENCODE = $(IMAGE_REGISTRY)/$(IMAGE_ORG)/autopoc-opencode:$(IMAGE_TAG)
+IMAGE_RECORDER = $(IMAGE_REGISTRY)/$(IMAGE_ORG)/autopoc-recorder:$(IMAGE_TAG)
 
 .DEFAULT_GOAL := help
 
 # ---------- image ----------
 
 .PHONY: image
-image: ## Build container image
-	$(CONTAINER_CMD) build -t $(IMAGE) .
+image: ## Build both container images (opencode + recorder)
+	$(CONTAINER_CMD) build -t $(IMAGE_OPENCODE) .
+	$(CONTAINER_CMD) build -f Dockerfile.record-demo -t $(IMAGE_RECORDER) .
 
 .PHONY: image-push
-image-push: ## Push container image to registry
-	$(CONTAINER_CMD) push $(IMAGE)
+image-push: ## Push both container images to registry
+	$(CONTAINER_CMD) push $(IMAGE_OPENCODE)
+	$(CONTAINER_CMD) push $(IMAGE_RECORDER)
 
 # ---------- ogx image ----------
 

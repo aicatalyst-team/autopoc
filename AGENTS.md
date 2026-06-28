@@ -144,6 +144,13 @@ Key features:
 - Generate developer blog posts from PoC results
 - Optional Google Docs integration for automatic upload
 
+**record-demo** - Demo video recording:
+- Records a demo video of a completed PoC deployment
+- Side-by-side view: OpenShift Console topology + terminal running tests
+- Uses Playwright headless (record_video_dir) + ffmpeg hstack compositing
+- Uploads to Google Drive
+- Launched via `scripts/record-demo.sh <project-name>`
+
 ### State Management
 
 OpenCode maintains progressive state in YAML files instead of shared memory:

@@ -1,0 +1,170 @@
+# AutoPoC Recorder — Demo video recording container
+#
+# Records demo videos of PoC deployments on OpenShift using headless
+# Playwright (Chromium) for browser automation and ffmpeg for video
+# compositing. No X11/Xvfb needed — Playwright records each browser
+# context as WebM, then ffmpeg composites them side-by-side.
+#
+# Build:  podman build -f Dockerfile.record-demo -t autopoc-recorder:latest .
+# Run:    podman run --rm --env-file .env autopoc-recorder:latest \
+#           run --dangerously-skip-permissions "Record demo video for my-project"
+#
+# Additional env vars (beyond base autopoc):
+#   OPENSHIFT_IDP_NAME, OPENSHIFT_CONSOLE_USERNAME, OPENSHIFT_CONSOLE_PASSWORD
+
+FROM registry.access.redhat.com/ubi9/python-312:latest
+
+LABEL io.k8s.description="AutoPoC Recorder — demo video recording for OpenShift PoC deployments" \
+      io.openshift.tags="autopoc,opencode,recorder,playwright" \
+      maintainer="aicatalyst-team"
+
+USER 0
+
+# Apply security patches and remove unnecessary packages
+RUN dnf update -y --security && \
+    dnf remove -y vim-minimal vim-filesystem rsync && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf
+
+# ---------------------------------------------------------------------------
+# System tools (shared with base autopoc image)
+# ---------------------------------------------------------------------------
+
+# Install kubectl
+ARG KUBECTL_VERSION=v1.36.0
+RUN curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
+    -o /usr/local/bin/kubectl && chmod +x /usr/local/bin/kubectl
+
+# Install oc (OpenShift CLI)
+ARG OC_VERSION=4.21.11
+RUN curl -fsSL "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OC_VERSION}/openshift-client-linux.tar.gz" \
+    | tar xzf - -C /usr/local/bin oc && chmod +x /usr/local/bin/oc
+
+# Install OpenCode (pinned version for reproducible builds)
+ARG OPENCODE_VERSION=v1.15.10
+RUN curl -fsSL "https://github.com/anomalyco/opencode/releases/download/${OPENCODE_VERSION}/opencode-linux-x64.tar.gz" \
+    | tar xzf - -C /usr/local/bin && chmod +x /usr/local/bin/opencode
+
+# Install GitHub CLI (for gh repo operations)
+ARG GH_VERSION=2.74.0
+RUN curl -fsSL "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz" \
+    | tar xzf - --strip-components=1 -C /usr/local && chmod +x /usr/local/bin/gh
+
+# ---------------------------------------------------------------------------
+# Video recording dependencies
+# ---------------------------------------------------------------------------
+
+# Chromium shared library dependencies (Playwright headless still needs these)
+# No Xvfb needed — Playwright records video in headless mode natively.
+RUN dnf install -y \
+        nss \
+        nspr \
+        atk \
+        at-spi2-atk \
+        cups-libs \
+        libdrm \
+        libXcomposite \
+        libXdamage \
+        libXrandr \
+        libXi \
+        libXtst \
+        libXScrnSaver \
+        mesa-libgbm \
+        pango \
+        alsa-lib \
+        gtk3 \
+        dbus-libs \
+    && dnf clean all && rm -rf /var/cache/dnf
+
+# ffmpeg — video compositing (hstack two recordings side-by-side)
+# UBI9 doesn't ship ffmpeg. Install static build for predictability.
+RUN curl -fsSL "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" \
+    | tar xJf - --strip-components=1 -C /usr/local/bin \
+        --wildcards '*/ffmpeg' '*/ffprobe' && \
+    chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe
+
+# ttyd — web-based terminal (serves bash over HTTP via xterm.js)
+ARG TTYD_VERSION=1.7.7
+RUN curl -fsSL "https://github.com/tsl0922/ttyd/releases/download/${TTYD_VERSION}/ttyd.x86_64" \
+    -o /usr/local/bin/ttyd && chmod +x /usr/local/bin/ttyd
+
+# ---------------------------------------------------------------------------
+# Python tools
+# ---------------------------------------------------------------------------
+
+# Copy dependency lockfile for layer caching
+COPY requirements.lock /tmp/requirements.lock
+RUN pip install --no-cache-dir -r /tmp/requirements.lock && rm /tmp/requirements.lock
+
+# Install Playwright and download Chromium browser
+# NOTE: We skip `playwright install-deps` because it uses apt-get (Debian).
+# The Chromium shared library dependencies are installed via dnf above.
+RUN pip install --no-cache-dir playwright && \
+    playwright install chromium
+
+# Copy project source (tools, config, prompts, templates)
+COPY src/ /opt/autopoc/src/
+COPY data/ /opt/autopoc/data/
+
+# Copy OpenCode skills and configuration
+COPY .opencode/skills/ /opt/autopoc/.opencode/skills/
+COPY opencode.json /opt/autopoc/opencode.json
+COPY AGENTS.md /opt/autopoc/AGENTS.md
+
+# Initialize a git repo so OpenCode discovers project-local skills.
+# Must happen after all COPY commands that write to /opt/autopoc.
+RUN git init /opt/autopoc && \
+    git -C /opt/autopoc add -A && \
+    git -C /opt/autopoc -c user.email=build@autopoc -c user.name=build commit -m "init" --quiet
+
+# ---------------------------------------------------------------------------
+# Workspace and permissions
+# ---------------------------------------------------------------------------
+
+# Create workspace directory writable by default user
+RUN mkdir -p /workspace && chown 1001:0 /workspace && chmod 775 /workspace
+
+# OpenCode stores session data and config here
+RUN mkdir -p /opt/app-root/src/.local/share/opencode && \
+    mkdir -p /opt/app-root/src/.config/opencode && \
+    chown -R 1001:0 /opt/app-root/src/.local /opt/app-root/src/.config && \
+    chmod -R 775 /opt/app-root/src/.local /opt/app-root/src/.config
+
+# Playwright browser cache and ttyd temp files
+RUN mkdir -p /opt/app-root/src/.cache && \
+    chown -R 1001:0 /opt/app-root/src/.cache && \
+    chmod -R 775 /opt/app-root/src/.cache
+
+# Ensure /tmp is writable for ttyd and temp files
+RUN chmod 1777 /tmp
+
+# Debug entrypoint
+COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Ensure project files are accessible (after git init so .git is included)
+RUN chgrp -R 0 /opt/autopoc && chmod -R g=u /opt/autopoc
+
+# Switch to non-root user
+USER 1001
+
+# Set git identity for artifact commits inside the container
+RUN git config --global user.email "autopoc@autopoc.local" && \
+    git config --global user.name "AutoPoC Agent"
+
+WORKDIR /opt/autopoc
+
+# ---------------------------------------------------------------------------
+# Environment
+# ---------------------------------------------------------------------------
+
+ENV PYTHONPATH=/opt/autopoc/src
+ENV AUTOPOC_DATA_DIR=/opt/autopoc/data
+ENV AUTOPOC_WORK_DIR=/workspace
+
+# Playwright needs this to find installed browsers
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/app-root/src/.cache/ms-playwright
+
+# OpenCode runs in non-interactive mode with all permissions auto-approved
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["run", "--dangerously-skip-permissions", "Show available skills and current status"]
