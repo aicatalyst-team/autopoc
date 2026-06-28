@@ -29,7 +29,6 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements.lock
       - run: pip install -e . --no-deps
-      - run: pip install langchain-core  # Required for typechecking legacy tools
       - run: pip install pyright
       - run: pyright src/
 
