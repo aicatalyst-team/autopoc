@@ -89,6 +89,7 @@ class TestRunPocReferences:
         "retry-strategy.md",
         "error-triage.md",
         "ubi-dockerfile-rules.md",
+        "github-repository.md",
     ]
 
     @pytest.fixture(params=EXPECTED_REFS)
@@ -167,6 +168,24 @@ class TestSkillContentQuality:
     def test_run_poc_references_cli_tools(self) -> None:
         content = (SKILLS_DIR / "run-poc" / "SKILL.md").read_text(encoding="utf-8")
         assert "python -m autopoc.cli_tools" in content
+
+    def test_github_repository_policy_protects_default_branch(self) -> None:
+        content = (SKILLS_DIR / "run-poc" / "references" / "github-repository.md").read_text(
+            encoding="utf-8"
+        )
+        assert "branches/$GITHUB_DEFAULT_BRANCH/protection" in content
+        assert '"required_pull_request_reviews"' in content
+        assert '"allow_force_pushes": false' in content
+        assert '"allow_deletions": false' in content
+
+    def test_github_writes_use_dedicated_branch(self) -> None:
+        content = (SKILLS_DIR / "run-poc" / "SKILL.md").read_text(encoding="utf-8")
+        assert 'git push origin "$AUTOPOC_BRANCH" --force' in content
+        assert "references/github-repository.md" in content
+        github_section = content.split("2. **If `AUTOPOC_FORK_TARGET` is `github`", 1)[1].split(
+            "3. **If `AUTOPOC_FORK_TARGET` is `gitlab`", 1
+        )[0]
+        assert "git push origin --all" not in github_section
 
     def test_state_schema_has_all_phases(self) -> None:
         content = (SKILLS_DIR / "run-poc" / "references" / "state-schema.md").read_text(

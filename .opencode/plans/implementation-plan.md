@@ -102,6 +102,7 @@ Agent writes markdown file
 | Phase 4: K8s Manifests & Scripts | Pending | Job, CronJob, run-autopoc.sh |
 | Phase 5: Cleanup | Pending | Remove LangGraph, agents, graph, old tests |
 | Phase 6: Testing & Validation | Pending | New test suite, E2E validation |
+| Phase 7: GitHub Repository Safety | Done | Default branch protection and dedicated AutoPoC write branch |
 
 ## Architecture
 
@@ -241,3 +242,18 @@ Add `__main__.py` or CLI entry points to:
 - Retry loop validation
 - Sheet processing validation
 - Blog generation validation
+
+## Phase 7: GitHub Repository Safety -- Done ✅
+
+### 7.1 Protect GitHub default branches -- Done ✅
+- Added a reusable GitHub repository policy for forked and freshly created repositories.
+- Detects the repository's actual default branch (`main`, `master`, or another configured default).
+- Enables pull-request review protection and disables force pushes and deletions.
+
+### 7.2 Isolate AutoPoC writes -- Done ✅
+- Uses the `autopoc` branch for GitHub source synchronization and pipeline commits.
+- Replaced GitHub `--all` and `HEAD` pushes with explicit `autopoc` pushes.
+- Retains `autopoc-artifacts` for generated plans, reports, tests, and blog artifacts.
+
+### 7.3 Verification -- Done ✅
+- Added skill validation tests for the branch-protection payload and safe push commands.
