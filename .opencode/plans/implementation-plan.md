@@ -257,3 +257,9 @@ Add `__main__.py` or CLI entry points to:
 
 ### 7.3 Verification -- Done ✅
 - Added skill validation tests for the branch-protection payload and safe push commands.
+
+## PR #57 Review Follow-up ✅
+
+- URL-encode GitHub default branch names before using them in REST API paths.
+- Require configured status checks and invalidate stale approvals after new commits.
+- Add regression assertions covering the hardened branch-protection policy.

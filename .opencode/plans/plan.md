@@ -145,3 +145,11 @@ Implement comprehensive cleanup functionality to address resource accumulation a
 | Route GitHub pipeline commits to the dedicated `autopoc` branch | ✅ Done |
 | Preserve `autopoc-artifacts` for generated PoC artifacts | ✅ Done |
 | Add skill validation tests for branch protection and safe pushes | ✅ Done |
+
+## PR #57 Review Follow-up ✅
+
+| Task | Status |
+|------|--------|
+| URL-encode branch names in GitHub protection API paths | ✅ Done |
+| Require status checks and invalidate stale approvals | ✅ Done |
+| Add regression coverage for the hardened policy | ✅ Done |

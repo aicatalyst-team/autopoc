@@ -13,22 +13,31 @@ the branch-protection API.
 GITHUB_OWNER="${GITHUB_ORG:-$(gh api user --jq '.login')}"
 GITHUB_REPO="$GITHUB_OWNER/$PROJECT_NAME"
 GITHUB_DEFAULT_BRANCH=$(gh api "/repos/$GITHUB_REPO" --jq '.default_branch')
+GITHUB_DEFAULT_BRANCH_PATH="${GITHUB_DEFAULT_BRANCH//\//%2F}"
+: "${AUTOPOC_REQUIRED_STATUS_CHECKS_JSON:?Set AUTOPOC_REQUIRED_STATUS_CHECKS_JSON to a non-empty JSON array of required check names}"
+if ! python -c 'import json, sys; checks = json.loads(sys.argv[1]); assert isinstance(checks, list) and checks and all(isinstance(check, str) and check for check in checks)' "$AUTOPOC_REQUIRED_STATUS_CHECKS_JSON"; then
+  echo "ERROR: AUTOPOC_REQUIRED_STATUS_CHECKS_JSON must be a non-empty JSON array of check names"
+  exit 1
+fi
 
 echo "Protecting GitHub default branch: $GITHUB_REPO:$GITHUB_DEFAULT_BRANCH"
 if ! gh api \
   --method PUT \
   -H "Accept: application/vnd.github+json" \
   -H "X-GitHub-Api-Version: 2022-11-28" \
-  "/repos/$GITHUB_REPO/branches/$GITHUB_DEFAULT_BRANCH/protection" \
-  --input - <<'JSON'
+  "/repos/$GITHUB_REPO/branches/$GITHUB_DEFAULT_BRANCH_PATH/protection" \
+  --input - <<JSON
 {
-  "required_status_checks": null,
+  "required_status_checks": {
+    "strict": true,
+    "contexts": $AUTOPOC_REQUIRED_STATUS_CHECKS_JSON
+  },
   "enforce_admins": true,
   "required_pull_request_reviews": {
-    "dismiss_stale_reviews": false,
+    "dismiss_stale_reviews": true,
     "require_code_owner_reviews": false,
     "required_approving_review_count": 1,
-    "require_last_push_approval": false
+    "require_last_push_approval": true
   },
   "restrictions": null,
   "required_linear_history": false,

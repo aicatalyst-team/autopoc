@@ -173,14 +173,21 @@ class TestSkillContentQuality:
         content = (SKILLS_DIR / "run-poc" / "references" / "github-repository.md").read_text(
             encoding="utf-8"
         )
-        assert "branches/$GITHUB_DEFAULT_BRANCH/protection" in content
+        assert "branches/$GITHUB_DEFAULT_BRANCH_PATH/protection" in content
+        assert 'GITHUB_DEFAULT_BRANCH_PATH="${GITHUB_DEFAULT_BRANCH//\\//%2F}"' in content
+        assert "AUTOPOC_REQUIRED_STATUS_CHECKS_JSON" in content
         assert '"required_pull_request_reviews"' in content
+        assert '"dismiss_stale_reviews": true' in content
+        assert '"require_last_push_approval": true' in content
+        assert '"required_status_checks": {' in content
         assert '"allow_force_pushes": false' in content
         assert '"allow_deletions": false' in content
 
     def test_github_writes_use_dedicated_branch(self) -> None:
         content = (SKILLS_DIR / "run-poc" / "SKILL.md").read_text(encoding="utf-8")
         assert 'git push origin "$AUTOPOC_BRANCH" --force' in content
+        assert 'GITHUB_DEFAULT_BRANCH_PATH="${GITHUB_DEFAULT_BRANCH//\\//%2F}"' in content
+        assert "AUTOPOC_REQUIRED_STATUS_CHECKS_JSON" in content
         assert "references/github-repository.md" in content
         github_section = content.split("2. **If `AUTOPOC_FORK_TARGET` is `github`", 1)[1].split(
             "3. **If `AUTOPOC_FORK_TARGET` is `gitlab`", 1
