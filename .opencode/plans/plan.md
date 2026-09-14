@@ -134,3 +134,22 @@ Implement comprehensive cleanup functionality to address resource accumulation a
 | Validate integration with run-poc skill | ✅ Done |
 | Run import and config validation tests | ✅ Done |
 | Code quality checks (ruff lint/format) | ✅ Done |
+
+# GitHub Repository Safety
+
+## Phase 1: GitHub Repository Safety ✅
+
+| Task | Status |
+|------|--------|
+| Protect the detected GitHub default branch after fork or repository creation | ✅ Done |
+| Route GitHub pipeline commits to the dedicated `autopoc` branch | ✅ Done |
+| Preserve `autopoc-artifacts` for generated PoC artifacts | ✅ Done |
+| Add skill validation tests for branch protection and safe pushes | ✅ Done |
+
+## PR #57 Review Follow-up ✅
+
+| Task | Status |
+|------|--------|
+| URL-encode branch names in GitHub protection API paths | ✅ Done |
+| Require status checks and invalidate stale approvals | ✅ Done |
+| Add regression coverage for the hardened policy | ✅ Done |

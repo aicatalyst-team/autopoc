@@ -38,6 +38,11 @@ Automated Proof-of-Concept pipeline for deploying GitHub projects on OpenShift A
    mkdir -p "$WORK_DIR/repos"
    ```
 
+4. **Read the GitHub repository safety policy** before Phase 3:
+   `references/github-repository.md`. It applies to every GitHub fork or fresh
+   repository creation and defines the protected default branch plus the
+   `autopoc` write branch.
+
 ## Pipeline Overview
 
 ```
@@ -161,6 +166,53 @@ Evaluation written (or skipped on failure). Pipeline continues regardless.
 
    **Step 2b: Handle existing repository**
    ```bash
+   # Recompute this in the same shell as the branch-protection and push logic.
+   EXISTING_REPO=$(gh repo view "$GITHUB_ORG/$PROJECT_NAME" --json name,description 2>/dev/null || echo "")
+
+   protect_github_default_branch() {
+     GITHUB_OWNER="${GITHUB_ORG:-$(gh api user --jq '.login')}"
+     GITHUB_REPO="$GITHUB_OWNER/$PROJECT_NAME"
+     GITHUB_DEFAULT_BRANCH=$(gh api "/repos/$GITHUB_REPO" --jq '.default_branch')
+     GITHUB_DEFAULT_BRANCH_PATH="${GITHUB_DEFAULT_BRANCH//\//%2F}"
+     : "${AUTOPOC_REQUIRED_STATUS_CHECKS_JSON:?Set AUTOPOC_REQUIRED_STATUS_CHECKS_JSON to a non-empty JSON array of required check names}"
+     if ! python -c 'import json, sys; checks = json.loads(sys.argv[1]); assert isinstance(checks, list) and checks and all(isinstance(check, str) and check for check in checks)' "$AUTOPOC_REQUIRED_STATUS_CHECKS_JSON"; then
+       echo "ERROR: AUTOPOC_REQUIRED_STATUS_CHECKS_JSON must be a non-empty JSON array of check names"
+       exit 1
+     fi
+     echo "Protecting GitHub default branch: $GITHUB_REPO:$GITHUB_DEFAULT_BRANCH"
+
+     if ! gh api \
+       --method PUT \
+       -H "Accept: application/vnd.github+json" \
+       -H "X-GitHub-Api-Version: 2022-11-28" \
+       "/repos/$GITHUB_REPO/branches/$GITHUB_DEFAULT_BRANCH_PATH/protection" \
+       --input - <<JSON
+{
+     "required_status_checks": {
+       "strict": true,
+       "contexts": $AUTOPOC_REQUIRED_STATUS_CHECKS_JSON
+     },
+     "enforce_admins": true,
+     "required_pull_request_reviews": {
+       "dismiss_stale_reviews": true,
+       "require_code_owner_reviews": false,
+       "required_approving_review_count": 1,
+       "require_last_push_approval": true
+     },
+     "restrictions": null,
+     "required_linear_history": false,
+     "allow_force_pushes": false,
+     "allow_deletions": false,
+     "block_creations": false,
+     "required_conversation_resolution": false
+   }
+   JSON
+     then
+       echo "ERROR: Could not protect $GITHUB_REPO:$GITHUB_DEFAULT_BRANCH"
+       exit 1
+     fi
+   }
+
    if [ -n "$EXISTING_REPO" ]; then
      echo "Repository $GITHUB_ORG/$PROJECT_NAME already exists"
      
@@ -179,7 +231,11 @@ Evaluation written (or skipped on failure). Pipeline continues regardless.
        git remote rename origin upstream 2>/dev/null || true
        git remote add origin "https://${GITHUB_TOKEN}@github.com/${GITHUB_ORG}/${PROJECT_NAME}.git" \
          2>/dev/null || git remote set-url origin "https://${GITHUB_TOKEN}@github.com/${GITHUB_ORG}/${PROJECT_NAME}.git"
-       git push origin --all --force
+       # Protect the default branch before pushing any AutoPoC changes.
+       protect_github_default_branch
+       AUTOPOC_BRANCH="${AUTOPOC_BRANCH:-autopoc}"
+       git checkout -B "$AUTOPOC_BRANCH"
+       git push origin "$AUTOPOC_BRANCH" --force
        git push origin --tags --force
        echo "Force-sync completed"
      else
@@ -196,12 +252,17 @@ Evaluation written (or skipped on failure). Pipeline continues regardless.
      AUTOPOC_TOPICS='["autopoc", "poc", "automated-deployment", "openshift"]'
      echo "Setting AutoPoC topics on $GITHUB_ORG/$PROJECT_NAME..."
      gh api "/repos/$GITHUB_ORG/$PROJECT_NAME/topics" --method PUT --raw-field names="$AUTOPOC_TOPICS" || echo "Warning: Failed to set topics"
+
+     # Protect the default branch before pushing any AutoPoC changes.
+     protect_github_default_branch
      
      # Configure remotes
      cd "$WORK_DIR/repos/$PROJECT_NAME"
      git remote rename origin upstream 2>/dev/null || true
      git remote add origin "https://${GITHUB_TOKEN}@github.com/${GITHUB_ORG}/${PROJECT_NAME}.git"
-     git push origin --all --force
+     AUTOPOC_BRANCH="${AUTOPOC_BRANCH:-autopoc}"
+     git checkout -B "$AUTOPOC_BRANCH"
+     git push origin "$AUTOPOC_BRANCH" --force
      git push origin --tags --force
      echo "New AutoPoC fork created and tagged"
    fi
@@ -226,7 +287,7 @@ Evaluation written (or skipped on failure). Pipeline continues regardless.
    git push origin --tags --force
    ```
 
-4. Update `poc-state.yaml` with fork URL and target.
+4. Update `poc-state.yaml` with fork URL, target, and `autopoc` write branch.
 
 ### Exit condition
 Fork URL recorded in state.
@@ -350,9 +411,17 @@ PoC plan written with at least one scenario defined.
 4. Commit and push:
    ```bash
    cd "$WORK_DIR/repos/$PROJECT_NAME"
+   if [ "${AUTOPOC_FORK_TARGET:-github}" = "github" ]; then
+     AUTOPOC_BRANCH="${AUTOPOC_BRANCH:-autopoc}"
+     git checkout "$AUTOPOC_BRANCH"
+   fi
    git add -A
    git commit -m "Add UBI Dockerfiles for PoC"
-   git push origin HEAD --force
+   if [ "${AUTOPOC_FORK_TARGET:-github}" = "github" ]; then
+     git push origin "$AUTOPOC_BRANCH" --force
+   else
+     git push origin HEAD --force
+   fi
    ```
 
 5. Update `poc-state.yaml` with Dockerfile paths.
@@ -527,9 +596,17 @@ All component images built and pushed successfully.
 4. Commit and push manifests:
    ```bash
    cd "$WORK_DIR/repos/$PROJECT_NAME"
+   if [ "${AUTOPOC_FORK_TARGET:-github}" = "github" ]; then
+     AUTOPOC_BRANCH="${AUTOPOC_BRANCH:-autopoc}"
+     git checkout "$AUTOPOC_BRANCH"
+   fi
    git add kubernetes/
    git commit -m "Add Kubernetes manifests"
-   git push origin HEAD --force
+   if [ "${AUTOPOC_FORK_TARGET:-github}" = "github" ]; then
+     git push origin "$AUTOPOC_BRANCH" --force
+   else
+     git push origin HEAD --force
+   fi
    ```
 
 5. If this is a **retry entry** (apply error from state), read the previous error and fix the manifests accordingly.
