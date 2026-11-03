@@ -19,7 +19,7 @@ import uuid
 from pathlib import Path
 
 from autopoc.artifacts import _git, _identifier, publish_artifacts
-from autopoc.executive_inputs import MAX_BYTES, verify_inputs
+from autopoc.executive_inputs import CURRENT_TEMPLATE_VERSION, MAX_BYTES, verify_inputs
 
 ARTIFACTS = {
     "source": "executable-source.zip",
@@ -695,6 +695,7 @@ def register_cluster_commands(subparsers) -> None:
                 args.output_dir,
                 renderer_image=args.renderer_image,
                 scenes_path=args.scenes,
+                template_version=args.template_version,
             )
             result = {
                 "inputs_path": str(path),
@@ -752,6 +753,13 @@ def register_cluster_commands(subparsers) -> None:
         seal.add_argument(f"--{name}", type=Path, required=True)
     seal.add_argument("--renderer-image", required=True)
     seal.add_argument("--scenes", type=Path)
+    seal.add_argument(
+        "--template-version",
+        type=int,
+        choices=(1, CURRENT_TEMPLATE_VERSION),
+        default=CURRENT_TEMPLATE_VERSION,
+        help="Presentation template revision; use 1 only with the original renderer digest",
+    )
     seal.set_defaults(func=command)
     for name in ("executive-status", "executive-recover", "executive-reconcile"):
         parser = subparsers.add_parser(

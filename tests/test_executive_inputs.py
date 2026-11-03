@@ -61,6 +61,7 @@ def test_sealed_inputs_recover_after_original_workspace_is_deleted(tmp_path):
     result = verify_inputs(package)
     assert result["run_id"] == "run-1"
     assert result["narrative"]["results"]["pass"] == 1
+    assert result["versions"]["template"] == 2
     with zipfile.ZipFile(package) as archive:
         assert set(archive.namelist()) == {
             "index.json",
@@ -70,6 +71,34 @@ def test_sealed_inputs_recover_after_original_workspace_is_deleted(tmp_path):
             "scenes.json",
             "versions.json",
         }
+
+
+@pytest.mark.parametrize("version", [1, 2])
+def test_explicit_template_revision_survives_verification(tmp_path, version):
+    evidence, narrative, review = inputs(tmp_path)
+    package = seal_inputs(
+        evidence,
+        narrative,
+        review,
+        tmp_path / "sealed",
+        renderer_image="quay.io/org/image@sha256:" + "b" * 64,
+        template_version=version,
+    )
+    assert verify_inputs(package)["versions"]["template"] == version
+
+
+@pytest.mark.parametrize("version", [0, 3, True, "2"])
+def test_unknown_template_revision_cannot_be_sealed(tmp_path, version):
+    evidence, narrative, review = inputs(tmp_path)
+    with pytest.raises(ValueError, match="version"):
+        seal_inputs(
+            evidence,
+            narrative,
+            review,
+            tmp_path / "sealed",
+            renderer_image="quay.io/org/image@sha256:" + "b" * 64,
+            template_version=version,
+        )
 
 
 @pytest.mark.parametrize("change", ["review", "counts", "citation", "secret"])

@@ -255,6 +255,7 @@ local only while the production service-account credential is repaired.
 | Save required branding components and the template in the repository | ✅ Nine official font files, corporate/hat SVGs, licenses/authors and hash/source manifest under renderer/assets/redhat; byte-identical reference PDF under docs/branding; assets verified |
 | Approve visual direction and prepare implementation | ✅ User approved design and implementation; ordered implementation plan saved |
 | Implement branded layouts, local assets, diagram theme and versioned packaging | Pending |
+| Bind revision 2 and preserve legacy recovery/source assets | ✅ 35 affected Python tests passed; default v2 sealing, explicit v1 verification and source packaging implemented |
 | Validate PDF/video layouts, offline assets, recovery compatibility and restricted OCP rendering | Pending |
 
 Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-red-hat-presentation-branding-design.md).

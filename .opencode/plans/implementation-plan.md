@@ -442,5 +442,10 @@ recommendations are not execution instructions.
 ### 8.4 Implement branding and compatible packaging — Pending
 - Bundle official assets/fonts with provenance, implement the shared slide shell and diagram palette, and bind template revision 2 through sealing, rendering and source/recovery packaging while preserving revision-1 recovery.
 
+#### 8.4.1 Bind template revision and local source packaging — ✅ 3 November 2026
+- New seals default to revision 2; revision-1 verification/recovery remains supported, with explicit legacy sealing for the original pinned image. The new wrapper rejects fresh v1 rendering and preserves matching complete legacy output reuse.
+- Forwarded sealed versions to Node and source/recovery metadata. Added allowlisted local assets/public files and renderer helpers to editable archives.
+- Watched the new boundary/archive tests fail, then pass: 35 affected Python tests passed. Layout, Node validation and visual acceptance remain in progress.
+
 ### 8.5 Verify and roll out branded artifacts — Pending
 - Verify representative successful/failed fixtures, every PDF page and video frames, offline assets, meaningful compatibility/overflow tests, the supported checks and a restricted OpenShift render before updating deployment configuration.

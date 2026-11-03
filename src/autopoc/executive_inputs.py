@@ -16,6 +16,7 @@ from autopoc.evidence import verify_bundle
 MAX_BYTES = 24 * 1024 * 1024
 MEMBERS = {"evidence.zip", "narrative.json", "review.json", "scenes.json", "versions.json"}
 TOPICS = ("purpose", "testing_strategy", "test_execution", "platform_suitability")
+CURRENT_TEMPLATE_VERSION = 2
 
 
 def _hash(data: bytes) -> str:
@@ -48,7 +49,12 @@ def _validate(data: dict[str, bytes]) -> dict:
 
     narrative, review = _json(data["narrative.json"]), _json(data["review.json"])
     scenes, versions = _json(data["scenes.json"]), _json(data["versions.json"])
-    if versions.get("schema") != 1 or versions.get("policy") != 1 or versions.get("template") != 1:
+    if (
+        versions.get("schema") != 1
+        or versions.get("policy") != 1
+        or type(versions.get("template")) is not int
+        or versions["template"] not in (1, CURRENT_TEMPLATE_VERSION)
+    ):
         raise ValueError("Unsupported render-input version")
     if not re.fullmatch(r"[A-Za-z0-9./:_-]+@sha256:[0-9a-f]{64}", versions.get("image", "")):
         raise ValueError("Renderer image must be pinned by digest")
@@ -147,6 +153,7 @@ def seal_inputs(
     *,
     renderer_image: str,
     scenes_path: Path | None = None,
+    template_version: int = CURRENT_TEMPLATE_VERSION,
 ) -> Path:
     """Write an immutable input ZIP after validating report, totals and review."""
     paths = {
@@ -164,7 +171,7 @@ def seal_inputs(
     data = {name: path.read_bytes() for name, path in paths.items()}
     data.setdefault("scenes.json", _dump({"durations": [20] * 6}))
     data["versions.json"] = _dump(
-        {"schema": 1, "policy": 1, "template": 1, "image": renderer_image}
+        {"schema": 1, "policy": 1, "template": template_version, "image": renderer_image}
     )
     validated = _validate(data)
     index = {

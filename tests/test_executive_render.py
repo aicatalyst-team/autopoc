@@ -40,12 +40,21 @@ def engine(monkeypatch, tmp_path):
         assert command[:2] == ["node", str(root / "render.mjs")]
         assert 0 < kwargs["timeout"] <= 600
         data, output = map(Path, command[2:])
-        assert sorted(p.name for p in data.iterdir()) == ["narrative.json", "scenes.json"]
+        assert sorted(p.name for p in data.iterdir()) == [
+            "narrative.json",
+            "scenes.json",
+            "versions.json",
+        ]
+        assert json.loads((data / "versions.json").read_text())["template"] == 2
         assert data.stat().st_mode & 0o077 == 0
         source = output / "source"
         (source / "dist").mkdir(parents=True)
         (source / "components").mkdir()
         (source / "components" / "ExecutiveSlide.vue").write_text("trusted component")
+        for name in ("assets/redhat", "public/brand"):
+            (source / name).mkdir(parents=True)
+            (source / name / "font.woff2").write_bytes(b"local font")
+            (source / name / "OFL.txt").write_text("font license")
         (source / "slides.md").write_text("<ExecutiveSlide />")
         (source / "package-lock.json").write_text("{}")
         (source / "dist" / "index.html").write_text("<html>static presentation</html>")
@@ -96,6 +105,11 @@ def test_packages_recovery_hashes_summary_and_reuse(tmp_path, engine, monkeypatc
             "components/ExecutiveSlide.vue",
         } <= set(source.namelist())
         assert source.read("render-inputs.zip") == package.read_bytes()
+        for name in ("assets/redhat", "public/brand"):
+            assert source.read(f"{name}/font.woff2") == b"local font"
+            assert source.read(f"{name}/OFL.txt") == b"font license"
+        assert json.loads(source.read("versions.json"))["template"] == 2
+        assert json.loads(source.read("recovery.json"))["template_version"] == 2
         assert not any(
             "node_modules" in p or "capture" in p or "dist/" in p for p in source.namelist()
         )
@@ -114,6 +128,21 @@ def test_packages_recovery_hashes_summary_and_reuse(tmp_path, engine, monkeypatc
     (output / "executive-summary.pdf").write_bytes(b"tampered")
     with pytest.raises(ValueError, match="conflict|integrity"):
         executive_render.render_executive(package, output)
+
+
+def test_legacy_inputs_need_their_original_pinned_renderer(tmp_path, monkeypatch):
+    evidence, narrative, review = inputs(tmp_path)
+    legacy = seal_inputs(
+        evidence,
+        narrative,
+        review,
+        tmp_path / "sealed",
+        renderer_image="quay.io/org/legacy@sha256:" + "a" * 64,
+        template_version=1,
+    )
+    monkeypatch.setattr(executive_render, "_run_renderer", lambda *a, **k: pytest.fail("launched"))
+    with pytest.raises(ValueError, match="original.*renderer"):
+        executive_render.render_executive(legacy, tmp_path / "output")
 
 
 def test_invalid_input_and_conflicting_or_symlink_output_blocked(tmp_path, engine):

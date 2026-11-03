@@ -32,10 +32,10 @@
 
 **Interfaces:** `seal_inputs(..., template_version=2)` writes the sealed revision; `verify_inputs` accepts 1/2. The v2 wrapper rejects legacy rendering before launching Node, forwards `versions.json`, and preserves brand assets/helper modules in editable source archives.
 
-- [ ] Add tests proving default revision 2, explicit revision-1 verification, unsupported revision refusal and local legacy render refusal.
-- [ ] Watch the new tests fail; implement the version boundary and `--template-version` CLI option.
-- [ ] Add archive assertions for local brand assets, notices, helper modules and sealed version metadata; watch failures and fix allowlists.
-- [ ] Run affected Python tests; update both trackers and commit.
+- [x] Add tests proving default revision 2, explicit revision-1 verification, unsupported revision refusal and local legacy render refusal.
+- [x] Watch the new tests fail; implement the version boundary and `--template-version` CLI option.
+- [x] Add archive assertions for local brand assets, notices and sealed version metadata; watch failures and fix allowlists.
+- [x] Run affected Python tests; update both trackers and commit.
 
 ## Task 2: Branded offline slide shell and scene validation
 
@@ -62,3 +62,4 @@
 - User approved design and implementation; inline execution chosen for the tightly coupled renderer/version changes.
 - Ruling: use the existing named feature branch/workspace and preserve unrelated `opencode.json`, `.coverage` and `uv.lock`; no second worktree is needed for these sequential changes.
 - Pre-flight: Python wrapper forwards the same revision that Node validates; source allowlists must include every helper module referenced by the packaged renderer. Asset copying is shared by PDF/video/browser outputs.
+- Task 1 complete: RED showed 13 expected boundary/archive failures; GREEN passed 35 input/render/recovery tests. Complete legacy output reuse remains possible without launching the new engine; fresh legacy rendering requires its original image. Helper modules are explicitly allowlisted and will be exercised with the real Node source in Task 2.

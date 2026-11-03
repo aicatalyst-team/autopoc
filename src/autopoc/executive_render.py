@@ -13,7 +13,7 @@ import time
 import zipfile
 from pathlib import Path
 
-from autopoc.executive_inputs import MAX_BYTES, TOPICS, verify_inputs
+from autopoc.executive_inputs import CURRENT_TEMPLATE_VERSION, MAX_BYTES, TOPICS, verify_inputs
 
 TOPIC_TITLES = dict(
     zip(
@@ -173,12 +173,14 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int = 600)
         _safe_path(output_dir)
         if output_dir.exists() and any(output_dir.iterdir()):
             return _reuse(output_dir, identity)
+        if validated["versions"]["template"] != CURRENT_TEMPLATE_VERSION:
+            raise ValueError("Legacy inputs require their original pinned renderer image")
         output_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
         os.chmod(output_dir, 0o700)
         data = private / "inputs"
         data.mkdir(mode=0o700)
         with zipfile.ZipFile(sealed) as archive:
-            for name in ("narrative.json", "scenes.json"):
+            for name in ("narrative.json", "scenes.json", "versions.json"):
                 (data / name).write_bytes(archive.read(name))
             evidence_hash = _sha(archive.read("evidence.zip"))
         renderer = Path(os.environ.get("AUTOPOC_RENDERER_ROOT", "/opt/autopoc/renderer"))
@@ -200,6 +202,7 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int = 600)
             "input_sha256": identity,
             "evidence_sha256": evidence_hash,
             "renderer_image": validated["versions"]["image"],
+            "template_version": validated["versions"]["template"],
             "command": "autopoc-tools executive-render --inputs render-inputs.zip --output-dir output",
         }
         manifest = {
@@ -234,12 +237,15 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int = 600)
             _safe_path(path)
             if path.is_file():
                 source_files[name] = path.read_bytes()
-        for name in ("components", "vendor"):
+        for name in ("components", "vendor", "assets", "public"):
             source_files.update({f"{name}/{k}": v for k, v in _tree(source / name).items()})
         source_files.update(
-            {name: (data / name).read_bytes() for name in ("narrative.json", "scenes.json")}
+            {
+                name: (data / name).read_bytes()
+                for name in ("narrative.json", "scenes.json", "versions.json")
+            }
         )
-        for name in ("render.mjs", "README.md"):
+        for name in ("render.mjs", "branding.mjs", "scene-validation.mjs", "README.md"):
             path = renderer / name
             if path.is_file():
                 source_files[name] = path.read_bytes()
