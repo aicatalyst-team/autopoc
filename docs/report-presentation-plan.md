@@ -1,6 +1,36 @@
 # AutoPoC presentation session handoff and automation plan
 
-Updated: 28 October 2026.
+Updated: 3 November 2026.
+
+## Branding phase — 3 November 2026
+
+Default Red Hat branding is implemented and locally validated in
+[draft fork PR #3](https://github.com/aviavraham/autopoc/pull/3). See the
+[approved design](superpowers/specs/2026-11-03-red-hat-presentation-branding-design.md)
+and [implementation/validation ledger](superpowers/plans/2026-11-03-red-hat-presentation-branding.md).
+All fonts, corporate logos, licenses/provenance and the original template are
+committed under `renderer/assets/redhat/` and `docs/branding/`.
+
+The reviewed UBI image rendered original Omnigent evidence offline with read-only
+root, nonroot UID, 2 CPUs, 3 GiB memory and 4 GiB scratch. It produced a six-page
+PDF and silent 120-second H264 video at 1280x720/30fps in 213.81 seconds, with
+peak memory 2,504,695,808 bytes and scratch 45,614,563 bytes. Output/asset hashes, embedded PDF fonts and
+extracted source preparation were verified; every PDF page and the late
+execution/log frame were inspected. Ignored local outputs:
+`presentations/omnigent-2026-10-20/output/redhat-branding-2026-11-03/`.
+These are `generated_unpublished`, not new Drive uploads or OCP results.
+
+379 Python tests/85.62% coverage, eight Node tests, Ruff, Pyright and dependency
+audit passed. Browser checks reject oversized claims/titles/counters/diagram
+labels, missing fonts/logos and external requests. Independent review's clipping
+finding was fixed with regressions; preflight samples PDF stills, every act and
+original log state. No PoC tests were replayed.
+
+New seals use template revision 2. Revision 1 checkpoints retain their original
+renderer digest and remain recoverable. Publish and validate the new renderer
+digest in restricted OCP, then coordinate the worker/configuration rollout;
+those steps remain open. Earlier implementation/reference status below is
+historical context.
 
 Draft PR: [aviavraham/autopoc#1](https://github.com/aviavraham/autopoc/pull/1),
 from `codex/aipcc-33008-slidev-epic` to `master` in the user's fork. The user

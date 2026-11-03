@@ -285,7 +285,7 @@ recommendations are not execution instructions.
 | Phase 5: Presentation automation handoff | Documentation ✅ Done; implementation pending | Session record, repositories/tools, reproduction and staged integration roadmap documented |
 | Phase 6: Executive presentation and video scope | Core implementation merged ✅; rollout/acceptance open | Fork master merge verified 3 November; restricted OCP render and personal Drive reference passed; unattended publication, failure acceptance, model review and worker rollout remain |
 | Phase 7: Upstream security remediation | ✅ Done | User merged fork PR #2; upstream PR #66 updated to 231fc31 and all six CI jobs, including security, passed |
-| Phase 8: Default Red Hat presentation branding | Implementation ✅; acceptance in progress | Local branded browser/PDF/video diagnostics and 379 tests pass; full constrained-image reference and OCP rollout remain |
+| Phase 8: Default Red Hat presentation branding | Implementation/local acceptance ✅; OCP rollout pending | 379 Python/eight Node tests and full constrained offline UBI render passed; draft fork PR #3 ready for review; new registry publication and OCP validation remain |
 
 ## Phase 1: Ticket Definition ✅
 
@@ -422,7 +422,7 @@ recommendations are not execution instructions.
 ### 7.3 Confirm user merge and upstream security recovery — ✅ 3 November 2026
 - The user merged fork PR #2 as `231fc31`; upstream PR #66 automatically adopted that source revision. Fresh GitHub inspection confirms all six checks passed: lint, renderer tests, typecheck, security, Python tests and image build. Upstream PR #66 itself remains open.
 
-## Phase 8: Default Red Hat Presentation Branding — Implementation complete; acceptance in progress
+## Phase 8: Default Red Hat Presentation Branding — Implementation/local acceptance ✅; OCP rollout pending
 
 ### 8.1 Inspect references and define the branding phase — ✅ 3 November 2026
 - Read the supplied 107-page standard template, inspected representative title/content/color pages visually, recorded its SHA-256 and checked official Red Hat typography, color and logo standards.
@@ -452,10 +452,20 @@ recommendations are not execution instructions.
 - Verified asset inventory/hashes before deck preparation, copied assets/notices to source and browser trees, awaited fonts/logos, and added scene overflow checks before PDF/video capture. Updated the renderer image definition to package all helpers and local assets.
 - Seven Node and 25 Python input/render tests pass, including failing-first asset/version cases and a regression preventing publication of a static deck after content validation fails. Initial browser preflight and six-page PDF generation passed; full video/image/cluster acceptance follows in 8.5.
 
-### 8.5 Verify and roll out branded artifacts — Pending
+### 8.5 Verify and roll out branded artifacts — Local acceptance ✅; OCP rollout pending
 - Verify representative successful/failed fixtures, every PDF page and video frames, offline assets, meaningful compatibility/overflow tests, the supported checks and a restricted OpenShift render before updating deployment configuration.
 
 #### 8.5.1 Resolve review findings and verify local behavior — ✅ 3 November 2026
 - Independent code review found one important diagram-text clipping gap, with no critical/minor findings. Added failing browser/Node regressions, then fixed graph-region bounds and deterministic checks of PDF stills, act transitions and original log events. Expanded the scenario terminal layout without dropping evidence text.
 - All 379 Python tests pass with 85.62% coverage; eight Node tests pass. Actual browser checks cover six scenes, oversized claims/titles/counters/diagram labels, missing fonts/logos and zero external asset requests. Archived Omnigent, synthetic failure/incomplete and twelve-node fixtures rendered locally; all six Omnigent PDF pages were inspected.
 - Full two-minute rendering in the rebuilt constrained image remains in progress. OCP acceptance/publication and deployment configuration changes are not claimed.
+
+#### 8.5.2 Validate constrained UBI rendering and source recovery — ✅ 3 November 2026
+- Built reviewed image `d8e792a29858`, local digest `sha256:cf628a4323262e6ee152e7b9825f5705c8b8cac76cf9e34d5143f12eb9bc53ac`. Normal-entrypoint render passed with read-only root, no networking, UID28128/group0, 2 CPUs, 3 GiB memory and 4 GiB scratch.
+- Original reviewed Omnigent evidence produced a six-page PDF, silent120.000s H264 MP4 at1280x720/30fps, source/browser ZIPs and Markdown. Runtime213.81s; peak memory2,504,695,808 bytes; scratch45,614,563 bytes. Status is `generated_unpublished`, not deployed/published.
+- Verified all output hashes/sizes, all13 original asset hashes in both archives, embedded PDF fonts and source preparation after extraction. Inspected all six final PDF pages and the late login video frame that previously clipped its duration log.
+- Local ignored outputs: `presentations/omnigent-2026-10-20/output/redhat-branding-2026-11-03/`. No PoC replay. Registry publication, restricted OCP acceptance and coordinated worker/renderer rollout remain pending.
+
+#### 8.5.3 Publish the reviewable feature branch — ✅ 3 November 2026
+- Pushed `codex/red-hat-presentation-branding`, opened [draft fork PR #3](https://github.com/aviavraham/autopoc/pull/3) targeting fork master and attached it to this chat. GitHub reports no conflicts; no fork CI checks are reported.
+- Updated renderer/configuration/workflow docs with local assets, v2/v1 compatibility, overflow handling and rollout requirements. No default branch was merged/pushed; deployed configuration is unchanged.

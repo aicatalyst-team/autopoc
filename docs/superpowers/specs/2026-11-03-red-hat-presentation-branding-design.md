@@ -1,8 +1,8 @@
 # Red Hat presentation branding
 
 Status: approved for implementation by the user on 3 November 2026. Phase 8 of
-the executive presentation/video feature. Local assets are committed; renderer
-integration and acceptance are in progress.
+the executive presentation/video feature. Local assets, renderer integration and
+local acceptance are complete; registry publication and OCP rollout remain open.
 
 ## Intent and confirmed scope
 

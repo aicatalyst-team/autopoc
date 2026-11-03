@@ -52,10 +52,10 @@
 
 **Files:** Renderer/configuration/workflow docs, both project trackers, QA fixtures/scripts as needed.
 
-- [ ] Render archived Omnigent evidence and a failed/incomplete fixture with the new renderer; inspect all PDF pages and representative MP4 frames, source/site asset contents and offline serving.
-- [ ] Exercise long content, missing/max-size graphs and all status labels; revise layouts or report actionable failures.
-- [ ] Run full supported Python suite, Node tests, pinned Ruff and Pyright. Build/test the UBI image and restricted OCP rendering if available; record actual limitations separately from local results.
-- [ ] Obtain a fresh whole-branch review, resolve material findings with regression checks, update docs/trackers, commit and push the feature branch. Do not merge or change deployed image configuration without approval.
+- [x] Render archived Omnigent evidence and a failed/incomplete fixture; inspect PDF pages, MP4 frames, source/site assets and offline serving.
+- [x] Exercise long content, missing/max-size graphs and all status labels; revise layouts or fail clearly.
+- [x] Run the full supported checks and build/test the constrained UBI image; record OCP acceptance as pending registry publication separately from local results.
+- [x] Obtain independent review, resolve material findings with regressions, update trackers, commit and push the feature branch. No merge or deployment configuration change.
 
 ## Execution ledger
 
@@ -70,3 +70,5 @@
 - Final: suite 379/379 passed, 85.62% coverage. Real-browser acceptance passed six scenes plus oversized claims/titles/counts/diagram labels, missing fonts/images and zero external requests.
 - Final: Ruling: restricted OCP publication/rollout is separate from local code acceptance; a new registry digest must be published and validated before deployment. Existing deployment configuration remains unchanged; no cluster success is inferred from local containers.
 - Final: Ruling: unrelated opencode.json, .coverage and uv.lock remain excluded from the change, as requested by project scope.
+- Task 3 complete (local implementation acceptance): UBI image `d8e792a29858`, local digest `sha256:cf628a4323262e6ee152e7b9825f5705c8b8cac76cf9e34d5143f12eb9bc53ac`, rendered original Omnigent evidence in 213.81s, peak memory 2,504,695,808 bytes and scratch 45,614,563 bytes under 2 CPUs/3 GiB/4 GiB scratch, read-only root, no network and UID28128/group0. Six-page PDF and silent120s H264/1280x720/30fps MP4 verified. All artifact hashes and both archives' 13 brand-file hashes checked; extracted source successfully prepares another deck. OCP rollout remains open.
+- Handoff: [draft fork PR #3](https://github.com/aviavraham/autopoc/pull/3), branch `codex/red-hat-presentation-branding`; no default-branch merge or deployment configuration change.
