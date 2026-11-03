@@ -235,7 +235,7 @@ zero errors and two Node tests passed. Renderer image published to Quay by diges
 main worker rebuild/rollout remains open. Personal Google OAuth credentials are
 local only while the production service-account credential is repaired.
 
-## Phase 7: Upstream Security Remediation — Fix verified; integration pending
+## Phase 7: Upstream Security Remediation — ✅ Done
 
 | Task | Status |
 |------|--------|
@@ -243,4 +243,17 @@ local only while the production service-account credential is repaired.
 | Regenerate patched dependency pins and cryptographic hashes | ✅ certifi 2026.10.23, opentelemetry-api 1.45.2, pyasn1 0.6.5, urllib3 2.8.0; other package versions unchanged |
 | Verify the security fix in a fresh Python 3.12 environment | ✅ Clean audit, hash installation and pip check; 371 tests passed, 85.55% coverage; Ruff, Pyright and four renderer tests passed |
 | Push the fix branch and open a reviewable fork PR | ✅ [Fork PR #2](https://github.com/aviavraham/autopoc/pull/2), mergeable with no conflicts; no fork CI checks reported |
-| Update upstream PR #66 through the fork's master branch | Pending user approval to merge the fix; upstream CI has not yet rerun |
+| Update upstream PR #66 through the fork's master branch | ✅ User merged fork PR #2 as 231fc31; upstream PR #66 updated automatically; all six CI jobs passed |
+
+## Phase 8: Default Red Hat Presentation Branding — Design approval pending
+
+| Task | Status |
+|------|--------|
+| Inspect the supplied template and official brand standards | ✅ Representative pages visually inspected; template provenance recorded |
+| Confirm scope and define the branding design | ✅ User selected default branding; six-scene deck/PDF/video, assets, diagram palette and compatibility specified |
+| Independently check the design for planning gaps | ✅ Builder check found no important unanswered questions |
+| Approve visual direction and prepare implementation | Pending user approval of the written design |
+| Implement branded layouts, local assets, diagram theme and versioned packaging | Pending |
+| Validate PDF/video layouts, offline assets, recovery compatibility and restricted OCP rendering | Pending |
+
+Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-red-hat-presentation-branding-design.md).

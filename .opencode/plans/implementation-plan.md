@@ -284,7 +284,8 @@ recommendations are not execution instructions.
 | Phase 4: Sample presentation and recording feasibility | Sample complete; video work transferred | Omnigent archive and Slidev/PDF complete; executive recording belongs to Phase 6, original UI clip composition is optional later work |
 | Phase 5: Presentation automation handoff | Documentation ✅ Done; implementation pending | Session record, repositories/tools, reproduction and staged integration roadmap documented |
 | Phase 6: Executive presentation and video scope | Core implementation merged ✅; rollout/acceptance open | Fork master merge verified 3 November; restricted OCP render and personal Drive reference passed; unattended publication, failure acceptance, model review and worker rollout remain |
-| Phase 7: Upstream security remediation | Dependency fix verified ✅; integration pending | Four vulnerable transitive pins regenerated; clean audit and 371 Python tests passed; fork-master merge requires user approval |
+| Phase 7: Upstream security remediation | ✅ Done | User merged fork PR #2; upstream PR #66 updated to 231fc31 and all six CI jobs, including security, passed |
+| Phase 8: Default Red Hat presentation branding | Definition/review ✅; design approval pending | Supplied template inspected, default branding confirmed, written design checked independently; implementation not started |
 
 ## Phase 1: Ticket Definition ✅
 
@@ -406,7 +407,7 @@ recommendations are not execution instructions.
 - [PR CI run 41645246344](https://github.com/aicatalyst-team/autopoc/actions/runs/41645246344): lint, renderer tests, typecheck, Python tests and worker image build passed. Security failed: pip-audit reports 10 findings across certifi, opentelemetry-api, pyasn1 and urllib3 (the certifi advisory appears twice).
 - [Upstream master CI run 41590181862](https://github.com/aicatalyst-team/autopoc/actions/runs/41590181862) has the same audit findings; its other CI jobs passed. These dependency findings therefore also exist before the executive feature is merged. No dependency changes, PR comments, pushes or merges were made during this check.
 
-## Phase 7: Upstream Security Remediation — Fix verified; integration pending
+## Phase 7: Upstream Security Remediation — ✅ Done
 
 ### 7.1 Fix and verify vulnerable dependency pins — ✅ 3 November 2026
 - Reproduced PR #66's security failure locally: the pinned lock produced the same 10 reported findings across four transitive dependencies.
@@ -417,3 +418,23 @@ recommendations are not execution instructions.
 ### 7.2 Publish the reviewable security fix — ✅ 3 November 2026
 - Pushed only `codex/fix-upstream-security` and opened [fork PR #2](https://github.com/aviavraham/autopoc/pull/2), targeting the fork's `master`. GitHub reports it mergeable with no conflicts; no fork CI checks are currently reported.
 - Attached fork PR #2 and upstream PR #66 to this chat. Neither default branch was pushed or merged; applying the fix to upstream PR #66 remains pending user merge approval.
+
+### 7.3 Confirm user merge and upstream security recovery — ✅ 3 November 2026
+- The user merged fork PR #2 as `231fc31`; upstream PR #66 automatically adopted that source revision. Fresh GitHub inspection confirms all six checks passed: lint, renderer tests, typecheck, security, Python tests and image build. Upstream PR #66 itself remains open.
+
+## Phase 8: Default Red Hat Presentation Branding — Design approval pending
+
+### 8.1 Inspect references and define the branding phase — ✅ 3 November 2026
+- Read the supplied 107-page standard template, inspected representative title/content/color pages visually, recorded its SHA-256 and checked official Red Hat typography, color and logo standards.
+- User confirmed Red Hat branding must be the default for newly generated presentations, PDFs and videos. Proposed a red opening scene and light content theme, local fonts/corporate assets, branded TopoLoop status colors and consistent source/browser/PDF/video outputs.
+- Added [the branding design](../../docs/superpowers/specs/2026-11-03-red-hat-presentation-branding-design.md), including factual-content preservation, six-scene timing, legacy input/recovery compatibility, packaging, visual QA and rollout acceptance. An independent builder check reported no important unanswered questions.
+- Created `codex/red-hat-presentation-branding` from merged fork master `231fc31`. Unrelated local files remain excluded. No renderer implementation or deployment is claimed.
+
+### 8.2 Approve the visual design and prepare implementation — Pending
+- Review the proposed light content/red opening direction and approve the written design before implementation planning, as required by the brainstorming workflow.
+
+### 8.3 Implement branding and compatible packaging — Pending
+- Bundle official assets/fonts with provenance, implement the shared slide shell and diagram palette, and bind template revision 2 through sealing, rendering and source/recovery packaging while preserving revision-1 recovery.
+
+### 8.4 Verify and roll out branded artifacts — Pending
+- Verify representative successful/failed fixtures, every PDF page and video frames, offline assets, meaningful compatibility/overflow tests, the supported checks and a restricted OpenShift render before updating deployment configuration.
