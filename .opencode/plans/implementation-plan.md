@@ -413,3 +413,7 @@ recommendations are not execution instructions.
 - Regenerated `requirements.lock` with pip-compile and SHA-256 hashes under Python 3.12, selectively updating certifi to 2026.10.23, opentelemetry-api to 1.45.2, pyasn1 to 0.6.5 and urllib3 to 2.8.0. All other package versions are unchanged; no new runtime dependencies were declared.
 - Verified a fresh Python 3.12 environment: hash-checked installation succeeded, pip-audit reports no known vulnerabilities, pip check passed, 371 tests passed with 85.55% coverage, pinned Ruff passed, Pyright reported zero errors/warnings, and all four renderer tests passed.
 - Prepared on `codex/fix-upstream-security`. Upstream PR #66 tracks the user's fork `master`; merging this fix into that branch requires user approval. The upstream PR's existing CI result remains failed until its source is updated and CI reruns.
+
+### 7.2 Publish the reviewable security fix — ✅ 3 November 2026
+- Pushed only `codex/fix-upstream-security` and opened [fork PR #2](https://github.com/aviavraham/autopoc/pull/2), targeting the fork's `master`. GitHub reports it mergeable with no conflicts; no fork CI checks are currently reported.
+- Attached fork PR #2 and upstream PR #66 to this chat. Neither default branch was pushed or merged; applying the fix to upstream PR #66 remains pending user merge approval.
