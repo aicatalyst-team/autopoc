@@ -283,7 +283,8 @@ recommendations are not execution instructions.
 | Phase 3: Headless presentation and UI evidence requirements | ✅ Done | Documented the requested headless step and proposed capture/evidence flow; implementation choices remain under evaluation |
 | Phase 4: Sample presentation and recording feasibility | Sample complete; video work transferred | Omnigent archive and Slidev/PDF complete; executive recording belongs to Phase 6, original UI clip composition is optional later work |
 | Phase 5: Presentation automation handoff | Documentation ✅ Done; implementation pending | Session record, repositories/tools, reproduction and staged integration roadmap documented |
-| Phase 6: Executive presentation and video scope | Core implementation ✅; rollout/acceptance open | Evidence, renderer, publication/recovery implemented; personal Drive reference validation underway; OCP and worker rollout remain |
+| Phase 6: Executive presentation and video scope | Core implementation merged ✅; rollout/acceptance open | Fork master merge verified 3 November; restricted OCP render and personal Drive reference passed; unattended publication, failure acceptance, model review and worker rollout remain |
+| Phase 7: Upstream security remediation | Dependency fix verified ✅; integration pending | Four vulnerable transitive pins regenerated; clean audit and 371 Python tests passed; fork-master merge requires user approval |
 
 ## Phase 1: Ticket Definition ✅
 
@@ -392,3 +393,27 @@ recommendations are not execution instructions.
 - Pushed `codex/aipcc-33008-slidev-epic` to the `aavraham` remote, `aviavraham/autopoc`, at the user's request.
 - Opened [draft PR #1](https://github.com/aviavraham/autopoc/pull/1) against that fork's `master`; GitHub reports it mergeable. The description records actual validation and remaining rollout/acceptance work.
 - Attached the PR to this task. Unrelated `opencode.json` remains uncommitted and excluded. No merge or default-branch push was performed.
+
+### 6.10 Review project state after the user's merge — ✅ 3 November 2026
+- Confirmed the user's fork `master` points to merge commit `6b564e5` for PR #1. The current upstream `aicatalyst-team/autopoc` master is `3f266c7` and does not contain this feature.
+- Read the merged implementation, workflow/configuration references, handoff and active plans. Phase 6 rollout/acceptance remains open: production service-account repair, unattended publication, forced resource/admission failures, model-service narrative review and main-worker build/rollout.
+- Fresh scoped verification: 169 Python tests passed across artifacts, capture, evidence, executive tools, Drive and skill validation; all four Node renderer tests passed. This review did not run a new render, cluster acceptance or full coverage suite.
+- Existing `opencode.json`, `.coverage` and `uv.lock` changes remain excluded. Historical draft-PR and implementation-pending wording above describes earlier milestones; this entry records the verified post-merge state.
+
+### 6.11 Check upstream integration and CI — ✅ 3 November 2026
+- Refetched upstream `master`, still `3f266c7`. The feature is proposed through open, non-draft [upstream PR #66](https://github.com/aicatalyst-team/autopoc/pull/66), from `aviavraham:master` at `6b564e5` to upstream `master`.
+- GitHub reports no merge conflicts (`MERGEABLE`), but merging is blocked and approval is required (`REVIEW_REQUIRED`); there are no submitted reviews.
+- [PR CI run 41645246344](https://github.com/aicatalyst-team/autopoc/actions/runs/41645246344): lint, renderer tests, typecheck, Python tests and worker image build passed. Security failed: pip-audit reports 10 findings across certifi, opentelemetry-api, pyasn1 and urllib3 (the certifi advisory appears twice).
+- [Upstream master CI run 41590181862](https://github.com/aicatalyst-team/autopoc/actions/runs/41590181862) has the same audit findings; its other CI jobs passed. These dependency findings therefore also exist before the executive feature is merged. No dependency changes, PR comments, pushes or merges were made during this check.
+
+## Phase 7: Upstream Security Remediation — Fix verified; integration pending
+
+### 7.1 Fix and verify vulnerable dependency pins — ✅ 3 November 2026
+- Reproduced PR #66's security failure locally: the pinned lock produced the same 10 reported findings across four transitive dependencies.
+- Regenerated `requirements.lock` with pip-compile and SHA-256 hashes under Python 3.12, selectively updating certifi to 2026.10.23, opentelemetry-api to 1.45.2, pyasn1 to 0.6.5 and urllib3 to 2.8.0. All other package versions are unchanged; no new runtime dependencies were declared.
+- Verified a fresh Python 3.12 environment: hash-checked installation succeeded, pip-audit reports no known vulnerabilities, pip check passed, 371 tests passed with 85.55% coverage, pinned Ruff passed, Pyright reported zero errors/warnings, and all four renderer tests passed.
+- Prepared on `codex/fix-upstream-security`. Upstream PR #66 tracks the user's fork `master`; merging this fix into that branch requires user approval. The upstream PR's existing CI result remains failed until its source is updated and CI reruns.
+
+### 7.2 Publish the reviewable security fix — ✅ 3 November 2026
+- Pushed only `codex/fix-upstream-security` and opened [fork PR #2](https://github.com/aviavraham/autopoc/pull/2), targeting the fork's `master`. GitHub reports it mergeable with no conflicts; no fork CI checks are currently reported.
+- Attached fork PR #2 and upstream PR #66 to this chat. Neither default branch was pushed or merged; applying the fix to upstream PR #66 remains pending user merge approval.

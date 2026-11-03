@@ -221,8 +221,26 @@ records the presentation and does not depend on original UI clips.
 | Correct PR-readiness test race and sample license whitespace | ✅ 28 October — 366 supported tests passed; committed caac1e3 |
 | Verify a restricted OCP reference through the published image entrypoint | ✅ 28 October — six-page PDF, silent120sMP4, all output hashes verified; 178.895s, peak1,841,668,096 bytes |
 | Push the feature branch and open a draft PR in the user's fork | ✅ [aviavraham/autopoc#1](https://github.com/aviavraham/autopoc/pull/1), targeting fork master |
+| Review the merged project state | ✅ 3 November — fork master contains merge `6b564e5`; upstream master `3f266c7` does not contain the feature; 169 scoped Python tests and four Node tests passed |
+| Check upstream integration and CI | ✅ 3 November — [PR #66](https://github.com/aicatalyst-team/autopoc/pull/66) open with no merge conflicts; approval required; five CI jobs passed, security audit failed with the same 10 reported findings across four packages as upstream master |
+
+Phase status as of 3 November: core implementation merged into the user's fork;
+rollout/acceptance remains open. Repair production Google service credentials,
+validate unattended publication, resource/admission failures and model-service
+narrative review, then build and roll out the main worker. Earlier pending and
+draft-PR rows describe historical milestones.
 
 Verification: 366 supported tests, 83.48% coverage, pinned Ruff clean, Pyright
 zero errors and two Node tests passed. Renderer image published to Quay by digest;
 main worker rebuild/rollout remains open. Personal Google OAuth credentials are
 local only while the production service-account credential is repaired.
+
+## Phase 7: Upstream Security Remediation — Fix verified; integration pending
+
+| Task | Status |
+|------|--------|
+| Reproduce the upstream PR dependency audit failure | ✅ Same 10 reported findings across four transitive dependencies reproduced locally |
+| Regenerate patched dependency pins and cryptographic hashes | ✅ certifi 2026.10.23, opentelemetry-api 1.45.2, pyasn1 0.6.5, urllib3 2.8.0; other package versions unchanged |
+| Verify the security fix in a fresh Python 3.12 environment | ✅ Clean audit, hash installation and pip check; 371 tests passed, 85.55% coverage; Ruff, Pyright and four renderer tests passed |
+| Push the fix branch and open a reviewable fork PR | ✅ [Fork PR #2](https://github.com/aviavraham/autopoc/pull/2), mergeable with no conflicts; no fork CI checks reported |
+| Update upstream PR #66 through the fork's master branch | Pending user approval to merge the fix; upstream CI has not yet rerun |
