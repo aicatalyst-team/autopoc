@@ -285,7 +285,7 @@ recommendations are not execution instructions.
 | Phase 5: Presentation automation handoff | Documentation ✅ Done; implementation pending | Session record, repositories/tools, reproduction and staged integration roadmap documented |
 | Phase 6: Executive presentation and video scope | Core implementation merged ✅; rollout/acceptance open | Fork master merge verified 3 November; restricted OCP render and personal Drive reference passed; unattended publication, failure acceptance, model review and worker rollout remain |
 | Phase 7: Upstream security remediation | ✅ Done | User merged fork PR #2; upstream PR #66 updated to 231fc31 and all six CI jobs, including security, passed |
-| Phase 8: Default Red Hat presentation branding | Definition/review ✅; design approval pending | Supplied template inspected, default branding confirmed, written design checked independently; implementation not started |
+| Phase 8: Default Red Hat presentation branding | Definition/assets ✅; design approval pending | Template, official logos and nine font files saved in the repository with provenance/checksums; renderer layout integration pending |
 
 ## Phase 1: Ticket Definition ✅
 
@@ -430,11 +430,17 @@ recommendations are not execution instructions.
 - Added [the branding design](../../docs/superpowers/specs/2026-11-03-red-hat-presentation-branding-design.md), including factual-content preservation, six-scene timing, legacy input/recovery compatibility, packaging, visual QA and rollout acceptance. An independent builder check reported no important unanswered questions.
 - Created `codex/red-hat-presentation-branding` from merged fork master `231fc31`. Unrelated local files remain excluded. No renderer implementation or deployment is claimed.
 
-### 8.2 Approve the visual design and prepare implementation — Pending
+### 8.2 Save all required branding resources in the repository — ✅ 3 November 2026
+- User explicitly required local repository copies of every needed branding component. Saved nine official WOFF2 font files (Display/Text/Mono, Regular/Medium/Bold), unmodified official corporate/hat SVGs, upstream font license/authorship notices and a per-file source/hash/size manifest under `renderer/assets/redhat/`.
+- Fonts are pinned to RedHatOfficial/RedHatFont commit `6bb1048a6402b0076ea04f42951ec66263cd1437`. Saved the supplied 107-page PDF unchanged under `docs/branding/` and documented its provenance; it is a design reference, not a runtime background.
+- Verified all 13 upstream-file hashes/sizes, WOFF2 headers and font families, self-contained SVG structure and both logo previews. The reference PDF matches its original size and SHA-256. No dependency or renderer-behavior changes were made; future source/site packaging must include required local assets and licenses.
+- Updated the design to require all later-added artwork, fonts, components and styling to live in the repository, without runtime CDN or operator-local-file dependencies.
+
+### 8.3 Approve the visual design and prepare implementation — Pending
 - Review the proposed light content/red opening direction and approve the written design before implementation planning, as required by the brainstorming workflow.
 
-### 8.3 Implement branding and compatible packaging — Pending
+### 8.4 Implement branding and compatible packaging — Pending
 - Bundle official assets/fonts with provenance, implement the shared slide shell and diagram palette, and bind template revision 2 through sealing, rendering and source/recovery packaging while preserving revision-1 recovery.
 
-### 8.4 Verify and roll out branded artifacts — Pending
+### 8.5 Verify and roll out branded artifacts — Pending
 - Verify representative successful/failed fixtures, every PDF page and video frames, offline assets, meaningful compatibility/overflow tests, the supported checks and a restricted OpenShift render before updating deployment configuration.

@@ -252,6 +252,7 @@ local only while the production service-account credential is repaired.
 | Inspect the supplied template and official brand standards | ✅ Representative pages visually inspected; template provenance recorded |
 | Confirm scope and define the branding design | ✅ User selected default branding; six-scene deck/PDF/video, assets, diagram palette and compatibility specified |
 | Independently check the design for planning gaps | ✅ Builder check found no important unanswered questions |
+| Save required branding components and the template in the repository | ✅ Nine official font files, corporate/hat SVGs, licenses/authors and hash/source manifest under renderer/assets/redhat; byte-identical reference PDF under docs/branding; assets verified |
 | Approve visual direction and prepare implementation | Pending user approval of the written design |
 | Implement branded layouts, local assets, diagram theme and versioned packaging | Pending |
 | Validate PDF/video layouts, offline assets, recovery compatibility and restricted OCP rendering | Pending |

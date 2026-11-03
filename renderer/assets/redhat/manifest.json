@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "retrieved_date": "2026-11-03",
+  "font_upstream_commit": "6bb1048a6402b0076ea04f42951ec66263cd1437",
+  "font_repository": "https://github.com/RedHatOfficial/RedHatFont",
+  "files": [
+    {
+      "path": "fonts/RedHatDisplay-Bold.woff2",
+      "source_url": "https://raw.githubusercontent.com/RedHatOfficial/RedHatFont/6bb1048a6402b0076ea04f42951ec66263cd1437/fonts/Proportional/RedHatDisplay/webfonts/RedHatDisplay-Bold.woff2",
+      "license": "OFL-1.1",
+      "family": "Red Hat Display",
+      "weight": 700,
+      "style": "normal",
+      "sha256": "a28973642bc0dc1404138a6b32031b5f1bbc131d1b5a92a0214d16cfe8091793",
+      "size": 33292
+    },
+    {
+      "path": "fonts/RedHatDisplay-Medium.woff2",
+      "source_url": "https://raw.githubusercontent.com/RedHatOfficial/RedHatFont/6bb1048a6402b0076ea04f42951ec66263cd1437/fonts/Proportional/RedHatDisplay/webfonts/RedHatDisplay-Medium.woff2",
+      "license": "OFL-1.1",
+      "family": "Red Hat Display",
+      "weight": 500,
+      "style": "normal",
+      "sha256": "e41c7b4752c324fe58eecd7157377c9b8e3cf0d544645dcce8fb4fcdd539277c",
+      "size": 32772
+    },
+    {
+      "path": "fonts/RedHatDisplay-Regular.woff2",
+      "source_url": "https://raw.githubusercontent.com/RedHatOfficial/RedHatFont/6bb1048a6402b0076ea04f42951ec66263cd1437/fonts/Proportional/RedHatDisplay/webfonts/RedHatDisplay-Regular.woff2",
+      "license": "OFL-1.1",
+      "family": "Red Hat Display",
+      "weight": 400,
+      "style": "normal",
+      "sha256": "715ec4f959514f335c3a7632f5258583369e55a5d27f1b2e773a4cb0f2577e30",
+      "size": 31828
+    },
+    {
+      "path": "fonts/RedHatMono-Bold.woff2",
+      "source_url": "https://raw.githubusercontent.com/RedHatOfficial/RedHatFont/6bb1048a6402b0076ea04f42951ec66263cd1437/fonts/Mono/RedHatMono/webfonts/RedHatMono-Bold.woff2",
+      "license": "OFL-1.1",
+      "family": "Red Hat Mono",
+      "weight": 700,
+      "style": "normal",
+      "sha256": "f9dd99949b4baf089b512bc37a7f9c1c0ace048b55f979e76eb51baeec15156a",
+      "size": 26352
+    },
+    {
+      "path": "fonts/RedHatMono-Medium.woff2",
+      "source_url": "https://raw.githubusercontent.com/RedHatOfficial/RedHatFont/6bb1048a6402b0076ea04f42951ec66263cd1437/fonts/Mono/RedHatMono/webfonts/RedHatMono-Medium.woff2",
+      "license": "OFL-1.1",
+      "family": "Red Hat Mono",
+      "weight": 500,
+      "style": "normal",
+      "sha256": "ab9f475ace2c1e5ed9ee31d964bbadd72dd84b6ab65e71445be80f1fe95c7a0d",
+      "size": 27052
+    },
+    {
+      "path": "fonts/RedHatMono-Regular.woff2",
+      "source_url": "https://raw.githubusercontent.com/RedHatOfficial/RedHatFont/6bb1048a6402b0076ea04f42951ec66263cd1437/fonts/Mono/RedHatMono/webfonts/RedHatMono-Regular.woff2",
+      "license": "OFL-1.1",
+      "family": "Red Hat Mono",
+      "weight": 400,
+      "style": "normal",
+      "sha256": "ece73a116239035f1912428ed5ebe2ff3fc9c7add9d8040600495fa09a8ffabc",
+      "size": 26024
+    },
+    {
+      "path": "fonts/RedHatText-Bold.woff2",
+      "source_url": "https://raw.githubusercontent.com/RedHatOfficial/RedHatFont/6bb1048a6402b0076ea04f42951ec66263cd1437/fonts/Proportional/RedHatText/webfonts/RedHatText-Bold.woff2",
+      "license": "OFL-1.1",
+      "family": "Red Hat Text",
+      "weight": 700,
+      "style": "normal",
+      "sha256": "a08ca17e5f7c2c480b6da029b5b9b2527d826419424bf39ffcb74998e3ba8393",
+      "size": 32012
+    },
+    {
+      "path": "fonts/RedHatText-Medium.woff2",
+      "source_url": "https://raw.githubusercontent.com/RedHatOfficial/RedHatFont/6bb1048a6402b0076ea04f42951ec66263cd1437/fonts/Proportional/RedHatText/webfonts/RedHatText-Medium.woff2",
+      "license": "OFL-1.1",
+      "family": "Red Hat Text",
+      "weight": 500,
+      "style": "normal",
+      "sha256": "abfc3d5ff9e975d487ec295895efdc2e5848f804d0982bee87ce0d8f55c9a3d1",
+      "size": 33084
+    },
+    {
+      "path": "fonts/RedHatText-Regular.woff2",
+      "source_url": "https://raw.githubusercontent.com/RedHatOfficial/RedHatFont/6bb1048a6402b0076ea04f42951ec66263cd1437/fonts/Proportional/RedHatText/webfonts/RedHatText-Regular.woff2",
+      "license": "OFL-1.1",
+      "family": "Red Hat Text",
+      "weight": 400,
+      "style": "normal",
+      "sha256": "8b6c947032e889935aeef9d3a987fe4760b5bb029af531f2511e5824602a550a",
+      "size": 31716
+    },
+    {
+      "path": "licenses/AUTHORS.txt",
+      "source_url": "https://raw.githubusercontent.com/RedHatOfficial/RedHatFont/6bb1048a6402b0076ea04f42951ec66263cd1437/AUTHORS.txt",
+      "license": "OFL-1.1",
+      "sha256": "c408730c36beb2487d9a642de92885a2999e73ed156f85d5f555dffe63e9ec66",
+      "size": 291
+    },
+    {
+      "path": "licenses/OFL.txt",
+      "source_url": "https://raw.githubusercontent.com/RedHatOfficial/RedHatFont/6bb1048a6402b0076ea04f42951ec66263cd1437/OFL.txt",
+      "license": "OFL-1.1",
+      "sha256": "4f1417e27511207cd217656c964f1b0d8b0c4a30156a1a699cf16dc5eba0dff6",
+      "size": 4394
+    },
+    {
+      "path": "logos/redhat-hat-standard.svg",
+      "source_url": "https://www.redhat.com/rhdc/managed-files/Logo-Red_Hat-Hat_icon-Standard-RGB.svg",
+      "license": "Red Hat trademark; see README.md",
+      "sha256": "ed137660f1aa43d4c8436a58754376b19535766f12813503d9806d54a5ee2971",
+      "size": 1010
+    },
+    {
+      "path": "logos/redhat-logo-standard.svg",
+      "source_url": "https://www.redhat.com/rhdc/managed-files/Logo-Red_Hat-A-Standard-RGB.svg",
+      "license": "Red Hat trademark; see README.md",
+      "sha256": "6208953f0b3a3475bc9cf46086aee8a2a6cc0304446e72b2b4310ce932a05591",
+      "size": 2425
+    }
+  ]
+}
