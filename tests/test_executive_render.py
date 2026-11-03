@@ -184,6 +184,23 @@ def test_video_failure_preserves_pdf_and_source(tmp_path, engine, monkeypatch):
     assert "Video generation failed" in (output / "executive-summary.md").read_text()
 
 
+def test_content_failure_does_not_publish_the_unvalidated_static_deck(
+    tmp_path, engine, monkeypatch
+):
+    def invalid(command, **kwargs):
+        engine(command, **kwargs)
+        output = Path(command[3])
+        document = json.loads((output / "presentation-manifest.json").read_text())
+        for kind in ("deck", "pdf", "video"):
+            document["artifacts"][kind]["status"] = "failed"
+        (output / "presentation-manifest.json").write_text(json.dumps(document))
+
+    monkeypatch.setattr(executive_render, "_run_renderer", invalid)
+    result = executive_render.render_executive(sealed(tmp_path), tmp_path / "output")
+    assert result["artifacts"]["deck"]["status"] == "failed"
+    assert not (tmp_path / "output/static-site.zip").exists()
+
+
 def test_cli_registration(tmp_path, engine, capsys):
     parser = argparse.ArgumentParser()
     executive_render.register_cli(parser.add_subparsers())

@@ -439,13 +439,18 @@ recommendations are not execution instructions.
 ### 8.3 Approve the visual design and prepare implementation — ✅ 3 November 2026
 - User explicitly approved the design and requested implementation. Added the ordered implementation plan with version/packaging, shared layouts and visual acceptance tasks; execution is in progress on the existing feature branch.
 
-### 8.4 Implement branding and compatible packaging — Pending
+### 8.4 Implement branding and compatible packaging — ✅ 3 November 2026; acceptance in progress
 - Bundle official assets/fonts with provenance, implement the shared slide shell and diagram palette, and bind template revision 2 through sealing, rendering and source/recovery packaging while preserving revision-1 recovery.
 
 #### 8.4.1 Bind template revision and local source packaging — ✅ 3 November 2026
 - New seals default to revision 2; revision-1 verification/recovery remains supported, with explicit legacy sealing for the original pinned image. The new wrapper rejects fresh v1 rendering and preserves matching complete legacy output reuse.
 - Forwarded sealed versions to Node and source/recovery metadata. Added allowlisted local assets/public files and renderer helpers to editable archives.
 - Watched the new boundary/archive tests fail, then pass: 35 affected Python tests passed. Layout, Node validation and visual acceptance remain in progress.
+
+#### 8.4.2 Implement the shared brand shell and offline validation — ✅ 3 November 2026
+- Implemented six branded scenes using local Display/Text/Mono fonts, a red opening, light content, unmodified corporate/hat SVGs, source references and readable footer bands. Added a renderer-owned light TopoLoop palette with orange failures and green successes; vendored source is unchanged.
+- Verified asset inventory/hashes before deck preparation, copied assets/notices to source and browser trees, awaited fonts/logos, and added scene overflow checks before PDF/video capture. Updated the renderer image definition to package all helpers and local assets.
+- Seven Node and 25 Python input/render tests pass, including failing-first asset/version cases and a regression preventing publication of a static deck after content validation fails. Initial browser preflight and six-page PDF generation passed; full video/image/cluster acceptance follows in 8.5.
 
 ### 8.5 Verify and roll out branded artifacts — Pending
 - Verify representative successful/failed fixtures, every PDF page and video frames, offline assets, meaningful compatibility/overflow tests, the supported checks and a restricted OpenShift render before updating deployment configuration.

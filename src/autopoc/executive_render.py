@@ -256,7 +256,10 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int = 600)
             "source", "executable-source.zip", (output_dir / "executable-source.zip").read_bytes()
         )
         static = _tree(source / "dist")
-        if "index.html" in static:
+        if (
+            "index.html" in static
+            and state.get("artifacts", {}).get("deck", {}).get("status") == "validated"
+        ):
             _zip(output_dir / "static-site.zip", static)
             artifact("deck", "static-site.zip", (output_dir / "static-site.zip").read_bytes())
         else:

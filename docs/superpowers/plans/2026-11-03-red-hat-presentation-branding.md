@@ -43,10 +43,10 @@
 
 **Interfaces:** `prepareDeck` validates revision 2 and hash-pinned local assets, copies them to `public/brand`, writes local font configuration and trusted components/theme. Browser checks await required faces/images and report layout overflow before publication.
 
-- [ ] Add failing Node tests for revision-2 preparation, missing/tampered assets and copied source assets; implement deterministic asset verification/copying.
-- [ ] Implement red opening, white content/conclusion, safe branded footer, local Display/Text/Mono faces, sentence case and an accessible renderer-owned TopoLoop palette.
-- [ ] Add behavioral checks for scene font/image failures and overflow, preserving existing content/video failure distinctions; make PDF export and video capture use validated content.
-- [ ] Copy assets/helper modules into the UBI image, run Node/Python checks, update both trackers and commit.
+- [x] Add failing Node tests for revision-2 preparation, missing/tampered assets and copied source assets; implement deterministic asset verification/copying.
+- [x] Implement red opening, white content/conclusion, safe branded footer, local Display/Text/Mono faces, sentence case and an accessible renderer-owned TopoLoop palette.
+- [x] Add behavioral checks for scene font/image failures and overflow, preserving existing content/video failure distinctions; make PDF export and video capture use validated content.
+- [x] Copy assets/helper modules into the UBI image definition, run Node/Python checks, update both trackers and commit.
 
 ## Task 3: Visual acceptance and handoff
 
@@ -63,3 +63,5 @@
 - Ruling: use the existing named feature branch/workspace and preserve unrelated `opencode.json`, `.coverage` and `uv.lock`; no second worktree is needed for these sequential changes.
 - Pre-flight: Python wrapper forwards the same revision that Node validates; source allowlists must include every helper module referenced by the packaged renderer. Asset copying is shared by PDF/video/browser outputs.
 - Task 1 complete: RED showed 13 expected boundary/archive failures; GREEN passed 35 input/render/recovery tests. Complete legacy output reuse remains possible without launching the new engine; fresh legacy rendering requires its original image. Helper modules are explicitly allowlisted and will be exercised with the real Node source in Task 2.
+- Task 2 complete: RED showed four Node failures and the Python static-deck publication regression; GREEN passed seven Node and 25 input/render tests. Real browser preflight and PDF generation passed on archived Omnigent data after adding heading ink clearance. The host lacks Playwright's recording FFmpeg binary; installing that prerequisite before video acceptance. No original tests were replayed.
+- Ruling: preflight every browser scene before PDF export and only package a static deck marked validated by the engine. This closes an existing wrapper gap that otherwise published invalid static output after a scene-content failure.

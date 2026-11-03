@@ -5,12 +5,16 @@ import { dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
+import { verifyBrandAssets } from './branding.mjs'
+import { inspectScene, sceneProblems } from './scene-validation.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const topics = ['purpose', 'testing_strategy', 'test_execution', 'platform_suitability']
 const slideKinds = ['purpose', 'testing_strategy', 'topology', 'test_execution', 'results', 'platform_suitability']
 
 export async function prepareDeck(input, output) {
+  const versions = JSON.parse(await readFile(join(input, 'versions.json'), 'utf8'))
+  if (versions.template !== 2) throw new Error('This renderer requires template revision 2; use the original image for legacy inputs')
   const narrative = JSON.parse(await readFile(join(input, 'narrative.json'), 'utf8'))
   const scenes = JSON.parse(await readFile(join(input, 'scenes.json'), 'utf8'))
   if (narrative.schema_version !== 1 || typeof narrative.run_id !== 'string'
@@ -42,12 +46,17 @@ export async function prepareDeck(input, output) {
   }
   if (narrative.scenario_flow && (narrative.test_execution.length > 2 || narrative.test_execution.reduce((n,c) => n+c.text.length,0) > 300))
     throw new Error('Execution explanation must fit alongside the scenario animation')
+  await verifyBrandAssets(join(here, 'assets/redhat'))
   await mkdir(output, { recursive: true })
   for (const name of ['components', 'vendor', 'package.json', 'package-lock.json', 'style.css'])
     await cp(join(here, name), join(output, name), { recursive: true })
+  for (const name of ['assets', 'branding.mjs', 'scene-validation.mjs'])
+    await cp(join(here, name), join(output, name), { recursive: true })
+  await cp(join(here, 'assets/redhat'), join(output, 'public/brand'), { recursive: true })
+  await writeFile(join(output, 'versions.json'), JSON.stringify(versions, null, 2))
   await writeFile(join(output, 'narrative.json'), JSON.stringify(narrative, null, 2))
   await writeFile(join(output, 'scenes.json'), JSON.stringify(scenes, null, 2))
-  const slides = `---\ntheme: default\ntitle: AutoPoC executive summary\ncanvasWidth: 1280\naspectRatio: 16/9\ndownload: false\ntransition: none\nwakeLock: false\nfonts:\n  provider: none\n  sans: Arial\n  mono: monospace\n---\n\n`
+  const slides = `---\ntheme: default\ntitle: AutoPoC executive summary\ncanvasWidth: 1280\naspectRatio: 16/9\ndownload: false\ntransition: none\nwakeLock: false\nfonts:\n  provider: none\n  sans: Red Hat Text\n  mono: Red Hat Mono\n---\n\n`
     + slideKinds.map((kind, i) => `${i ? '---\nlayout: default\n---\n\n' : ''}<ExecutiveSlide kind="${kind}" />\n\n<!-- Explain archived evidence; animation timing is illustrative. See narrative.json for claim references. -->\n`).join('\n')
   await writeFile(join(output, 'slides.md'), slides)
   return { narrative, scenes }
@@ -76,7 +85,7 @@ function run(command, args, cwd, timeout = 120000) {
 }
 
 async function serve(root) {
-  const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.otf': 'font/otf', '.woff2': 'font/woff2' }
+  const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.otf': 'font/otf', '.woff2': 'font/woff2' }
   const server = createServer(async (request, response) => {
     try {
       const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname)
@@ -100,19 +109,38 @@ export async function render(input, output) {
   const manifest = { schema_version: 1, run_id: narrative.run_id, status: 'partial', scenes: [], artifacts: {} }
   const save = () => writeFile(join(output, 'presentation-manifest.json'), JSON.stringify(manifest, null, 2))
   await run(process.execPath, [cli, 'build', 'slides.md', '--out', 'dist'], deck)
-  manifest.artifacts.deck = { status: 'validated', path: 'source/dist' }
-  await save()
-  // Export/record independently: a failed video does not discard the deck or PDF.
-  try {
-    await run(process.execPath, [cli, 'export', 'slides.md', '--output', join(resolve(output), 'executive-summary.pdf'), '--timeout', '60000', ...(process.env.AUTOPOC_CHROMIUM_EXECUTABLE ? ['--executable-path', process.env.AUTOPOC_CHROMIUM_EXECUTABLE] : [])], deck)
-    manifest.artifacts.pdf = { status: 'validated', path: 'executive-summary.pdf' }
-  } catch (error) { console.error('PDF export:', error.stack || error.message); manifest.artifacts.pdf = { status: 'failed', error: 'PDF export failed' } }
+  manifest.artifacts.deck = { status: 'pending', path: 'source/dist' }
   await save()
   const { chromium } = await import(join(modules, 'playwright-chromium/index.mjs'))
   const { server, url } = await serve(join(deck, 'dist'))
   let browser
   try {
     browser = await chromium.launch({ headless: true, executablePath: process.env.AUTOPOC_CHROMIUM_EXECUTABLE || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
+    // Every scene must be readable and fully branded before any PDF is exported.
+    for (let i = 0; i < 6; i++) {
+      const context = await browser.newContext({ viewport: { width: 1280, height: 720 } })
+      await context.route('**/*', route => route.request().url().startsWith(url + '/') ? route.continue() : route.abort())
+      const page = await context.newPage()
+      const errors = []
+      page.on('pageerror', e => errors.push(e.message))
+      try {
+        await page.goto(`${url}/${i+1}?embedded`, { waitUntil: 'networkidle', timeout: 30000 })
+        await page.locator('[data-executive-ready="true"]').waitFor({ timeout: 30000 })
+        const problems = [...errors, ...await page.locator('.tl-fatal').allTextContents(), ...sceneProblems(await page.evaluate(inspectScene))]
+        if (problems.length) {
+          const error = new Error(`Scene ${i+1} content validation failed: ${problems.join('; ')}`)
+          error.contentFailure = true
+          throw error
+        }
+      } finally { await context.close() }
+    }
+    manifest.artifacts.deck.status = 'validated'
+    // Export/record independently: an encoding failure does not discard PDF/deck.
+    try {
+      await run(process.execPath, [cli, 'export', 'slides.md', '--output', join(resolve(output), 'executive-summary.pdf'), '--timeout', '60000', ...(process.env.AUTOPOC_CHROMIUM_EXECUTABLE ? ['--executable-path', process.env.AUTOPOC_CHROMIUM_EXECUTABLE] : [])], deck)
+      manifest.artifacts.pdf = { status: 'validated', path: 'executive-summary.pdf' }
+    } catch (error) { console.error('PDF export:', error.stack || error.message); manifest.artifacts.pdf = { status: 'failed', error: 'PDF export failed' } }
+    await save()
     const segments = []
     await mkdir(join(output, 'frames'), { recursive: true })
     for (let i = 0; i < 6; i++) {
@@ -125,10 +153,11 @@ export async function render(input, output) {
         await page.goto(`${url}/${i+1}?embedded`, { waitUntil: 'networkidle', timeout: 30000 })
         await page.locator('[data-executive-ready="true"]').waitFor({ timeout: 30000 })
         const fatal = await page.locator('.tl-fatal').allTextContents()
-        if (fatal.length || pageErrors.length) {
+        const problems = sceneProblems(await page.evaluate(inspectScene))
+        if (fatal.length || pageErrors.length || problems.length) {
           // The deck and the PDF embed this same component and data, so the
           // defect is in the content, not in the video pipeline.
-          const error = new Error('Scene initialization failed: ' + JSON.stringify({ slide:i+1, pageErrors, fatal }))
+          const error = new Error('Scene initialization failed: ' + JSON.stringify({ slide:i+1, pageErrors, fatal, problems }))
           error.contentFailure = true
           throw error
         }

@@ -254,7 +254,7 @@ local only while the production service-account credential is repaired.
 | Independently check the design for planning gaps | ✅ Builder check found no important unanswered questions |
 | Save required branding components and the template in the repository | ✅ Nine official font files, corporate/hat SVGs, licenses/authors and hash/source manifest under renderer/assets/redhat; byte-identical reference PDF under docs/branding; assets verified |
 | Approve visual direction and prepare implementation | ✅ User approved design and implementation; ordered implementation plan saved |
-| Implement branded layouts, local assets, diagram theme and versioned packaging | Pending |
+| Implement branded layouts, local assets, diagram theme and versioned packaging | ✅ Shared shell, local asset verification/copying, palette, preflight and image packaging defined; seven Node and 25 Python input/render tests passed |
 | Bind revision 2 and preserve legacy recovery/source assets | ✅ 35 affected Python tests passed; default v2 sealing, explicit v1 verification and source packaging implemented |
 | Validate PDF/video layouts, offline assets, recovery compatibility and restricted OCP rendering | Pending |
 
