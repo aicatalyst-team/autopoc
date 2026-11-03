@@ -245,7 +245,7 @@ local only while the production service-account credential is repaired.
 | Push the fix branch and open a reviewable fork PR | ✅ [Fork PR #2](https://github.com/aviavraham/autopoc/pull/2), mergeable with no conflicts; no fork CI checks reported |
 | Update upstream PR #66 through the fork's master branch | ✅ User merged fork PR #2 as 231fc31; upstream PR #66 updated automatically; all six CI jobs passed |
 
-## Phase 8: Default Red Hat Presentation Branding — Design approval pending
+## Phase 8: Default Red Hat Presentation Branding — Implementation complete; acceptance in progress
 
 | Task | Status |
 |------|--------|
@@ -257,5 +257,6 @@ local only while the production service-account credential is repaired.
 | Implement branded layouts, local assets, diagram theme and versioned packaging | ✅ Shared shell, local asset verification/copying, palette, preflight and image packaging defined; seven Node and 25 Python input/render tests passed |
 | Bind revision 2 and preserve legacy recovery/source assets | ✅ 35 affected Python tests passed; default v2 sealing, explicit v1 verification and source packaging implemented |
 | Validate PDF/video layouts, offline assets, recovery compatibility and restricted OCP rendering | Pending |
+| Resolve independent review and verify local rendering behavior | ✅ Diagram clipping regression RED→GREEN; 379 Python tests, 85.62% coverage, eight Node tests; real-browser layout/asset checks passed |
 
 Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-red-hat-presentation-branding-design.md).

@@ -16,6 +16,18 @@ export async function loadSceneAssets(section) {
   await document.fonts.ready
 }
 
+export function sceneCheckTimes(graph) {
+  if (!graph) return []
+  const times = new Set([3]) // PDF/reduced-motion still
+  for (const act of graph.acts) {
+    for (const time of [act.t0 + .01, (act.t0 + act.t1) / 2, act.t1 - .01,
+      ...(act.log || []).map(line => line.at + .01)])
+      if (Number.isFinite(time) && time >= 0) times.add(time)
+  }
+  if (times.size > 80) throw new Error('Too many animation states; simplify the reviewed scene')
+  return [...times].sort((a, b) => a - b)
+}
+
 export function inspectScene() {
   const root = document.querySelector('.executive[data-executive-ready="true"]')
   const result = { errors: [], missingFonts: [], missingImages: [], overflow: [] }
@@ -44,6 +56,40 @@ export function inspectScene() {
   for (const title of root.querySelectorAll('[data-max-lines]')) {
     const line = parseFloat(getComputedStyle(title).lineHeight)
     if (title.getBoundingClientRect().height > line * Number(title.dataset.maxLines) * bounds.width / 1280 + tolerance) result.overflow.push('slide title')
+  }
+  for (const stage of root.querySelectorAll('.topology-stage')) {
+    const stageBox = stage.getBoundingClientRect()
+    const visible = element => {
+      for (let parent = element; parent && parent !== stage; parent = parent.parentElement) {
+        const style = getComputedStyle(parent)
+        if (style.visibility === 'hidden' || style.display === 'none' || Number(style.opacity) === 0) return false
+      }
+      return true
+    }
+    for (const element of stage.querySelectorAll('.tl-node.on, .tl-hud-top, .tl-status, .tl-board, .tl-term, .tl-ann')) {
+      if (!visible(element)) continue
+      const ownRegion = element.matches('.tl-board, .tl-term, .tl-ann')
+      const box = ownRegion ? element.getBoundingClientRect() : stageBox
+      let clipped = ownRegion && (element.scrollHeight > element.clientHeight + 2 || element.scrollWidth > element.clientWidth + 2)
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
+      let text
+      while ((text = walker.nextNode())) {
+        if (!text.textContent.trim()) continue
+        const range = document.createRange(); range.selectNodeContents(text)
+        for (const rect of range.getClientRects())
+          if (rect.left < box.left - tolerance || rect.right > box.right + tolerance
+              || rect.top < box.top - tolerance || rect.bottom > box.bottom + tolerance) clipped = true
+      }
+      if (clipped) result.overflow.push(`diagram ${element.classList[0]} text`)
+    }
+    const heading = stage.querySelector('.tl-hud-top')?.getBoundingClientRect()
+    if (!heading) continue
+    for (const node of stage.querySelectorAll('.tl-node.on')) {
+      const box = node.getBoundingClientRect()
+      if (box.left < heading.right && box.right > heading.left
+          && box.top < heading.bottom && box.bottom > heading.top)
+        result.overflow.push('diagram heading overlaps a node label')
+    }
   }
   return result
 }

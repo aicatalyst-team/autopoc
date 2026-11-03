@@ -1,9 +1,9 @@
 # Local Red Hat brand assets
 
-This directory stores the fonts and corporate artwork needed by the proposed
-default Red Hat presentation theme. Assets are committed source files, not
-download-on-demand dependencies. The renderer's layout and source-package
-integration is a separate Phase 8 task and is not implemented by this bundle.
+This directory stores the fonts and corporate artwork used by the default
+revision-2 Red Hat presentation theme. Assets are committed source files, not
+download-on-demand dependencies. The trusted renderer verifies the inventory
+and copies these files into the editable source archive and browser build.
 
 ## Inventory
 

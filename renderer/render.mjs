@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { verifyBrandAssets } from './branding.mjs'
-import { inspectScene, sceneProblems } from './scene-validation.mjs'
+import { inspectScene, sceneProblems, sceneCheckTimes } from './scene-validation.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const topics = ['purpose', 'testing_strategy', 'test_execution', 'platform_suitability']
@@ -56,7 +56,7 @@ export async function prepareDeck(input, output) {
   await writeFile(join(output, 'versions.json'), JSON.stringify(versions, null, 2))
   await writeFile(join(output, 'narrative.json'), JSON.stringify(narrative, null, 2))
   await writeFile(join(output, 'scenes.json'), JSON.stringify(scenes, null, 2))
-  const slides = `---\ntheme: default\ntitle: AutoPoC executive summary\ncanvasWidth: 1280\naspectRatio: 16/9\ndownload: false\ntransition: none\nwakeLock: false\nfonts:\n  provider: none\n  sans: Red Hat Text\n  mono: Red Hat Mono\n---\n\n`
+  const slides = `---\ntheme: default\ntitle: AutoPoC executive summary\nfavicon: /brand/logos/redhat-hat-standard.svg\ncanvasWidth: 1280\naspectRatio: 16/9\ndownload: false\ntransition: none\nwakeLock: false\nfonts:\n  provider: none\n  sans: Red Hat Text\n  mono: Red Hat Mono\n---\n\n`
     + slideKinds.map((kind, i) => `${i ? '---\nlayout: default\n---\n\n' : ''}<ExecutiveSlide kind="${kind}" />\n\n<!-- Explain archived evidence; animation timing is illustrative. See narrative.json for claim references. -->\n`).join('\n')
   await writeFile(join(output, 'slides.md'), slides)
   return { narrative, scenes }
@@ -84,7 +84,7 @@ function run(command, args, cwd, timeout = 120000) {
   })
 }
 
-async function serve(root) {
+export async function serve(root) {
   const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.otf': 'font/otf', '.woff2': 'font/woff2' }
   const server = createServer(async (request, response) => {
     try {
@@ -131,6 +131,17 @@ export async function render(input, output) {
           const error = new Error(`Scene ${i+1} content validation failed: ${problems.join('; ')}`)
           error.contentFailure = true
           throw error
+        }
+        const graph = i === 2 ? narrative.topology : i === 3 ? narrative.scenario_flow : null
+        for (const time of sceneCheckTimes(graph)) {
+          await page.evaluate(time => window.dispatchEvent(new CustomEvent('executive-still', { detail: time })), time)
+          await page.locator('[data-executive-ready="true"]').waitFor({ timeout: 30000 })
+          const timedProblems = [...errors, ...await page.locator('.tl-fatal').allTextContents(), ...sceneProblems(await page.evaluate(inspectScene))]
+          if (timedProblems.length) {
+            const error = new Error(`Scene ${i+1} at ${time}s failed validation: ${timedProblems.join('; ')}`)
+            error.contentFailure = true
+            throw error
+          }
         }
       } finally { await context.close() }
     }

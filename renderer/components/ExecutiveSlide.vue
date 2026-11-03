@@ -16,6 +16,7 @@ const ready = ref(false)
 const error = ref('')
 const reducedMotion = usePreferredReducedMotion()
 const generation = ref(0)
+const validationTime = ref(null)
 const kinds = ['purpose', 'testing_strategy', 'topology', 'test_execution', 'results', 'platform_suitability']
 const titles = { purpose: 'Purpose and PoC objective', testing_strategy: 'Testing strategy', topology: 'Recorded setup', test_execution: 'How we tested', results: 'Validation results', platform_suitability: 'OpenShift and Kubernetes conclusions' }
 const claims = computed(() => narrative[props.kind] || [])
@@ -25,14 +26,16 @@ const opening = computed(() => props.kind === 'purpose')
 const corporateMark = computed(() => opening.value || props.kind === 'platform_suitability')
 const rate = computed(() => graph.value ? graph.value.loop / scenes.durations[props.kind === 'topology' ? 2 : 3] : 1)
 const settle = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-const reset = async () => { ready.value = false; generation.value++; await nextTick(); await settle(); ready.value = true }
+const reset = async () => { ready.value = false; validationTime.value = null; generation.value++; await nextTick(); await settle(); ready.value = true }
+const still = async event => { ready.value = false; validationTime.value = event.detail; await nextTick(); await settle(); ready.value = true }
 onMounted(async () => {
   try { await loadSceneAssets(root.value); await nextTick(); await settle() }
   catch (failure) { error.value = failure.message || 'Required brand assets failed to load' }
   ready.value = true
   window.addEventListener('executive-reset', reset)
+  window.addEventListener('executive-still', still)
 })
-onBeforeUnmount(() => window.removeEventListener('executive-reset', reset))
+onBeforeUnmount(() => { window.removeEventListener('executive-reset', reset); window.removeEventListener('executive-still', still) })
 </script>
 
 <template>
@@ -44,11 +47,11 @@ onBeforeUnmount(() => window.removeEventListener('executive-reset', reset))
     </header>
     <main class="scene-content" :class="{ 'graph-content': graphScene }" data-layout-region="slide content">
       <div v-if="graphScene" class="topology-stage" :class="{ 'scenario-stage': kind === 'test_execution' }">
-        <TopoLoop v-if="graph && (active || isPrintMode)" :key="generation" :spec="graph" :theme="redhatTheme" :seed="1" :rate="rate" :freeze-at="isPrintMode || reducedMotion === 'reduce' ? 3 : null" />
+        <TopoLoop v-if="graph && (active || isPrintMode)" :key="generation" :spec="graph" :theme="redhatTheme" :seed="1" :rate="rate" :freeze-at="validationTime ?? (isPrintMode || reducedMotion === 'reduce' ? 3 : null)" />
         <div v-else-if="!graph" class="no-graph"><h2>Topology evidence unavailable</h2><p>See the report for the recorded setup. No infrastructure has been inferred.</p></div>
       </div>
       <div v-else-if="kind === 'results'" class="results">
-        <div v-for="(value, status) in narrative.results" :key="status" :class="status"><strong>{{ value }}</strong><span>{{ status }}</span></div>
+        <div v-for="(value, status) in narrative.results" :key="status" :class="status" :data-layout-region="'result ' + status"><strong>{{ value }}</strong><span>{{ status }}</span></div>
       </div>
       <ul v-else class="claims"><li v-for="(claim, i) in claims" :key="i">{{ claim.text }}<small>Evidence: {{ claim.sources.join(', ') }}</small></li></ul>
       <ul v-if="kind === 'test_execution' && graph" class="claims flow-claims"><li v-for="(claim, i) in claims" :key="i">{{ claim.text }}<small>Evidence: {{ claim.sources.join(', ') }}</small></li></ul>

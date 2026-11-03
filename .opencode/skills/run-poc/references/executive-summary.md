@@ -20,6 +20,18 @@ worker stopped waiting. An existing Job is reconciled by name and UID.
 
 ## Preconditions and original evidence
 
+- New presentations use the Red Hat-branded template revision 2. Use a newly
+  built, tested revision-2 renderer digest together with the updated worker;
+  never dispatch a new v2 seal to the original v1 image. Old checkpoints retain
+  their original image and revision and are recovered without restyling them.
+  The explicit `executive-seal --template-version 1` option is for legacy-image
+  recovery, not the default for new runs.
+- Branding assets are already committed under `renderer/assets/redhat/` and
+  packaged locally. Do not fetch substitute logos/fonts or use the PDF's sample
+  product branding. A layout-overflow error requires shorter reviewed narrative
+  or graph text with the same evidence; never rerun PoC tests or drop findings
+  to make slides fit.
+
 - `AUTOPOC_EXECUTIVE_IMAGE` must be a tested renderer image **digest**, not a
   mutable tag. `AUTOPOC_EXECUTIVE_NAMESPACE` selects its namespace.
 - Configure `AUTOPOC_EXECUTIVE_FOLDER_ID` or the existing

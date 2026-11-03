@@ -5,6 +5,22 @@ The Python wrapper accepts only a sealed input ZIP validated by
 trusted renderer components generate executable Slidev content. The renderer
 never replays PoC tests or visits a workload. Phase 1 video is silent.
 
+New seals use **template revision 2**, the default Red Hat presentation theme:
+a red opening, white content slides, local Red Hat Display/Text/Mono fonts and
+official corporate artwork. The six evidence-based scenes and their durations
+are unchanged. All runtime branding resources and notices are committed under
+`assets/redhat/`; generated decks copy them into `public/brand/` for offline use.
+Missing or changed assets fail verification. Font/image loading, text bounds,
+diagram labels and original logs are checked before PDF export and recording,
+including the PDF still and each animation act/log state. Overfull content fails
+with a request to shorten reviewed text rather than silently clipping it.
+
+Revision-1 inputs remain verifiable/recoverable but require their original
+digest-pinned renderer to render again. The v2 image refuses fresh v1 rendering;
+matching complete v1 output can still be reused after integrity checks. Do not
+pair a new default v2 seal with the old renderer digest. `executive-seal
+--template-version 1` is available only for explicit legacy-image recovery.
+
 From an installed AutoPoC checkout with Node >=22.18, npm dependencies and
 Playwright browsers already provisioned:
 
@@ -20,6 +36,15 @@ input. Recovery uses the original digest-pinned renderer image recorded in
 `recovery.json`. `render.mjs INPUT_DIR OUTPUT_DIR` is the lower-level Node entry
 point; the Python wrapper must validate inputs first. Browser dependencies and
 FFmpeg must be present before invoking it. No runtime dependency downloads occur.
+FFmpeg must provide `libx264`; the renderer image includes both this encoder and
+Playwright's separate recording binary.
+
+For real-browser layout/asset regression checks against a built deck, run
+`node renderer/check-layout.mjs /absolute/dist /absolute/screenshots` from the
+repository with `AUTOPOC_RENDER_NODE_MODULES` configured as above. Set
+`AUTOPOC_CHROMIUM_EXECUTABLE` only when using a separately provisioned Chromium.
+The check blocks external requests and exercises missing fonts/logos and
+oversized claims, titles, counts and diagram labels.
 
 Outputs include the editable `executable-source.zip`, browser `static-site.zip`,
 `executive-summary.pdf`, silent `executive-summary.mp4`, `executive-summary.md`,

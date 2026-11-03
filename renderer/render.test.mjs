@@ -22,6 +22,7 @@ test('untrusted narrative stays JSON data and all four topics appear', async () 
     assert.ok(!slides.includes('process.exit'))
     assert.deepEqual(JSON.parse(await readFile(join(root, 'deck/narrative.json'))), narrative)
     assert.match(slides, /sans: Red Hat Text/)
+    assert.match(slides, /favicon: \/brand\/logos\/redhat-hat-standard.svg/)
     const brand = JSON.parse(await readFile(join(root, 'deck/assets/redhat/manifest.json')))
     for (const entry of brand.files) {
       assert.deepEqual(await readFile(join(root, 'deck/public/brand', entry.path)),
@@ -63,6 +64,18 @@ test('content validation distinguishes missing assets and overflowing text from 
   assert.match(sceneProblems({ ...good, missingFonts: ['Red Hat Text'] }).join(), /font/)
   assert.match(sceneProblems({ ...good, missingImages: ['corporate logo'] }).join(), /image/)
   assert.match(sceneProblems({ ...good, overflow: ['purpose claim'] }).join(), /shorten/)
+})
+
+test('animation preflight includes PDF stills, later acts and original log events', async () => {
+  const { sceneCheckTimes } = await import('./scene-validation.mjs')
+  const times = sceneCheckTimes({ loop: 30, acts: [
+    { t0: 0, t1: 10, log: [{ at: 7 }] },
+    { t0: 10, t1: 30, log: [{ at: 28 }] },
+  ] })
+  assert.ok(times.includes(3))
+  assert.ok(times.some(t => t > 28 && t < 30))
+  assert.ok(times.some(t => t > 7 && t < 10))
+  assert.deepEqual(sceneCheckTimes(null), [])
 })
 
 test('missing topics and unsupported durations cannot render', async () => {

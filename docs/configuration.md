@@ -52,6 +52,20 @@ image **digest** (`quay.io/<org>/autopoc-executive-renderer@sha256:...`). The
 Job/CronJob templates and launcher pass it to OpenCode. Without a configured
 renderer, record the extension as skipped rather than claiming generated media.
 
+New seals default to presentation template revision 2 (Red Hat branding). Build
+and validate the new renderer image and upgrade the worker's sealing tools
+together before changing `AUTOPOC_EXECUTIVE_IMAGE`. An older revision-1 image
+cannot consume revision-2 inputs. Existing revision-1 checkpoints retain their
+original renderer digest and remain recoverable; explicit legacy sealing uses
+`executive-seal --template-version 1` with that original image. Never rewrite old
+checkpoints or reuse their output directories to apply new branding.
+
+Fonts, corporate logos and required notices are tracked in
+`renderer/assets/redhat/`; the supplied PDF is a design reference under
+`docs/branding/`. No operator-installed brand fonts, CDN or Brand Portal download
+is needed at render time. Source/browser ZIPs include the local assets required
+for subsequent offline generation and viewing over HTTP.
+
 `AUTOPOC_EXECUTIVE_NAMESPACE` defaults to the worker's namespace through the
 Downward API. `AUTOPOC_EXECUTIVE_FOLDER_ID` selects the Drive destination;
 otherwise the extension uses `GOOGLE_DOCS_FOLDER_ID`. Google credentials use
