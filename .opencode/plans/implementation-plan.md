@@ -436,8 +436,8 @@ recommendations are not execution instructions.
 - Verified all 13 upstream-file hashes/sizes, WOFF2 headers and font families, self-contained SVG structure and both logo previews. The reference PDF matches its original size and SHA-256. No dependency or renderer-behavior changes were made; future source/site packaging must include required local assets and licenses.
 - Updated the design to require all later-added artwork, fonts, components and styling to live in the repository, without runtime CDN or operator-local-file dependencies.
 
-### 8.3 Approve the visual design and prepare implementation — Pending
-- Review the proposed light content/red opening direction and approve the written design before implementation planning, as required by the brainstorming workflow.
+### 8.3 Approve the visual design and prepare implementation — ✅ 3 November 2026
+- User explicitly approved the design and requested implementation. Added the ordered implementation plan with version/packaging, shared layouts and visual acceptance tasks; execution is in progress on the existing feature branch.
 
 ### 8.4 Implement branding and compatible packaging — Pending
 - Bundle official assets/fonts with provenance, implement the shared slide shell and diagram palette, and bind template revision 2 through sealing, rendering and source/recovery packaging while preserving revision-1 recovery.

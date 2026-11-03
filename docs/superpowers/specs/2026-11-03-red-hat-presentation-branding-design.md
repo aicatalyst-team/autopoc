@@ -1,7 +1,8 @@
 # Red Hat presentation branding
 
-Status: proposed design, awaiting user approval. Phase 8 of the executive
-presentation/video feature. No renderer changes have been implemented.
+Status: approved for implementation by the user on 3 November 2026. Phase 8 of
+the executive presentation/video feature. Local assets are committed; renderer
+integration and acceptance are in progress.
 
 ## Intent and confirmed scope
 
@@ -123,8 +124,9 @@ Do not report deployment or publication from local rendering alone.
    Update both planning files at each completed milestone and commit significant
    changes. Push only a feature branch; ask the user before merging.
 
-Implementation planning follows user approval of this design. The milestones
-above define acceptance and are not a claim that implementation is complete.
+Implementation plan: `docs/superpowers/plans/2026-11-03-red-hat-presentation-branding.md`.
+The milestones above define acceptance and are not a claim that implementation
+is complete.
 
 Builder check: an independent software-engineering reviewer inspected the
 design and relevant renderer/input boundaries on 3 November 2026 and reported
