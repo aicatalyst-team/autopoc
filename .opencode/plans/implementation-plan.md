@@ -398,3 +398,9 @@ recommendations are not execution instructions.
 - Read the merged implementation, workflow/configuration references, handoff and active plans. Phase 6 rollout/acceptance remains open: production service-account repair, unattended publication, forced resource/admission failures, model-service narrative review and main-worker build/rollout.
 - Fresh scoped verification: 169 Python tests passed across artifacts, capture, evidence, executive tools, Drive and skill validation; all four Node renderer tests passed. This review did not run a new render, cluster acceptance or full coverage suite.
 - Existing `opencode.json`, `.coverage` and `uv.lock` changes remain excluded. Historical draft-PR and implementation-pending wording above describes earlier milestones; this entry records the verified post-merge state.
+
+### 6.11 Check upstream integration and CI — ✅ 3 November 2026
+- Refetched upstream `master`, still `3f266c7`. The feature is proposed through open, non-draft [upstream PR #66](https://github.com/aicatalyst-team/autopoc/pull/66), from `aviavraham:master` at `6b564e5` to upstream `master`.
+- GitHub reports no merge conflicts (`MERGEABLE`), but merging is blocked and approval is required (`REVIEW_REQUIRED`); there are no submitted reviews.
+- [PR CI run 41645246344](https://github.com/aicatalyst-team/autopoc/actions/runs/41645246344): lint, renderer tests, typecheck, Python tests and worker image build passed. Security failed: pip-audit reports 10 findings across certifi, opentelemetry-api, pyasn1 and urllib3 (the certifi advisory appears twice).
+- [Upstream master CI run 41590181862](https://github.com/aicatalyst-team/autopoc/actions/runs/41590181862) has the same audit findings; its other CI jobs passed. These dependency findings therefore also exist before the executive feature is merged. No dependency changes, PR comments, pushes or merges were made during this check.

@@ -222,6 +222,7 @@ records the presentation and does not depend on original UI clips.
 | Verify a restricted OCP reference through the published image entrypoint | ✅ 28 October — six-page PDF, silent120sMP4, all output hashes verified; 178.895s, peak1,841,668,096 bytes |
 | Push the feature branch and open a draft PR in the user's fork | ✅ [aviavraham/autopoc#1](https://github.com/aviavraham/autopoc/pull/1), targeting fork master |
 | Review the merged project state | ✅ 3 November — fork master contains merge `6b564e5`; upstream master `3f266c7` does not contain the feature; 169 scoped Python tests and four Node tests passed |
+| Check upstream integration and CI | ✅ 3 November — [PR #66](https://github.com/aicatalyst-team/autopoc/pull/66) open with no merge conflicts; approval required; five CI jobs passed, security audit failed with the same 10 reported findings across four packages as upstream master |
 
 Phase status as of 3 November: core implementation merged into the user's fork;
 rollout/acceptance remains open. Repair production Google service credentials,
