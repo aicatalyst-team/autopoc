@@ -234,3 +234,12 @@ Verification: 366 supported tests, 83.48% coverage, pinned Ruff clean, Pyright
 zero errors and two Node tests passed. Renderer image published to Quay by digest;
 main worker rebuild/rollout remains open. Personal Google OAuth credentials are
 local only while the production service-account credential is repaired.
+
+## Phase 7: Upstream Security Remediation — Fix verified; integration pending
+
+| Task | Status |
+|------|--------|
+| Reproduce the upstream PR dependency audit failure | ✅ Same 10 reported findings across four transitive dependencies reproduced locally |
+| Regenerate patched dependency pins and cryptographic hashes | ✅ certifi 2026.10.23, opentelemetry-api 1.45.2, pyasn1 0.6.5, urllib3 2.8.0; other package versions unchanged |
+| Verify the security fix in a fresh Python 3.12 environment | ✅ Clean audit, hash installation and pip check; 371 tests passed, 85.55% coverage; Ruff, Pyright and four renderer tests passed |
+| Update upstream PR #66 through the fork's master branch | Pending user approval to merge the fix; upstream CI has not yet rerun |
