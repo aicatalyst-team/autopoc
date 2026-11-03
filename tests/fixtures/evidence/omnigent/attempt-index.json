@@ -1,0 +1,122 @@
+{
+  "attempts": [
+    {
+      "attempt_id": "original-1",
+      "duration_seconds": 0.05,
+      "execution_id": "historical-final",
+      "finished_at": null,
+      "mechanism": "historical_final_outcome",
+      "outcome": "pass",
+      "payload_path": "original-1.json",
+      "payload_sha256": "66bb570cb1f01b2ba71951588f7605b45dab3b0bee20c7c16545b6f501003461",
+      "run_id": "omnigent-2026-10-20",
+      "scenario_id": "health-check",
+      "sequence": 1,
+      "started_at": null
+    },
+    {
+      "attempt_id": "original-2",
+      "duration_seconds": 0.02,
+      "execution_id": "historical-final",
+      "finished_at": null,
+      "mechanism": "historical_final_outcome",
+      "outcome": "pass",
+      "payload_path": "original-2.json",
+      "payload_sha256": "f81f962ae507152ab0daa450dff4d33b3df09efca6a4d077ce54c8a3a181e961",
+      "run_id": "omnigent-2026-10-20",
+      "scenario_id": "version-info",
+      "sequence": 1,
+      "started_at": null
+    },
+    {
+      "attempt_id": "original-3",
+      "duration_seconds": 0.02,
+      "execution_id": "historical-final",
+      "finished_at": null,
+      "mechanism": "historical_final_outcome",
+      "outcome": "pass",
+      "payload_path": "original-3.json",
+      "payload_sha256": "d0385e510956991d98fdcf27823d635c1695a39ffb215ffba5057f46a092a50f",
+      "run_id": "omnigent-2026-10-20",
+      "scenario_id": "server-info",
+      "sequence": 1,
+      "started_at": null
+    },
+    {
+      "attempt_id": "original-4",
+      "duration_seconds": 0.02,
+      "execution_id": "historical-final",
+      "finished_at": null,
+      "mechanism": "historical_final_outcome",
+      "outcome": "pass",
+      "payload_path": "original-4.json",
+      "payload_sha256": "85728f031eae0d7779f9e1633b356f411ac86acf10ee5db48f45e60aa1813ab5",
+      "run_id": "omnigent-2026-10-20",
+      "scenario_id": "web-ui",
+      "sequence": 1,
+      "started_at": null
+    },
+    {
+      "attempt_id": "original-5",
+      "duration_seconds": 0.02,
+      "execution_id": "historical-final",
+      "finished_at": null,
+      "mechanism": "historical_final_outcome",
+      "outcome": "pass",
+      "payload_path": "original-5.json",
+      "payload_sha256": "fb203be96fd428527690b4985544a3b7f5d5298835103ba9d4e9aa1ba146dda2",
+      "run_id": "omnigent-2026-10-20",
+      "scenario_id": "login-page",
+      "sequence": 1,
+      "started_at": null
+    }
+  ],
+  "coverage_gaps": [
+    "original_runner_state_unavailable",
+    "historical_retry_history_missing",
+    "original_browser_traces_unavailable",
+    "distributed_traces_unavailable"
+  ],
+  "executions": [
+    {
+      "execution_id": "historical-final",
+      "order": 0,
+      "plan_revision": null,
+      "provenance": "reconstructed index of preserved original results",
+      "run_id": "omnigent-2026-10-20"
+    }
+  ],
+  "final_execution_id": "historical-final",
+  "provenance": {
+    "kind": "reconstructed-state",
+    "original_runner_state": "unavailable",
+    "report_source_sha256": "3a8b9cc984624d997e304c983ea8288e15ea4523e75504ccf59a356de7eb6303",
+    "results_kind": "original-run results",
+    "source": "presentations/omnigent-2026-10-20/public/evidence/test-results.json",
+    "source_sha256": "9a6f42609c8919035274d52be8a52eeef866d42177b535cd9c55cc4815ec0b30"
+  },
+  "run_id": "omnigent-2026-10-20",
+  "scenarios": [
+    {
+      "name": "health-check",
+      "scenario_id": "health-check"
+    },
+    {
+      "name": "version-info",
+      "scenario_id": "version-info"
+    },
+    {
+      "name": "server-info",
+      "scenario_id": "server-info"
+    },
+    {
+      "name": "web-ui",
+      "scenario_id": "web-ui"
+    },
+    {
+      "name": "login-page",
+      "scenario_id": "login-page"
+    }
+  ],
+  "schema_version": 1
+}

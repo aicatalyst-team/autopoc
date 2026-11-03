@@ -2,11 +2,122 @@
 
 from __future__ import annotations
 
+import hashlib
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from autopoc.tools.google_drive_tools import GoogleDriveService, create_google_drive_service
+
+
+def test_personal_oauth_upload_uses_explicit_local_credentials(tmp_path):
+    """Local publishing can reuse user consent without a service-account key."""
+    from google.oauth2.credentials import Credentials
+
+    credentials = Credentials(
+        token="test-only", scopes=["https://www.googleapis.com/auth/drive.file"]
+    )
+    document = tmp_path / "summary.pdf"
+    document.write_bytes(b"pdf content")
+    with patch("autopoc.tools.google_drive_tools.build") as factory:
+        factory.return_value.files.return_value.create.return_value.execute.return_value = {
+            "id": "uploaded",
+            "name": document.name,
+            "size": "11",
+            "webViewLink": "https://drive.google.com/file/d/uploaded/view",
+        }
+        service = GoogleDriveService(credentials=credentials)
+        result = service.upload_file(str(document), folder_id="private-folder")
+        assert result["file_id"] == "uploaded"
+        factory.assert_called_once_with("drive", "v3", credentials=credentials)
+
+
+def test_retry_reuses_verified_drive_file(tmp_path):
+    """A retry after an ambiguous upload must recover the existing object."""
+    video = tmp_path / "summary.mp4"
+    video.write_bytes(b"recorded presentation")
+    service = GoogleDriveService("unused")
+    api = MagicMock()
+    service._service = api
+    api.files.return_value.get.return_value.execute.return_value = {
+        "id": "reserved-id",
+        "name": video.name,
+        "size": str(video.stat().st_size),
+        "md5Checksum": hashlib.md5(video.read_bytes()).hexdigest(),
+        "parents": ["destination"],
+        "webViewLink": "https://drive.google.com/file/d/reserved-id/view",
+    }
+    result = service.upload_file_once(str(video), "reserved-id", "destination")
+    assert result["file_id"] == "reserved-id"
+    assert result["sha256"] == hashlib.sha256(video.read_bytes()).hexdigest()
+    assert not api.files.return_value.create.called
+
+
+def test_retry_rejects_wrong_content_at_reserved_id(tmp_path):
+    video = tmp_path / "summary.mp4"
+    video.write_bytes(b"correct")
+    service = GoogleDriveService("unused")
+    api = MagicMock()
+    service._service = api
+    api.files.return_value.get.return_value.execute.return_value = {
+        "id": "reserved-id",
+        "size": "7",
+        "md5Checksum": "wrong",
+        "parents": ["folder"],
+    }
+    with pytest.raises(ValueError, match="content or destination"):
+        service.upload_file_once(str(video), "reserved-id", "folder")
+
+
+def test_unknown_upload_completion_recovers_reserved_object(tmp_path):
+    from googleapiclient.errors import HttpError
+    from httplib2 import Response
+
+    pdf = tmp_path / "summary.pdf"
+    pdf.write_bytes(b"pdf content")
+    service = GoogleDriveService("unused")
+    api = MagicMock()
+    service._service = api
+    api.files.return_value.get.return_value.execute.side_effect = [
+        HttpError(Response({"status": "404"}), b"not found"),
+        {
+            "id": "reserved",
+            "name": pdf.name,
+            "size": "11",
+            "md5Checksum": hashlib.md5(pdf.read_bytes()).hexdigest(),
+            "parents": ["folder"],
+        },
+    ]
+    api.files.return_value.create.return_value.execute.side_effect = TimeoutError()
+    result = service.upload_file_once(str(pdf), "reserved", "folder")
+    assert result["file_id"] == "reserved"
+    assert api.files.return_value.create.call_args.kwargs["body"]["id"] == "reserved"
+
+
+def test_download_checks_hash_before_exposing_file(tmp_path):
+
+    data = b"sealed render inputs"
+    service = GoogleDriveService("unused")
+    service._service = MagicMock()
+    service._service.files.return_value.get.return_value.execute.return_value = {
+        "size": str(len(data))
+    }
+
+    class Downloader:
+        def __init__(self, stream, request, chunksize):
+            self.stream = stream
+
+        def next_chunk(self):
+            self.stream.write(data)
+            return None, True
+
+    destination = tmp_path / "inputs.zip"
+    with patch("autopoc.tools.google_drive_tools.MediaIoBaseDownload", Downloader):
+        service.download_file("id", destination, hashlib.sha256(data).hexdigest())
+        assert destination.read_bytes() == data
+        with pytest.raises(ValueError, match="integrity"):
+            service.download_file("id", tmp_path / "bad.zip", "a" * 64)
+    assert not (tmp_path / "bad.zip").exists()
 
 
 class TestGoogleDriveService:

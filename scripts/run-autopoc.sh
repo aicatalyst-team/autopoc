@@ -121,6 +121,30 @@ spec:
             - name: AUTOPOC_WORK_DIR
               value: "/workspace"
 
+            - name: AUTOPOC_EXECUTIVE_IMAGE
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: AUTOPOC_EXECUTIVE_IMAGE
+                  optional: true
+            - name: AUTOPOC_EXECUTIVE_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: AUTOPOC_EXECUTIVE_FOLDER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: AUTOPOC_EXECUTIVE_FOLDER_ID
+                  optional: true
+
+            - name: GOOGLE_DOCS_FOLDER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: GOOGLE_DOCS_FOLDER_ID
+                  optional: true
+
             # --- Google Sheet (for run-sheet, optional) ---
             - name: AUTOPOC_SHEET_ID
               valueFrom:

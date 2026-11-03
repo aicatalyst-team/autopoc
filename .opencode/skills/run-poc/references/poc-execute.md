@@ -4,7 +4,7 @@ Generate and run a Python test script that validates the deployed PoC service.
 
 ## Test Script Requirements
 
-- **Python stdlib only** -- use `urllib.request`, no `requests` or `httpx`
+- **Python stdlib plus the installed AutoPoC capture helper** -- no `requests` or `httpx`
 - Accept service URL as CLI argument or `SERVICE_URL` env var
 - Implement each scenario from the PoC plan
 - Include retry logic (services may take 30-60s to become ready)
@@ -13,74 +13,36 @@ Generate and run a Python test script that validates the deployed PoC service.
 
 ## Test Script Template
 
-```python
-#!/usr/bin/env python3
-"""AutoPoC Test Script"""
-import json, os, sys, time, urllib.request, urllib.error
+Use the installed stdlib-only `autopoc.capture.AttemptRecorder` helper. It records every actual request before retrying; do not hide retries in stderr or retain response bodies.
 
-SERVICE_URL = os.environ.get("SERVICE_URL", sys.argv[1] if len(sys.argv) > 1 else "")
-MAX_RETRIES = 5
-RETRY_DELAY = 10
+```python
+import json, os, sys
+from autopoc.capture import AttemptRecorder
+
+SERVICE_URL = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("SERVICE_URL", "")
+recorder = AttemptRecorder.from_environment()
 results = []
 
 def test_scenario(name, description, method, path, body=None,
                   expected_status=200, expected_content=None, timeout=30):
-    url = f"{SERVICE_URL.rstrip('/')}{path}"
-    start = time.time()
-    for attempt in range(MAX_RETRIES):
-        try:
-            if body:
-                data = json.dumps(body).encode() if isinstance(body, dict) else body.encode()
-                req = urllib.request.Request(url, data=data, method=method)
-                req.add_header("Content-Type", "application/json")
-            else:
-                req = urllib.request.Request(url, method=method)
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                status = resp.status
-                response_body = resp.read().decode()
-                if status == expected_status:
-                    if expected_content and expected_content not in response_body:
-                        r = {"scenario_name": name, "status": "fail",
-                             "output": response_body[:2000],
-                             "error_message": f"Expected '{expected_content}' not in response",
-                             "duration_seconds": round(time.time()-start, 2)}
-                    else:
-                        r = {"scenario_name": name, "status": "pass",
-                             "output": response_body[:2000], "error_message": None,
-                             "duration_seconds": round(time.time()-start, 2)}
-                    results.append(r); return r
-                elif attempt < MAX_RETRIES - 1:
-                    time.sleep(RETRY_DELAY); continue
-                else:
-                    r = {"scenario_name": name, "status": "fail",
-                         "output": response_body[:2000],
-                         "error_message": f"Expected {expected_status}, got {status}",
-                         "duration_seconds": round(time.time()-start, 2)}
-                    results.append(r); return r
-        except urllib.error.URLError as e:
-            if attempt < MAX_RETRIES - 1:
-                print(f"  Retry {attempt+1}/{MAX_RETRIES}: {e}", file=sys.stderr)
-                time.sleep(RETRY_DELAY)
-            else:
-                r = {"scenario_name": name, "status": "error", "output": "",
-                     "error_message": f"Unreachable after {MAX_RETRIES} attempts: {e}",
-                     "duration_seconds": round(time.time()-start, 2)}
-                results.append(r); return r
-        except Exception as e:
-            r = {"scenario_name": name, "status": "error", "output": "",
-                 "error_message": str(e),
-                 "duration_seconds": round(time.time()-start, 2)}
-            results.append(r); return r
+    result = recorder.http(name, SERVICE_URL.rstrip("/") + path, method=method,
+                           body=body, expected_status=expected_status,
+                           expected_content=expected_content, timeout=timeout)
+    results.append(result)
+    return result
 
-# === SCENARIOS ===
-# Fill in based on poc_plan.scenarios from state
+# Implement each planned scenario using its exact saved scenario name.
+# Example: test_scenario("health", "Readiness", "GET", "/health")
 
-# === END SCENARIOS ===
-
-print(json.dumps({"results": results}, indent=2))
+print(json.dumps({"results": results}))
 sys.exit(1 if any(r["status"] in ("fail", "error") for r in results) else 0)
 ```
 
+Execute through `capture-execution --state "$WORK_DIR/poc-state.yaml" --script "$WORK_DIR/repos/$PROJECT_NAME/poc_test.py" --service-url "$SERVICE_URL"`. The wrapper assigns execution identity, keeps stdout JSON separate from private stderr, retains the test exit code and finalizes interrupted scenarios before retry/stop handling. Never redirect stderr into stdout.
+
+For CLI/exec scenarios, call `recorder.record(name, "cli" or "exec", outcome, duration_seconds, error=sanitized_failure_category)` after each actual invocation, including each retry. Add only the terminal result for that scenario to stdout. Do not record commands, credentials or raw command output as failure text. Never synthesize attempt records from a final pass after the fact.
+
+Keep planned names stable on retries. A changed test plan starts a new explicit run identity; do not silently mix different scenario sets.
 ## CLI Test Scenarios (for Jobs)
 
 For `type: "cli"` scenarios, use kubectl to run the Job and check results:

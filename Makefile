@@ -68,6 +68,10 @@ lock: ## Regenerate requirements.lock from pyproject.toml
 test: ## Run unit and integration tests with coverage
 	$(PYTHON) -m pytest tests/ --ignore=tests/e2e -q --cov --cov-report=term-missing
 
+.PHONY: test-renderer
+test-renderer: ## Run renderer tests (Node only, no npm install needed)
+	cd renderer && node --test *.test.mjs
+
 .PHONY: test-e2e
 test-e2e: ## Run end-to-end tests (requires local infra)
 	$(PYTHON) -m pytest tests/e2e/ --e2e -v
@@ -99,3 +103,15 @@ clean: ## Remove build artifacts
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
+
+# ---------- standalone executive renderer ----------
+
+IMAGE_RENDERER = $(IMAGE_REGISTRY)/$(IMAGE_ORG)/autopoc-executive:$(IMAGE_TAG)
+
+.PHONY: renderer-image
+renderer-image: ## Build standalone Slidev/TopoLoop executive renderer
+	$(CONTAINER_CMD) build -f Dockerfile.executive -t $(IMAGE_RENDERER) .
+
+.PHONY: renderer-image-push
+renderer-image-push: ## Push the standalone executive renderer image
+	$(CONTAINER_CMD) push $(IMAGE_RENDERER)

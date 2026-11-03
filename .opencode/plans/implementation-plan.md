@@ -263,3 +263,157 @@ Add `__main__.py` or CLI entry points to:
 - URL-encode GitHub default branch names before using them in REST API paths.
 - Require configured status checks and invalidate stale approvals after new commits.
 - Add regression assertions covering the hardened branch-protection policy.
+
+---
+
+# AutoPoC Report Video Feature Ticket
+
+The ticket and sample milestones below retain their historical record. For
+implementation, use Phase 6 and the revised executive design as the current
+scope: silent presentation video in Phase 1, Google TTS in Phase 2, and a
+separate renderer Job with durable input/recovery material. Older architecture
+recommendations are not execution instructions.
+
+## Progress
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| Phase 1: Ticket definition | ✅ Done | Jira Feature AIPCC-32887 created with scope and Definition of Done |
+| Phase 2: Slidev feasibility Epic | ✅ Done | AIPCC-33008 filled with feasibility scope, technical constraints, and Definition of Done |
+| Phase 3: Headless presentation and UI evidence requirements | ✅ Done | Documented the requested headless step and proposed capture/evidence flow; implementation choices remain under evaluation |
+| Phase 4: Sample presentation and recording feasibility | Sample complete; video work transferred | Omnigent archive and Slidev/PDF complete; executive recording belongs to Phase 6, original UI clip composition is optional later work |
+| Phase 5: Presentation automation handoff | Documentation ✅ Done; implementation pending | Session record, repositories/tools, reproduction and staged integration roadmap documented |
+| Phase 6: Executive presentation and video scope | Core implementation merged ✅; rollout/acceptance open | Fork master merge verified 3 November; restricted OCP render and personal Drive reference passed; unattended publication, failure acceptance, model review and worker rollout remain |
+| Phase 7: Upstream security remediation | Dependency fix verified ✅; integration pending | Four vulnerable transitive pins regenerated; clean audit and 371 Python tests passed; fork-master merge requires user approval |
+
+## Phase 1: Ticket Definition ✅
+
+### 1.1 Create Jira feature ticket — ✅
+- Created [AIPCC-32887](https://redhat.atlassian.net/browse/AIPCC-32887) in the AIPCC project.
+- Captured report-driven video generation scope and acceptance criteria for background, setup, testing, evidence-based suitability conclusion, and report linkage.
+
+## Phase 2: Slidev Feasibility Epic ✅
+
+### 2.1 Fill Jira Epic AIPCC-33008 — ✅
+- Added a bounded evaluation of Slidev with AutoPoC, Playwright, and the existing workflow-validation/recording capabilities.
+- Recorded the documented recording/export behavior, automation questions, sample-video deliverable, and feasibility recommendation criteria.
+
+## Phase 3: Headless Presentation and UI Evidence Requirements ✅
+
+### 3.1 Document headless generation and UI capture requirements — ✅
+- Added [the presentation plan](../../docs/report-presentation-plan.md) covering a headless post-report step without an interactive Slidev login or local operator installation.
+- Recorded screenshots at meaningful UI test checkpoints, recordings of selected scenarios, and Playwright traces captured during the original validation run.
+- Defined run/scenario evidence linkage, credential handling, and preservation of ephemeral run artifacts for repeatable presentation generation.
+- Distinguished AutoPoC's content-generation model from Slidev's model-free rendering.
+- Kept presentation/video output scope, narration, storage, and runtime limits open; the separate Job and non-blocking failure behavior are recommendations pending validation.
+
+## Phase 4: Sample Presentation and Recording Feasibility — Historical milestone
+
+### 4.1 Archive one completed PoC — ✅
+- Archived the Omnigent run `autopoc-omnigent-8554`: pinned report/plan/evaluation/blog/manifests, original test JSON, sanitized runner and both build logs, and selected job/build metadata.
+- Indexed claims and source hashes; labeled later UI/cluster observations separately.
+- Recorded missing original browser/distributed traces, UI recordings and workspace state export instead of inventing those artifacts.
+
+### 4.2 Generate and inspect the sample Slidev deck — ✅
+- Created `presentations/omnigent-2026-10-20/` with 14 stakeholder slides and 4 technical appendix slides.
+- Built a static browser deck and exported/visually inspected an 18-page PDF with headless Chromium.
+- Documented reproducible commands, original test coverage, temporary storage, source-branch drift, SCC/report discrepancy and source-linked evidence.
+- Added two TopoLoop slides: eight-resource setup topology with three acts and five-check scenario flow driven by the archived original results. Preserved pinned upstream source/licenses, reduced-motion behavior, still-frame controls and deterministic PDF frames.
+
+### 4.3 Recording and composition feasibility — Transferred
+- Executive presentation recording is required Phase 1 work in section 6.5. Composition with actual UI test clips is optional later work and is not a prerequisite for the silent executive video. No video capability is claimed by the existing sample.
+
+## Phase 5: Presentation Automation Handoff
+
+### 5.1 Document session and continuation plan — ✅
+- Updated [the presentation handoff](../../docs/report-presentation-plan.md) with completed work, repository roles and pinned revisions, tools, sample commands, source files, and evidence boundaries.
+- Verified the integration targets against the current OpenCode skill/YAML-state runtime, runner scripts, and container definitions.
+- Defined an immutable evidence bundle, a separate headless renderer Job, independent presentation status, publishing, and acceptance checks.
+- Added the handoff to the root README documentation index.
+- Added a dedicated local HTTP section with Node/npm prerequisites, Slidev and Vite commands, localhost URLs, directory guidance, and Ctrl+C shutdown instructions.
+
+### 5.2 Implement post-report presentation generation — Superseded by Phase 6
+- The active Phase 1 deliverables are executive Markdown, editable Slidev/TopoLoop source, browser build, PDF and a silent MP4, with durable inputs, recovery and report links.
+- Use the ordered work in sections 6.3–6.7. Original UI capture is optional later work; Google TTS narration is Phase 2. Runtime implementation remains pending.
+
+### 5.3 Plan the evidence collector milestone — ✅
+- Resumed from the saved handoff on 26 October 2026 and checked the current OpenCode workflow, CLI, dependency declarations, and repository state.
+- Added `docs/superpowers/plans/2026-10-26-presentation-evidence.md` with the bundle contract, collector/verifier and CLI interfaces, original-result capture instructions, test coverage, and publication boundary.
+- Collection implementation, storage integration, and automatic rendering remain pending. The plan is ready for review and execution-method selection.
+
+## Phase 6: Executive Presentation and Video Scope
+
+### 6.1 Record expanded feature requirements — ✅
+- Added `docs/superpowers/specs/2026-10-26-executive-summary-design.md` for automatic executive Slidev/TopoLoop presentations and videos based on the PoC report.
+- Defined repository purpose, testing strategy, actual execution and report-based OpenShift/Kubernetes suitability as required topics in both outputs.
+- Included report Executive Summary links, reusable headless recording/encoding, independent failure states, and configurable publication through existing tooling.
+- Recorded the user's phase boundary: silent on-screen-text video first, Google TTS voice-over in Phase 2.
+- Updated the authoritative handoff and collector plan to reflect the expanded scope; feature implementation remains pending.
+- An independent builder review identified one material ambiguity; clarified automated content/publication checks with no per-run human approval gate. Design approval and implementation planning remain pending.
+
+### 6.2 Incorporate Astra assessment — ✅
+- Revised the design, collector plan and handoff for all six findings: report lifecycle, durable recovery material, attempt history, extension resume, resource isolation and conflicting active scope.
+- Changed the cluster execution choice to a separate renderer Job. Synchronized silent video as a Phase 1 requirement and Google TTS as Phase 2.
+- Added acceptance cases for report → extension → blog persistence, original workspace deletion, interrupted uploads, completed-blog resume and forced renderer failure.
+- These are documentation corrections only. Implementation remains on hold while the user reviews; a detailed whole-feature implementation plan is still required.
+
+### 6.3 Preserve source evidence and artifact history — ✅
+- ✅ Collector Task 0: implemented the common append-only Git writer and CLI; migrated evaluation/plan/tests/report/blog artifact instructions to stable staging and immutable revisions. Independent scoped review passed. Verified 71 affected tests, including real competing Git writers and source-checkout preservation.
+- Implemented indexed capture, explicit final execution and incomplete-result handling, sanitized verified evidence ZIPs and historical/synthetic fixtures. Actual child-process/HTTP retry tests cover original attempts; collection never replays PoC tests.
+- Evidence review found quoted-credential and index-metadata scan bypasses; both fixed with RED→GREEN regression tests and scoped re-review.
+
+### 6.4 Seal durable render inputs and implement recovery — ✅ implementation; live acceptance open
+- Implemented hash-bound review receipts, four-topic JSON and bounded graphs/scenes, pinned image identities and sealed inputs. Existing OpenCode performs production content review; manual reference review receipts are labeled synthetic.
+- Added preallocated Drive IDs, upload intents/receipts, verified downloads, append-only Git checkpoints with a bounded immutable input fallback, standalone recovery and phase-independent reconciliation.
+- Ten real-Git/fake-provider recovery tests pass, including missing receipts, pending input upload, pre-UID submission and immutable/symlink-safe recovery. Real personal Drive reference publication passed with verified inputs and all six output receipts.
+
+### 6.5 Implement executive rendering and silent video — ✅ local implementation
+- Implemented trusted Slidev/TopoLoop components, JSON-only narrative, explicit scene readiness/reset/still frames, source/static ZIPs, PDF, executive Markdown and silent H264 MP4 with ffprobe validation.
+- Local host and constrained UBI renders passed. Full six-scene reference: 119.966667-second silent H264 at 1280x720/30 fps; 226.673-second render, peak 2,046,562,304 bytes. PDF text, topology, execution and conclusions visually inspected; two Node boundary tests pass. Broader live fixture/resource acceptance remains open. Google TTS stays Phase 2.
+
+### 6.6 Isolate cluster execution — ✅ restricted OCP render; failure acceptance open
+- Published renderer digest `sha256:f65ec5e266f743ce2ace49f978db1c99e68d8430527c9d4710ee56a4bfdab76d` under `quay.io/aicatalyst/autopoc-executive-renderer`. Added Job/RBAC/launcher configuration; renderer has no workload token or RoleBinding.
+- Constrained local test: arbitrary UID, read-only root, network disabled, 2 CPUs/3 GiB/4 GiB scratch; 68.539 seconds, peak 2,465,705,984 bytes for short diagnostic. No runtime dependency downloads.
+- ✅ 28 October: published image completed six-scene rendering through its normal entrypoint under restricted-v2, UID1000880000, read-only root/no workload token, 2 CPUs/3 GiB/4 GiB scratch. Runtime178.895s; memory peak1,841,668,096 bytes; scratch46,609,764 bytes. Five output hashes verified after export; six-page PDF, silent H264120s1280x720/30fps verified. Forced OOM/disk/admission acceptance and worker-image rollout remain open.
+
+### 6.7 Publish executive links and validate end to end — implementation ✅; live validation in progress
+- Implemented independent output validation/publication, durable receipts and report-link revisions after blog completion. Partial failures retain valid presentation/PDF artifacts.
+- Google service account is invalid. User authorized temporary personal OAuth; all six reference artifacts uploaded and downloaded for hash verification. Checkpoint complete; report links persisted in the local reference Git remote after completed-blog state. Personal credentials stay local; cluster Secret unchanged.
+- Current verification: 366 supported tests passed, 83.48% coverage; pinned Ruff clean; Pyright zero errors; two Node tests passed. Astra's five implementation findings closed with scoped re-review.
+- Remaining acceptance: unattended OCP publication and failure scenarios, model-service narrative review and main-worker build/rollout. OCP offline rendering now passes. New cluster outputs remain local because the temporary personal OAuth file was removed from /tmp; original verified Drive reference remains available. No original PoC test replay; no claim of production rollout.
+
+### 6.8 PR-readiness corrections — ✅ 28 October 2026
+- Fixed the timeout test's `/proc` check/read race with a bounded wait for child termination; it still fails if the child survives. Production timeout behavior is unchanged.
+- Removed trailing whitespace from the two sample font-license copies without changing their text.
+- Fresh verification: 366 supported tests passed, 83.48% coverage; focused renderer suite 11 passed; Ruff clean. Unrelated `opencode.json` remains excluded.
+- Renewed OCP access. The repository shell sets a different kubeconfig from the default used by `oc login`; acceptance commands explicitly select the renewed `/home/aavraham/.kube/config`.
+- ✅ Restricted OCP render/export passed. The first new attempt rejected ConfigMap symlinks; the passing harness copies input to a regular scratch file. Production path validation is unchanged. Updated AGENTS.md and prepared a reviewable PR description.
+
+### 6.9 Publish a draft PR to the user's fork — ✅ 28 October 2026
+- Pushed `codex/aipcc-33008-slidev-epic` to the `aavraham` remote, `aviavraham/autopoc`, at the user's request.
+- Opened [draft PR #1](https://github.com/aviavraham/autopoc/pull/1) against that fork's `master`; GitHub reports it mergeable. The description records actual validation and remaining rollout/acceptance work.
+- Attached the PR to this task. Unrelated `opencode.json` remains uncommitted and excluded. No merge or default-branch push was performed.
+
+### 6.10 Review project state after the user's merge — ✅ 3 November 2026
+- Confirmed the user's fork `master` points to merge commit `6b564e5` for PR #1. The current upstream `aicatalyst-team/autopoc` master is `3f266c7` and does not contain this feature.
+- Read the merged implementation, workflow/configuration references, handoff and active plans. Phase 6 rollout/acceptance remains open: production service-account repair, unattended publication, forced resource/admission failures, model-service narrative review and main-worker build/rollout.
+- Fresh scoped verification: 169 Python tests passed across artifacts, capture, evidence, executive tools, Drive and skill validation; all four Node renderer tests passed. This review did not run a new render, cluster acceptance or full coverage suite.
+- Existing `opencode.json`, `.coverage` and `uv.lock` changes remain excluded. Historical draft-PR and implementation-pending wording above describes earlier milestones; this entry records the verified post-merge state.
+
+### 6.11 Check upstream integration and CI — ✅ 3 November 2026
+- Refetched upstream `master`, still `3f266c7`. The feature is proposed through open, non-draft [upstream PR #66](https://github.com/aicatalyst-team/autopoc/pull/66), from `aviavraham:master` at `6b564e5` to upstream `master`.
+- GitHub reports no merge conflicts (`MERGEABLE`), but merging is blocked and approval is required (`REVIEW_REQUIRED`); there are no submitted reviews.
+- [PR CI run 41645246344](https://github.com/aicatalyst-team/autopoc/actions/runs/41645246344): lint, renderer tests, typecheck, Python tests and worker image build passed. Security failed: pip-audit reports 10 findings across certifi, opentelemetry-api, pyasn1 and urllib3 (the certifi advisory appears twice).
+- [Upstream master CI run 41590181862](https://github.com/aicatalyst-team/autopoc/actions/runs/41590181862) has the same audit findings; its other CI jobs passed. These dependency findings therefore also exist before the executive feature is merged. No dependency changes, PR comments, pushes or merges were made during this check.
+
+## Phase 7: Upstream Security Remediation — Fix verified; integration pending
+
+### 7.1 Fix and verify vulnerable dependency pins — ✅ 3 November 2026
+- Reproduced PR #66's security failure locally: the pinned lock produced the same 10 reported findings across four transitive dependencies.
+- Regenerated `requirements.lock` with pip-compile and SHA-256 hashes under Python 3.12, selectively updating certifi to 2026.10.23, opentelemetry-api to 1.45.2, pyasn1 to 0.6.5 and urllib3 to 2.8.0. All other package versions are unchanged; no new runtime dependencies were declared.
+- Verified a fresh Python 3.12 environment: hash-checked installation succeeded, pip-audit reports no known vulnerabilities, pip check passed, 371 tests passed with 85.55% coverage, pinned Ruff passed, Pyright reported zero errors/warnings, and all four renderer tests passed.
+- Prepared on `codex/fix-upstream-security`. Upstream PR #66 tracks the user's fork `master`; merging this fix into that branch requires user approval. The upstream PR's existing CI result remains failed until its source is updated and CI reruns.
+
+### 7.2 Publish the reviewable security fix — ✅ 3 November 2026
+- Pushed only `codex/fix-upstream-security` and opened [fork PR #2](https://github.com/aviavraham/autopoc/pull/2), targeting the fork's `master`. GitHub reports it mergeable with no conflicts; no fork CI checks are currently reported.
+- Attached fork PR #2 and upstream PR #66 to this chat. Neither default branch was pushed or merged; applying the fix to upstream PR #66 remains pending user merge approval.

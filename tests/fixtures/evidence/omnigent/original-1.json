@@ -1,0 +1,12 @@
+{
+  "description": "Bare liveness + backing-store path",
+  "duration_seconds": 0.05,
+  "error_message": null,
+  "provenance": {
+    "kind": "original-run results",
+    "retry_history": "unavailable"
+  },
+  "scenario_id": "health-check",
+  "scenario_name": "health-check",
+  "status": "pass"
+}

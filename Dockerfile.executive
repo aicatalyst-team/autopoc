@@ -1,0 +1,71 @@
+# Standalone amd64 offline renderer. No OpenCode, kubectl or workload token.
+FROM ghcr.io/astral-sh/uv:0.9.5 AS uv
+FROM registry.access.redhat.com/ubi9/python-312:latest
+USER 0
+COPY --from=uv /uv /usr/local/bin/uv
+RUN dnf update -y --security && dnf install -y \
+    tar xz nss nspr atk at-spi2-atk cups-libs libdrm \
+    libXcomposite libXdamage libXrandr libXi libXtst libXScrnSaver \
+    mesa-libgbm pango alsa-lib gtk3 dbus-libs google-droid-sans-fonts \
+    liberation-mono-fonts fontconfig && dnf clean all && rm -rf /var/cache/dnf
+
+# Exact upstream Node archive checksum (official v22.22.2 SHASUMS256.txt).
+RUN curl -fsSL https://nodejs.org/dist/v22.22.2/node-v22.22.2-linux-x64.tar.xz -o /tmp/node.tar.xz && \
+    echo '88fd1ce767091fd8d4a99fdb2356e98c819f93f3b1f8663853a2dee9b438068a  /tmp/node.tar.xz' | sha256sum -c - && \
+    tar -xJf /tmp/node.tar.xz --strip-components=1 -C /usr/local && rm /tmp/node.tar.xz
+
+# GPL static FFmpeg 7.0.2 includes the libx264 encoder (Playwright's ffmpeg does not).
+# Fail closed if upstream replaces this moving release archive; retain its GPL license.
+RUN curl -fsSL https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o /tmp/ffmpeg.tar.xz && \
+    echo 'abda8d77ce8309141f83ab8edf0596834087c52467f6badf376a6a2a4c87cf67  /tmp/ffmpeg.tar.xz' | sha256sum -c - && \
+    mkdir /tmp/ffmpeg-static && tar -xJf /tmp/ffmpeg.tar.xz --strip-components=1 -C /tmp/ffmpeg-static && \
+    cp /tmp/ffmpeg-static/ffmpeg /tmp/ffmpeg-static/ffprobe /usr/local/bin/ && \
+    mkdir -p /usr/share/licenses/autopoc-ffmpeg && \
+    cp /tmp/ffmpeg-static/GPLv3.txt /tmp/ffmpeg-static/readme.txt /usr/share/licenses/autopoc-ffmpeg/ && \
+    ffmpeg -hide_banner -encoders 2>/dev/null | grep -q libx264 && \
+    rm -rf /tmp/ffmpeg.tar.xz /tmp/ffmpeg-static
+
+RUN mkdir -p /scratch/tmp /scratch/home /scratch/cache && \
+    chgrp -R 0 /scratch && chmod 2770 /scratch && chmod -R g=u /scratch
+
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/autopoc/browsers \
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
+    PYTHONPATH=/opt/autopoc/src \
+    AUTOPOC_RENDERER_ROOT=/opt/autopoc/renderer \
+    AUTOPOC_RENDER_NODE_MODULES=/opt/autopoc/renderer/node_modules \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_CACHE_DIR=/scratch/cache/uv \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PYTHON=/usr/bin/python3.12 \
+    HOME=/scratch/home \
+    TMPDIR=/scratch/tmp \
+    XDG_CACHE_HOME=/scratch/cache
+WORKDIR /opt/autopoc/renderer
+COPY renderer/package.json renderer/package-lock.json ./
+RUN npm ci --no-audit --no-fund && \
+    ./node_modules/.bin/playwright install chromium ffmpeg && \
+    chmod -R a+rX /opt/autopoc/browsers
+RUN ln -s /scratch/cache/slidev node_modules/.slidev && \
+    ln -s /scratch/cache/vite node_modules/.vite && \
+    ln -s /scratch/cache/vite-temp node_modules/.vite-temp && \
+    mkdir -p node_modules/@slidev/cli/node_modules && \
+    ln -s /scratch/cache/slidev-cli-vite node_modules/@slidev/cli/node_modules/.vite && \
+    ln -s /scratch/cache/slidev-cli-vite-temp node_modules/@slidev/cli/node_modules/.vite-temp
+COPY renderer/render.mjs renderer/style.css renderer/README.md ./
+COPY renderer/components/ ./components/
+COPY renderer/vendor/ ./vendor/
+
+WORKDIR /opt/autopoc
+COPY requirements.lock /opt/autopoc/requirements.lock
+RUN UV_CACHE_DIR=/tmp/uv-cache uv pip install --system --python /usr/bin/python3.12 --require-hashes -r requirements.lock && \
+    rm -rf /tmp/uv-cache
+COPY src/ /opt/autopoc/src/
+COPY data/ /opt/autopoc/data/
+COPY LICENSE /opt/autopoc/LICENSE
+COPY renderer/entrypoint.sh /usr/local/bin/executive-entrypoint
+RUN mkdir -p /scratch && chgrp 0 /scratch && chmod 2770 /scratch && \
+    chmod 755 /usr/local/bin/executive-entrypoint && \
+    chmod -R a+rX /opt/autopoc
+USER 1001
+WORKDIR /scratch
+ENTRYPOINT ["/usr/local/bin/executive-entrypoint"]

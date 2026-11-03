@@ -1,0 +1,51 @@
+{
+  "results": [
+    {
+      "scenario_name": "health-check",
+      "status": "pass",
+      "duration_seconds": 0.05,
+      "description": "Bare liveness + backing-store path",
+      "error_message": null
+    },
+    {
+      "scenario_name": "version-info",
+      "status": "pass",
+      "duration_seconds": 0.02,
+      "description": "Confirm omnigent package installed in the UBI image",
+      "error_message": null
+    },
+    {
+      "scenario_name": "server-info",
+      "status": "pass",
+      "duration_seconds": 0.02,
+      "description": "Unauthenticated server capability/info endpoint",
+      "error_message": null
+    },
+    {
+      "scenario_name": "web-ui",
+      "status": "pass",
+      "duration_seconds": 0.02,
+      "description": "React SPA bundle served at the root",
+      "error_message": null
+    },
+    {
+      "scenario_name": "login-page",
+      "status": "pass",
+      "duration_seconds": 0.02,
+      "description": "Auth login page reachable (pre-auth surface)",
+      "error_message": null
+    }
+  ],
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0
+  },
+  "provenance": {
+    "source": "runner log",
+    "run": "autopoc-omnigent-8554",
+    "kind": "original-run results",
+    "http_response_bodies": "omitted",
+    "matching_result_objects": 1
+  }
+}
