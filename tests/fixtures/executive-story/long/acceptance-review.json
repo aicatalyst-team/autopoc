@@ -1,0 +1,15 @@
+{
+  "findings": [],
+  "observations": [
+    "Slide 3 presents a simplified two-node graph (Frontend -> API Service) which omits the API Pod and downstream components described in the source text (L5). However, the slide title and narration explicitly frame this as a 'planned' path and 'illustrative' animation, and the source text (L9) explicitly states that animations of the request path are "
+  ],
+  "approved": true,
+  "schema_version": 2,
+  "reviewer": "configured-opencode",
+  "acceptance_only": true,
+  "model": "vllm/qwen3.8-27b-abliterated",
+  "method": "Independent configured-model API; existing worker credentials in memory only",
+  "narrative_sha256": "63ac425349e7db1f24aad0353bc7524e48f7e020132b0e507a1a694c37d1674c",
+  "scenes_sha256": "a5027fa3355cd7b94b3761e9d7cb89fa649f7176d4df0dd286a8422c0937e187",
+  "evidence_sha256": "59677d9ddf34d881d12276a5fc1a16d5a6332580d2bf2b15830e8581c42abb5e"
+}

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { verifyBrandAssets } from './branding.mjs'
-import { loadTimeline, muxPresentation } from './audio.mjs'
+import { loadTimeline, muxPresentation, encodeCapture } from './audio.mjs'
 import { validateStoryboard, speakerNotes, transcript } from './storyboard.mjs'
 import { inspectScene, sceneProblems, sceneCheckTimes } from './scene-validation.mjs'
 
@@ -245,7 +245,6 @@ export async function recordPresentation(input, output, timelinePath) {
     for (const [i,scene] of timeline.scenes.entries()) {
       const capture = join(output, `capture-${i+1}`)
       const context = await browser.newContext({ viewport:{width:1280,height:720}, recordVideo:{dir:capture,size:{width:1280,height:720}} })
-      const born = Date.now()
       await context.route('**/*', route => route.request().url().startsWith(url + '/') ? route.continue() : route.abort())
       const page = await context.newPage(), errors=[]
       page.on('pageerror', e => errors.push(e.message))
@@ -258,13 +257,12 @@ export async function recordPresentation(input, output, timelinePath) {
         await page.locator('[data-executive-ready="true"]').waitFor({timeout:30000})
         const problems=[...errors,...await page.locator('.tl-fatal').allTextContents(),...sceneProblems(await page.evaluate(inspectScene))]
         if(problems.length) { const failure=new Error(`Scene ${scene.id}: ${problems.join('; ')}`);failure.contentFailure=true;throw failure }
-        offset=(Date.now()-born)/1000
         await page.waitForTimeout(scene.duration_seconds*1000+150)
         if(errors.length || (await page.locator('.tl-fatal').count())) {const failure=new Error('Scene failed during recording');failure.contentFailure=true;throw failure}
         raw=await page.video().path()
       } finally { await context.close() }
       const segment=join(resolve(output),`scene-${i+1}.mp4`)
-      await run('ffmpeg',['-v','error','-y','-ss',String(offset),'-i',raw,'-an','-r','30','-frames:v',String(scene.frame_count),'-c:v','libx264','-pix_fmt','yuv420p',segment],output)
+      offset=await encodeCapture(raw,scene,segment,output,run)
       segments.push(segment)
       manifest.scenes.push({id:scene.id,duration_seconds:scene.duration_seconds,frame_count:scene.frame_count,capture_offset:offset,ready:true,graph:!!narrative.slides[i].graph})
       await save()

@@ -72,7 +72,7 @@ export async function muxPresentation(segments,timeline,output,run) {
   for(const [i,path] of segments.entries()) {
     const p=JSON.parse(await run('ffprobe',['-v','error','-show_format','-show_streams','-of','json',path],output))
     const v=p.streams.find(s=>s.codec_type==='video')
-    need(v && v.width===1280 && v.height===720 && v.codec_name==='h264' && v.pix_fmt==='yuv420p' && v.avg_frame_rate==='30/1' && Math.abs(Number(p.format.duration)-timeline.scenes[i].duration_seconds)<=.25)
+    need(v && v.width===1280 && v.height===720 && v.codec_name==='h264' && v.pix_fmt==='yuv420p' && v.avg_frame_rate==='30/1' && Number(v.nb_frames)===timeline.scenes[i].frame_count && Math.abs(Number(p.format.duration)-timeline.scenes[i].duration_seconds)<=.25)
   }
   await writeFile(join(output,'concat.txt'),segments.map(p=>`file '${resolve(p).replaceAll("'","'\\''")}'`).join('\n'))
   await run('ffmpeg',['-v','error','-y','-f','concat','-safe','0','-i','concat.txt','-an','-c:v','copy','silent.mp4'],output)
@@ -80,9 +80,20 @@ export async function muxPresentation(segments,timeline,output,run) {
   await run('ffmpeg',['-v','error','-y','-i','silent.mp4','-i','padded-narration.wav','-map','0:v:0','-map','1:a:0','-c:v','copy','-c:a','aac','-b:a','128k','-ar','24000','-movflags','+faststart','executive-summary.mp4'],output)
   const probe=JSON.parse(await run('ffprobe',['-v','error','-show_format','-show_streams','-of','json','executive-summary.mp4'],output))
   const video=probe.streams.find(s=>s.codec_type==='video'),audio=probe.streams.find(s=>s.codec_type==='audio')
-  need(probe.streams.length===2 && video && audio && video.codec_name==='h264' && video.width===1280 && video.height===720 && video.pix_fmt==='yuv420p' && video.avg_frame_rate==='30/1' && audio.codec_name==='aac')
+  need(probe.streams.length===2 && video && audio && video.codec_name==='h264' && video.width===1280 && video.height===720 && video.pix_fmt==='yuv420p' && video.avg_frame_rate==='30/1' && Number(video.nb_frames)===timeline.scenes.reduce((sum,s)=>sum+s.frame_count,0) && audio.codec_name==='aac')
   need(Math.abs(Number(probe.format.duration)-timeline.duration_seconds)<=.25 && Math.abs(Number(audio.duration)-timeline.duration_seconds)<=.25 && Math.abs(Number(video.duration)-timeline.duration_seconds)<=.25)
   need((await lstat(join(output,'executive-summary.mp4'))).size<=1024**3)
   await run('ffmpeg',['-v','error','-xerror','-i','executive-summary.mp4','-f','null','-'],output)
   return {status:'validated',path:'executive-summary.mp4',duration_seconds:Number(probe.format.duration),width:1280,height:720,fps:video.avg_frame_rate,audio_codec:audio.codec_name}
+}
+
+/** Playwright's first recorded frame can arrive after context creation. Crop
+ * against the measured media end; wall-clock preroll can truncate whole scenes. */
+export async function encodeCapture(raw,scene,output,cwd,run) {
+  const probe=JSON.parse(await run('ffprobe',['-v','error','-show_format','-of','json',raw],cwd))
+  const duration=Number(probe.format.duration)
+  need(finite(duration) && duration>=scene.duration_seconds)
+  const offset=duration-scene.duration_seconds
+  await run('ffmpeg',['-v','error','-y','-ss',String(offset),'-i',raw,'-an','-vf','fps=30,tpad=stop_mode=clone:stop_duration=0.1','-frames:v',String(scene.frame_count),'-c:v','libx264','-pix_fmt','yuv420p',output],cwd)
+  return offset
 }

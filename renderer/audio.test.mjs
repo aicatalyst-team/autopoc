@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { loadTimeline, pcmWav, muxPresentation } from './audio.mjs'
+import { loadTimeline, pcmWav, muxPresentation, encodeCapture } from './audio.mjs'
 const sha = data => createHash('sha256').update(data).digest('hex')
 async function fixture(seconds = 1, count = 6) {
   const root = await mkdtemp(join(tmpdir(),'autopoc-audio-'))
@@ -86,4 +86,30 @@ test('changed WAV retains prepared deck/PDF and explicitly fails narrated video'
     assert.equal(result.status,'partial');assert.equal(result.artifacts.video.status,'failed')
     assert.equal(result.artifacts.deck.status,'validated');assert.equal(result.artifacts.pdf.status,'validated')
   }finally {await rm(f.root,{recursive:true,force:true})}
+})
+
+
+test('capture trimming uses recorded media duration instead of delayed wall clock',{skip:!process.env.AUTOPOC_FFMPEG_INTEGRATION},async()=>{
+  const root=await mkdtemp(join(tmpdir(),'autopoc-capture-'))
+  const run=async(command,args,cwd)=>execFileSync(command,args,{cwd,maxBuffer:20*1024*1024}).toString()
+  try {
+    const raw=join(root,'delayed.webm'),output=join(root,'scene.mp4')
+    await run('ffmpeg',['-v','error','-y','-f','lavfi','-i','color=c=blue:s=1280x720:r=25:d=6.96','-c:v','libvpx','-deadline','realtime',raw],root)
+    const offset=await encodeCapture(raw,{duration_seconds:184/30,frame_count:184},output,root,run)
+    assert.ok(Math.abs(offset-(6.96-184/30))<.05)
+    const p=JSON.parse(await run('ffprobe',['-v','error','-show_format','-show_streams','-of','json',output],root))
+    assert.equal(Number(p.streams[0].nb_frames),184)
+  }finally {await rm(root,{recursive:true,force:true})}
+})
+
+test('real variable-frame browser recording retains every fractional scene frame',{skip:!process.env.AUTOPOC_FFMPEG_INTEGRATION},async()=>{
+  const root=await mkdtemp(join(tmpdir(),'autopoc-browser-frames-'))
+  const run=async(command,args,cwd)=>execFileSync(command,args,{cwd,maxBuffer:20*1024*1024}).toString()
+  try {
+    const raw=new URL('../tests/fixtures/executive-story/delayed-capture.webm',import.meta.url).pathname
+    const output=join(root,'fractional.mp4')
+    await encodeCapture(raw,{duration_seconds:181/30,frame_count:181},output,root,run)
+    const p=JSON.parse(await run('ffprobe',['-v','error','-show_streams','-of','json',output],root))
+    assert.equal(Number(p.streams[0].nb_frames),181)
+  }finally {await rm(root,{recursive:true,force:true})}
 })

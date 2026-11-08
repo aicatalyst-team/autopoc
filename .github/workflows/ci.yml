@@ -54,6 +54,13 @@ jobs:
             --entrypoint /opt/autopoc/speech-venv/bin/python autopoc-executive:ci \
             -c 'from pathlib import Path; from autopoc.executive_speech import _HeartEngine, verify_speech_assets; root=Path("/opt/autopoc/speech-assets"); engine=_HeartEngine(root, verify_speech_assets(root)); audio=engine.synthesize("This is an offline executive narration sample."); assert audio.sample_rate == 24000 and len(audio.pcm16) > 24000; print("Offline Heart smoke passed")'
 
+      - name: Verify actual AAC tone placement offline
+        run: |
+          podman run --rm --network=none --read-only --user=28128:0 --cpus=2 --memory=4g \
+            --tmpfs /scratch:rw,size=1g,mode=1777 --env TMPDIR=/scratch \
+            --env AUTOPOC_FFMPEG_INTEGRATION=1 -v "$PWD:/workspace:ro,Z" \
+            --entrypoint node autopoc-executive:ci --test /workspace/renderer/audio.test.mjs
+
   test:
     needs: lint
     runs-on: ubuntu-latest

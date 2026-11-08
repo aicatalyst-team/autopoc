@@ -76,8 +76,7 @@ COPY data/ /opt/autopoc/data/
 COPY LICENSE /opt/autopoc/LICENSE
 COPY renderer/entrypoint.sh /usr/local/bin/executive-entrypoint
 RUN mkdir -p /scratch && chgrp 0 /scratch && chmod 2770 /scratch && \
-    chmod 755 /usr/local/bin/executive-entrypoint && \
-    chmod -R a+rX /opt/autopoc
+    chmod 755 /usr/local/bin/executive-entrypoint
 USER 1001
 WORKDIR /scratch
 ENTRYPOINT ["/usr/local/bin/executive-entrypoint"]

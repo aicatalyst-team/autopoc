@@ -166,6 +166,8 @@ def test_empty_json_selection_is_not_supporting_evidence(tmp_path):
 @pytest.mark.parametrize(
     "case,totals",
     [
+        ("long", {"pass": 3, "fail": 0, "error": 0, "skip": 0, "incomplete": 0}),
+        ("omnigent", {"pass": 5, "fail": 0, "error": 0, "skip": 0, "incomplete": 0}),
         ("simple", {"pass": 1, "fail": 0, "error": 0, "skip": 0, "incomplete": 0}),
         ("complex", {"pass": 3, "fail": 0, "error": 0, "skip": 0, "incomplete": 0}),
         ("failed", {"pass": 1, "fail": 1, "error": 0, "skip": 0, "incomplete": 1}),

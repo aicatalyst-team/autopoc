@@ -299,4 +299,6 @@ implementation-plan.md section 9.3; every completed task must update both files.
 | Render variable slide chapters | ✅ Done — variable decks, source notes/transcript and actual browser/PDF checks |
 | Encode narrated video and preserve partial outputs | ✅ Done — staged processes, measured timelines, real AAC/cut checks |
 | Persist long-render policy/recovery/publication | ✅ Done — durable profiles, stable IDs, late/partial publication checks |
-| Complete local/OCP acceptance and controlled rollout | Pending |
+| Complete local/OCP acceptance and controlled rollout | In progress — capture regressions/failure recovery complete; final pinned-image runs active |
+
+Capture timing/frame regression and real offline failure recovery — ✅ 8 November 2026. Final long-render/cluster acceptance and rollout gates remain explicitly tracked in implementation-plan.md.

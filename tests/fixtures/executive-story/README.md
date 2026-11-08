@@ -16,3 +16,16 @@ Use configured-model semantic review in addition to structural contract tests.
 The tests can prove valid references/counts, not that prose is supported by a
 source. Model/asset identities in these examples are test values; acceptance
 rendering binds the actual reviewed asset manifest before final review/sealing.
+
+`long/` is a declared synthetic 12-slide stress case with three original fixture
+checks. It intentionally uses more narration than a normal three-check summary
+to exercise >180s recording, sentence audio and graph states. It is not a
+customer PoC or a production-content example.
+
+`omnigent/` imports the committed 20 October original HTTP outcomes/report and
+sanitized build excerpts from `presentations/omnigent-2026-10-20/public/evidence`.
+Its provenance identifies historical import, rather than newly captured original
+workspace state. Missing original workspace, UI recordings and traces remain
+explicit; no test was replayed and later observations do not become original
+results. Both received independent actual configured-model acceptance reviews
+for the exact final draft; receipts remain acceptance-only.

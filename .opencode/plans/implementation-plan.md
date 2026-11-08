@@ -511,7 +511,7 @@ recommendations are not execution instructions.
 | Render variable executive slide chapters | ✅ Done — 6/8/12-slide browser/PDF checks and graph validation |
 | Encode narration-driven scenes and retain valid partial outputs | ✅ Done — measured PCM, one AAC encode and partial-output tests |
 | Persist narrated Job policy and recover/publish long renders | ✅ Done — saved policy, bounded Jobs, late/partial recovery |
-| Complete local/cluster acceptance and controlled rollout | Pending |
+| Complete local/cluster acceptance and controlled rollout | In progress — offline/cluster renders and frame fixes verified; final stricter-image reruns active |
 
 
 ### 9.4 Check OCP access and available GPU scheduling capacity — ✅ 8 November 2026
@@ -568,3 +568,8 @@ recommendations are not execution instructions.
 - Select source/video download caps by saved format/kind, verify exact published hash/size and enforce caps on cached downloads too. Failed narration publishes usable partial artifacts without a successful video link; reconciliation preserves completed blog/phase state after worker deletion.
 - Added missing optional narration Secret forwarding in worker Job/CronJob/launcher; documented compatible-image operator precondition, build-time model copies and independent Drive authorization. No live worker/Secret configuration changed.
 - RED→GREEN policy/profile/CLI/wiring and forged-size cases; GREEN: 114 affected tests, 478 supported Python tests, full Ruff/Pyright, launcher syntax check. Actual cluster/media/publication acceptance follows in Task 8.
+
+#### 9.3.8.1 Verify browser capture timing and offline failure recovery — ✅ 8 November 2026
+- Real constrained video exposed wall-clock trimming that shortened a 6s scene to 5.733s. Crop using recorded media duration; retained a genuine variable-frame browser recording to reproduce fractional frame loss (181 expected versus 180 actual). Normalize/pad video to exactly reviewed frame counts; require exact scene/final frame totals in addition to 0.25s duration bounds.
+- 14/14 real FFmpeg tests passed, including AAC cut tones, delayed capture and fractional scene frames. Supported suite now 480 passed at86.20% coverage; Ruff/Pyright clean. Runtime audio helper SHA matches the published acceptance2 image; three final local cases and restricted-v2 OCP rerun are active.
+- Earlier complete local and OCP Omnigent renders passed the original duration bounds, and source/timeline/audio/full decoding were verified. Disk-full,4GiB child OOM and forced termination retained valid partial artifacts. Drive refresh still fails invalid_grant; human listening remains a separate rollout gate.
