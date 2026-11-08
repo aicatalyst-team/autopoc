@@ -262,3 +262,17 @@ local only while the production service-account credential is repaired.
 | Publish new renderer digest, validate restricted OCP behavior and roll out worker/renderer | Pending; local validation does not establish OCP deployment/publication |
 
 Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-red-hat-presentation-branding-design.md).
+
+
+## Phase 9: Kokoro Voice-over Feasibility — Local audition ✅; adoption undecided
+
+| Task | Status |
+|------|--------|
+| Check Google TTS availability on the work project | ✅ Billing enabled; TTS API absent; use request denied by project permissions |
+| Generate two local Kokoro voice samples | ✅ 8 November — Heart 22.150s and Fenrir 20.325s; CPU generation about 14.2s each |
+| Verify sample integrity and preserve audition measurements | ✅ Finite non-silent WAVs; MP3 probe and full decode passed; script/package inventory/results retained locally |
+| Select a voice and decide on production integration | Undecided — user listening feedback needed; no pipeline or deployment changes |
+
+This is a local throwaway audition, not production narration acceptance. Technical
+pronunciation, offline packaging, per-scene synchronization and restricted OCP
+resource acceptance remain future design/validation work if Kokoro is selected.

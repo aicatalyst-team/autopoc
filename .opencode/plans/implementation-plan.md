@@ -469,3 +469,23 @@ recommendations are not execution instructions.
 #### 8.5.3 Publish the reviewable feature branch — ✅ 3 November 2026
 - Pushed `codex/red-hat-presentation-branding`, opened [draft fork PR #3](https://github.com/aviavraham/autopoc/pull/3) targeting fork master and attached it to this chat. GitHub reports no conflicts; no fork CI checks are reported.
 - Updated renderer/configuration/workflow docs with local assets, v2/v1 compatibility, overflow handling and rollout requirements. No default branch was merged/pushed; deployed configuration is unchanged.
+
+
+## Phase 9: Kokoro Voice-over Feasibility — Local audition ✅; adoption undecided
+
+## Progress
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| Kokoro local audition | ✅ Done | Two CPU-generated English samples; no pipeline integration |
+| Voice selection and production integration | Undecided | Await user listening feedback and design decision |
+
+### 9.1 Generate and verify a local Kokoro audition — ✅ 8 November 2026
+- Google TTS access is blocked on the configured work project: billing is enabled, the API is not enabled and the user lacks `serviceusage.services.use`. No cloud settings were changed.
+- Ran a throwaway Python 3.12 environment under `/tmp/autopoc/kokoro-audition-20261108/` with Kokoro 0.9.4, Misaki 0.9.4, CPU-only Torch 2.8.0 and the English spaCy model. No application dependencies or renderer behavior changed.
+- Generated the same explicitly labeled executive-narration sample with American English `af_heart` and `am_fenrir`, speed 0.95, two Torch CPU threads. Text includes Red Hat OpenShift, Kubernetes and Quay; it claims no PoC result.
+- Heart: 22.150s audio / 14.153s generation. Fenrir: 20.325s audio / 14.186s generation. Model initialization with cached weights took 1.721s; generation timing includes voice loading and file writing, not initial installation/model download. These are local observations, not OCP resource acceptance.
+- Verified finite, non-silent waveforms below full scale, 24kHz mono PCM WAV files, MP3 conversion and complete MP3 decoding with ffmpeg/ffprobe. Listening quality and pronunciation remain for user review.
+- Saved WAV/MP3 samples, script, package inventory and JSON measurements in the chat's local `kokoro-audition/` artifact directory. WAV SHA-256: Heart `7f5690f255519837485249f40971e51dbe1965ce64218c826f277bde54bb3f22`; Fenrir `c0116cc759402c4c88fec518de63df55aa8b26f0bdbb311b12be1e389ad7e8f9`.
+- Corrected spaCy's automatic installer choosing the repository environment: installed its English model explicitly in the trial environment and removed the single newly added model package from the repository environment. Repository dependency declarations/locks are unchanged.
+- This is an audition only. No PoC tests were replayed; narration integration, offline image packaging, scene synchronization, resource limits and publication remain unimplemented/unvalidated. Historical Google TTS Phase 2 preference is not treated as a finalized Kokoro adoption decision.
