@@ -1,5 +1,7 @@
 # Standalone amd64 offline renderer. No OpenCode, kubectl or workload token.
 FROM ghcr.io/astral-sh/uv:0.9.5 AS uv
+# Public static FFmpeg 7.0.2, pinned by immutable multi-architecture manifest.
+FROM docker.io/mwader/static-ffmpeg@sha256:d9b22f65c2049d73bf8ae556bb4c5c7d45e9fb85939d87951ed98f22b0f19105 AS ffmpeg
 FROM registry.access.redhat.com/ubi9/python-312:latest
 USER 0
 COPY --from=uv /uv /usr/local/bin/uv
@@ -14,16 +16,12 @@ RUN curl -fsSL https://nodejs.org/dist/v22.22.2/node-v22.22.2-linux-x64.tar.xz -
     echo '88fd1ce767091fd8d4a99fdb2356e98c819f93f3b1f8663853a2dee9b438068a  /tmp/node.tar.xz' | sha256sum -c - && \
     tar -xJf /tmp/node.tar.xz --strip-components=1 -C /usr/local && rm /tmp/node.tar.xz
 
-# GPL static FFmpeg 7.0.2 includes the libx264 encoder (Playwright's ffmpeg does not).
-# Fail closed if upstream replaces this moving release archive; retain its GPL license.
-RUN curl -fsSL https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o /tmp/ffmpeg.tar.xz && \
-    echo 'abda8d77ce8309141f83ab8edf0596834087c52467f6badf376a6a2a4c87cf67  /tmp/ffmpeg.tar.xz' | sha256sum -c - && \
-    mkdir /tmp/ffmpeg-static && tar -xJf /tmp/ffmpeg.tar.xz --strip-components=1 -C /tmp/ffmpeg-static && \
-    cp /tmp/ffmpeg-static/ffmpeg /tmp/ffmpeg-static/ffprobe /usr/local/bin/ && \
-    mkdir -p /usr/share/licenses/autopoc-ffmpeg && \
-    cp /tmp/ffmpeg-static/GPLv3.txt /tmp/ffmpeg-static/readme.txt /usr/share/licenses/autopoc-ffmpeg/ && \
-    ffmpeg -hide_banner -encoders 2>/dev/null | grep -q libx264 && \
-    rm -rf /tmp/ffmpeg.tar.xz /tmp/ffmpeg-static
+# Preserve GPL notices/provenance and verify the copied executable identities.
+COPY --from=ffmpeg /ffmpeg /ffprobe /usr/local/bin/
+COPY renderer/assets/ffmpeg/ /usr/share/licenses/autopoc-ffmpeg/
+RUN echo 'babb8d45fab2016595558852d2935f69086bb1143a6a2a898390940ecca8bcd2  /usr/local/bin/ffmpeg' | sha256sum -c - && \
+    echo '66b8cb3851ac3ae77bb47b479315c62e1fc183fedab1fc7d4f33f941acde076f  /usr/local/bin/ffprobe' | sha256sum -c - && \
+    ffmpeg -hide_banner -encoders 2>/dev/null | grep -q libx264
 
 RUN mkdir -p /scratch/tmp /scratch/home /scratch/cache && \
     chgrp -R 0 /scratch && chmod 2770 /scratch && chmod -R g=u /scratch
@@ -59,6 +57,18 @@ COPY renderer/assets/ ./assets/
 WORKDIR /opt/autopoc
 COPY requirements.lock /opt/autopoc/requirements.lock
 RUN UV_CACHE_DIR=/tmp/uv-cache uv pip install --system --python /usr/bin/python3.12 --require-hashes -r requirements.lock && \
+    rm -rf /tmp/uv-cache
+COPY renderer/requirements.lock /opt/autopoc/renderer/requirements.lock
+ENV AUTOPOC_SPEECH_PYTHON=/opt/autopoc/speech-venv/bin/python \
+    AUTOPOC_SPEECH_ASSETS=/opt/autopoc/speech-assets
+COPY renderer/pyproject.toml /opt/autopoc/renderer/pyproject.toml
+COPY scripts/prepare-kokoro-assets.py /opt/autopoc/scripts/prepare-kokoro-assets.py
+RUN uv venv --python /usr/bin/python3.12 /opt/autopoc/speech-venv && \
+    UV_CACHE_DIR=/tmp/uv-cache uv pip install --python /opt/autopoc/speech-venv/bin/python \
+      --require-hashes --index-strategy unsafe-best-match -r /opt/autopoc/renderer/requirements.lock && \
+    /opt/autopoc/speech-venv/bin/python /opt/autopoc/scripts/prepare-kokoro-assets.py \
+      --manifest /opt/autopoc/renderer/assets/kokoro/manifest.json \
+      --output-dir /opt/autopoc/speech-assets --include-package-licenses && \
     rm -rf /tmp/uv-cache
 COPY src/ /opt/autopoc/src/
 COPY data/ /opt/autopoc/data/

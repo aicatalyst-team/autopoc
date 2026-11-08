@@ -41,6 +41,19 @@ jobs:
       - run: pip install pyright
       - run: pyright src/
 
+  executive-image:
+    needs: renderer-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - run: podman build -f Dockerfile.executive -t autopoc-executive:ci .
+      - name: Generate offline Heart speech with empty writable caches
+        run: |
+          podman run --rm --network=none --read-only --user=28128:0 --cpus=2 --memory=4g \
+            --tmpfs /scratch:rw,size=1g,mode=1777 \
+            --entrypoint /opt/autopoc/speech-venv/bin/python autopoc-executive:ci \
+            -c 'from pathlib import Path; from autopoc.executive_speech import _HeartEngine, verify_speech_assets; root=Path("/opt/autopoc/speech-assets"); engine=_HeartEngine(root, verify_speech_assets(root)); audio=engine.synthesize("This is an offline executive narration sample."); assert audio.sample_rate == 24000 and len(audio.pcm16) > 24000; print("Offline Heart smoke passed")'
+
   test:
     needs: lint
     runs-on: ubuntu-latest
@@ -63,6 +76,20 @@ jobs:
       - run: pip install pip-audit
       - run: pip install -r requirements.lock
       - run: pip-audit
+      - name: Audit renderer pins including the CPU Torch base version
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path("renderer/requirements.lock").read_text()
+          pins = re.findall(r"^([A-Za-z0-9_.-]+)(?:\[[^]]+\])?==([^\s\\]+)", text, re.M)
+          direct = re.findall(r"^([A-Za-z0-9_.-]+) @ (\S+)", text, re.M)
+          assert direct == [("en-core-web-sm", "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl")]
+          assert any(name == "torch" for name, _ in pins)
+          Path("/tmp/renderer-advisory-pins.txt").write_text("\n".join(name + "==" + (version.split("+", 1)[0] if name == "torch" else version) for name, version in pins) + "\n")
+          print("English model wheel is upstream/hash-verified, outside PyPI advisory coverage.")
+          PY
+          pip-audit --requirement /tmp/renderer-advisory-pins.txt --no-deps --disable-pip
 
   image:
     needs: test

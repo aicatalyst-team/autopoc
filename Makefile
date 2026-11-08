@@ -64,6 +64,10 @@ install: ## Install in editable mode with dev extras
 lock: ## Regenerate requirements.lock from pyproject.toml
 	pip-compile --upgrade --generate-hashes --output-file=requirements.lock pyproject.toml
 
+.PHONY: renderer-lock
+renderer-lock: ## Regenerate renderer-only CPU speech lock with Python 3.12
+	uv pip compile renderer/pyproject.toml --python-version 3.12 --generate-hashes --emit-index-url --extra-index-url https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match --output-file=renderer/requirements.lock
+
 .PHONY: test
 test: ## Run unit and integration tests with coverage
 	$(PYTHON) -m pytest tests/ --ignore=tests/e2e -q --cov --cov-report=term-missing

@@ -156,7 +156,9 @@ No claim of word-level alignment or live execution timing is made.
 
 Scene duration is `max(6.0, audio_seconds + 0.35 + 0.65)`: 0.35s lead-in,
 0.65s tail, extended tail for a short scene. Each scene starts speech at its
-own lead-in. Video length is the sum of actual scene durations. Default
+own lead-in. Round the duration upward to the next 30fps frame and record the
+frame count, so concatenation retains speech and cannot accumulate fractional
+frame drift. Video length is the sum of those actual scene durations. Default
 operational bounds are 120s per scene and 900s total; they are resource guards,
 not editorial targets. Exceeding one returns an actionable partial result for
 revision or a separately reviewed larger render policy. Never clip, rush,

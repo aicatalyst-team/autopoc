@@ -507,7 +507,7 @@ recommendations are not execution instructions.
 | Retain sanitized supplemental logs/traces/setup evidence | ✅ Done — 67 scoped tests; full suite 401 passed |
 | Seal source-linked storyboards and reviewed narration | ✅ Done — 53 scoped tests; legacy inputs retained |
 | Update configured-model author/reviewer workflow and ADR | ✅ Done — three configured-model acceptance reviews |
-| Package offline Heart assets and generate measured audio | Pending |
+| Package offline Heart assets and generate measured audio | ✅ Done — hash-locked CPU image and constrained offline inference |
 | Render variable executive slide chapters | Pending |
 | Encode narration-driven scenes and retain valid partial outputs | Pending |
 | Persist narrated Job policy and recover/publish long renders | Pending |
@@ -539,3 +539,12 @@ recommendations are not execution instructions.
 - Review caught architecture overclaims and a conflict needing visible explanation; corrected both. Clarified claim-ID-to-visible-text resolution and separated objective factual blockers from style suggestions/tool-count guesses. Retained actual failed-review diagnostics privately instead of fabricating approvals.
 - Configured endpoint is cluster-internal: acceptance used a temporary port-forward and existing worker model credentials in memory, not a new provider or stored secret. OpenCode CLI's unbounded generation did not yield a usable completion; bounded same-model API checks did. This does not assert end-to-end unattended worker acceptance.
 - GREEN: 93 story/skill tests, full supported suite 434 passed, and CI-pinned Ruff 0.15.11 passed. Production narration/rendering remain subsequent tasks.
+
+
+#### 9.3.4 Package offline Heart speech and measured timelines — ✅ 8 November 2026
+- Added renderer-only dependency declarations/generated hash lock, pinned model/config/Heart SHA-256 inventory, build-only verified asset preparation, package/model license provenance and lazy CPU inference. The main worker imports without Torch/Kokoro; no speech dependencies entered the root lock.
+- Exact reviewed sentence PCM samples determine offsets and scene timing, with lead/tail gaps and upward 30fps frame quantization. Source audio/transcript/timeline include script/model identities; wrong/missing/symlink assets, invalid audio, output overwrites and duration overflows fail explicitly.
+- Upgraded audition Torch 2.8.0+cpu to 2.15.0+cpu after normalized advisory lookup exposed nine old-version findings. All 94 exact normalized software pins audit clean; the direct English model wheel remains outside PyPI advisory coverage and is upstream/hash-verified. CI audits normalized CPU Torch rather than silently skipping it.
+- Replaced the unavailable John Van Sickle archive (wrong checksum/HTML response) with public digest-pinned static FFmpeg 7.0.2 plus exact executable hashes/GPL/version notices. Did not bypass checksum checks or depend on a private historical image in CI.
+- RED: 16 missing-feature speech tests and the successful-cache preparer case failed before implementation. GREEN: 18 speech tests, 452 supported Python tests, Ruff/Pyright and hash installation passed. Generated six real scenes with networking disabled and empty caches using the locked environment.
+- Built local UBI image `1aad897c6dea`. Actual offline image smoke passed with read-only root, UID28128/group0, 2 CPUs/4Gi limit, empty scratch caches: 5.2s audio, 13.638s elapsed, peak process RSS1,411,387,392 bytes, cgroup peak2,426,052,608 bytes. This is local speech acceptance, not full video/OCP/publication acceptance.
