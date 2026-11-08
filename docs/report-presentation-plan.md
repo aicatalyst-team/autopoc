@@ -1,6 +1,23 @@
 # AutoPoC presentation session handoff and automation plan
 
-Updated: 3 November 2026.
+Updated: 8 November 2026.
+
+## Kokoro narration planning — 8 November 2026
+
+The user selected Heart (`af_heart`) after a local CPU audition and requested
+video length proportional to PoC scope/complexity. The agreed story covers
+objective, testing, setup, results, limitations and recommendations, drawing on
+the report and original results plus retained logs/traces/setup evidence.
+Troubleshooting belongs only when it helps explain the outcome.
+
+The [new design](superpowers/specs/2026-11-08-kokoro-narrated-video-design.md)
+and [eight-task implementation plan](superpowers/plans/2026-11-08-kokoro-narrated-video.md)
+cover offline renderer-only speech, source-backed visible/spoken text, variable
+slides/timing, version compatibility and durable recovery. Independent builder
+review found no important gaps. This is planning, not implemented narration or
+rollout; plan review/execution choice remains pending. Google TTS-only and fixed
+six-slide/two-minute wording below describes the earlier silent milestone.
+Kokoro does not resolve Google Drive publication credentials.
 
 ## Branding phase — 3 November 2026
 

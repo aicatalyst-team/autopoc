@@ -471,14 +471,16 @@ recommendations are not execution instructions.
 - Updated renderer/configuration/workflow docs with local assets, v2/v1 compatibility, overflow handling and rollout requirements. No default branch was merged/pushed; deployed configuration is unchanged.
 
 
-## Phase 9: Kokoro Voice-over Feasibility — Local audition ✅; adoption undecided
+## Phase 9: Kokoro Voice-over — Audition/design/planning ✅; implementation pending
 
 ## Progress
 
 | Phase | Status | Notes |
 |-------|--------|-------|
 | Kokoro local audition | ✅ Done | Two CPU-generated English samples; no pipeline integration |
-| Voice selection and production integration | Undecided | Await user listening feedback and design decision |
+| Voice selection | ✅ Done | User selected Heart (`af_heart`) |
+| Design and implementation planning | ✅ Done | Evidence-backed story, variable timing, eight implementation tasks; awaiting plan review |
+| Production implementation and acceptance | Pending | No narration integration, rollout or publication claimed |
 
 ### 9.1 Generate and verify a local Kokoro audition — ✅ 8 November 2026
 - Google TTS access is blocked on the configured work project: billing is enabled, the API is not enabled and the user lacks `serviceusage.services.use`. No cloud settings were changed.
@@ -489,3 +491,24 @@ recommendations are not execution instructions.
 - Saved WAV/MP3 samples, script, package inventory and JSON measurements in the chat's local `kokoro-audition/` artifact directory. WAV SHA-256: Heart `7f5690f255519837485249f40971e51dbe1965ce64218c826f277bde54bb3f22`; Fenrir `c0116cc759402c4c88fec518de63df55aa8b26f0bdbb311b12be1e389ad7e8f9`.
 - Corrected spaCy's automatic installer choosing the repository environment: installed its English model explicitly in the trial environment and removed the single newly added model package from the repository environment. Repository dependency declarations/locks are unchanged.
 - This is an audition only. No PoC tests were replayed; narration integration, offline image packaging, scene synchronization, resource limits and publication remain unimplemented/unvalidated. Historical Google TTS Phase 2 preference is not treated as a finalized Kokoro adoption decision.
+
+
+### 9.2 Define the evidence-backed story and prepare implementation — ✅ 8 November 2026
+- User selected Heart (`af_heart`) and confirmed video length may exceed two minutes according to PoC scope/complexity. Required topics: objective, testing, setup and results; story also includes limitations/recommendations. Report, plans, recorded setup, original results, logs and traces may supply evidence. Include troubleshooting only when it contributes to explaining the outcome.
+- Saved [the design](../../docs/superpowers/specs/2026-11-08-kokoro-narrated-video-design.md) and [eight-task implementation plan](../../docs/superpowers/plans/2026-11-08-kokoro-narrated-video.md). Existing fixed-six-scene/180s, 600s process deadline and supplemental-evidence exclusions are explicitly addressed.
+- Plan preserves original PoC evidence, independently reviews visible/spoken claims, packages speech offline only in the renderer, measures audio for timing and retains legacy recovery/valid partial artifacts. Model assets stay outside Git; dependency declarations/locks remain renderer-only.
+- Independent builder check reported “Nothing important left.” Self-review checked file paths, interfaces, source/selector checks, version compatibility, failure tests and task coverage. Operational slide/time/resource limits are explicitly builder recommendations, not extra user requirements.
+- Planning complete only: implementation, live restricted OCP acceptance and publication remain pending. Existing Drive credential problems are independent of Google TTS. Review the plan and choose execution approach before implementation.
+
+### 9.3 Implementation and acceptance — Pending
+
+| Task | Status |
+|------|--------|
+| Retain sanitized supplemental logs/traces/setup evidence | Pending |
+| Seal source-linked storyboards and reviewed narration | Pending |
+| Update configured-model author/reviewer workflow and ADR | Pending |
+| Package offline Heart assets and generate measured audio | Pending |
+| Render variable executive slide chapters | Pending |
+| Encode narration-driven scenes and retain valid partial outputs | Pending |
+| Persist narrated Job policy and recover/publish long renders | Pending |
+| Complete local/cluster acceptance and controlled rollout | Pending |
