@@ -172,6 +172,9 @@ content review, configuration, dispatch and independent recovery.
   independently bounded; reconcile late outputs without rerunning PoC tests.
 - Keep private diagnostics and credentials out of published artifacts. Input symlinks are rejected; a ConfigMap-based acceptance harness must copy its sealed input to a regular scratch file first. Production retrieves inputs through verified downloads.
 
+Narrated validation records are in `docs/validation/kokoro-narration-2026-11-08.json`.
+Retain explicit Drive authorization, human listening and live-activation gates.
+
 See `docs/configuration.md`, `renderer/README.md` and
 `docs/report-presentation-plan.md` for setup, measured validation and remaining
 rollout work. Opt in with a configured `AUTOPOC_EXECUTIVE_IMAGE`; do not report

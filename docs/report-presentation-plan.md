@@ -530,3 +530,63 @@ artifact retention, and web-hosting choice remain engineering decisions.
 Slidev's documented CLI exports are not a video pipeline; headless recording
 and ffmpeg encoding are separate steps in the new design. See
 [recording](https://sli.dev/features/recording).
+
+## Kokoro engineering acceptance completed — 8 November 2026
+
+Implementation and the single independent whole-branch review are complete.
+The two Important review findings were corrected with failing-then-passing
+regressions: results diagrams retain exact structured totals, and a PDF-only
+failure does not block a valid narrated video. No Critical or Minor findings
+remain. See [measured acceptance](validation/kokoro-narration-2026-11-08.json)
+for exact input/image/model/output hashes, resources, timing and ruling records.
+
+The core pipeline produced eight-slide failed/incomplete evidence (50.367s),
+eight-slide archived Omnigent evidence (159.367s), and a deliberately verbose
+12-slide synthetic stress case (327.2s). All used empty writable caches,
+read-only root, arbitrary nonroot UID, no network, 2 CPU and a 4GiB limit. The
+stress render took 853.337s, peaked at 4,095,840,256 cgroup bytes and used
+124,863,213 scratch bytes. It is a duration/encoding stress fixture, not a
+recommended stakeholder script. These are representative measurements; keep
+the resource profile provisional for future larger cases.
+
+The final reviewed renderer is
+`quay.io/aicatalyst/autopoc-executive-renderer@sha256:2910f7cc410050017326bc79f4ac307c960d3003521e335f1468ccfeecd90fb3`.
+Full long/failed timing acceptance used the recorded core exact-frame image;
+the final image's two isolated review corrections received actual offline
+browser regressions and the same 14 actual FFmpeg tests. Omnigent was rerun
+end-to-end on the reviewed image locally (373.815s,3,417,628,672 peak bytes)
+and on OpenShift (352.369s,2,103,570,432 peak bytes). The cluster Job completed
+under `restricted-v2`, assigned nonroot UID, read-only root, no API token,
+2 CPU/4Gi/8Gi scratch/10Gi ephemeral storage and deny-all egress; an actual
+external connection probe was blocked. Artifacts were retrieved, hashed,
+fully decoded and recovered before the temporary resources were removed.
+
+Checked all 28 acceptance PDF pages and 84 cut/midpoint frames. Exact reviewed
+text, sentence/scene WAV hashes, offsets, frame counts and model identity survive
+source-ZIP extraction. A real delayed browser capture exposed wall-clock
+trimming and fractional-frame loss; regression tests now require exact scene
+and final frame totals. Audio is concatenated as padded PCM before one AAC
+encode, with full final decoding and <=0.25s stream-duration agreement.
+
+Supported checks: 482 Python tests at 86.24% coverage, Ruff/Pyright, 35 default
+Node checks (five optional image integration cases), 14 actual FFmpeg checks
+and two actual result-diagram browser checks. The generated 95-package renderer
+lock installs with hashes; 94 normalized software pins, including CPU Torch's
+base version, audit clean. The direct English-model wheel remains outside PyPI
+advisory coverage and is upstream/hash-verified. The worker does not install
+Torch/Kokoro. No PoC tests were replayed.
+
+Actual missing-asset, forced termination, 75s process timeout, 4GiB child OOM and
+speech-stage disk-full injections retained valid source/deck/PDF/summary and
+failed the video. The disk test filled a dedicated 16 MiB temporary filesystem;
+it does not assert that artifacts can be written to a completely full output
+volume. Deterministic tests cover script/audio tampering, admission failure,
+immutable upload retry, changed environment, worker deletion and late completion.
+
+Drive refresh with the existing service-account credential still fails
+`invalid_grant`; durable Drive publication and live cloud reconciliation remain
+blocked. Human listening/pronunciation review also remains an explicit gate,
+and is not claimed by automated decoding or text checks. Merge and live worker
+configuration need user approval. The feature is a [stacked draft PR](https://github.com/aviavraham/autopoc/pull/4)
+on the approved planning branch, depending on the presentation branding work.
+No live worker configuration, credentials or PoC outcomes were changed.

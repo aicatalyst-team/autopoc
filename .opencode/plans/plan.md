@@ -264,7 +264,7 @@ local only while the production service-account credential is repaired.
 Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-red-hat-presentation-branding-design.md).
 
 
-## Phase 9: Kokoro Voice-over — Audition/design/planning ✅; implementation in progress
+## Phase 9: Kokoro Voice-over — Engineering implementation/acceptance ✅; rollout gates pending
 
 | Task | Status |
 |------|--------|
@@ -274,7 +274,7 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Select a voice and agree on content/timing direction | ✅ Heart selected; length follows PoC complexity; source-backed objective/testing/setup/results plus limitations/recommendation |
 | Save and independently check design and implementation plan | ✅ Eight tasks defined; builder review found no important gaps; user approved implementation 8 November |
 | Check OCP GPU capacity and AutoPoC namespace access | ✅ 8 November — one L40S and two A100 devices unrequested; Job/pod creation allowed, no namespace quota found; workload not tested |
-| Implement and validate narrated rendering | In progress — supplemental evidence complete; renderer/narration tasks pending |
+| Implement and validate narrated rendering | ✅ Done — eight tasks, reviewed offline image, real local/OCP video acceptance |
 
 This is a local throwaway audition, not production narration acceptance. Technical
 pronunciation, offline packaging, per-scene synchronization and restricted OCP
@@ -299,8 +299,10 @@ implementation-plan.md section 9.3; every completed task must update both files.
 | Render variable slide chapters | ✅ Done — variable decks, source notes/transcript and actual browser/PDF checks |
 | Encode narrated video and preserve partial outputs | ✅ Done — staged processes, measured timelines, real AAC/cut checks |
 | Persist long-render policy/recovery/publication | ✅ Done — durable profiles, stable IDs, late/partial publication checks |
-| Complete local/OCP acceptance and controlled rollout | In progress — capture regressions/failure recovery complete; final pinned-image runs active |
+| Complete local/OCP engineering acceptance and prepare rollout | ✅ Done — 5m27 stress, reviewed-image OCP success; Drive/listening/activation gates pending |
 
 Capture timing/frame regression and real offline failure recovery — ✅ 8 November 2026. Final long-render/cluster acceptance and rollout gates remain explicitly tracked in implementation-plan.md.
 
-Independent whole-branch review corrections — ✅ 8 November 2026. Two Important findings fixed with failing-then-passing regressions; 482 Python tests at86.24%, actual result-diagram browser tests pass. No Critical or Minor findings.
+Independent whole-branch review corrections — ✅ 8 November 2026. Two Important findings fixed with failing-then-passing regressions; 482 Python tests at 86.24%, actual result-diagram browser tests pass. No Critical or Minor findings.
+
+Engineering acceptance and controlled-rollout preparation — ✅ 8 November 2026. 482 Python tests/86.24%, actual image/browser/FFmpeg checks, local8/12-slide videos and restricted-v2 OpenShift completion verified. Exact measurements and image revisions are retained in docs/validation/kokoro-narration-2026-11-08.json. Drive invalid_grant, human listening and explicit merge/live-configuration approval remain rollout gates; no production publication is claimed.

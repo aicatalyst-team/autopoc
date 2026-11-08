@@ -2,9 +2,11 @@
 
 ## Status
 
-Accepted for implementation following user plan approval on 8 November 2026.
-Production rollout requires measured restricted-OCP acceptance and working
-artifact publication credentials.
+Accepted and implemented following user plan approval on 8 November 2026.
+Measured local and restricted-v2 OpenShift acceptance is complete. Production
+activation still requires working Drive publication credentials, human listening
+review and explicit merge/live-configuration approval. See
+`docs/validation/kokoro-narration-2026-11-08.json` for measured scope and image revisions.
 
 ## Context
 

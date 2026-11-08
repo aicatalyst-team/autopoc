@@ -471,7 +471,7 @@ recommendations are not execution instructions.
 - Updated renderer/configuration/workflow docs with local assets, v2/v1 compatibility, overflow handling and rollout requirements. No default branch was merged/pushed; deployed configuration is unchanged.
 
 
-## Phase 9: Kokoro Voice-over — Audition/design/planning ✅; implementation in progress
+## Phase 9: Kokoro Voice-over — Engineering implementation/acceptance ✅; rollout gates pending
 
 ## Progress
 
@@ -479,8 +479,9 @@ recommendations are not execution instructions.
 |-------|--------|-------|
 | Kokoro local audition | ✅ Done | Two CPU-generated English samples; no pipeline integration |
 | Voice selection | ✅ Done | User selected Heart (`af_heart`) |
-| Design and implementation planning | ✅ Done | Evidence-backed story, variable timing, eight implementation tasks; awaiting plan review |
-| Production implementation and acceptance | In progress | Evidence extension complete; narration integration/acceptance pending |
+| Design and implementation planning | ✅ Done | User-approved evidence-backed story, variable timing and eight implementation tasks |
+| Engineering implementation and acceptance | ✅ Done | Eight tasks; real local and restricted-v2 OCP media acceptance; independent review fixes verified |
+| Controlled production rollout | Pending | Drive invalid_grant, human listening and explicit merge/live configuration approval |
 
 ### 9.1 Generate and verify a local Kokoro audition — ✅ 8 November 2026
 - Google TTS access is blocked on the configured work project: billing is enabled, the API is not enabled and the user lacks `serviceusage.services.use`. No cloud settings were changed.
@@ -500,7 +501,7 @@ recommendations are not execution instructions.
 - Independent builder check reported “Nothing important left.” Self-review checked file paths, interfaces, source/selector checks, version compatibility, failure tests and task coverage. Operational slide/time/resource limits are explicitly builder recommendations, not extra user requirements.
 - Planning complete only: implementation, live restricted OCP acceptance and publication remain pending. Existing Drive credential problems are independent of Google TTS. Review the plan and choose execution approach before implementation.
 
-### 9.3 Implementation and acceptance — In progress
+### 9.3 Implementation and engineering acceptance — ✅ 8 November 2026; rollout gates pending
 
 | Task | Status |
 |------|--------|
@@ -511,7 +512,7 @@ recommendations are not execution instructions.
 | Render variable executive slide chapters | ✅ Done — 6/8/12-slide browser/PDF checks and graph validation |
 | Encode narration-driven scenes and retain valid partial outputs | ✅ Done — measured PCM, one AAC encode and partial-output tests |
 | Persist narrated Job policy and recover/publish long renders | ✅ Done — saved policy, bounded Jobs, late/partial recovery |
-| Complete local/cluster acceptance and controlled rollout | In progress — offline/cluster renders and frame fixes verified; final stricter-image reruns active |
+| Complete local/cluster engineering acceptance and prepare rollout | ✅ Done — exact-frame 5m27 stress, reviewed-image OCP success; Drive/listening/activation gates remain pending |
 
 
 ### 9.4 Check OCP access and available GPU scheduling capacity — ✅ 8 November 2026
@@ -571,10 +572,18 @@ recommendations are not execution instructions.
 
 #### 9.3.8.1 Verify browser capture timing and offline failure recovery — ✅ 8 November 2026
 - Real constrained video exposed wall-clock trimming that shortened a 6s scene to 5.733s. Crop using recorded media duration; retained a genuine variable-frame browser recording to reproduce fractional frame loss (181 expected versus 180 actual). Normalize/pad video to exactly reviewed frame counts; require exact scene/final frame totals in addition to 0.25s duration bounds.
-- 14/14 real FFmpeg tests passed, including AAC cut tones, delayed capture and fractional scene frames. Supported suite now 480 passed at86.20% coverage; Ruff/Pyright clean. Runtime audio helper SHA matches the published acceptance2 image; three final local cases and restricted-v2 OCP rerun are active.
+- 14/14 real FFmpeg tests passed, including AAC cut tones, delayed capture and fractional scene frames. Supported suite now 480 passed at 86.20% coverage; Ruff/Pyright clean. Runtime audio helper SHA matches the published acceptance2 image; three final local cases and restricted-v2 OCP rerun are active.
 - Earlier complete local and OCP Omnigent renders passed the original duration bounds, and source/timeline/audio/full decoding were verified. Disk-full,4GiB child OOM and forced termination retained valid partial artifacts. Drive refresh still fails invalid_grant; human listening remains a separate rollout gate.
 
 #### 9.3.8.2 Resolve independent whole-branch review findings — ✅ 8 November 2026
 - One fresh read-only GPT-6 Astra reviewer found no Critical findings, two Important defects and no Minors. Fixed both in one regression-driven pass: graph-first/all-graph results always show structured totals, and a PDF-only failure no longer blocks narrated video when the deck remains validated. Content/preparation failures still stop later stages.
-- Actual browser regressions failed with zero result counter panels before the fix; both pass with readable counters and diagrams after the fix. PDF-only stage regression failed with only prepare called before correction; now speech/record complete while PDF stays failed. Full suite 482 passed at86.24% coverage, Ruff/Pyright clean; CI runs the actual browser cases in the trusted offline image.
+- Actual browser regressions failed with zero result counter panels before the fix; both pass with readable counters and diagrams after the fix. PDF-only stage regression failed with only prepare called before correction; now speech/record complete while PDF stays failed. Full suite 482 passed at 86.24% coverage, Ruff/Pyright clean; CI runs the actual browser cases in the trusted offline image.
 - Final acceptance documents distinguish image revisions and operational rollout gates. No second reviewer or unrequested minor polish pass was added.
+
+#### 9.3.8 Complete engineering acceptance and prepare controlled rollout — ✅ 8 November 2026
+- Published the reviewed renderer digest2910f7cc410050017326bc79f4ac307c960d3003521e335f1468ccfeecd90fb3. Recorded exact image/model/input/output hashes in docs/validation/kokoro-narration-2026-11-08.json; code/asset hashes match the checkout. CPU Heart stays packaged offline only in the renderer.
+- Actual constrained core cases: failed8slides50.367s; archived Omnigent8slides159.367s; synthetic12slides327.2s. Verified exact video frame totals, H.264/AAC, full decoding and extracted transcript/PCM/timeline identities; inspected28PDF pages and84cut/midpoint frames. The final image additionally passed actual browser review regressions,14FFmpeg tests and full Omnigent local/OCP reruns.
+- Reviewed-image OCP Job completed restricted-v2, nonroot, read-only, tokenless and deny-egress at 2 CPU/4Gi;352.369s elapsed,2,103,570,432 peak bytes. Local reviewed-image Omnigent373.815s/3,417,628,672 peak bytes. Long stress853.337s/4,095,840,256 peak bytes; retain provisional sizing and explicit measurement limits. No original PoC replay or GPU request.
+- Missing assets, forced termination, 75s global timeout, 4GiB child OOM and dedicated disk-full injections preserve valid partial outputs without narrated-video success. Admission/upload/restart/late-state cases remain deterministic tests, not falsely reported live Drive publication.
+- GREEN:482 supported Python tests at 86.24%, Ruff/Pyright,35 default Node checks plus14actual FFmpeg and2actual browser checks. One fresh reviewer; two Important findings fixed in one RED→GREEN pass; no Critical or deferred Minor findings.
+- PR https://github.com/aviavraham/autopoc/pull/4 is stacked on the approved planning branch. Temporary cluster test resources and model port-forward were removed after verified retrieval. Worktree retained for review. Drive refresh still fails invalid_grant; durable publication, human listening/pronunciation and explicit merge/live-worker approval remain pending. No production rollout is claimed.

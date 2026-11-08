@@ -122,3 +122,21 @@ node render.mjs INPUT OUTPUT --stage record --timeline SPEECH/timeline.json
 ```
 Run `AUTOPOC_FFMPEG_INTEGRATION=1 node --test audio.test.mjs` to verify real
 AAC silence/tone placement around scene cuts, in addition to unit checks.
+
+Narrated acceptance can be repeated against an already reviewed template-3 seal:
+```sh
+scripts/check-narrated-render.sh IMAGE SEALED_INPUT.zip NEW_OUTPUT_DIRECTORY
+```
+The script runs the exact local image ID with empty scratch caches, no network,
+read-only root, UID28128/group0, 2 CPU and 4GiB memory. It retains image/input
+identities, measured runtime, private diagnostics and independent outputs.
+Input review and original PoC execution are separate; this script never creates
+an approval or reruns PoC tests. The `long` fixture is an intentionally verbose
+synthetic encoding stress case, not a recommended stakeholder narrative.
+
+Browser captures use measured media duration rather than a wall-clock guess:
+Playwright's first frame can arrive after context creation. Normalize variable
+capture frames to 30fps, briefly hold the terminal frame if needed, and trim to
+the exact reviewed frame count. Per-scene and final frame totals must match,
+preventing cumulative drift across long decks. See the retained genuine WebM
+regression fixture and the actual FFmpeg integration tests.

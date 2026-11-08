@@ -150,3 +150,11 @@ production service-account loader or mount a personal token in the cluster.
 Repair `autopoc-google-sa` before unattended OCP publication. The published
 renderer image built before the local OAuth addition continues to use service-account
 credentials; rebuild before depending on the new injection API inside an image.
+
+The Kokoro implementation has measured local and restricted-v2 OpenShift
+acceptance, tracked in `docs/validation/kokoro-narration-2026-11-08.json` and
+`docs/report-presentation-plan.md`. Keep rollout gates separate from encoding:
+Drive authorization must work, the resulting narration needs human listening
+review, and merge/live worker configuration requires explicit approval. A
+successful local renderer or temporary acceptance Job does not publish Drive
+artifacts or update the live worker.
