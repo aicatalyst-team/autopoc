@@ -173,7 +173,7 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int = 600)
         _safe_path(output_dir)
         if output_dir.exists() and any(output_dir.iterdir()):
             return _reuse(output_dir, identity)
-        if validated["versions"]["template"] != CURRENT_TEMPLATE_VERSION:
+        if validated["versions"]["template"] not in (2, CURRENT_TEMPLATE_VERSION):
             raise ValueError("Legacy inputs require their original pinned renderer image")
         output_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
         os.chmod(output_dir, 0o700)

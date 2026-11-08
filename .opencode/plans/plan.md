@@ -294,7 +294,7 @@ implementation-plan.md section 9.3; every completed task must update both files.
 | Task | Status |
 |------|--------|
 | Retain sanitized supplemental logs/traces/setup evidence | ✅ Done — 67 scoped / 401 full-suite Python tests passed |
-| Seal source-linked storyboards and reviewed narration | Pending |
+| Seal source-linked storyboards and reviewed narration | ✅ Done — 53 scoped tests; legacy inputs retained |
 | Update author/reviewer workflow and ADR | Pending |
 | Package offline Heart speech and measured timeline | Pending |
 | Render variable slide chapters | Pending |

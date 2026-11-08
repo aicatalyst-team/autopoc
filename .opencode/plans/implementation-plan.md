@@ -505,7 +505,7 @@ recommendations are not execution instructions.
 | Task | Status |
 |------|--------|
 | Retain sanitized supplemental logs/traces/setup evidence | ✅ Done — 67 scoped tests; full suite 401 passed |
-| Seal source-linked storyboards and reviewed narration | Pending |
+| Seal source-linked storyboards and reviewed narration | ✅ Done — 53 scoped tests; legacy inputs retained |
 | Update configured-model author/reviewer workflow and ADR | Pending |
 | Package offline Heart assets and generate measured audio | Pending |
 | Render variable executive slide chapters | Pending |
@@ -525,3 +525,9 @@ recommendations are not execution instructions.
 - Added schema-2 optional supplemental collection and strict verification, retaining schema-1 behavior and exact original attempt/result totals. Inputs are run-bound, root-confined, hash-checked, size-bounded and sanitized; public descriptors exclude private paths/original hashes.
 - Selected deployment exports omit Secret data/environment/annotations/inline TLS keys; trace excerpts retain captured spans/relations/timings without headers/bodies/attributes. Unknown runs/executions/scenarios, undeclared archive members and unsafe sources are rejected. Phase-time staging and CLI usage are documented.
 - RED: 19 new tests failed for missing feature support; two further regressions caught private provenance and TLS-key leakage before correction. GREEN: 67 scoped tests and 401 supported Python tests passed; Ruff and scoped Pyright clean. No original PoC replay, new cluster workload or publication occurred.
+
+
+#### 9.3.2 Seal reviewed storyboards and narration — ✅ 8 November 2026
+- Added narrative/input schema 2 and template 3 with source-linked ledger claims, ordered variable slides, title/bullet/graph/narration references, explicit gaps/conflicts and exact original result totals. Validates actual line ranges and RFC 6901 selectors against sanitized evidence bytes.
+- Review binds the exact script, evidence and scene policy; measured-audio timing is deferred until generation. Silent narrative-1 still seals as template 2 by default; explicit legacy templates remain verifiable. Kept revision-2 rendering support while introducing latest revision 3.
+- RED: four positive narrated cases failed before schema support; an additional regression demonstrated empty-object selectors were accepted, then corrected. GREEN: 53 story/input/cluster tests passed; Ruff and scoped Pyright checked. Full suite and task ledger capture run with the task completion commit.

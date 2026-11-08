@@ -16,7 +16,7 @@ from autopoc.evidence import verify_bundle
 MAX_BYTES = 24 * 1024 * 1024
 MEMBERS = {"evidence.zip", "narrative.json", "review.json", "scenes.json", "versions.json"}
 TOPICS = ("purpose", "testing_strategy", "test_execution", "platform_suitability")
-CURRENT_TEMPLATE_VERSION = 2
+CURRENT_TEMPLATE_VERSION = 3
 
 
 def _hash(data: bytes) -> str:
@@ -50,16 +50,19 @@ def _validate(data: dict[str, bytes]) -> dict:
     narrative, review = _json(data["narrative.json"]), _json(data["review.json"])
     scenes, versions = _json(data["scenes.json"]), _json(data["versions.json"])
     if (
-        versions.get("schema") != 1
+        type(versions.get("schema")) is not int
+        or (versions.get("schema"), versions.get("template")) not in ((1, 1), (1, 2), (2, 3))
         or versions.get("policy") != 1
         or type(versions.get("template")) is not int
-        or versions["template"] not in (1, CURRENT_TEMPLATE_VERSION)
+        or versions["template"] not in (1, 2, CURRENT_TEMPLATE_VERSION)
     ):
         raise ValueError("Unsupported render-input version")
     if not re.fullmatch(r"[A-Za-z0-9./:_-]+@sha256:[0-9a-f]{64}", versions.get("image", "")):
         raise ValueError("Renderer image must be pinned by digest")
     if (
-        review.get("schema_version") != 1
+        type(review.get("schema_version")) is not int
+        or review.get("schema_version") != versions["schema"]
+        or (versions["schema"] == 2 and review.get("scenes_sha256") != _hash(data["scenes.json"]))
         or review.get("approved") is not True
         or review.get("reviewer") != "configured-opencode"
         or review.get("findings") != []
@@ -73,7 +76,8 @@ def _validate(data: dict[str, bytes]) -> dict:
         index = verify_bundle(evidence)
     if (
         not index["eligible_for_render"]
-        or narrative.get("schema_version") != 1
+        or type(narrative.get("schema_version")) is not int
+        or narrative.get("schema_version") != versions["schema"]
         or narrative.get("run_id") != index["run_id"]
     ):
         raise ValueError("A usable report and matching run identity are required")
@@ -87,55 +91,63 @@ def _validate(data: dict[str, bytes]) -> dict:
     for name in ("narrative.json", "review.json", "scenes.json"):
         if sanitize_text(data[name].decode()) != data[name].decode():
             raise ValueError("Unsanitized render input")
-    for topic in TOPICS:
-        claims = narrative.get(topic)
-        if not isinstance(claims, list) or not 1 <= len(claims) <= 4:
-            raise ValueError("All four topics require concise evidence-based claims")
-        for claim in claims:
-            if not isinstance(claim.get("text"), str) or not 1 <= len(claim["text"]) <= 280:
-                raise ValueError("Invalid executive claim")
-            references = claim.get("sources")
-            if (
-                not isinstance(references, list)
-                or not references
-                or any(
-                    not isinstance(ref, str) or ref.split("#", 1)[0] not in index["files"]
-                    for ref in references
-                )
-            ):
-                raise ValueError("Unknown claim evidence reference")
-    limitations = narrative.get("limitations")
-    if narrative.get("scenario_flow") and (
-        len(narrative["test_execution"]) > 2
-        or sum(len(c["text"]) for c in narrative["test_execution"]) > 300
-    ):
-        raise ValueError("Execution explanation must fit alongside the scenario animation")
-    if (
-        not isinstance(limitations, list)
-        or not 1 <= len(limitations) <= 5
-        or any(not isinstance(text, str) or not 1 <= len(text) <= 200 for text in limitations)
-    ):
-        raise ValueError("Explicit limitations are required")
-    for graph in (narrative.get("topology"), narrative.get("scenario_flow")):
-        # Require the arrays rather than defaulting them: renderer/render.mjs
-        # rejects a graph with a missing nodes/edges/acts key, and a seal that
-        # accepts one only defers the failure to an aborted render.
-        if graph is not None and (
-            not isinstance(graph, dict)
-            or not all(isinstance(graph.get(key), list) for key in ("nodes", "edges", "acts"))
-            or len(graph["nodes"]) > 12
-            or len(graph["edges"]) > 20
-            or len(graph["acts"]) > 5
+    if versions["schema"] == 2:
+        from autopoc.executive_story import validate_scene_plan, validate_story
+
+        with zipfile.ZipFile(io.BytesIO(data["evidence.zip"])) as archive:
+            members = {name: archive.read(name) for name in archive.namelist()}
+        validate_story(narrative, index, members)
+        validate_scene_plan(scenes, narrative)
+    else:
+        for topic in TOPICS:
+            claims = narrative.get(topic)
+            if not isinstance(claims, list) or not 1 <= len(claims) <= 4:
+                raise ValueError("All four topics require concise evidence-based claims")
+            for claim in claims:
+                if not isinstance(claim.get("text"), str) or not 1 <= len(claim["text"]) <= 280:
+                    raise ValueError("Invalid executive claim")
+                references = claim.get("sources")
+                if (
+                    not isinstance(references, list)
+                    or not references
+                    or any(
+                        not isinstance(ref, str) or ref.split("#", 1)[0] not in index["files"]
+                        for ref in references
+                    )
+                ):
+                    raise ValueError("Unknown claim evidence reference")
+        limitations = narrative.get("limitations")
+        if narrative.get("scenario_flow") and (
+            len(narrative["test_execution"]) > 2
+            or sum(len(c["text"]) for c in narrative["test_execution"]) > 300
         ):
-            raise ValueError("Topology exceeds executive graph limits")
-    durations = scenes.get("durations")
-    if (
-        not isinstance(durations, list)
-        or len(durations) != 6
-        or any(type(d) not in (int, float) or not 1 <= d <= 60 for d in durations)
-        or sum(durations) > 180
-    ):
-        raise ValueError("Invalid scene timing")
+            raise ValueError("Execution explanation must fit alongside the scenario animation")
+        if (
+            not isinstance(limitations, list)
+            or not 1 <= len(limitations) <= 5
+            or any(not isinstance(text, str) or not 1 <= len(text) <= 200 for text in limitations)
+        ):
+            raise ValueError("Explicit limitations are required")
+        for graph in (narrative.get("topology"), narrative.get("scenario_flow")):
+            # Require the arrays rather than defaulting them: renderer/render.mjs
+            # rejects a graph with a missing nodes/edges/acts key, and a seal that
+            # accepts one only defers the failure to an aborted render.
+            if graph is not None and (
+                not isinstance(graph, dict)
+                or not all(isinstance(graph.get(key), list) for key in ("nodes", "edges", "acts"))
+                or len(graph["nodes"]) > 12
+                or len(graph["edges"]) > 20
+                or len(graph["acts"]) > 5
+            ):
+                raise ValueError("Topology exceeds executive graph limits")
+        durations = scenes.get("durations")
+        if (
+            not isinstance(durations, list)
+            or len(durations) != 6
+            or any(type(d) not in (int, float) or not 1 <= d <= 60 for d in durations)
+            or sum(durations) > 180
+        ):
+            raise ValueError("Invalid scene timing")
     return {
         "run_id": index["run_id"],
         "evidence_index": index,
@@ -153,7 +165,7 @@ def seal_inputs(
     *,
     renderer_image: str,
     scenes_path: Path | None = None,
-    template_version: int = CURRENT_TEMPLATE_VERSION,
+    template_version: int | None = None,
 ) -> Path:
     """Write an immutable input ZIP after validating report, totals and review."""
     paths = {
@@ -169,13 +181,23 @@ def seal_inputs(
     if sum(path.stat().st_size for path in paths.values()) > MAX_BYTES - 1024 * 1024:
         raise ValueError("Render inputs exceed size limit")
     data = {name: path.read_bytes() for name, path in paths.items()}
+    narrative_schema = _json(data["narrative.json"]).get("schema_version")
+    if template_version is None:
+        template_version = 3 if narrative_schema == 2 else 2
+    if narrative_schema == 2 and "scenes.json" not in data:
+        raise ValueError("Narrated inputs require a reviewed scene plan")
     data.setdefault("scenes.json", _dump({"durations": [20] * 6}))
     data["versions.json"] = _dump(
-        {"schema": 1, "policy": 1, "template": template_version, "image": renderer_image}
+        {
+            "schema": narrative_schema,
+            "policy": 1,
+            "template": template_version,
+            "image": renderer_image,
+        }
     )
     validated = _validate(data)
     index = {
-        "schema_version": 1,
+        "schema_version": validated["versions"]["schema"],
         "run_id": validated["run_id"],
         "files": {
             name: {"sha256": _hash(content), "size": len(content)}
@@ -227,12 +249,21 @@ def verify_inputs(path: Path) -> dict:
                 raise ValueError("Invalid sealed input archive")
             data = {i.filename: archive.read(i) for i in entries}
         index = _json(data.pop("index.json"))
-        if index.get("schema_version") != 1 or index.get("files") != {
-            name: {"sha256": _hash(content), "size": len(content)} for name, content in data.items()
-        }:
+        if (
+            type(index.get("schema_version")) is not int
+            or index.get("schema_version") not in (1, 2)
+            or index.get("files")
+            != {
+                name: {"sha256": _hash(content), "size": len(content)}
+                for name, content in data.items()
+            }
+        ):
             raise ValueError("Sealed input integrity mismatch")
         result = _validate(data)
-        if result["run_id"] != index["run_id"]:
+        if (
+            result["run_id"] != index["run_id"]
+            or result["versions"]["schema"] != index["schema_version"]
+        ):
             raise ValueError("Sealed run identity mismatch")
         return result
     except (OSError, KeyError, TypeError, AttributeError, zipfile.BadZipFile, RuntimeError) as exc:

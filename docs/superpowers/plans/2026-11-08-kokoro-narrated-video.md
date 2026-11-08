@@ -92,7 +92,7 @@ seal registration in `src/autopoc/executive_cluster.py`, `tests/test_executive_i
 - Add `make_v3_input(root: Path, *, slides: int = 6) -> Path` to `tests/executive_fixtures.py`; builds a valid run, ledger, scene plan, computed review and sealed template-3 ZIP. A helper `v3_documents(root: Path) -> tuple[Path, Path, Path, Path]` returns evidence/narrative/scenes/review before sealing for mutation tests.
 - `seal_inputs(..., template_version: int | None = None)` derives 2 for narrative-1 and 3 for narrative-2 when omitted; explicit 1/2/3 remains validated. `verify_inputs` preserves legacy acceptance and rejects unknown combinations. `CURRENT_TEMPLATE_VERSION=3` must not accidentally make silent narrative-1 inputs template 3.
 
-- [ ] **Step 1: Write failing narrative/seal tests.** Include a source-backed eight-slide narrative and test mutations of counts, an unsupported narration sentence, unknown claim ID, missing chapter, reordered/duplicate slide, invalid selector, absent-trace reference, title/graph references and script changed after review. Each must raise `ValueError`; valid narrative-2 returns a verified template-3 package.
+- [x] **Step 1: Write failing narrative/seal tests.** Include a source-backed eight-slide narrative and test mutations of counts, an unsupported narration sentence, unknown claim ID, missing chapter, reordered/duplicate slide, invalid selector, absent-trace reference, title/graph references and script changed after review. Each must raise `ValueError`; valid narrative-2 returns a verified template-3 package.
 
 ```python
 def test_v3_seal_preserves_identity(tmp_path):
@@ -102,10 +102,10 @@ def test_v3_seal_preserves_identity(tmp_path):
     assert len(result["narrative"]["slides"]) == 8
 ```
 
-- [ ] **Step 2: Run new tests and confirm failure.** `python -m pytest tests/test_executive_story.py tests/test_executive_inputs.py -q --no-cov`; expected failure is absent schema-2 support, not a fixture/import unrelated error.
-- [ ] **Step 3: Implement contracts and binding.** Check factual sentence `claim_ids`, all reference selectors and graph/title sources; classify claims as `planned`, `observed`, `inferred`, `recommendation`. Keep conflicts/gaps in narrative. Validate duplicate keys/nonfinite numbers/booleans-as-numbers, text sanitization and all global bounds. Narrative-2 review uses schema 2 and hashes exact narrative, evidence and scenes bytes; input index/versions use schema 2/template 3, same six ZIP members and 24MiB bound. Legacy reviews retain schema-1 semantics.
-- [ ] **Step 4: Verify compatibility.** Run the Task 2 command plus `tests/test_executive_cluster.py` with `--no-cov`; retain explicit template-1/template-2 verification and original hash/review/path rejection tests. New tests reject unknown schema/template combinations and changed scene policy after review.
-- [ ] **Step 5: Update trackers and commit.** Commit message: `feat: seal reviewed executive storyboards and narration`.
+- [x] **Step 2: Run new tests and confirm failure.** `python -m pytest tests/test_executive_story.py tests/test_executive_inputs.py -q --no-cov`; expected failure is absent schema-2 support, not a fixture/import unrelated error.
+- [x] **Step 3: Implement contracts and binding.** Check factual sentence `claim_ids`, all reference selectors and graph/title sources; classify claims as `planned`, `observed`, `inferred`, `recommendation`. Keep conflicts/gaps in narrative. Validate duplicate keys/nonfinite numbers/booleans-as-numbers, text sanitization and all global bounds. Narrative-2 review uses schema 2 and hashes exact narrative, evidence and scenes bytes; input index/versions use schema 2/template 3, same six ZIP members and 24MiB bound. Legacy reviews retain schema-1 semantics.
+- [x] **Step 4: Verify compatibility.** Run the Task 2 command plus `tests/test_executive_cluster.py` with `--no-cov`; retain explicit template-1/template-2 verification and original hash/review/path rejection tests. New tests reject unknown schema/template combinations and changed scene policy after review.
+- [x] **Step 5: Update trackers and commit.** Commit message: `feat: seal reviewed executive storyboards and narration`.
 
 ### Task 3: Teach the existing author/reviewer to build the agreed story
 

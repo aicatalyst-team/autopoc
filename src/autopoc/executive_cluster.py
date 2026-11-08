@@ -756,8 +756,8 @@ def register_cluster_commands(subparsers) -> None:
     seal.add_argument(
         "--template-version",
         type=int,
-        choices=(1, CURRENT_TEMPLATE_VERSION),
-        default=CURRENT_TEMPLATE_VERSION,
+        choices=(1, 2, CURRENT_TEMPLATE_VERSION),
+        default=None,
         help="Presentation template revision; use 1 only with the original renderer digest",
     )
     seal.set_defaults(func=command)
