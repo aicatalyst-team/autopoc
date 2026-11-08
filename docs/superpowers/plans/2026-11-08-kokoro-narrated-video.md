@@ -229,12 +229,12 @@ specified; remaining details are builder decisions.
 Self-review maps all design requirements to the eight tasks. In particular,
 Tasks 1–3 cover evidence/story truthfulness, Tasks 4–6 cover offline generation
 and dynamic timing, Task 7 covers durable resource/publication behavior and
-Task 8 covers the full acceptance/rollout distinction. Implementation was authorized by the user on 8 November 2026; native execution is in progress.
+Task 8 covers the full acceptance/rollout distinction. Implementation was authorized by the user on 8 November 2026; engineering implementation and acceptance are complete, with the recorded rollout gates pending.
 
-Recommended execution: native in this chat, task by task, because these tasks
-share narrative/timeline/version contracts and benefit from keeping that context
-together. A fresh whole-branch reviewer follows implementation. Subagent-driven
-execution is also available if the user prefers independent review per task.
-The user approved the plan on 8 November 2026. Native execution is active in
-the managed `codex/kokoro-narration` worktree; the per-plan ledger records
-completed tasks, exact checks and implementation rulings.
+Execution followed the approved native approach in the managed
+`codex/kokoro-narration` worktree. One fresh whole-branch reviewer found two
+Important issues; both were corrected with regression tests and affected
+browser/image validation. The feature branch and draft PR are published;
+merge and live activation remain separate approvals. The project trackers and
+`docs/validation/kokoro-narration-2026-11-08.json` preserve completion evidence,
+measured image revisions and implementation rulings.

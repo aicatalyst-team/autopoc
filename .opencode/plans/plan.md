@@ -284,7 +284,7 @@ resource acceptance remain future design/validation work if Kokoro is selected.
 Planning completed 8 November: [design](../../docs/superpowers/specs/2026-11-08-kokoro-narrated-video-design.md)
 and [implementation plan](../../docs/superpowers/plans/2026-11-08-kokoro-narrated-video.md).
 Use final report, original results, staged setup, logs and available traces;
-include fixes only when they help explain the PoC outcome. Implementation was authorized on 8 November; native execution is in progress. The eight implementation tasks and status are tracked in
+include fixes only when they help explain the PoC outcome. Implementation was authorized on 8 November; engineering implementation and acceptance are complete, with the recorded rollout gates pending. The eight implementation tasks and status are tracked in
 implementation-plan.md section 9.3; every completed task must update both files.
 
 
