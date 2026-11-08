@@ -1,0 +1,30 @@
+# Apply with: oc apply -n <renderer-namespace> -f deploy/executive/rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: autopoc-executive-renderer
+  labels:
+    app: autopoc-executive
+automountServiceAccountToken: false
+---
+# The renderer has no RoleBinding. Only the main worker can submit/read Jobs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: autopoc-executive-launcher
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "get", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: autopoc-executive-launcher
+subjects:
+  - kind: ServiceAccount
+    name: autopoc-runner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: autopoc-executive-launcher

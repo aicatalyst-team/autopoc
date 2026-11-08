@@ -115,7 +115,7 @@ graph TD;
     K --> L[poc_execute];
     L --> M[poc_report];
     M --> N[blog];
-    
+
     I -->|retry| H;
     J -->|retry| H;
     K -->|retry| J;
@@ -153,6 +153,7 @@ make lock           # Regenerate requirements.lock
 
 - [Configuration reference](docs/configuration.md) -- environment variables and secrets
 - [Architecture details](docs/architecture.md) -- skill-based architecture
+- [Presentation session handoff and automation plan](docs/report-presentation-plan.md) -- Omnigent sample, tools, evidence, and post-report integration roadmap
 - [Architecture Decision Records](docs/adr/) -- design decisions and rationale
 - [OpenCode skills](.opencode/skills/) -- detailed skill instructions and reference files
 - [LLM proxy setup](docs/llm-proxy.md) -- OGX proxy for PoC projects

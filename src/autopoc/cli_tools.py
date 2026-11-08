@@ -240,7 +240,7 @@ def cmd_google_docs_upload(args: argparse.Namespace) -> None:
         }
         print(json.dumps(result, indent=2))
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - CLI boundary returns JSON and a nonzero exit.
         print(json.dumps({"error": f"Failed to upload to Google Docs: {e}"}), file=sys.stderr)
         sys.exit(1)
 
@@ -297,7 +297,7 @@ def cmd_google_drive_upload(args: argparse.Namespace) -> None:
         }
         print(json.dumps(output, indent=2))
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - CLI boundary returns JSON and a nonzero exit.
         print(json.dumps({"error": f"Failed to upload to Google Drive: {e}"}), file=sys.stderr)
         sys.exit(1)
 
@@ -308,11 +308,22 @@ def cmd_google_drive_upload(args: argparse.Namespace) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    from autopoc.artifacts import register_artifact_commands
+    from autopoc.capture import register_capture_commands
+    from autopoc.evidence import register_evidence_commands
+    from autopoc.executive_cluster import register_cluster_commands
+    from autopoc.executive_render import register_cli
+
     parser = argparse.ArgumentParser(
         prog="autopoc-tools",
         description="Standalone CLI wrappers for AutoPoC tools",
     )
     sub = parser.add_subparsers(dest="command", required=True)
+    register_artifact_commands(sub)
+    register_capture_commands(sub)
+    register_evidence_commands(sub)
+    register_cli(sub)
+    register_cluster_commands(sub)
 
     # llm-proxy
     p = sub.add_parser("llm-proxy", help="Resolve LLM env vars via OGX proxy")
@@ -382,8 +393,13 @@ def main() -> None:
     args = parser.parse_args()
     try:
         args.func(args)
-    except Exception as e:
-        print(json.dumps({"error": str(e)}), file=sys.stderr)
+    except Exception as e:  # noqa: BLE001 - CLI boundary returns JSON and a nonzero exit.
+        message = (
+            "Executive extension failed; inspect its independent checkpoint or validate inputs"
+            if args.command.startswith("executive-")
+            else str(e)
+        )
+        print(json.dumps({"error": message}), file=sys.stderr)
         sys.exit(1)
 
 

@@ -1,5 +1,17 @@
 # PoC Report Generation Instructions
 
+## Preserve the canonical report
+
+Before any artifact publication, stage the completed report outside the source
+checkout at `$WORK_DIR/evidence/$RUN_ID/staging/poc-report.md`. Save this canonical
+path and SHA-256 in `poc_report` state. The common `artifact-publish` helper
+appends immutable report revisions without branch changes or force pushes.
+Collect the original attempt index and staged report using `evidence-create`;
+save its status independently of PoC results and the phase cursor. A local ZIP
+does not mean a presentation, video or durable upload has been generated.
+Later executive links must produce a new report revision; never mutate the
+canonical pre-link source or erase earlier report/blog artifacts.
+
 Generate a comprehensive markdown PoC report summarizing the entire pipeline run.
 
 ## Report Structure

@@ -14,6 +14,11 @@ build/
 __pycache__
 .pytest_cache
 .ruff_cache
+.venv/
+.superpowers/
+**/node_modules/
+presentations/
+uv.lock
 
 # Tests (not needed in runtime image)
 tests/

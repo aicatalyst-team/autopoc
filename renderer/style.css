@@ -1,0 +1,70 @@
+@font-face { font-family:'Red Hat Display'; font-style:normal; font-weight:400; font-display:block; src:url('/brand/fonts/RedHatDisplay-Regular.woff2') format('woff2'); }
+@font-face { font-family:'Red Hat Display'; font-style:normal; font-weight:500; font-display:block; src:url('/brand/fonts/RedHatDisplay-Medium.woff2') format('woff2'); }
+@font-face { font-family:'Red Hat Display'; font-style:normal; font-weight:700; font-display:block; src:url('/brand/fonts/RedHatDisplay-Bold.woff2') format('woff2'); }
+@font-face { font-family:'Red Hat Text'; font-style:normal; font-weight:400; font-display:block; src:url('/brand/fonts/RedHatText-Regular.woff2') format('woff2'); }
+@font-face { font-family:'Red Hat Text'; font-style:normal; font-weight:500; font-display:block; src:url('/brand/fonts/RedHatText-Medium.woff2') format('woff2'); }
+@font-face { font-family:'Red Hat Text'; font-style:normal; font-weight:700; font-display:block; src:url('/brand/fonts/RedHatText-Bold.woff2') format('woff2'); }
+@font-face { font-family:'Red Hat Mono'; font-style:normal; font-weight:400; font-display:block; src:url('/brand/fonts/RedHatMono-Regular.woff2') format('woff2'); }
+@font-face { font-family:'Red Hat Mono'; font-style:normal; font-weight:500; font-display:block; src:url('/brand/fonts/RedHatMono-Medium.woff2') format('woff2'); }
+@font-face { font-family:'Red Hat Mono'; font-style:normal; font-weight:700; font-display:block; src:url('/brand/fonts/RedHatMono-Bold.woff2') format('woff2'); }
+.slidev-layout { padding:0; background:#fff; color:#151515; font-family:'Red Hat Text',sans-serif; }
+.executive { position:absolute; inset:0; display:flex; flex-direction:column; padding:42px 70px 105px; overflow:hidden; background:#fff; color:#151515; font-synthesis:none; }
+.executive * { box-sizing:border-box; }
+.executive.opening { background:#e00; color:#fff; }
+.scene-header { flex:none; margin-bottom:28px; padding-bottom:5px; }
+.section-marker { margin:0 0 24px; color:#a60000; font-size:16px; line-height:1.35; }
+.section-marker::before { content:''; position:absolute; left:38px; top:0; height:78px; width:1px; background:#e00; }
+.opening .section-marker { color:#fff; }
+.opening .section-marker::before { background:#fff; }
+.executive h1 { font-family:'Red Hat Display',sans-serif; font-size:40px; font-weight:500; line-height:1.15; margin:0; overflow-wrap:anywhere; }
+.opening h1 { font-size:60px; font-weight:400; }
+.executive .subtitle { font-family:'Red Hat Display',sans-serif; font-size:29px; line-height:1.3; margin:16px 0 0; opacity:1; color:inherit; }
+.scene-content { flex:1; min-height:0; position:relative; }
+.executive .claims { padding-left:25px; margin:0; display:grid; gap:22px; }
+.executive .claims li { font-size:26px; line-height:1.35; overflow-wrap:anywhere; }
+.opening .claims { margin-top:18px; }
+.executive small { display:block; margin-top:6px; font-size:14px; line-height:1.35; color:#4d4d4d; overflow-wrap:anywhere; }
+.opening small { color:#fff; }
+.results { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:20px; padding-top:45px; }
+.results div { display:flex; flex-direction:column; gap:20px; border-top:2px solid #e0e0e0; padding-top:24px; }
+.results strong { font-family:'Red Hat Display',sans-serif; font-size:78px; line-height:1; font-weight:500; }
+.results span { font-size:22px; line-height:1.2; }
+.executive .pass { color:#3d7317; }
+.executive .fail,.executive .error { color:#b1380b; }
+.executive .skip,.executive .incomplete { color:#4d4d4d; }
+.caveat { flex:none; font-size:16px; line-height:1.35; margin:14px 0 0; color:#4d4d4d; }
+.limitations { flex:none; margin:20px 0 0; padding-left:20px; max-height:100px; font-size:17px; line-height:1.35; color:#4d4d4d; }
+.limitations li { margin:0 0 3px; overflow-wrap:anywhere; }
+.brand-footer { position:absolute; left:0; right:0; bottom:0; height:78px; display:flex; align-items:center; gap:24px; padding:16px 46px; background:#fff; color:#151515; }
+.slide-number { font-size:12px; line-height:1.2; width:20px; flex:none; }
+.slide-number::after { content:''; position:absolute; left:46px; bottom:0; width:1px; height:15px; background:#e00; }
+.footer-meta { display:flex; flex:1; min-width:0; flex-direction:column; gap:5px; font-size:11px; line-height:1.25; overflow-wrap:anywhere; }
+.corporate-logo { width:150px; height:auto; flex:none; }
+.hat-logo { width:38px; height:auto; flex:none; }
+.graph-content { display:flex; flex-direction:column; gap:14px; }
+.topology-stage { position:relative; width:100%; flex:1; min-height:180px; }
+.topology-stage .tl-canvas { top:64px; bottom:12px; }
+.topology-stage .tl-canvas > div { overflow:visible !important; }
+.topology-stage .tl-hud-top { max-width:60%; }
+.topology-stage .tl-status { max-width:32%; }
+.no-graph { padding:60px 30px; font-size:25px; line-height:1.4; background:#f2f2f2; }
+.no-graph h2 { font-family:'Red Hat Display',sans-serif; font-size:29px; margin-bottom:20px; }
+.topology-stage .tl-title { font-size:25px; font-family:'Red Hat Display',sans-serif; font-weight:500; text-shadow:none; }
+.topology-stage .tl-kicker { text-transform:none; letter-spacing:normal; font-family:'Red Hat Text',sans-serif; font-size:14px; }
+.topology-stage .tl-node-t { font-size:17px; font-family:'Red Hat Text',sans-serif; }
+.topology-stage .tl-node-s { font-size:13px; }
+.topology-stage .tl-b-row { font-size:15px; opacity:1; }
+.topology-stage .tl-b-v { opacity:1; }
+.topology-stage .tl-line { font-size:13px; }
+.topology-stage .tl-term-title { font-size:12px; }
+.topology-stage .tl-node.off { visibility:hidden; }
+.topology-stage .no-mascot .tl-term { top:50%; }
+.scenario-stage .no-mascot .tl-board { top:22%; }
+.scenario-stage .tl-b-row { font-size:13px; line-height:1.3; padding:1px 6px; }
+.scenario-stage .no-mascot .tl-term { top:55%; }
+.topology-stage .tl-a-cell { font-size:13px; line-height:1.3; }
+.topology-stage .tl-a-cell i { font-size:10px; text-transform:none; letter-spacing:normal; }
+.topology-stage .tl-term-title { text-transform:none; letter-spacing:normal; }
+.executive .flow-claims { flex:none; gap:8px; }
+.executive .flow-claims li { font-size:20px; line-height:1.3; }
+.slidev-nav-controls,.slidev-slide-number,.slidev-toolbar { display:none !important; }

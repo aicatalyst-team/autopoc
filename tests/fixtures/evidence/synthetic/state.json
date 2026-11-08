@@ -1,0 +1,12 @@
+{
+  "poc_report": {
+    "canonical_report_path": "report.md"
+  },
+  "project": {
+    "name": "synthetic",
+    "run_id": "synthetic-retries"
+  },
+  "provenance": {
+    "kind": "synthetic-test-fixture"
+  }
+}

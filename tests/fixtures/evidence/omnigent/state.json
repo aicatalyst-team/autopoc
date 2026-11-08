@@ -1,0 +1,18 @@
+{
+  "poc_report": {
+    "canonical_report_path": "report.md"
+  },
+  "project": {
+    "capture_timestamp": "2026-10-20T08:17:06Z",
+    "name": "omnigent",
+    "run_id": "omnigent-2026-10-20"
+  },
+  "provenance": {
+    "kind": "reconstructed-state",
+    "original_runner_state": "unavailable",
+    "report_source_sha256": "3a8b9cc984624d997e304c983ea8288e15ea4523e75504ccf59a356de7eb6303",
+    "results_kind": "original-run results",
+    "source": "presentations/omnigent-2026-10-20/public/evidence/test-results.json",
+    "source_sha256": "9a6f42609c8919035274d52be8a52eeef866d42177b535cd9c55cc4815ec0b30"
+  }
+}

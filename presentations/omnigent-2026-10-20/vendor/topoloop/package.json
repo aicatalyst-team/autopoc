@@ -1,0 +1,44 @@
+{
+  "name": "topoloop",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "engines": { "node": ">=22.18" },
+  "type": "module",
+  "description": "Animated, looping graph walkthroughs for slides, driven by a TypeScript spec. Vue component, Slidev, and mp4/gif export.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./TopoLoop.vue": "./src/TopoLoop.vue"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.*\"",
+    "typecheck": "vue-tsc --noEmit -p .",
+    "render": "node scripts/check-render.mjs",
+    "golden": "node scripts/check-render.mjs --update",
+    "render:ci": "sh scripts/linux.sh",
+    "golden:ci": "sh scripts/linux.sh --update",
+    "check": "npm run typecheck && npm test && npm run render",
+    "dev": "slidev deck/slides.md --open",
+    "dev:standalone": "vite",
+    "build:standalone": "vite build",
+    "export:pdf": "slidev export deck/slides.md --output deck/topoloop.pdf",
+    "export": "node scripts/export.mjs",
+    "export:gif": "node scripts/export.mjs --spec checkout-demo --theme dark --seed 1 --format gif --fps 15 --from 0 --to 10 --width 800 --out docs/demo.gif && node scripts/export.mjs --spec checkout-demo --theme light --seed 1 --format gif --fps 15 --from 0 --to 10 --width 800 --out docs/demo-light.gif"
+  },
+  "peerDependencies": {
+    "three": "^0.171.0",
+    "vue": "^3.4.0"
+  },
+  "devDependencies": {
+    "@slidev/cli": "^52.0.0",
+    "@slidev/theme-default": "^0.25.0",
+    "@types/three": "^0.185.4",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "playwright-chromium": "^1.49.0",
+    "three": "^0.171.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.0",
+    "vue": "^3.5.43",
+    "vue-tsc": "^3.3.11"
+  }
+}

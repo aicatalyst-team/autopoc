@@ -100,6 +100,11 @@ Based on the PoC results, provide:
 - Keep the report concise but thorough — aim for 200-400 lines
 - Use code blocks for URLs, file paths, and command examples
 - Include actual values from the pipeline run, not placeholders
+- Never write the word "basic" directly before a word of 12 or more letters.
+  The evidence sanitizer cannot distinguish `Basic <base64-credential>` from
+  prose such as "Basic authentication" and rejects the whole report, so the
+  run produces no executive presentation. Write "HTTP Basic credentials" or
+  "the Basic scheme" instead of "Basic authentication".
 
 ## Important Notes
 
