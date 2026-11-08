@@ -19,6 +19,7 @@ import uuid
 from pathlib import Path
 
 from autopoc.artifacts import _git, _identifier, publish_artifacts
+from autopoc.executive_policy import artifact_limit, render_policy, saved_policy
 from autopoc.executive_inputs import CURRENT_TEMPLATE_VERSION, MAX_BYTES, verify_inputs
 
 ARTIFACTS = {
@@ -125,7 +126,7 @@ def _persist(repo: Path, checkpoint: dict, *, inputs: Path | None = None) -> Non
 
 
 def _descriptor(checkpoint: dict) -> dict:
-    return {
+    result = {
         key: checkpoint[key]
         for key in (
             "schema_version",
@@ -138,6 +139,9 @@ def _descriptor(checkpoint: dict) -> dict:
             "slots",
         )
     }
+    if "render_policy" in checkpoint:
+        result["render_policy"] = checkpoint["render_policy"]
+    return result
 
 
 def prepare_publication(
@@ -162,6 +166,9 @@ def prepare_publication(
     if new_attempt and previous_attempt >= 3:
         raise ValueError("Renderer retry limit reached")
     if checkpoint and checkpoint["input_sha256"] == identity and not new_attempt:
+        saved_policy(checkpoint, validated)
+        if checkpoint["image"] != validated["versions"]["image"]:
+            raise ValueError("Saved image differs from sealed inputs")
         if checkpoint["folder_id"] != folder_id:
             raise ValueError("Recovery destination differs from existing intent")
     else:
@@ -179,6 +186,7 @@ def prepare_publication(
             "folder_id": folder_id,
             "image": validated["versions"]["image"],
             "status": "input_upload_pending",
+            "render_policy": render_policy(validated),
             "slots": {
                 kind: {
                     name: drive.allocate_file_id()
@@ -255,6 +263,10 @@ def submit_renderer(
     checkpoint = load_checkpoint(repo, run_id)
     if not checkpoint or checkpoint["status"] == "input_upload_pending":
         raise ValueError("Durable render inputs are required before dispatch")
+    launch = {"namespace": namespace, "credentials_secret": credentials_secret}
+    if checkpoint.get("launch", launch) != launch:
+        raise ValueError("Launch configuration differs from durable intent")
+    policy = saved_policy(checkpoint)
     manifest = build_renderer_job(
         run_id,
         checkpoint["revision"],
@@ -265,6 +277,11 @@ def submit_renderer(
         namespace,
         recovery_sha256=checkpoint["recovery_sha256"],
         credentials_secret=credentials_secret,
+        **(
+            {"profile": policy["profile"], "deadline": policy["job_deadline_seconds"]}
+            if policy
+            else {}
+        ),
     )
     name = manifest["metadata"]["name"]
     old_job = checkpoint.get("job", {})
@@ -298,6 +315,12 @@ def submit_renderer(
         expected_container = manifest["spec"]["template"]["spec"]["containers"][0]
         if any(actual_container.get(key) != expected_container[key] for key in ("image", "args")):
             raise ValueError("Existing Job differs from the saved render intent")
+        if (
+            existing["spec"].get("activeDeadlineSeconds")
+            != manifest["spec"]["activeDeadlineSeconds"]
+            or actual_container.get("resources") != expected_container["resources"]
+        ):
+            raise ValueError("Existing Job resource policy differs from saved render intent")
         uid = existing["metadata"]["uid"]
         if old_job.get("uid", uid) != uid:
             raise ValueError("Existing Job UID differs from the saved render intent")
@@ -373,6 +396,9 @@ def recover_inputs(repo: Path, run_id: str, destination: Path, drive) -> Path:
             checkpoint["input_id"], path, checkpoint["input_sha256"], max_bytes=MAX_BYTES
         )
     validated = verify_inputs(path)
+    saved_policy(checkpoint, validated)
+    if validated["versions"]["image"] != checkpoint["image"]:
+        raise ValueError("Recovered renderer image differs")
     if validated["run_id"] != run_id:
         raise ValueError("Recovered run identity differs")
     if checkpoint["status"] == "input_upload_pending":
@@ -426,7 +452,7 @@ def _receipt(checkpoint: dict, kind: str, value: dict) -> dict:
         any(value.get(key) != expected_value for key, expected_value in expected.items())
         or not re.fullmatch(r"[0-9a-f]{64}", value.get("sha256", ""))
         or type(value.get("size")) is not int
-        or not 0 < value["size"] <= 256 * 1024 * 1024
+        or not 0 < value["size"] <= artifact_limit(checkpoint, kind)
     ):
         raise ValueError("Output receipt differs from durable render identity")
     file_id = value["file_id"]
@@ -439,6 +465,17 @@ def _receipt(checkpoint: dict, kind: str, value: dict) -> dict:
         "web_view_link": f"https://drive.google.com/file/d/{file_id}/view",
         "status": "published",
     }
+
+
+def _download_output(drive, checkpoint: dict, kind: str, receipt: dict, destination: Path) -> None:
+    drive.download_file(
+        receipt["file_id"],
+        destination,
+        receipt["sha256"],
+        max_bytes=artifact_limit(checkpoint, kind),
+    )
+    if destination.stat().st_size != receipt["size"]:
+        raise ValueError("Published output size differs from durable receipt")
 
 
 def render_remote(args, *, drive=None) -> dict:
@@ -469,13 +506,20 @@ def render_remote(args, *, drive=None) -> dict:
             or verified["versions"]["image"] != checkpoint["image"]
         ):
             raise ValueError("Renderer identity differs from sealed inputs")
-        manifest = render_executive(inputs, output)
+        policy = saved_policy(checkpoint, verified)
+        budget = policy["render_timeout_seconds"] if policy else 600
+        explicit = getattr(args, "timeout_seconds", None)
+        if explicit is not None and explicit != budget:
+            raise ValueError("Renderer timeout differs from durable render policy")
+        manifest = render_executive(inputs, output, **({"timeout": budget} if policy else {}))
         if manifest.get("run_id") != checkpoint["run_id"]:
             raise ValueError("Rendered run identity differs")
         published = {}
 
         def publish(kind: str, path: Path) -> dict:
             raw = path.read_bytes()
+            if not 0 < len(raw) <= artifact_limit(checkpoint, kind):
+                raise ValueError("Rendered artifact exceeds format size limit")
             intent = {
                 "schema_version": 1,
                 "run_id": checkpoint["run_id"],
@@ -492,10 +536,8 @@ def render_remote(args, *, drive=None) -> dict:
             drive.upload_file_once(str(intent_path), slot["intent_id"], checkpoint["folder_id"])
             # No binary upload occurs until its hash/ID intent is durable.
             drive.upload_file_once(str(path), slot["file_id"], checkpoint["folder_id"])
-            drive.download_file(
-                slot["file_id"], temporary / f"verified-{path.name}", intent["sha256"]
-            )
             receipt = _receipt(checkpoint, kind, intent)
+            _download_output(drive, checkpoint, kind, receipt, temporary / f"verified-{path.name}")
             receipt_path = temporary / f"{kind}-receipt.json"
             _json(receipt_path, receipt)
             drive.upload_file_once(str(receipt_path), slot["receipt_id"], checkpoint["folder_id"])
@@ -508,7 +550,11 @@ def render_remote(args, *, drive=None) -> dict:
             if metadata.get("status") != "generated_unpublished":
                 continue
             path = output / name
-            if metadata.get("path") != name or _sha(path.read_bytes()) != metadata.get("sha256"):
+            if (
+                metadata.get("path") != name
+                or _sha(path.read_bytes()) != metadata.get("sha256")
+                or path.stat().st_size != metadata.get("size")
+            ):
                 raise ValueError("Rendered artifact integrity differs")
             if kind == "summary":
                 with path.open("a") as stream:
@@ -526,14 +572,14 @@ def render_remote(args, *, drive=None) -> dict:
         return manifest
 
 
-def _linked_report(canonical: str, artifacts: dict, status: str) -> str:
+def _linked_report(canonical: str, artifacts: dict, status: str, *, narrated: bool = False) -> str:
     start, end = "<!-- autopoc-executive:start -->", "<!-- autopoc-executive:end -->"
     links = [start, "### Executive presentation and video", "", f"Generation status: **{status}**."]
     titles = {
         "deck": "Browser presentation ZIP (download and serve locally)",
         "source": "Editable Slidev source",
         "pdf": "Executive PDF",
-        "video": "Silent executive video",
+        "video": "Narrated executive video" if narrated else "Silent executive video",
         "summary": "Executive summary",
         "manifest": "Artifact manifest",
     }
@@ -585,7 +631,7 @@ def reconcile_outputs(repo: Path, run_id: str, state_path: Path | None, drive) -
 
                 receipt = _receipt(checkpoint, kind, intent)
                 try:
-                    drive.download_file(receipt["file_id"], temporary / filename, receipt["sha256"])
+                    _download_output(drive, checkpoint, kind, receipt, temporary / filename)
                 except HttpError as exc:
                     if exc.resp.status == 404:
                         continue
@@ -601,7 +647,7 @@ def reconcile_outputs(repo: Path, run_id: str, state_path: Path | None, drive) -
                 )
                 value = receipt
             receipt = _receipt(checkpoint, kind, value)
-            drive.download_file(receipt["file_id"], temporary / filename, receipt["sha256"])
+            _download_output(drive, checkpoint, kind, receipt, temporary / filename)
             artifacts[kind] = receipt
         if checkpoint.get("launch") and len(artifacts) != len(ARTIFACTS):
             checkpoint["artifacts"] = artifacts
@@ -661,7 +707,14 @@ def reconcile_outputs(repo: Path, run_id: str, state_path: Path | None, drive) -
             with zipfile.ZipFile(evidence) as archive:
                 canonical = archive.read("report.md").decode()
             report = temporary / "poc-report.md"
-            report.write_text(_linked_report(canonical, artifacts, final_status))
+            report.write_text(
+                _linked_report(
+                    canonical,
+                    artifacts,
+                    final_status,
+                    narrated=bool(checkpoint.get("render_policy", {}).get("narration") == "kokoro"),
+                )
+            )
             publication = publish_artifacts(
                 repo,
                 run_id,

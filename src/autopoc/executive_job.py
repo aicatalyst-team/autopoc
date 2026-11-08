@@ -17,7 +17,8 @@ def build_renderer_job(
     *,
     recovery_sha256: str,
     credentials_secret: str = "autopoc-google-sa",
-    deadline: int = 600,
+    deadline: int | None = None,
+    profile: str = "silent-v2",
 ) -> dict:
     """Return an unsubmitted batch/v1 Job; resources are a provisional profile.
 
@@ -39,8 +40,14 @@ def build_renderer_job(
         for v in (namespace, credentials_secret)
     ):
         raise ValueError("Invalid namespace or Secret name")
-    if not 30 <= deadline <= 1800:
-        raise ValueError("Renderer deadline must be between 30 and 1800 seconds")
+    if profile not in ("silent-v2", "kokoro-v3"):
+        raise ValueError("Unknown renderer profile")
+    narrated = profile == "kokoro-v3"
+    deadline = (3120 if narrated else 600) if deadline is None else deadline
+    if type(deadline) is not int or not (3120 if narrated else 30) <= deadline <= (
+        3600 if narrated else 1800
+    ):
+        raise ValueError("Renderer deadline is outside the selected profile")
     suffix = hashlib.sha256(f"{run_id}/{revision}".encode()).hexdigest()[:24]
     return {
         "apiVersion": "batch/v1",
@@ -65,7 +72,10 @@ def build_renderer_job(
                         "seccompProfile": {"type": "RuntimeDefault"},
                     },
                     "volumes": [
-                        {"name": "scratch", "emptyDir": {"sizeLimit": "4Gi"}},
+                        {
+                            "name": "scratch",
+                            "emptyDir": {"sizeLimit": "8Gi" if narrated else "4Gi"},
+                        },
                         {"name": "google", "secret": {"secretName": credentials_secret}},
                     ],
                     "containers": [
@@ -83,7 +93,8 @@ def build_renderer_job(
                                 recovery_id,
                                 "--recovery-sha256",
                                 recovery_sha256,
-                            ],
+                            ]
+                            + (["--timeout-seconds", "3000"] if narrated else []),
                             "env": [
                                 {"name": "HOME", "value": "/scratch/home"},
                                 {"name": "TMPDIR", "value": "/scratch/tmp"},
@@ -98,11 +109,15 @@ def build_renderer_job(
                             ],
                             "resources": {
                                 "requests": {
-                                    "cpu": "500m",
-                                    "memory": "1Gi",
+                                    "cpu": "2" if narrated else "500m",
+                                    "memory": "4Gi" if narrated else "1Gi",
                                     "ephemeral-storage": "1Gi",
                                 },
-                                "limits": {"cpu": "2", "memory": "3Gi", "ephemeral-storage": "5Gi"},
+                                "limits": {
+                                    "cpu": "2",
+                                    "memory": "4Gi" if narrated else "3Gi",
+                                    "ephemeral-storage": "10Gi" if narrated else "5Gi",
+                                },
                             },
                             "securityContext": {
                                 "allowPrivilegeEscalation": False,

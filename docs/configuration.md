@@ -45,14 +45,14 @@ cp .env.example .env
 
 *One of `ANTHROPIC_API_KEY`, `VERTEX_PROJECT`, or `LLM_BASE_URL` is required.
 
-## Executive presentation and silent video
+## Executive presentation and video
 
 Set `AUTOPOC_EXECUTIVE_IMAGE` in `autopoc-credentials` to the tested renderer
 image **digest** (`quay.io/<org>/autopoc-executive-renderer@sha256:...`). The
 Job/CronJob templates and launcher pass it to OpenCode. Without a configured
 renderer, record the extension as skipped rather than claiming generated media.
 
-New seals default to presentation template revision 2 (Red Hat branding). Build
+Silent seals default to template revision 2 (Red Hat branding). Narrated schema-2 seals use template 3. Build
 and validate the new renderer image and upgrade the worker's sealing tools
 together before changing `AUTOPOC_EXECUTIVE_IMAGE`. An older revision-1 image
 cannot consume revision-2 inputs. Existing revision-1 checkpoints retain their
@@ -81,7 +81,37 @@ managed separately.
 Build and publish through `make renderer-image` / `make renderer-image-push`
 with `IMAGE_ORG` and `IMAGE_TAG`. Both the renderer and main AutoPoC worker
 images must include the new Python tools and updated skill instructions.
-Google TTS credentials are unnecessary in Phase 1; narration remains Phase 2.
+Google TTS is not used by Kokoro. Drive authorization is still required for durable
+inputs and publication; a narration engine cannot fix invalid Drive credentials.
+
+Set optional `AUTOPOC_EXECUTIVE_NARRATION=kokoro` in the same worker Secret to
+select evidence-backed variable chapters and Heart (`af_heart`) narration.
+Unset/`none` retains the silent path; other values are rejected by the workflow.
+Job/CronJob templates and the launcher forward this setting. See
+`.opencode/skills/run-poc/references/executive-narration.md` for authoring and
+independent review. Select a renderer digest tested with template 3 and the
+exact packaged speech manifest; an image digest alone does not prove capability.
+No per-video model download is needed. CPU Kokoro dependencies/model/voice and
+licenses are installed only in the separate renderer image at build time.
+
+Verified sealed format determines a durable `render_policy` saved before upload
+and Job submission. Narrated defaults: 3000s total renderer budget, 3120s Job
+active deadline (up to 3600s via the bounded profile), 2 CPU/4Gi memory, 8Gi
+scratch and 10Gi ephemeral-storage limit. Legacy Jobs retain their 600s default
+and 1800s deadline ceiling. Resource bounds are provisional until measured on
+the target cluster. `--wait-seconds` remains 300 by default, accepting 0–600;
+late Jobs finish through `executive-reconcile` after the worker continues.
+Resumes use saved image/mode/policy/launch configuration, ignoring later mode
+and image environment changes and rejecting conflicting explicit launch values.
+Legacy descriptors without a policy retain their original serialized identity.
+
+`executive-render --timeout-seconds N` can lower a local format-specific budget;
+remote Jobs must match the durable timeout exactly. Narrated source/video
+ceilings are 512MiB/1GiB, selected by format and artifact kind, with hash and
+exact size checks on upload/download. Failed narration publishes no successful
+video link while preserving usable deck/PDF/source/summary. Recovery retains
+reviewed scripts, timelines and audio, never calling a content model or PoC test
+runner. Merge and live worker configuration changes require separate approval.
 
 The CLI now provides `capture-execution`, `evidence-create`, `evidence-verify`,
 `executive-seal`, `executive-render`, `executive-dispatch`, `executive-status`,

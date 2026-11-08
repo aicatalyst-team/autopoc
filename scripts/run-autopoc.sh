@@ -127,6 +127,12 @@ spec:
                   name: autopoc-credentials
                   key: AUTOPOC_EXECUTIVE_IMAGE
                   optional: true
+            - name: AUTOPOC_EXECUTIVE_NARRATION
+              valueFrom:
+                secretKeyRef:
+                  name: autopoc-credentials
+                  key: AUTOPOC_EXECUTIVE_NARRATION
+                  optional: true
             - name: AUTOPOC_EXECUTIVE_NAMESPACE
               valueFrom:
                 fieldRef:

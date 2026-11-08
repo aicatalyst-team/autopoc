@@ -416,3 +416,28 @@ def test_narrated_timeout_bound_is_distinct_from_legacy(tmp_path, monkeypatch):
     old.mkdir()
     with pytest.raises(ValueError, match="timeout"):
         executive_render.render_executive(sealed(old), tmp_path / "old", timeout=601)
+
+
+def test_local_cli_propagates_explicit_budget(monkeypatch, capsys):
+    parser = argparse.ArgumentParser()
+    executive_render.register_cli(parser.add_subparsers())
+    args = parser.parse_args(
+        [
+            "executive-render",
+            "--inputs",
+            "sealed.zip",
+            "--output-dir",
+            "output",
+            "--timeout-seconds",
+            "2500",
+        ]
+    )
+    calls = []
+
+    def render(*args, **kwargs):
+        calls.append(kwargs)
+        return {"status": "generated_unpublished"}
+
+    monkeypatch.setattr(executive_render, "render_executive", render)
+    args.func(args)
+    assert calls == [{"timeout": 2500}]

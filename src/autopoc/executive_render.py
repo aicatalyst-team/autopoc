@@ -420,7 +420,15 @@ def cmd_executive_render(args: argparse.Namespace) -> None:
     if args.inputs:
         if not args.output_dir:
             raise ValueError("Local rendering requires --output-dir")
-        result = render_executive(Path(args.inputs), Path(args.output_dir))
+        result = render_executive(
+            Path(args.inputs),
+            Path(args.output_dir),
+            **(
+                {"timeout": args.timeout_seconds}
+                if getattr(args, "timeout_seconds", None) is not None
+                else {}
+            ),
+        )
     else:
         from autopoc.executive_cluster import render_remote
 
@@ -437,6 +445,7 @@ def register_cli(subparsers) -> None:
     mode.add_argument("--inputs")
     mode.add_argument("--input-id")
     parser.add_argument("--output-dir")
+    parser.add_argument("--timeout-seconds", type=int, default=None)
     parser.add_argument("--input-sha256")
     parser.add_argument("--recovery-id")
     parser.add_argument("--recovery-sha256")

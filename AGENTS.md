@@ -154,8 +154,12 @@ Key features:
 ### Executive presentation and video extension
 
 The `run-poc` workflow can generate a report-based Slidev/TopoLoop presentation,
-PDF, source/browser ZIPs, executive Markdown and silent video. Google TTS is
-Phase 2. Follow `.opencode/skills/run-poc/references/executive-summary.md` for
+PDF, source/browser ZIPs, executive Markdown and video. Unset/`none` keeps
+silent template 2; `AUTOPOC_EXECUTIVE_NARRATION=kokoro` selects reviewed
+variable template-3 chapters with offline Heart narration. Kokoro model/voice
+assets are pinned and packaged in the separate renderer image at build time.
+Use a compatible tested image digest; no Google TTS permission or per-video
+model download is required. Drive publishing still requires Drive authorization. Follow `.opencode/skills/run-poc/references/executive-summary.md` for
 content review, configuration, dispatch and independent recovery.
 
 - `autopoc-tools artifact-publish` preserves immutable run-specific artifact revisions without switching the source checkout.
@@ -163,6 +167,9 @@ content review, configuration, dispatch and independent recovery.
 - `executive-seal` binds reviewed narrative, evidence, scenes and a digest-pinned renderer image.
 - `executive-render` runs offline; `executive-dispatch`, `executive-status`, `executive-recover` and `executive-reconcile` handle durable publication and recovery independently of the eleven-phase cursor.
 - `Dockerfile.executive` / `renderer/` define the separate trusted renderer; `deploy/executive/rbac.yaml` scopes cluster access. The main worker and renderer have separate images and resource limits.
+- Narrated render policy is saved before dispatch: 3000s process budget, 3120s Job
+  deadline, 2 CPU/4Gi memory/8Gi scratch/10Gi ephemeral storage. Worker wait is
+  independently bounded; reconcile late outputs without rerunning PoC tests.
 - Keep private diagnostics and credentials out of published artifacts. Input symlinks are rejected; a ConfigMap-based acceptance harness must copy its sealed input to a regular scratch file first. Production retrieves inputs through verified downloads.
 
 See `docs/configuration.md`, `renderer/README.md` and

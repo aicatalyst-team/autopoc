@@ -145,3 +145,18 @@ environment settings. Speech or video failure retains valid deck/PDF/source and
 explicitly reports partial completion. Kokoro needs no Google TTS permission,
 but Drive publication still requires working destination credentials. Local-only
 renders do not establish OCP acceptance or successful publication.
+
+## Dispatch and recovery policy
+
+Use a tested compatible digest-pinned template-3 renderer. Sealed format derives
+the persisted `kokoro-v3` profile (3000s renderer, 3120s Job) before upload or
+dispatch. A default worker wait of 300s is independent of Job lifetime; use
+`executive-reconcile` for late completion, including after blog completion or
+worker-directory deletion. Resume from saved image/mode/launch policy, never
+new environment choices. Explicit retries are bounded to three immutable
+attempts and must reuse reviewed content/evidence, without model or PoC replay.
+
+Speech failure is partial output: retain valid source/deck/PDF/summary and do not
+label a silent video as successful narration. Source/video ceilings are
+512MiB/1GiB; the same five artifact kinds remain. Kokoro replaces the need for
+Google TTS access, not Drive publication authorization.

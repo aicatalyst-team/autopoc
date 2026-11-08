@@ -259,3 +259,12 @@ class TestGoogleDriveService:
         service = create_google_drive_service("/fake/path")
         assert isinstance(service, GoogleDriveService)
         assert service.credentials_path == "/fake/path"
+
+
+def test_existing_download_must_still_obey_format_size_bound(tmp_path):
+    data = b"already present but over new bound"
+    destination = tmp_path / "cached.zip"
+    destination.write_bytes(data)
+    service = GoogleDriveService("unused")
+    with pytest.raises(ValueError, match="size"):
+        service.download_file("id", destination, hashlib.sha256(data).hexdigest(), max_bytes=4)

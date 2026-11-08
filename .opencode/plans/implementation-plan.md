@@ -510,7 +510,7 @@ recommendations are not execution instructions.
 | Package offline Heart assets and generate measured audio | ✅ Done — hash-locked CPU image and constrained offline inference |
 | Render variable executive slide chapters | ✅ Done — 6/8/12-slide browser/PDF checks and graph validation |
 | Encode narration-driven scenes and retain valid partial outputs | ✅ Done — measured PCM, one AAC encode and partial-output tests |
-| Persist narrated Job policy and recover/publish long renders | Pending |
+| Persist narrated Job policy and recover/publish long renders | ✅ Done — saved policy, bounded Jobs, late/partial recovery |
 | Complete local/cluster acceptance and controlled rollout | Pending |
 
 
@@ -561,3 +561,10 @@ recommendations are not execution instructions.
 - Pad and concatenate PCM before one AAC encode, avoiding per-scene AAC priming; require scene/final duration agreement within 0.25s, H.264 1280×720/30fps/yuv420p plus AAC, and complete decode. Real FFmpeg tone/silence checks passed around the first scene cut.
 - Recovery source includes exact transcript, sentence/scene WAVs, timeline, speech identity/notices and renderer-only locks, excluding weights/private diagnostics. Keep five public artifact kinds, source/video caps 512MiB/1GiB for template 3. Summary supports variable chapters and retains valid deck/PDF/source when speech/video fails.
 - GREEN: 457 supported Python tests; 35 Node tests (one optional integration skipped in default run), separate 11/11 actual FFmpeg integration tests; Ruff/scoped Pyright. Complete constrained narrated video/OCP acceptance follows in Task 8.
+
+#### 9.3.7 Preserve narrated Job policy and publication recovery — ✅ 8 November 2026
+- Derive/persist immutable render policy from verified sealed format before upload/dispatch. Narrated profile keeps 3000s rendering, 3120s Job deadline, tokenless/read-only isolation and provisional 2 CPU/4Gi/8Gi scratch/10Gi ephemeral bounds. Legacy descriptors without policy retain their bytes and defaults.
+- Pass saved timeout to remote CLI and reject CLI/sealed/descriptor/launch conflicts. Keep independent 0–600s worker wait, stable Job/upload IDs, three-attempt retry bound and unchanged original input identity. Existing Job deadline/resources must match saved intent.
+- Select source/video download caps by saved format/kind, verify exact published hash/size and enforce caps on cached downloads too. Failed narration publishes usable partial artifacts without a successful video link; reconciliation preserves completed blog/phase state after worker deletion.
+- Added missing optional narration Secret forwarding in worker Job/CronJob/launcher; documented compatible-image operator precondition, build-time model copies and independent Drive authorization. No live worker/Secret configuration changed.
+- RED→GREEN policy/profile/CLI/wiring and forged-size cases; GREEN: 114 affected tests, 478 supported Python tests, full Ruff/Pyright, launcher syntax check. Actual cluster/media/publication acceptance follows in Task 8.

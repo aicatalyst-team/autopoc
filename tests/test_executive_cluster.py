@@ -195,8 +195,9 @@ def test_resume_dispatches_saved_launch_intent_even_without_uid(repository, tmp_
     assert len(creates) == 1
 
 
+@pytest.mark.parametrize("narrated", [False, True])
 def test_renderer_publishes_partial_outputs_and_resume_updates_completed_blog(
-    repository, tmp_path, monkeypatch
+    repository, tmp_path, monkeypatch, narrated
 ):
     import argparse
 
@@ -206,9 +207,14 @@ def test_renderer_publishes_partial_outputs_and_resume_updates_completed_blog(
     run = tmp_path / "run"
     run.mkdir()
     drive = Drive()
-    checkpoint = prepare_publication(source, package(run), "folder", drive)
+    from tests.executive_fixtures import make_v3_input
+
+    checkpoint = prepare_publication(
+        source, make_v3_input(run) if narrated else package(run), "folder", drive
+    )
 
     def render(sealed, output, **kwargs):
+        assert kwargs.get("timeout") == (3000 if narrated else 600)
         output.mkdir(parents=True)
         manifest = {
             "run_id": "run-1",
@@ -337,3 +343,234 @@ def test_dispatch_exits_nonzero_when_renderer_admission_fails(repository, tmp_pa
     with pytest.raises(SystemExit) as exit_info:
         args.func(args)
     assert exit_info.value.code == 1
+
+
+def test_narrated_policy_is_durable_before_upload_and_survives_late_completion(
+    repository, tmp_path, monkeypatch
+):
+    from tests.executive_fixtures import make_v3_input
+    from autopoc import executive_cluster as cluster
+
+    source, _ = repository
+    package = make_v3_input(tmp_path / "run", slides=8)
+    drive = Drive()
+
+    def before():
+        saved = load_checkpoint(source, "run-1")
+        assert saved["render_policy"]["profile"] == "kokoro-v3"
+        assert saved["render_policy"]["render_timeout_seconds"] == 3000
+
+    drive.before_upload = before
+    cp = prepare_publication(source, package, "folder", drive)
+    descriptor = json.loads(drive.files[cp["recovery_id"]])
+    assert descriptor["render_policy"] == cp["render_policy"]
+    assert cp["render_policy"]["narration"] == "kokoro"
+    count = drive.counter
+    jobs = {}
+    created = []
+
+    def kubectl(args, payload=None):
+        if args[0] == "create":
+            item = json.loads(payload)
+            item["metadata"]["uid"] = "narrated-uid"
+            jobs[item["metadata"]["name"]] = item
+            created.append(item)
+            return item
+        return jobs.get(args[2], {})
+
+    monkeypatch.setattr(cluster, "_kubectl", kubectl)
+    first = cluster.submit_renderer(source, "run-1", "autopoc-test", wait_seconds=0)
+    assert first["job"]["status"] == "wait_expired"
+    monkeypatch.setenv("AUTOPOC_EXECUTIVE_NARRATION", "none")
+    monkeypatch.setenv("AUTOPOC_EXECUTIVE_IMAGE", "quay.io/changed@sha256:" + "f" * 64)
+    again = prepare_publication(source, package, "folder", drive)
+    second = cluster.submit_renderer(source, "run-1", "autopoc-test", wait_seconds=0)
+    assert again["render_policy"] == cp["render_policy"]
+    assert first["job"]["uid"] == second["job"]["uid"]
+    assert len(created) == 1 and drive.counter == count
+    assert created[0]["spec"]["activeDeadlineSeconds"] == 3120
+    assert created[0]["spec"]["template"]["spec"]["containers"][0]["args"][-2:] == [
+        "--timeout-seconds",
+        "3000",
+    ]
+    shutil.rmtree(tmp_path / "run")
+    recovered = recover_inputs(source, "run-1", tmp_path / "fresh", drive)
+    assert recovered.exists()
+    jobs[first["job"]["name"]]["status"] = {"succeeded": 1}
+    assert (
+        cluster.submit_renderer(source, "run-1", "autopoc-test", wait_seconds=0)["job"]["status"]
+        == "completed"
+    )
+
+
+@pytest.mark.parametrize(
+    "kind,amount,ok",
+    [
+        ("video", 1024**3, True),
+        ("video", 1024**3 + 1, False),
+        ("source", 512 * 1024**2, True),
+        ("source", 512 * 1024**2 + 1, False),
+        ("pdf", 512 * 1024**2, False),
+    ],
+)
+def test_narrated_receipt_caps_are_selected_by_kind(kind, amount, ok):
+    from autopoc.executive_cluster import _receipt
+
+    cp = {
+        "run_id": "run-1",
+        "revision": "a" * 64,
+        "input_sha256": "b" * 64,
+        "render_policy": {
+            "profile": "kokoro-v3",
+            "narration": "kokoro",
+            "render_timeout_seconds": 3000,
+            "job_deadline_seconds": 3120,
+            "scene_policy_sha256": "c" * 64,
+        },
+        "slots": {kind: {"file_id": "file-id"}},
+    }
+    value = {
+        "run_id": "run-1",
+        "revision": "a" * 64,
+        "input_sha256": "b" * 64,
+        "kind": kind,
+        "file_id": "file-id",
+        "sha256": "d" * 64,
+        "size": amount,
+    }
+    if ok:
+        assert _receipt(cp, kind, value)["status"] == "published"
+    else:
+        with pytest.raises(ValueError):
+            _receipt(cp, kind, value)
+
+
+@pytest.mark.parametrize("change", ["timeout", "profile", "image"])
+def test_remote_rejects_cli_or_saved_policy_conflicts_before_render(
+    repository, tmp_path, monkeypatch, change
+):
+    import argparse
+    from tests.executive_fixtures import make_v3_input
+    from autopoc import executive_cluster as cluster
+
+    source, _ = repository
+    drive = Drive()
+    cp = prepare_publication(source, make_v3_input(tmp_path / "run"), "folder", drive)
+    descriptor = json.loads(drive.files[cp["recovery_id"]])
+    if change == "profile":
+        descriptor["render_policy"] = {"profile": "silent-v2"}
+    if change == "image":
+        descriptor["image"] = "quay.io/old@sha256:" + "e" * 64
+    raw = json.dumps(descriptor).encode()
+    drive.files[cp["recovery_id"]] = raw
+    args = argparse.Namespace(
+        input_id=cp["input_id"],
+        input_sha256=cp["input_sha256"],
+        recovery_id=cp["recovery_id"],
+        recovery_sha256=hashlib.sha256(raw).hexdigest(),
+        output_dir=tmp_path / "out",
+        timeout_seconds=600 if change == "timeout" else 3000,
+    )
+    monkeypatch.setattr(
+        "autopoc.executive_render.render_executive",
+        lambda *a, **kw: pytest.fail("conflicting render launched"),
+    )
+    with pytest.raises(ValueError):
+        cluster.render_remote(args, drive=drive)
+
+
+def test_narrated_retry_is_bounded_and_preserves_input_identity(repository, tmp_path):
+    from tests.executive_fixtures import make_v3_input
+
+    source, _ = repository
+    drive = Drive()
+    package = make_v3_input(tmp_path / "run")
+    first = prepare_publication(source, package, "folder", drive)
+    second = prepare_publication(source, package, "folder", drive, new_attempt=True)
+    third = prepare_publication(source, package, "folder", drive, new_attempt=True)
+    assert first["input_sha256"] == second["input_sha256"] == third["input_sha256"]
+    assert len({cp["revision"] for cp in (first, second, third)}) == 3
+    with pytest.raises(ValueError, match="retry limit"):
+        prepare_publication(source, package, "folder", drive, new_attempt=True)
+
+
+def test_legacy_descriptor_bytes_do_not_gain_a_policy():
+    from autopoc.executive_cluster import _descriptor
+
+    cp = {
+        key: "value"
+        for key in (
+            "schema_version",
+            "run_id",
+            "revision",
+            "input_sha256",
+            "input_id",
+            "folder_id",
+            "image",
+            "slots",
+        )
+    }
+    assert _descriptor(cp) == cp
+
+
+def test_reconcile_rejects_forged_size_even_with_valid_hash(repository, tmp_path):
+    from autopoc.executive_cluster import reconcile_outputs
+
+    source, _ = repository
+    drive = Drive()
+    run = tmp_path / "run"
+    run.mkdir()
+    cp = prepare_publication(source, package(run), "folder", drive)
+    raw = b"published artifact bytes"
+    slot = cp["slots"]["pdf"]
+    drive.files[slot["file_id"]] = raw
+    drive.files[slot["receipt_id"]] = json.dumps(
+        {
+            "run_id": "run-1",
+            "revision": cp["revision"],
+            "input_sha256": cp["input_sha256"],
+            "kind": "pdf",
+            "file_id": slot["file_id"],
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "size": 1,
+        }
+    ).encode()
+    with pytest.raises(ValueError, match="size"):
+        reconcile_outputs(source, "run-1", None, drive)
+
+
+def test_worker_templates_forward_narration_opt_in():
+    from pathlib import Path
+    import yaml
+
+    root = Path(__file__).parents[1]
+    for name in ("job", "cronjob"):
+        manifest = yaml.safe_load((root / f"deploy/base/{name}.yaml").read_text())
+        spec = manifest["spec"] if name == "job" else manifest["spec"]["jobTemplate"]["spec"]
+        env = spec["template"]["spec"]["containers"][0]["env"]
+        narration = next((row for row in env if row["name"] == "AUTOPOC_EXECUTIVE_NARRATION"), None)
+        assert narration and narration["valueFrom"]["secretKeyRef"] == {
+            "name": "autopoc-credentials",
+            "key": "AUTOPOC_EXECUTIVE_NARRATION",
+            "optional": True,
+        }
+
+
+def test_resume_rejects_changed_saved_launch_credentials(repository, tmp_path):
+    from autopoc.executive_cluster import submit_renderer
+
+    source, _ = repository
+    run = tmp_path / "run"
+    run.mkdir()
+    prepare_publication(
+        source,
+        package(run),
+        "folder",
+        Drive(),
+        launch_namespace="autopoc-test",
+        credentials_secret="saved-secret",
+    )
+    with pytest.raises(ValueError, match="Launch configuration"):
+        submit_renderer(
+            source, "run-1", "autopoc-test", credentials_secret="changed-secret", wait_seconds=0
+        )

@@ -200,7 +200,11 @@ class GoogleDriveService:
             p.is_symlink() for p in (destination, *destination.parents)
         ):
             raise ValueError("Invalid download destination or integrity reference")
+        if type(max_bytes) is not int or max_bytes <= 0:
+            raise ValueError("Invalid download size bound")
         if destination.exists():
+            if not destination.is_file() or destination.stat().st_size > max_bytes:
+                raise ValueError("Existing download exceeds allowed size")
             with destination.open("rb") as stream:
                 if hashlib.file_digest(stream, "sha256").hexdigest() == expected_sha256:
                     return destination

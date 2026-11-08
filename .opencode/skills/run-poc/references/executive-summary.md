@@ -207,4 +207,6 @@ journal slots, bounded to three attempts. Retain existing good outputs and
 prior report revisions; never reset completed PoC phases. Reconciliation
 alone does not regenerate content or call the model.
 
-Phase 1 is silent on-screen text. Google TTS narration is Phase 2.
+This legacy path is silent on-screen text. For offline Heart narration use the
+opt-in workflow above; Google TTS is not required. Drive authorization remains
+required for durable publication.
