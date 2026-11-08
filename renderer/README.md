@@ -47,7 +47,7 @@ The check blocks external requests and exercises missing fonts/logos and
 oversized claims, titles, counts and diagram labels.
 
 Outputs include the editable `executable-source.zip`, browser `static-site.zip`,
-`executive-summary.pdf`, silent `executive-summary.mp4`, `executive-summary.md`,
+`executive-summary.pdf`, `executive-summary.mp4` (silent template 2, Heart narration template 3), `executive-summary.md`,
 and `presentation-manifest.json`. The source ZIP includes trusted components,
 local fonts/licenses, dependency lock, speaker notes, claim references in
 `narrative.json`, sealed inputs and recovery metadata. It excludes `node_modules`,
@@ -60,7 +60,7 @@ separate operations. Each packaged artifact is hashed and sized. Matching
 complete output is reused only after hash checks; a conflicting or partial
 nonempty output directory requires a new destination. Video failure preserves
 usable PDF/deck outputs and records `partial`. Input paths and output ancestors
-cannot be symlinks. The wrapper has a hard timeout of at most 600 seconds.
+cannot be symlinks. The wrapper defaults to a 600s budget for silent template 2 and 3000s for narrated template 3. Explicit budgets may be lower, never higher. One shared deadline bounds the complete process sequence.
 
 Build and publish independently of the worker/recorder images:
 
@@ -90,3 +90,35 @@ arbitrary UID, read-only root filesystem and the target cluster's limits. A unit
 test using the Node boundary does not establish Chromium/UBI compatibility or
 resource sizing. Mutable upstream FFmpeg release replacement causes checksum
 failure and requires an explicitly reviewed checksum update.
+
+Template 3 performs three sequential stages: prepare/validate deck and PDF, exit
+Chromium, generate exact reviewed sentences with offline CPU Kokoro, exit the
+speech process, then record the prepared deck and mux audio. Speech runs only
+from `/opt/autopoc/speech-venv` with model/config/Heart assets verified against
+the reviewed manifest hash. Production downloads happen during image build,
+never per video. The worker does not install speech dependencies.
+
+Scene duration is measured PCM length plus 0.35s lead and 0.65s tail, at least
+6s, rounded upward to a 30fps frame. Sentence gaps are 0.20s. Default limits are
+30 slides, 120s per slide and 900s total; revise and re-review content if it
+exceeds those limits. Graph timing scales to this measured interval and remains
+illustrative. Timeline, exact transcript, sentence/scene WAVs, dependency locks
+and speech identity/licenses stay in the editable source ZIP, excluding model
+weights and private diagnostics. Narrated source ZIP/video ceilings are 512MiB
+and 1GiB. The same five public artifact kinds remain.
+
+Audio is padded as PCM per scene and concatenated before a single AAC encode;
+video segments remain H.264 1280x720/30fps/yuv420p. Every scene and final stream
+must match measured duration within 0.25s, and the entire final file must decode.
+Speech failure retains validated deck/PDF/source/summary and marks video failed.
+No silent fallback is published as a successful narrated video. Private speech
+and recording logs remain beside renderer.log and outside public ZIPs.
+
+For stage diagnostics inside the trusted renderer:
+```sh
+node render.mjs INPUT OUTPUT --stage prepare
+# Speech must complete and exit before recording.
+node render.mjs INPUT OUTPUT --stage record --timeline SPEECH/timeline.json
+```
+Run `AUTOPOC_FFMPEG_INTEGRATION=1 node --test audio.test.mjs` to verify real
+AAC silence/tone placement around scene cuts, in addition to unit checks.

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { verifyBrandAssets } from './branding.mjs'
+import { loadTimeline, muxPresentation } from './audio.mjs'
 import { validateStoryboard, speakerNotes, transcript } from './storyboard.mjs'
 import { inspectScene, sceneProblems, sceneCheckTimes } from './scene-validation.mjs'
 
@@ -164,6 +165,7 @@ export async function render(input, output, { prepareOnly = false } = {}) {
     } catch (error) { console.error('PDF export:', error.stack || error.message); manifest.artifacts.pdf = { status: 'failed', error: 'PDF export failed' } }
     await save()
     if (!prepareOnly) {
+      if (narrative.schema_version === 2) throw new Error('Narrated inputs require prepare, speech and record stages')
       const segments = []
       await mkdir(join(output, 'frames'), { recursive: true })
       for (let i = 0; i < descriptors.length; i++) {
@@ -224,10 +226,68 @@ export async function render(input, output, { prepareOnly = false } = {}) {
   return manifest
 }
 
+export async function recordPresentation(input, output, timelinePath) {
+  const path = join(output, 'presentation-manifest.json')
+  const manifest = JSON.parse(await readFile(path))
+  const save = () => writeFile(path, JSON.stringify(manifest, null, 2))
+  let browser, server
+  try {
+    if (manifest.artifacts.deck?.status !== 'validated') throw new Error('Recording requires the validated prepared deck')
+    const narrative = JSON.parse(await readFile(join(input, 'narrative.json')))
+    const timeline = await loadTimeline(timelinePath, input)
+    const modules = resolve(process.env.AUTOPOC_RENDER_NODE_MODULES || join(here, 'node_modules'))
+    const { chromium } = await import(join(modules, 'playwright-chromium/index.mjs'))
+    const hosted = await serve(join(output, 'source/dist')); server = hosted.server
+    const url = hosted.url
+    browser = await chromium.launch({ headless:true, executablePath:process.env.AUTOPOC_CHROMIUM_EXECUTABLE || undefined, args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'] })
+    const segments = []
+    manifest.scenes = []
+    for (const [i,scene] of timeline.scenes.entries()) {
+      const capture = join(output, `capture-${i+1}`)
+      const context = await browser.newContext({ viewport:{width:1280,height:720}, recordVideo:{dir:capture,size:{width:1280,height:720}} })
+      const born = Date.now()
+      await context.route('**/*', route => route.request().url().startsWith(url + '/') ? route.continue() : route.abort())
+      const page = await context.newPage(), errors=[]
+      page.on('pageerror', e => errors.push(e.message))
+      let raw, offset
+      try {
+        await page.goto(`${url}/${i+1}?embedded`, {waitUntil:'networkidle',timeout:30000})
+        await page.locator('[data-executive-ready="true"]').waitFor({timeout:30000})
+        await page.evaluate(duration => window.dispatchEvent(new CustomEvent('executive-duration',{detail:duration})),scene.duration_seconds)
+        await page.evaluate(() => window.dispatchEvent(new CustomEvent('executive-reset')))
+        await page.locator('[data-executive-ready="true"]').waitFor({timeout:30000})
+        const problems=[...errors,...await page.locator('.tl-fatal').allTextContents(),...sceneProblems(await page.evaluate(inspectScene))]
+        if(problems.length) { const failure=new Error(`Scene ${scene.id}: ${problems.join('; ')}`);failure.contentFailure=true;throw failure }
+        offset=(Date.now()-born)/1000
+        await page.waitForTimeout(scene.duration_seconds*1000+150)
+        if(errors.length || (await page.locator('.tl-fatal').count())) {const failure=new Error('Scene failed during recording');failure.contentFailure=true;throw failure}
+        raw=await page.video().path()
+      } finally { await context.close() }
+      const segment=join(resolve(output),`scene-${i+1}.mp4`)
+      await run('ffmpeg',['-v','error','-y','-ss',String(offset),'-i',raw,'-an','-r','30','-frames:v',String(scene.frame_count),'-c:v','libx264','-pix_fmt','yuv420p',segment],output)
+      segments.push(segment)
+      manifest.scenes.push({id:scene.id,duration_seconds:scene.duration_seconds,frame_count:scene.frame_count,capture_offset:offset,ready:true,graph:!!narrative.slides[i].graph})
+      await save()
+    }
+    await browser.close(); browser=null
+    manifest.artifacts.video=await muxPresentation(segments,timeline,output,run)
+    manifest.narration={...timeline.narration,model_revision:timeline.model_revision,duration_seconds:timeline.duration_seconds,timeline_sha256:createHash('sha256').update(await readFile(timelinePath)).digest('hex')}
+  } catch (error) { failedArtifacts(manifest,error); console.error(error.stack || error.message) }
+  finally { await browser?.close(); if(server) await new Promise(accept=>server.close(accept)) }
+  manifest.status=Object.values(manifest.artifacts).every(a=>a.status==='validated') ? 'generated_unpublished' : 'partial'
+  await save();return manifest
+}
+
 export async function preparePresentation(input, output) { return render(input, output, { prepareOnly: true }) }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  if (process.argv.length !== 4 && !(process.argv.length === 6 && process.argv[4] === '--stage' && process.argv[5] === 'prepare')) { console.error('Usage: node render.mjs INPUT_DIR OUTPUT_DIR'); process.exit(2) }
-  try { const result = await render(resolve(process.argv[2]), resolve(process.argv[3]), { prepareOnly: process.argv[5] === 'prepare' }); console.log(JSON.stringify(result)); if (result.status === 'partial') process.exitCode = 1 }
-  catch (error) { console.error(error.stack || error.message || 'Presentation generation failed'); process.exitCode = 1 }
+  const args=process.argv.slice(2)
+  const stage=args[3]
+  if (!(args.length===2 || (args.length===4 && args[2]==='--stage' && stage==='prepare') || (args.length===6 && args[2]==='--stage' && stage==='record' && args[4]==='--timeline'))) {
+    console.error('Usage: node render.mjs INPUT OUTPUT [--stage prepare|record --timeline PATH]'); process.exit(2)
+  }
+  try {
+    const result=stage==='record' ? await recordPresentation(resolve(args[0]),resolve(args[1]),resolve(args[5])) : await render(resolve(args[0]),resolve(args[1]),{prepareOnly:stage==='prepare'})
+    console.log(JSON.stringify(result)); if(result.status==='partial') process.exitCode=1
+  } catch(error) {console.error(error.stack || error.message);process.exitCode=1}
 }

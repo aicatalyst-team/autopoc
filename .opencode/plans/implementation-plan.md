@@ -509,7 +509,7 @@ recommendations are not execution instructions.
 | Update configured-model author/reviewer workflow and ADR | ✅ Done — three configured-model acceptance reviews |
 | Package offline Heart assets and generate measured audio | ✅ Done — hash-locked CPU image and constrained offline inference |
 | Render variable executive slide chapters | ✅ Done — 6/8/12-slide browser/PDF checks and graph validation |
-| Encode narration-driven scenes and retain valid partial outputs | Pending |
+| Encode narration-driven scenes and retain valid partial outputs | ✅ Done — measured PCM, one AAC encode and partial-output tests |
 | Persist narrated Job policy and recover/publish long renders | Pending |
 | Complete local/cluster acceptance and controlled rollout | Pending |
 
@@ -554,3 +554,10 @@ recommendations are not execution instructions.
 - Actual browser preflight checked every scene and representative graph states. Six-, eight- and twelve-slide decks and failed/incomplete examples rendered successfully; inspected all 42 PDF pages, including the corrected graph page. Missing fonts/logos, oversized titles/claims/results/diagram labels and overlapping node labels are refused.
 - Real TopoLoop fixture exposed an incorrect object-only edge requirement in Python/Node; corrected it to actual string pairs with RED→GREEN coverage. Source assets/helpers/transcript remain in recovery allowlists. Image runtime copies follow dependency layers to avoid repeated model downloads during code iteration.
 - GREEN: 24 Node tests, 453 supported Python tests, Ruff and scoped Pyright. Local deck/PDF acceptance only; measured narrated encoding follows in Task 6.
+
+#### 9.3.6 Encode measured narration and preserve partial output — ✅ 8 November 2026
+- Added sequential prepare → speech → record processes under one format-specific deadline (silent 600s, narrated 3000s). Chromium exits before speech, and speech exits before the recording browser; subprocess failures/timeouts propagate after killing descendants.
+- Hash-bound timeline checks validate reviewed input identity, ordered IDs, sentence/scene PCM sample counts, offsets, frame counts and duration policy. Record the prepared variable deck without regenerating content; scale graphs to each measured interval. No silent fallback after speech failure.
+- Pad and concatenate PCM before one AAC encode, avoiding per-scene AAC priming; require scene/final duration agreement within 0.25s, H.264 1280×720/30fps/yuv420p plus AAC, and complete decode. Real FFmpeg tone/silence checks passed around the first scene cut.
+- Recovery source includes exact transcript, sentence/scene WAVs, timeline, speech identity/notices and renderer-only locks, excluding weights/private diagnostics. Keep five public artifact kinds, source/video caps 512MiB/1GiB for template 3. Summary supports variable chapters and retains valid deck/PDF/source when speech/video fails.
+- GREEN: 457 supported Python tests; 35 Node tests (one optional integration skipped in default run), separate 11/11 actual FFmpeg integration tests; Ruff/scoped Pyright. Complete constrained narrated video/OCP acceptance follows in Task 8.

@@ -257,10 +257,11 @@ def test_engine_timeout_retains_independently_completed_artifacts(tmp_path, engi
 
 def test_renderer_timeout_kills_child_processes(tmp_path):
     pid_path = tmp_path / "child.pid"
-    executive_render._run_renderer(
-        ["sh", "-c", 'sleep 60 & printf "%s" "$!" > "$1"; wait', "sh", str(pid_path)],
-        timeout=1,
-    )
+    with pytest.raises(subprocess.TimeoutExpired):
+        executive_render._run_renderer(
+            ["sh", "-c", 'sleep 60 & printf "%s" "$!" > "$1"; wait', "sh", str(pid_path)],
+            timeout=1,
+        )
     pid = int(pid_path.read_text())
     status = Path(f"/proc/{pid}/stat")
     # A killed child may briefly remain a zombie while the container init reaps it.
@@ -320,3 +321,98 @@ def test_runtime_metrics_count_scratch_without_following_symlinks(tmp_path):
         ]
         is None
     )
+
+
+@pytest.mark.parametrize("failure", [None, "speech", "record"])
+def test_narration_stages_preserve_deck_and_reviewed_source(tmp_path, monkeypatch, failure):
+    from tests.executive_fixtures import make_v3_input
+
+    package = make_v3_input(tmp_path / "run", slides=8)
+    root = tmp_path / "renderer"
+    root.mkdir()
+    for name in ("render.mjs", "audio.mjs", "storyboard.mjs", "requirements.lock"):
+        (root / name).write_text("trusted runtime")
+    monkeypatch.setenv("AUTOPOC_RENDERER_ROOT", str(root))
+    monkeypatch.setenv("AUTOPOC_SPEECH_PYTHON", "/trusted/speech-python")
+    monkeypatch.setenv("AUTOPOC_SPEECH_ASSETS", str(tmp_path / "assets"))
+    calls = []
+
+    def fake(command, **kwargs):
+        assert 0 < kwargs["timeout"] <= 3000
+        if command[0] == "node":
+            stage = command[command.index("--stage") + 1]
+            data, output = map(Path, command[2:4])
+            calls.append(stage)
+            if stage == "prepare":
+                source = output / "source"
+                (source / "dist").mkdir(parents=True)
+                (source / "dist/index.html").write_text("prepared deck")
+                (source / "slides.md").write_text("<ExecutiveSlide />")
+                (source / "transcript.txt").write_text("Exact reviewed sentences")
+                (output / "executive-summary.pdf").write_bytes(b"%PDF")
+                (output / "presentation-manifest.json").write_text(
+                    json.dumps(
+                        {
+                            "artifacts": {
+                                "deck": {"status": "validated"},
+                                "pdf": {"status": "validated"},
+                            }
+                        }
+                    )
+                )
+            else:
+                assert calls == ["prepare", "speech", "record"]
+                assert "--timeline" in command
+                if failure == "record":
+                    raise subprocess.CalledProcessError(1, command)
+                (output / "executive-summary.mp4").write_bytes(b"narrated video")
+                manifest = json.loads((output / "presentation-manifest.json").read_text())
+                manifest["artifacts"]["video"] = {"status": "validated"}
+                manifest["scenes"] = [{"id": "slide-0", "duration_seconds": 31}]
+                (output / "presentation-manifest.json").write_text(json.dumps(manifest))
+        else:
+            calls.append("speech")
+            assert command[:3] == ["/trusted/speech-python", "-m", "autopoc.executive_speech"]
+            if failure == "speech":
+                raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+            speech = Path(command[command.index("--output-dir") + 1])
+            speech.mkdir()
+            (speech / "narration").mkdir()
+            (speech / "narration/slide-0.wav").write_bytes(b"PCM")
+            (speech / "timeline.json").write_text(
+                json.dumps({"duration_seconds": 248, "scenes": []})
+            )
+            (speech / "transcript.txt").write_text("Exact reviewed sentences")
+
+    monkeypatch.setattr(executive_render, "_run_renderer", fake)
+    result = executive_render.render_executive(package, tmp_path / "output")
+    assert calls == (
+        ["prepare", "speech"] if failure == "speech" else ["prepare", "speech", "record"]
+    )
+    assert result["status"] == ("partial" if failure else "generated_unpublished")
+    assert set(result["artifacts"]) == {"source", "deck", "pdf", "video", "summary"}
+    for kind in ("source", "deck", "pdf", "summary"):
+        assert result["artifacts"][kind]["status"] == "generated_unpublished"
+    assert result["artifacts"]["video"]["status"] == (
+        "failed" if failure else "generated_unpublished"
+    )
+    summary = (tmp_path / "output/executive-summary.md").read_text()
+    assert "Silent video" not in summary
+    with zipfile.ZipFile(tmp_path / "output/executable-source.zip") as source:
+        assert {"storyboard.mjs", "audio.mjs", "requirements.lock", "transcript.txt"} <= set(
+            source.namelist()
+        )
+        if failure != "speech":
+            assert {"timeline.json", "narration/slide-0.wav"} <= set(source.namelist())
+
+
+def test_narrated_timeout_bound_is_distinct_from_legacy(tmp_path, monkeypatch):
+    from tests.executive_fixtures import make_v3_input
+
+    package = make_v3_input(tmp_path / "run")
+    with pytest.raises(ValueError, match="timeout"):
+        executive_render.render_executive(package, tmp_path / "output", timeout=3001)
+    old = tmp_path / "legacy"
+    old.mkdir()
+    with pytest.raises(ValueError, match="timeout"):
+        executive_render.render_executive(sealed(old), tmp_path / "old", timeout=601)

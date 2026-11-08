@@ -67,7 +67,7 @@ RUN uv venv --python /usr/bin/python3.12 /opt/autopoc/speech-venv && \
       --manifest /opt/autopoc/renderer/assets/kokoro/manifest.json \
       --output-dir /opt/autopoc/speech-assets --include-package-licenses && \
     rm -rf /tmp/uv-cache
-COPY renderer/render.mjs renderer/branding.mjs renderer/storyboard.mjs renderer/scene-validation.mjs renderer/style.css renderer/README.md /opt/autopoc/renderer/
+COPY renderer/audio.mjs renderer/render.mjs renderer/branding.mjs renderer/storyboard.mjs renderer/scene-validation.mjs renderer/style.css renderer/README.md /opt/autopoc/renderer/
 COPY renderer/components/ /opt/autopoc/renderer/components/
 COPY renderer/vendor/ /opt/autopoc/renderer/vendor/
 COPY renderer/assets/ /opt/autopoc/renderer/assets/

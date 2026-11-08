@@ -297,6 +297,6 @@ implementation-plan.md section 9.3; every completed task must update both files.
 | Update author/reviewer workflow and ADR | ✅ Done — source-linked examples and real configured-model reviews |
 | Package offline Heart speech and measured timeline | ✅ Done — 18 speech tests; actual constrained offline image smoke |
 | Render variable slide chapters | ✅ Done — variable decks, source notes/transcript and actual browser/PDF checks |
-| Encode narrated video and preserve partial outputs | Pending |
+| Encode narrated video and preserve partial outputs | ✅ Done — staged processes, measured timelines, real AAC/cut checks |
 | Persist long-render policy/recovery/publication | Pending |
 | Complete local/OCP acceptance and controlled rollout | Pending |
