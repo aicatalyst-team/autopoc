@@ -203,7 +203,19 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int | None
 
         try:
             command = ["node", str(renderer / "render.mjs"), str(data), str(engine_output)]
-            stage(command + (["--stage", "prepare"] if narrated else []), "renderer.log")
+            try:
+                stage(command + (["--stage", "prepare"] if narrated else []), "renderer.log")
+            except subprocess.CalledProcessError:
+                # A failed PDF export does not invalidate the checked browser deck.
+                prepared = engine_output / "presentation-manifest.json"
+                state = json.loads(prepared.read_text()) if prepared.is_file() else {}
+                artifacts = state.get("artifacts", {})
+                if (
+                    not narrated
+                    or artifacts.get("deck", {}).get("status") != "validated"
+                    or artifacts.get("pdf", {}).get("status") != "failed"
+                ):
+                    raise
             if narrated:
                 # The prepare process has exited, including its closed Chromium browser.
                 stage(

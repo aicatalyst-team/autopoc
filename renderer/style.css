@@ -75,3 +75,9 @@
 .narrated .results div { gap:12px; padding-top:16px; }
 .narrated .result-claims li { font-size:22px; }
 .narrated .flow-claims { gap:8px; }
+
+.graph-results .results { flex:none; margin-bottom:0; gap:18px; }
+.graph-results .results div { gap:8px; padding-top:8px; }
+.graph-results .results strong { font-size:42px; }
+.graph-results .results span { font-size:18px; }
+.graph-results .result-claims li { font-size:20px; }

@@ -61,6 +61,13 @@ jobs:
             --env AUTOPOC_FFMPEG_INTEGRATION=1 -v "$PWD:/workspace:ro,Z" \
             --entrypoint node autopoc-executive:ci --test /workspace/renderer/audio.test.mjs
 
+      - name: Verify result totals with diagrams in the actual browser
+        run: |
+          podman run --rm --network=none --read-only --user=28128:0 --cpus=2 --memory=4g \
+            --tmpfs /scratch:rw,size=1g,mode=1777 --env AUTOPOC_BROWSER_INTEGRATION=1 \
+            -v "$PWD:/workspace:ro,Z" --entrypoint /bin/sh autopoc-executive:ci -c \
+            'mkdir -p /scratch/tmp /scratch/home /scratch/cache/slidev /scratch/cache/vite /scratch/cache/vite-temp /scratch/cache/slidev-cli-vite /scratch/cache/slidev-cli-vite-temp; exec node --test /workspace/renderer/browser.test.mjs'
+
   test:
     needs: lint
     runs-on: ubuntu-latest

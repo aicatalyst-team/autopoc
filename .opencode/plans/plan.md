@@ -302,3 +302,5 @@ implementation-plan.md section 9.3; every completed task must update both files.
 | Complete local/OCP acceptance and controlled rollout | In progress — capture regressions/failure recovery complete; final pinned-image runs active |
 
 Capture timing/frame regression and real offline failure recovery — ✅ 8 November 2026. Final long-render/cluster acceptance and rollout gates remain explicitly tracked in implementation-plan.md.
+
+Independent whole-branch review corrections — ✅ 8 November 2026. Two Important findings fixed with failing-then-passing regressions; 482 Python tests at86.24%, actual result-diagram browser tests pass. No Critical or Minor findings.

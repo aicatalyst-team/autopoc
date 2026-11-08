@@ -28,7 +28,7 @@ const graph = computed(() => narrated ? slide.value.graph : props.kind === 'topo
 const graphScene = computed(() => narrated ? !!graph.value : props.kind === 'topology' || (props.kind === 'test_execution' && graph.value))
 const opening = computed(() => narrated ? index.value === 0 : props.kind === 'purpose')
 const corporateMark = computed(() => opening.value || section.value === (narrated ? 'recommendation' : 'platform_suitability'))
-const resultsScene = computed(() => narrated ? section.value === 'results' && narrative.slides.findIndex(s => s.section === 'results') === index.value && !graphScene.value : props.kind === 'results')
+const resultsScene = computed(() => narrated ? section.value === 'results' && narrative.slides.findIndex(s => s.section === 'results') === index.value : props.kind === 'results')
 const duration = ref(null)
 const setDuration = event => { duration.value = event.detail }
 const rate = computed(() => !graph.value ? 1 : narrated ? (duration.value ? graph.value.loop / duration.value : 1) : graph.value.loop / scenes.durations[props.kind === 'topology' ? 2 : 3])
@@ -53,15 +53,15 @@ onBeforeUnmount(() => { window.removeEventListener('executive-reset', reset); wi
       <h1 :data-max-lines="narrated || opening ? 2 : 1">{{ narrated ? slide.title : opening ? narrative.project_name : titles[kind] }}</h1>
       <p v-if="opening" class="subtitle">{{ narrated ? narrative.project_name : titles[kind] }}</p>
     </header>
-    <main class="scene-content" :class="{ 'graph-content': graphScene }" data-layout-region="slide content">
+    <main class="scene-content" :class="{ 'graph-content': graphScene, 'graph-results': graphScene && resultsScene }" data-layout-region="slide content">
+      <div v-if="resultsScene" class="results">
+        <div v-for="(value, status) in narrative.results" :key="status" :class="status" :data-layout-region="'result ' + status"><strong>{{ value }}</strong><span>{{ status }}</span></div>
+      </div>
       <div v-if="graphScene" class="topology-stage" :class="{ 'scenario-stage': section === 'execution' || kind === 'test_execution' }">
         <TopoLoop v-if="graph && (active || isPrintMode)" :key="generation" :spec="graph" :theme="redhatTheme" :seed="1" :rate="rate" :freeze-at="validationTime ?? (isPrintMode || reducedMotion === 'reduce' ? 3 : null)" />
         <div v-else-if="!graph" class="no-graph"><h2>Topology evidence unavailable</h2><p>See the report for the recorded setup. No infrastructure has been inferred.</p></div>
       </div>
-      <div v-else-if="resultsScene" class="results">
-        <div v-for="(value, status) in narrative.results" :key="status" :class="status" :data-layout-region="'result ' + status"><strong>{{ value }}</strong><span>{{ status }}</span></div>
-      </div>
-      <ul v-else class="claims"><li v-for="(claim, i) in claims" :key="i">{{ claim.text }}<small>Evidence: {{ claim.sources.join(', ') }}</small></li></ul>
+      <ul v-else-if="!resultsScene" class="claims"><li v-for="(claim, i) in claims" :key="i">{{ claim.text }}<small>Evidence: {{ claim.sources.join(', ') }}</small></li></ul>
       <ul v-if="(narrated && (graphScene || resultsScene)) || (kind === 'test_execution' && graph)" class="claims flow-claims" :class="{ 'result-claims': resultsScene }"><li v-for="(claim, i) in claims" :key="i">{{ claim.text }}<small>Evidence: {{ claim.sources.join(', ') }}</small></li></ul>
     </main>
     <p v-if="graphScene" class="caveat" data-layout-region="evidence caveat">Animation illustrates archived evidence; playback timing is illustrative.</p>

@@ -323,7 +323,7 @@ def test_runtime_metrics_count_scratch_without_following_symlinks(tmp_path):
     )
 
 
-@pytest.mark.parametrize("failure", [None, "speech", "record"])
+@pytest.mark.parametrize("failure", [None, "speech", "record", "pdf", "content"])
 def test_narration_stages_preserve_deck_and_reviewed_source(tmp_path, monkeypatch, failure):
     from tests.executive_fixtures import make_v3_input
 
@@ -360,6 +360,13 @@ def test_narration_stages_preserve_deck_and_reviewed_source(tmp_path, monkeypatc
                         }
                     )
                 )
+                if failure in {"pdf", "content"}:
+                    state = json.loads((output / "presentation-manifest.json").read_text())
+                    state["artifacts"]["pdf"]["status"] = "failed"
+                    if failure == "content":
+                        state["artifacts"]["deck"]["status"] = "failed"
+                    (output / "presentation-manifest.json").write_text(json.dumps(state))
+                    raise subprocess.CalledProcessError(1, command)
             else:
                 assert calls == ["prepare", "speech", "record"]
                 assert "--timeline" in command
@@ -387,14 +394,24 @@ def test_narration_stages_preserve_deck_and_reviewed_source(tmp_path, monkeypatc
     monkeypatch.setattr(executive_render, "_run_renderer", fake)
     result = executive_render.render_executive(package, tmp_path / "output")
     assert calls == (
-        ["prepare", "speech"] if failure == "speech" else ["prepare", "speech", "record"]
+        ["prepare"]
+        if failure == "content"
+        else ["prepare", "speech"]
+        if failure == "speech"
+        else ["prepare", "speech", "record"]
     )
     assert result["status"] == ("partial" if failure else "generated_unpublished")
     assert set(result["artifacts"]) == {"source", "deck", "pdf", "video", "summary"}
-    for kind in ("source", "deck", "pdf", "summary"):
+    for kind in ("source", "summary"):
         assert result["artifacts"][kind]["status"] == "generated_unpublished"
+    assert result["artifacts"]["deck"]["status"] == (
+        "failed" if failure == "content" else "generated_unpublished"
+    )
+    assert result["artifacts"]["pdf"]["status"] == (
+        "failed" if failure in {"pdf", "content"} else "generated_unpublished"
+    )
     assert result["artifacts"]["video"]["status"] == (
-        "failed" if failure else "generated_unpublished"
+        "failed" if failure in {"speech", "record", "content"} else "generated_unpublished"
     )
     summary = (tmp_path / "output/executive-summary.md").read_text()
     assert "Silent video" not in summary
@@ -402,7 +419,7 @@ def test_narration_stages_preserve_deck_and_reviewed_source(tmp_path, monkeypatc
         assert {"storyboard.mjs", "audio.mjs", "requirements.lock", "transcript.txt"} <= set(
             source.namelist()
         )
-        if failure != "speech":
+        if failure not in {"speech", "content"}:
             assert {"timeline.json", "narration/slide-0.wav"} <= set(source.namelist())
 
 
