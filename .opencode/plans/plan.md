@@ -273,6 +273,7 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Verify sample integrity and preserve audition measurements | ✅ Finite non-silent WAVs; MP3 probe and full decode passed; script/package inventory/results retained locally |
 | Select a voice and agree on content/timing direction | ✅ Heart selected; length follows PoC complexity; source-backed objective/testing/setup/results plus limitations/recommendation |
 | Save and independently check design and implementation plan | ✅ Eight tasks defined; builder review found no important gaps; plan review/execution choice pending |
+| Check OCP GPU capacity and AutoPoC namespace access | ✅ 8 November — one L40S and two A100 devices unrequested; Job/pod creation allowed, no namespace quota found; workload not tested |
 | Implement and validate narrated rendering | Pending — no pipeline or deployment changes |
 
 This is a local throwaway audition, not production narration acceptance. Technical

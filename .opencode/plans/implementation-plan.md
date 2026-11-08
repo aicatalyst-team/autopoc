@@ -512,3 +512,10 @@ recommendations are not execution instructions.
 | Encode narration-driven scenes and retain valid partial outputs | Pending |
 | Persist narrated Job policy and recover/publish long renders | Pending |
 | Complete local/cluster acceptance and controlled rollout | Pending |
+
+
+### 9.4 Check OCP access and available GPU scheduling capacity — ✅ 8 November 2026
+- Renewed the user's existing OCP login and performed read-only capacity/quota/authorization checks. Authentication data is not stored in the repository.
+- Ready, schedulable nodes advertise two NVIDIA L40S GPUs and eight NVIDIA A100-SXM4-80GB GPUs, with sharing disabled. Active pod requests reserve one L40S and six A100 devices: one L40S and two A100 devices were unrequested at this snapshot. This is scheduler-request availability, not GPU utilization, ownership or a reservation for AutoPoC.
+- In `autopoc-test`, ResourceQuota, LimitRange and applied ClusterResourceQuota lists were empty. The user can create Jobs and pods there. No workload or GPU benchmark was launched, and actual admission/scheduling/inference remain unvalidated.
+- The current narration design remains CPU-first inside the existing renderer Job. GPU acceleration would need a separately measured GPU-enabled image/profile; availability alone does not justify changing the renderer-only CPU lock or claiming GPU acceptance.
