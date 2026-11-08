@@ -1,0 +1,51 @@
+{
+  "source_commit": "95ad05e435ac99c8b06416032fe1397ed70c0a5e",
+  "input_sha256": "dd362ae6985df9772882956494998794809b6acbf19c93e7ec7a3b2a2f5b64e5",
+  "evidence_sha256": "54a1ec8647ced009608813405c9d22819d0eb0117cafc6686d4e9555c41d2b5d",
+  "report_sha256": "35fd686645c0a2c196843623f63cf5c8c070b9bf2b12a438a5dbd3936c43c9ba",
+  "blog": {
+    "commit": "ec93cc3dd2b2ddc53dfe421aa35cee53a524d98b",
+    "path": "runs/a189bdf54ac849778a8ed7b228db599f/blog/e78959b0eb1cda6c0c317248fc9363340347e0402339d96da771d3c7a9f36cf9",
+    "revision": "e78959b0eb1cda6c0c317248fc9363340347e0402339d96da771d3c7a9f36cf9"
+  },
+  "receipt": {
+    "returncode": 0,
+    "elapsed_seconds": 222.59,
+    "input_sha256": "dd362ae6985df9772882956494998794809b6acbf19c93e7ec7a3b2a2f5b64e5",
+    "memory_peak_bytes": 1894318080,
+    "scratch_bytes": 30753779
+  },
+  "artifacts": {
+    "deck": {
+      "path": "static-site.zip",
+      "sha256": "4587f177b30b46449ba0092939b9f88df60409044513cab40a99e8532c7d445e",
+      "size": 871132,
+      "status": "generated_unpublished"
+    },
+    "pdf": {
+      "path": "executive-summary.pdf",
+      "sha256": "f7a4429150e290a76529d1c6fa0db6c934bce20a06495a7982631db5c841fc07",
+      "size": 129433,
+      "status": "generated_unpublished"
+    },
+    "source": {
+      "path": "executable-source.zip",
+      "sha256": "c172ace9892796da2a05a1573f3a8dc03568cdf73132cfaaed35c112178a1423",
+      "size": 838923,
+      "status": "generated_unpublished"
+    },
+    "summary": {
+      "path": "executive-summary.md",
+      "sha256": "62915806f0f048a2c1f195df378c03f8b5093eacd4e8c06caf7415925b1f388e",
+      "size": 2013,
+      "status": "generated_unpublished"
+    },
+    "video": {
+      "path": "executive-summary.mp4",
+      "sha256": "89c592e8b432eb76d955df4b2ca4b5c6b6f1f7b7550a28a2d977ab71e22dc09e",
+      "size": 1194958,
+      "status": "generated_unpublished"
+    }
+  },
+  "output_directory": "/home/aavraham/chatgpt/repositories/autopoc/presentations/openshell-2026-11-04/output/ocp-redhat"
+}

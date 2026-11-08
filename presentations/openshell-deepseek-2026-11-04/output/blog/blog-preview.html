@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NVIDIA OpenShell agent sandbox on OpenShift AI</title>
+  <meta name="description" content="A 5-scenario PoC of NVIDIA OpenShell on Red Hat OpenShift AI, with real process, persistence, allow, and deny evidence under restricted-v2.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;600;700&family=Red+Hat+Text:wght@400;500;700&family=Red+Hat+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      themeVariables: {
+        primaryColor: '#EE0000',
+        primaryTextColor: '#FFFFFF',
+        primaryBorderColor: '#A30000',
+        lineColor: '#6A6E73',
+        secondaryColor: '#F0F0F0',
+        tertiaryColor: '#0066CC'
+      }
+    });
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Red Hat Text', sans-serif; font-size: 18px; line-height: 1.7; color: #151515; background: #FFFFFF; }
+    .rh-banner { background: #151515; padding: 12px 0; border-bottom: 3px solid #EE0000; }
+    .rh-banner-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; gap: 24px; }
+    .rh-logo svg { height: 28px; width: auto; }
+    .rh-nav { display: flex; gap: 20px; }
+    .rh-nav a { color: #FFFFFF; text-decoration: none; font-size: 14px; font-weight: 500; }
+    .blog-bar { background: #F0F0F0; border-bottom: 1px solid #D2D2D2; padding: 14px 0; }
+    .blog-bar-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; gap: 8px; font-size: 14px; color: #6A6E73; }
+    .blog-bar-inner a { color: #0066CC; text-decoration: none; }
+    .blog-bar-inner .sep { color: #B8BBBE; }
+    .hero { background: linear-gradient(135deg, #151515 0%, #292929 60%, #3F0000 100%); padding: 80px 0 72px; position: relative; overflow: hidden; }
+    .hero::after { content: ''; position: absolute; top: 0; right: 0; width: 40%; height: 100%; background: linear-gradient(180deg, rgba(238,0,0,0.08) 0%, rgba(238,0,0,0.02) 100%); pointer-events: none; }
+    .hero-inner { max-width: 800px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+    .hero-label { display: inline-block; background: #EE0000; color: #FFFFFF; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 12px; border-radius: 2px; margin-bottom: 24px; }
+    .hero h1 { font-family: 'Red Hat Display', sans-serif; font-size: 42px; font-weight: 700; line-height: 1.15; color: #FFFFFF; margin-bottom: 20px; }
+    .hero .subtitle { font-size: 20px; color: #B8BBBE; line-height: 1.5; margin-bottom: 32px; }
+    .hero-meta { display: flex; gap: 16px; color: #A3A3A3; font-size: 14px; }
+    .hero-meta .author { color: #FFFFFF; font-weight: 500; }
+    .hero-meta .dot { color: #6A6E73; }
+    .article-wrap { max-width: 800px; margin: 0 auto; padding: 56px 24px 80px; }
+    .article-wrap p { margin-bottom: 24px; }
+    .article-wrap a { color: #0066CC; text-decoration: none; }
+    .article-wrap h2 { font-family: 'Red Hat Display', sans-serif; font-size: 28px; font-weight: 600; margin-top: 48px; margin-bottom: 20px; padding-top: 8px; border-top: 2px solid #F0F0F0; }
+    .article-wrap h2:first-of-type { margin-top: 40px; }
+    .article-wrap h3 { font-family: 'Red Hat Display', sans-serif; font-size: 20px; font-weight: 600; margin-top: 32px; margin-bottom: 12px; }
+    .article-wrap ul, .article-wrap ol { margin-bottom: 24px; padding-left: 24px; }
+    .article-wrap li { margin-bottom: 16px; }
+    .tagline { font-size: 20px; font-weight: 500; color: #383838; margin: 32px 0; padding: 20px 24px; border-left: 4px solid #EE0000; background: #FEF0F0; }
+    .image-placeholder { margin: 40px 0; background: #F0F0F0; border: 2px dashed #D2D2D2; border-radius: 8px; padding: 48px 32px; text-align: center; }
+    .image-placeholder .ph-icon { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; background: #E0E0E0; border-radius: 50%; margin-bottom: 16px; }
+    .image-placeholder .ph-icon svg { width: 28px; height: 28px; fill: #6A6E73; }
+    .image-placeholder .ph-title { font-family: 'Red Hat Display', sans-serif; font-size: 16px; font-weight: 600; color: #383838; margin-bottom: 8px; }
+    .image-placeholder .ph-alt { font-size: 14px; color: #6A6E73; font-style: italic; max-width: 560px; margin: 0 auto; }
+    .mermaid { margin: 40px 0; text-align: center; background: #FFFFFF; padding: 24px; border-radius: 8px; border: 1px solid #F0F0F0; }
+    .article-wrap pre { background: #1E1E1E; color: #D4D4D4; font-family: 'Red Hat Mono', monospace; font-size: 14px; line-height: 1.6; padding: 24px; border-radius: 8px; overflow-x: auto; margin-bottom: 24px; }
+    .article-wrap code { font-family: 'Red Hat Mono', monospace; font-size: 15px; background: #F0F0F0; padding: 2px 6px; border-radius: 3px; }
+    .article-wrap pre code { background: none; padding: 0; font-size: 14px; }
+    .rh-footer { background: #151515; padding: 40px 0; }
+    .rh-footer-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; }
+    .rh-footer-text { color: #6A6E73; font-size: 13px; }
+    .rh-footer-links { display: flex; gap: 24px; }
+    .rh-footer-links a { color: #A3A3A3; text-decoration: none; font-size: 13px; }
+    @media (max-width: 768px) { .hero h1 { font-size: 30px; } .article-wrap { padding: 40px 20px 60px; } }
+  </style>
+</head>
+<body>
+  <header class="rh-banner">
+    <div class="rh-banner-inner">
+      <div class="rh-logo">
+        <svg viewBox="0 0 613 145" xmlns="http://www.w3.org/2000/svg">
+          <path d="M127.47 83.49c12.51 0 30.61-2.58 30.61-17.46a14 14 0 0 0-.31-3.42l-7.45-32.36c-1.72-7.12-3.23-10.35-15.73-16.6C124.89 8.69 103.76.5 97.51.5 91.69.5 90 8 83.06 8c-6.68 0-11.64-5.6-17.89-5.6-6 0-9.91 4.09-12.93 12.5 0 0-8.41 23.72-9.49 27.16a6.43 6.43 0 0 0-.22 1.94c0 9.22 36.3 39.45 84.94 39.45M127.47 83.49c-12.51 0-30.61 2.58-30.61 17.46a14 14 0 0 0 .31 3.42l7.45 32.36c1.72 7.12 3.23 10.35 15.73 16.6 9.7 4.96 30.83 13.15 37.08 13.15 5.82 0 7.51-7.5 14.45-7.5 6.68 0 11.64 5.6 17.89 5.6 6 0 9.91-4.09 12.93-12.5 0 0 8.41-23.72 9.49-27.16a6.43 6.43 0 0 0 .22-1.94c0-9.22-36.3-39.45-84.94-39.45" fill="#EE0000"/>
+          <text x="220" y="95" font-family="Red Hat Display, sans-serif" font-weight="700" font-size="72" fill="#FFFFFF">Red Hat</text>
+        </svg>
+      </div>
+      <nav class="rh-nav"><a href="#">Products</a><a href="#">Solutions</a><a href="#">Blog</a></nav>
+    </div>
+  </header>
+  <div class="blog-bar"><div class="blog-bar-inner"><a href="#">Red Hat Developer Blog</a> <span class="sep">&gt;</span> <a href="#">AI/ML</a> <span class="sep">&gt;</span> <span>Agent platforms</span></div></div>
+  <section class="hero">
+    <div class="hero-inner">
+      <span class="hero-label">Red Hat OpenShift AI</span>
+      <h1>NVIDIA OpenShell agent sandbox on OpenShift AI</h1>
+      <p class="subtitle">A 5-scenario proof of concept (PoC) under restricted-v2</p>
+      <div class="hero-meta">
+        <span class="author">AutoPoC Team</span>
+        <span class="dot">&middot;</span>
+        <span>November 2026</span>
+        <span class="dot">&middot;</span>
+        <span>8 min read</span>
+      </div>
+    </div>
+  </section>
+  <article class="article-wrap"><p>An agent sandbox that says no is more useful than one that only says hello. We deployed NVIDIA OpenShell on Red Hat OpenShift AI because platform teams keep asking whether an agent runtime can be bounded without giving it a privileged node. The PoC shows that OpenShell's gateway, supervisor, and sandbox run under restricted-v2, and that a denied request leaves supervisor policy evidence a platform engineer can operate on. <strong>Start here:</strong> explore <a href="https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-ai">Red Hat OpenShift AI</a>, then read the <a href="https://github.com/aicatalyst-team/openshell/tree/autopoc-artifacts/runs/ac05c639abd848998db29ce2352d9a0f">PoC report</a> for the evidence chain.</p>
+<div class="image-placeholder"><div class="ph-title">Image: The policy boundary at a glance</div><div class="ph-alt">A restricted-v2 namespace with a gateway, supervisor, and 3 sandbox pods, where a policy proxy allows one outbound path and denies another.</div></div>
+<h2>What NVIDIA OpenShell adds to an agent platform</h2>
+<p>OpenShell is a runtime for autonomous AI agents. Its job is to decide what an agent may do. A gateway provisions sandboxes. A trusted supervisor mediates filesystem, process, and network policy. On Kubernetes, the gateway creates an agent sandbox resource, a supervisor Pod, workload Pods, Services, NetworkPolicies, and a workspace PVC.</p>
+<p>We used OpenShift AI as the platform, but this PoC exercised the Kubernetes, storage, and namespace surface rather than model serving or GPU features. The supported Kubernetes environment, storage classes, and console view were enough to verify readiness. OpenShell puts the policy decisions in a control plane instead of application code. At the pinned revision, the project is a Rust workspace with 41 crates, plus Python and Go SDKs and Helm charts, according to its Cargo manifest. That source was our only build input.</p>
+<div class="mermaid" role="img" aria-label="A validation client calls the gateway, which starts sandbox pods and talks to a shared supervisor. Sandbox traffic reaches a policy proxy that allows example.com and denies api.github.com inside a restricted-v2 namespace with workspace PVCs and NetworkPolicy.">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EE0000', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#A30000', 'lineColor': '#6A6E73', 'secondaryColor': '#F0F0F0', 'tertiaryColor': '#0066CC'}}}%%
+graph TD
+    SDK[Validation client] --> GW[Gateway StatefulSet]
+    GW --> SUP[Shared supervisor]
+    GW --> SB[Sandbox pods]
+    SB --> PVC[10Gi workspace claims]
+    SB --> PROXY[Policy proxy]
+    PROXY --> ALLOW[example.com allowed]
+    PROXY --> DENY[api.github.com denied]
+    subgraph NS[poc-openshell-deepseek: restricted-v2, NetworkPolicy]
+        GW
+        SUP
+        SB
+        PVC
+        PROXY
+    end
+</div>
+<p><em>Figure 1: The tested control path.</em></p>
+<h2>Build and deploy path</h2>
+<h3>Build the images from source</h3>
+<p>We did not reuse a prebuilt core image. We built all 3 components from the pinned source with UBI based Dockerfiles and OpenShift binary BuildConfigs. The images went to Red Hat Quay with one new tag, deepseek-ac05c639, while existing tags stayed untouched.</p>
+<table><thead><tr><th>Component</th><th>Build time</th><th>Result</th></tr></thead><tbody><tr><td>Gateway</td><td>38m47s</td><td>Pushed</td></tr><tr><td>Supervisor</td><td>19m18s</td><td>Pushed</td></tr><tr><td>Sandbox</td><td>13m27s</td><td>Pushed</td></tr></tbody></table>
+<p>All 3 builds succeeded on the first attempt. The gateway took the longest because the Rust build is large. Plan for a long, memory-heavy gateway build: we chose 2 CPU and 4Gi of requests, with limits at 4 CPU and 16Gi, and smaller requests for the other 2 components. Those are chosen requests and limits, not observed peaks. No build retries were needed. The operator supplied compiled reference Dockerfiles and prior run lessons, and we reused them unchanged except for provenance comments. That is operator assistance, not a run result.</p>
+<h3>Deploy the chart on OpenShift</h3>
+<p>We deployed with the project Helm chart into namespace poc-openshell-deepseek. The gateway ran as a 1-replica StatefulSet. The supervisor ran as a 1-replica Deployment with a PodDisruptionBudget. Both ran under the restricted-v2 Security Context Constraint (SCC), as non-root, with no added capabilities and no privileged or anyuid SCC. The report records the Pod security context and the namespace SCC binding we checked with kubectl.</p>
+<p>Storage was IBM block storage with 10Gi claims. The gateway claim bound, and sandbox workspace claims attached on the same worker as the sandbox pods. We pinned gateway and sandbox placement to worker 2 in eu-gb-2, an operator preconfiguration informed by an earlier storage failure. The chart created namespace-scoped RBAC only.</p>
+<p>The first Helm install with the wait flag created the release resources, but its wait step failed because the runner ServiceAccount could not list replicasets. We reconciled with a normal install or upgrade and checked objects with kubectl. That was a runner RBAC limit, not a product failure. The supervisor also retried its gateway assignment stream briefly while a token Secret propagated, then stayed attached.</p>
+<pre><code class="language-bash">helm upgrade --install openshell deploy/helm/openshell \
+  --namespace poc-openshell-deepseek \
+  -f kubernetes/values-openshell-deepseek.yaml
+kubectl get statefulset,deployment,pvc -n poc-openshell-deepseek</code></pre>
+<h2>Scenarios and results</h2>
+<p>The final original execution, a23ddad8e73849acb7f3bf68b8e09c18, recorded <strong>5 pass, 0 fail, 0 error, 0 skip, and 0 incomplete</strong>. The test script, poc_test.py, uses the OpenShell Python SDK over a port-forward. It creates a node-pinned sandbox, runs commands, stops and starts the sandbox, then runs the 2 network scenarios. The script records every attempt in attempt-index.json, so the final execution sits next to the harness failure instead of replacing it.</p>
+<table><thead><tr><th>Scenario</th><th>What we checked</th><th>Result</th></tr></thead><tbody><tr><td>Gateway health</td><td>/healthz returned HTTP 200</td><td>Pass</td></tr><tr><td>Sandbox process execution</td><td>Sandbox reached READY, uname -s returned Linux, id -u was non-zero, and a marker printed</td><td>Pass</td></tr><tr><td>Workspace persistence</td><td>/sandbox/poc-marker survived stop and start unchanged</td><td>Pass</td></tr><tr><td>Network allow control</td><td>curl https://example.com returned HTTP 200</td><td>Pass</td></tr><tr><td>Supervisor policy denial</td><td>curl https://api.github.com/zen was refused with supervisor policy evidence</td><td>Pass</td></tr></tbody></table>
+<p>The sandbox scenarios used real commands and a real workspace. The persistence check stopped and started the sandbox, then compared the marker. The network checks used a reachable destination so a timeout would not be mistaken for a deny. Health proves the API is up. Execution and persistence prove the sandbox is real. Allow proves the control path works. Deny proves the policy path works. For platform guidance, see <a href="https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-ai">Red Hat OpenShift AI</a>. The <a href="https://github.com/aicatalyst-team/openshell/tree/autopoc-artifacts/runs/ac05c639abd848998db29ce2352d9a0f">full report</a> has the evidence chain.</p>
+<p>An earlier execution, 7ca2d78ea463425985e900083da09a4f, is retained in the attempt index. It passed health, then errored before creating any sandbox because our harness used a 20-character template name and the gateway limit is 19 characters. We fixed the harness name to deepseek-nodepin and reran. No product code was changed to bypass a failure. We would rather keep a failed attempt in the record than pretend the first run was clean.</p>
+<h3>Why a denied request was the right result</h3>
+<p>The fifth scenario is easy to misread as a failure. We asked the sandbox to reach api.github.com. A plain UBI Pod in the same namespace had already reached example.com, api.github.com, and pypi.org with HTTP 200, so the destination was reachable on the ordinary network path. OpenShell refused the sandbox request. The client scenario passed with a policy denial, not a timeout, and the supervisor recorded an Open Cybersecurity Schema Framework (OCSF) deny for /usr/bin/curl to api.github.com:443 with transparent_tcp_policy_denied. Open Policy Agent (OPA) is the policy engine, and the reason field identifies the transparent TCP policy path that refused the connection.</p>
+<pre><code class="language-text">OCSF NET:OPEN  [INFO] ALLOWED /usr/bin/curl(0) -&gt; example.com:443 [policy:allow_example engine:opa]
+OCSF NET:OPEN  [MED]  DENIED  /usr/bin/curl(0) -&gt; api.github.com:443 [reason:transparent_tcp_policy_denied]</code></pre>
+<p>The refusal was the expected outcome, and the supervisor line shows why. It also sets a boundary: this is OpenShell supervisor and proxy mediation, not an independent test of Kubernetes NetworkPolicy enforcement by the Container Network Interface (CNI). The chart creates NetworkPolicy objects, but we did not prove CNI enforcement in this run. For the platform view of that boundary, see the <a href="https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed">Red Hat OpenShift AI documentation</a>.</p>
+<div class="mermaid" role="img" aria-label="A validation client starts a sandbox through the gateway. One request through the policy proxy to example.com returns 200. A second request to api.github.com is denied with a policy event.">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EE0000', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#A30000', 'lineColor': '#6A6E73', 'secondaryColor': '#F0F0F0', 'tertiaryColor': '#0066CC'}}}%%
+sequenceDiagram
+    participant C as Validation client
+    participant G as Gateway
+    participant S as Sandbox
+    participant P as Policy proxy
+    C->>G: start sandbox
+    G->>S: provision workload
+    S->>P: curl https://example.com
+    P-->>S: 200 allowed
+    S->>P: curl https://api.github.com/zen
+    P-->>S: denied with policy event
+</div>
+<p><em>Figure 2: Allow and deny in one sandbox.</em></p>
+<h2>Lessons and limits</h2>
+<p>The first run taught us more than the clean one. The control plane and sandbox lifecycle were the interesting part, not the health endpoint. A gateway that answers /healthz is table stakes. A sandbox that runs a command, keeps a file across a restart, and produces a policy record is a better signal. The harness also has to match product limits: a 20-character template name looked harmless until the gateway rejected it. Keep application policy and cluster policy separate in the report, because it is easy to say the network was locked down and mean several different mechanisms.</p>
+<p>The biggest gap is identity. We used client certificates and a development principal, not OpenID Connect (OIDC) or multi-user authorization. We also did not test high availability, failover, load, filesystem isolation, or wider Kubernetes portability, and we did not run an independent CNI enforcement test. Those are the next tests, not claims. Health checks do not certify production security.</p>
+<p>For related Red Hat platform reading, see the <a href="https://www.redhat.com/en/blog">Red Hat OpenShift AI blog</a> and the <a href="https://www.redhat.com/en/topics/ai">Red Hat AI topic page</a>.</p>
+<h2>Reproduce it</h2>
+<p>The source is <a href="https://github.com/NVIDIA/OpenShell">NVIDIA OpenShell</a> at commit f4a6137. Our values, validation script, report, and artifacts live in the fork aicatalyst-team/openshell under the autopoc-deepseek-20261104-ac05c639 branch and append-only run paths.</p>
+<p>Read the <a href="https://github.com/aicatalyst-team/openshell/tree/autopoc-artifacts/runs/ac05c639abd848998db29ce2352d9a0f">PoC report</a>, then try the same 5 scenarios on your own project. Try one deny scenario this week: start the gateway, create a sandbox, allow example.com, deny a second reachable host, and read the supervisor event. If you are planning agent workloads on <a href="https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-ai">Red Hat OpenShift AI</a>, that single test tells you more than a health check ever will.</p></article>
+  <footer class="rh-footer">
+    <div class="rh-footer-inner">
+      <div class="rh-footer-text">&copy; 2026 Red Hat, Inc.</div>
+      <div class="rh-footer-links"><a href="#">Privacy</a><a href="#">Terms</a></div>
+    </div>
+  </footer>
+</body>
+</html>
