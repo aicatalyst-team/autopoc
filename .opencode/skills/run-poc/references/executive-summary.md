@@ -59,6 +59,50 @@ worker stopped waiting. An existing Job is reconciled by name and UID.
   rephrase it (for example "HTTP Basic credentials were rejected") before
   rerunning `evidence-create`; do not weaken the guard to unblock a run.
 
+## Optional retained logs, traces and setup details
+
+`evidence-create --supplemental-index PATH` adds schema-2 supplemental evidence
+without changing original scenario totals or attempts. Without the option,
+schema-1 collection is unchanged. Both the descriptor and supplied files must
+be regular non-symlink files under the state file's directory. Files are never
+discovered recursively or downloaded by the collector.
+
+Private descriptor example (paths are relative to the state directory):
+
+```json
+{
+  "schema_version": 1,
+  "run_id": "saved-run-id",
+  "records": [{
+    "id": "build-1", "kind": "log",
+    "path": "evidence/saved-run-id/staging/build-1.txt",
+    "sha256": "COMPUTE_FROM_THE_ORIGINAL_BYTES",
+    "provenance": {"run_id": "saved-run-id", "capture": "original"}
+  }]
+}
+```
+
+Kinds are `log`, `trace`, `deployment`, `analysis`, `test_definition`. Optional
+`execution_id` and `scenario_id` must refer to retained attempts. Compute hashes
+with a tool; never invent them. At most 32 records/512KiB each fit within the
+existing 20MiB bundle budget. Intentionally excerpt large sources before
+staging, preserving `provenance.excerpt: {start_line, end_line}`; no silent
+truncation. Missing traces are explicit gaps; a supplied bad source fails.
+
+Deployment JSON is `{run_id, observed: true|false, resources: [...]}`. The
+collector retains selected Kubernetes setup/status fields, excluding Secret
+objects/data, environment values, annotations and inline TLS keys. Trace JSON
+is `{run_id, spans: [...]}`; each span has `trace_id`, `span_id`, optional
+`parent_span_id`, `service`, `operation`, numeric `start_time` (seconds in the
+capture's clock), nonnegative `duration_seconds` and `status`. Retain original
+relations/timing; arbitrary attributes, headers and bodies are excluded.
+
+Published members are `supplemental/ID.txt` or `.json`, with a public descriptor
+that records sanitized hashes and selected capture provenance. Cite only those
+published bytes. Private paths and original input hashes stay in staging;
+provenance includes only capture identity/time/revision and excerpt coordinates.
+The existing sanitizer remains enforced for all output bytes.
+
 ## Generate and review data
 
 Use the existing configured OpenCode model to create `narrative.json` from the

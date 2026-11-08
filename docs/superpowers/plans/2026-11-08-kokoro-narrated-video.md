@@ -73,11 +73,11 @@ phase-time evidence staging in `.opencode/skills/run-poc/SKILL.md` and the execu
 - `verify_bundle(Path) -> dict` accepts evidence schemas 1 and 2; the same final-results computation remains the only source of totals.
 - Public schema-2 descriptor records use `id`, `kind`, `member`, `sha256`, `provenance`, optional `execution_id`/`scenario_id`; original descriptor uses `path` instead of `member`. CLI adds `--supplemental-index PATH`.
 
-- [ ] **Step 1: Write failing evidence/CLI tests.** Use existing `tests.test_evidence.setup_run` for core state/attempts. Add `test_supplemental_roundtrip_preserves_totals`, asserting schema 2, a sanitized `supplemental/build-1.txt` member and unchanged `{"pass":1,"fail":0,"error":0,"skip":0,"incomplete":0}`. Add parameterized rejection tests for another run, unknown execution/scenario, traversal/symlink, wrong hash, duplicate ID, unsafe text and 33 records/512KiB+1 bytes. Assert optional absent sources become gaps without invented members; an explicit supplied bad descriptor fails.
-- [ ] **Step 2: Run the new tests and confirm failure.** `python -m pytest tests/test_evidence_supplemental.py tests/test_evidence_cli.py -q --no-cov`; expected failure is missing option/schema support.
-- [ ] **Step 3: Implement supplemental collection and verification.** Allow only `log`, `trace`, `deployment`, `analysis`, `test_definition`; normalized UTF-8 text/JSON under the staged root. Deployment export keeps only resource kind/name, component links, declared resource/storage/security settings and observed status; remove Secret objects, Secret values, environment values and pod annotations. Trace export keeps identifiers, parent relations, service/operation, timestamps/durations/outcomes; strip headers, bodies, arbitrary attributes. Reject malformed or mixed-run records. Extend exact-member validation only for descriptor-declared entries, and retain original attempt/history checks. Save deliberate excerpt provenance instead of truncating.
-- [ ] **Step 4: Verify the boundary and legacy behavior.** Run `python -m pytest tests/test_evidence.py tests/test_evidence_supplemental.py tests/test_evidence_cli.py -q --no-cov`; expect all pass, including schema-1 deterministic roundtrip. Document how phases stage supplemental files without replaying tests or querying new trace services.
-- [ ] **Step 5: Update trackers and commit.** Commit message: `feat: retain sanitized supplemental PoC evidence`.
+- [x] **Step 1: Write failing evidence/CLI tests.** Use existing `tests.test_evidence.setup_run` for core state/attempts. Add `test_supplemental_roundtrip_preserves_totals`, asserting schema 2, a sanitized `supplemental/build-1.txt` member and unchanged `{"pass":1,"fail":0,"error":0,"skip":0,"incomplete":0}`. Add parameterized rejection tests for another run, unknown execution/scenario, traversal/symlink, wrong hash, duplicate ID, unsafe text and 33 records/512KiB+1 bytes. Assert optional absent sources become gaps without invented members; an explicit supplied bad descriptor fails.
+- [x] **Step 2: Run the new tests and confirm failure.** `python -m pytest tests/test_evidence_supplemental.py tests/test_evidence_cli.py -q --no-cov`; expected failure is missing option/schema support.
+- [x] **Step 3: Implement supplemental collection and verification.** Allow only `log`, `trace`, `deployment`, `analysis`, `test_definition`; normalized UTF-8 text/JSON under the staged root. Deployment export keeps only resource kind/name, component links, declared resource/storage/security settings and observed status; remove Secret objects, Secret values, environment values and pod annotations. Trace export keeps identifiers, parent relations, service/operation, timestamps/durations/outcomes; strip headers, bodies, arbitrary attributes. Reject malformed or mixed-run records. Extend exact-member validation only for descriptor-declared entries, and retain original attempt/history checks. Save deliberate excerpt provenance instead of truncating.
+- [x] **Step 4: Verify the boundary and legacy behavior.** Run `python -m pytest tests/test_evidence.py tests/test_evidence_supplemental.py tests/test_evidence_cli.py -q --no-cov`; expect all pass, including schema-1 deterministic roundtrip. Document how phases stage supplemental files without replaying tests or querying new trace services.
+- [x] **Step 5: Update trackers and commit.** Commit message: `feat: retain sanitized supplemental PoC evidence`.
 
 ### Task 2: Seal evidence-backed storyboards and reviewed narration
 
@@ -226,8 +226,7 @@ specified; remaining details are builder decisions.
 Self-review maps all design requirements to the eight tasks. In particular,
 Tasks 1–3 cover evidence/story truthfulness, Tasks 4–6 cover offline generation
 and dynamic timing, Task 7 covers durable resource/publication behavior and
-Task 8 covers the full acceptance/rollout distinction. No implementation has
-started under this plan.
+Task 8 covers the full acceptance/rollout distinction. Implementation was authorized by the user on 8 November 2026; native execution is in progress.
 
 Recommended execution: native in this chat, task by task, because these tasks
 share narrative/timeline/version contracts and benefit from keeping that context

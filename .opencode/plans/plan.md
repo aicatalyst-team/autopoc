@@ -274,7 +274,7 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Select a voice and agree on content/timing direction | ✅ Heart selected; length follows PoC complexity; source-backed objective/testing/setup/results plus limitations/recommendation |
 | Save and independently check design and implementation plan | ✅ Eight tasks defined; builder review found no important gaps; plan review/execution choice pending |
 | Check OCP GPU capacity and AutoPoC namespace access | ✅ 8 November — one L40S and two A100 devices unrequested; Job/pod creation allowed, no namespace quota found; workload not tested |
-| Implement and validate narrated rendering | Pending — no pipeline or deployment changes |
+| Implement and validate narrated rendering | In progress — supplemental evidence complete; renderer/narration tasks pending |
 
 This is a local throwaway audition, not production narration acceptance. Technical
 pronunciation, offline packaging, per-scene synchronization and restricted OCP
@@ -287,3 +287,17 @@ Use final report, original results, staged setup, logs and available traces;
 include fixes only when they help explain the PoC outcome. Implementation remains
 pending plan review. The eight implementation tasks and status are tracked in
 implementation-plan.md section 9.3; every completed task must update both files.
+
+
+### Phase 9 implementation tasks
+
+| Task | Status |
+|------|--------|
+| Retain sanitized supplemental logs/traces/setup evidence | ✅ Done — 67 scoped / 401 full-suite Python tests passed |
+| Seal source-linked storyboards and reviewed narration | Pending |
+| Update author/reviewer workflow and ADR | Pending |
+| Package offline Heart speech and measured timeline | Pending |
+| Render variable slide chapters | Pending |
+| Encode narrated video and preserve partial outputs | Pending |
+| Persist long-render policy/recovery/publication | Pending |
+| Complete local/OCP acceptance and controlled rollout | Pending |

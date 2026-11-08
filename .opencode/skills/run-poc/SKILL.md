@@ -102,6 +102,17 @@ force-push the source checkout to publish artifacts. Save returned revision,
 path and commit in state. Publication failures remain explicit and never erase
 previous artifacts or change test outcomes.
 
+During intake/planning, build, apply and execution, also retain useful original
+analysis, test definitions, build/apply logs, selected deployment exports and
+captured trace excerpts under this private staging area. Do this when the phase
+produces them, before pod/checkout cleanup; never rerun a test or fetch a new
+trace to illustrate a completed PoC. Keep original file SHA-256 and run/capture
+identity in a private `supplemental-index.json`; see
+`references/executive-summary.md` for the descriptor and publication boundary.
+Use `capture: original`, `later_observation` or `synthetic` accurately. Record
+deliberate excerpt line ranges, and distinguish declared setup from observed
+resources. Do not stage Secret exports or credentials as presentation evidence.
+
 
 **Update the state file after completing each phase.** This is critical for:
 - Tracking retry counters

@@ -480,7 +480,7 @@ recommendations are not execution instructions.
 | Kokoro local audition | ✅ Done | Two CPU-generated English samples; no pipeline integration |
 | Voice selection | ✅ Done | User selected Heart (`af_heart`) |
 | Design and implementation planning | ✅ Done | Evidence-backed story, variable timing, eight implementation tasks; awaiting plan review |
-| Production implementation and acceptance | Pending | No narration integration, rollout or publication claimed |
+| Production implementation and acceptance | In progress | Evidence extension complete; narration integration/acceptance pending |
 
 ### 9.1 Generate and verify a local Kokoro audition — ✅ 8 November 2026
 - Google TTS access is blocked on the configured work project: billing is enabled, the API is not enabled and the user lacks `serviceusage.services.use`. No cloud settings were changed.
@@ -500,11 +500,11 @@ recommendations are not execution instructions.
 - Independent builder check reported “Nothing important left.” Self-review checked file paths, interfaces, source/selector checks, version compatibility, failure tests and task coverage. Operational slide/time/resource limits are explicitly builder recommendations, not extra user requirements.
 - Planning complete only: implementation, live restricted OCP acceptance and publication remain pending. Existing Drive credential problems are independent of Google TTS. Review the plan and choose execution approach before implementation.
 
-### 9.3 Implementation and acceptance — Pending
+### 9.3 Implementation and acceptance — In progress
 
 | Task | Status |
 |------|--------|
-| Retain sanitized supplemental logs/traces/setup evidence | Pending |
+| Retain sanitized supplemental logs/traces/setup evidence | ✅ Done — 67 scoped tests; full suite 401 passed |
 | Seal source-linked storyboards and reviewed narration | Pending |
 | Update configured-model author/reviewer workflow and ADR | Pending |
 | Package offline Heart assets and generate measured audio | Pending |
@@ -519,3 +519,9 @@ recommendations are not execution instructions.
 - Ready, schedulable nodes advertise two NVIDIA L40S GPUs and eight NVIDIA A100-SXM4-80GB GPUs, with sharing disabled. Active pod requests reserve one L40S and six A100 devices: one L40S and two A100 devices were unrequested at this snapshot. This is scheduler-request availability, not GPU utilization, ownership or a reservation for AutoPoC.
 - In `autopoc-test`, ResourceQuota, LimitRange and applied ClusterResourceQuota lists were empty. The user can create Jobs and pods there. No workload or GPU benchmark was launched, and actual admission/scheduling/inference remain unvalidated.
 - The current narration design remains CPU-first inside the existing renderer Job. GPU acceleration would need a separately measured GPU-enabled image/profile; availability alone does not justify changing the renderer-only CPU lock or claiming GPU acceptance.
+
+
+#### 9.3.1 Retain sanitized supplemental evidence — ✅ 8 November 2026
+- Added schema-2 optional supplemental collection and strict verification, retaining schema-1 behavior and exact original attempt/result totals. Inputs are run-bound, root-confined, hash-checked, size-bounded and sanitized; public descriptors exclude private paths/original hashes.
+- Selected deployment exports omit Secret data/environment/annotations/inline TLS keys; trace excerpts retain captured spans/relations/timings without headers/bodies/attributes. Unknown runs/executions/scenarios, undeclared archive members and unsafe sources are rejected. Phase-time staging and CLI usage are documented.
+- RED: 19 new tests failed for missing feature support; two further regressions caught private provenance and TLS-key leakage before correction. GREEN: 67 scoped tests and 401 supported Python tests passed; Ruff and scoped Pyright clean. No original PoC replay, new cluster workload or publication occurred.

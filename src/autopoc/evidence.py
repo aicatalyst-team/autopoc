@@ -309,7 +309,12 @@ def _results(index: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _create(state_path: Path, attempt_index_path: Path, output_dir: Path) -> Path:
+def _create(
+    state_path: Path,
+    attempt_index_path: Path,
+    output_dir: Path,
+    supplemental_index: Path | None = None,
+) -> Path:
     state_path = _path(state_path)
     root = state_path.parent
     budget = [0]
@@ -466,11 +471,19 @@ def _create(state_path: Path, attempt_index_path: Path, output_dir: Path) -> Pat
             "test-results.json": _dump(results),
         }
     )
+    if supplemental_index is not None:
+        from autopoc.evidence_supplemental import collect_supplemental, verify_supplemental
+
+        extra, descriptor = collect_supplemental(supplemental_index, root=root, run_id=run_id)
+        verify_supplemental(extra, run_id, clean)
+        members.update(extra)
+        if not any(row["kind"] == "trace" for row in descriptor["records"]):
+            gaps.append("missing_trace")
     manifest = {
         name: {"sha256": _hash(data), "size": len(data)} for name, data in sorted(members.items())
     }
     index = {
-        "schema_version": 1,
+        "schema_version": 2 if supplemental_index is not None else 1,
         "sanitizer_policy": 1,
         "run_id": run_id,
         "project": snapshot["project"],
@@ -517,10 +530,16 @@ def _create(state_path: Path, attempt_index_path: Path, output_dir: Path) -> Pat
     return target
 
 
-def create_bundle(state_path: Path, attempt_index_path: Path, output_dir: Path) -> Path:
+def create_bundle(
+    state_path: Path,
+    attempt_index_path: Path,
+    output_dir: Path,
+    *,
+    supplemental_index: Path | None = None,
+) -> Path:
     """Collect allowlisted inputs inside the state directory, without replaying tests."""
     try:
-        return _create(state_path, attempt_index_path, output_dir)
+        return _create(state_path, attempt_index_path, output_dir, supplemental_index)
     except EvidenceError:
         raise
     except (
@@ -568,11 +587,20 @@ def verify_bundle(bundle_path: Path) -> dict[str, Any]:
             "Unsanitized evidence metadata",
         )
         _capture_timestamp(index.get("capture_timestamp"))
-        _require(index["schema_version"] == 1 and index["sanitizer_policy"] == 1)
+        _require(
+            type(index["schema_version"]) is int
+            and index["schema_version"] in (1, 2)
+            and index["sanitizer_policy"] == 1
+        )
         run_id = _identifier(index["run_id"])
         files = index["files"]
         _require(isinstance(files, dict) and set(files) == set(names) - {"index.json"})
         _require({"state.json", "attempt-index.json", "test-results.json"} <= set(files))
+        supplemental = set()
+        if index["schema_version"] == 2:
+            from autopoc.evidence_supplemental import verify_supplemental
+
+            supplemental = verify_supplemental(data, run_id, _json(data["attempt-index.json"]))
         for name, metadata in files.items():
             _require(
                 name
@@ -584,6 +612,7 @@ def verify_bundle(bundle_path: Path) -> dict[str, Any]:
                     "plan.md",
                     "evaluation.md",
                 )
+                or name in supplemental
                 or re.fullmatch(r"attempts/[A-Za-z0-9][A-Za-z0-9_-]{0,127}\.json", name)
             )
             _require(
@@ -609,7 +638,7 @@ def verify_bundle(bundle_path: Path) -> dict[str, Any]:
                 and payload.get("status") == row["outcome"]
             )
             expected.add(name)
-        _require(set(files) - {"report.md", "plan.md", "evaluation.md"} == expected)
+        _require(set(files) - {"report.md", "plan.md", "evaluation.md"} - supplemental == expected)
         results = _results(attempts)
         _require(
             results == _json(data["test-results.json"]) == index["final_results"],
@@ -638,7 +667,12 @@ def verify_bundle(bundle_path: Path) -> dict[str, Any]:
 def _command(args: argparse.Namespace) -> None:
     try:
         if args.evidence_action == "create":
-            path = create_bundle(args.state, args.attempt_index, args.output_dir)
+            path = create_bundle(
+                args.state,
+                args.attempt_index,
+                args.output_dir,
+                supplemental_index=args.supplemental_index,
+            )
             result = {"bundle_path": str(path), "archive_sha256": path.stem, **verify_bundle(path)}
         else:
             result = verify_bundle(args.bundle)
@@ -653,6 +687,7 @@ def register_evidence_commands(subparsers: Any) -> None:
     create = subparsers.add_parser("evidence-create", help="Collect sanitized evidence")
     for name in ("state", "attempt-index", "output-dir"):
         create.add_argument("--" + name, type=Path, required=True)
+    create.add_argument("--supplemental-index", type=Path)
     create.set_defaults(func=_command, evidence_action="create")
     verify = subparsers.add_parser("evidence-verify", help="Verify evidence archive")
     verify.add_argument("bundle", type=Path)
