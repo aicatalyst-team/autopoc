@@ -508,7 +508,7 @@ recommendations are not execution instructions.
 | Seal source-linked storyboards and reviewed narration | ✅ Done — 53 scoped tests; legacy inputs retained |
 | Update configured-model author/reviewer workflow and ADR | ✅ Done — three configured-model acceptance reviews |
 | Package offline Heart assets and generate measured audio | ✅ Done — hash-locked CPU image and constrained offline inference |
-| Render variable executive slide chapters | Pending |
+| Render variable executive slide chapters | ✅ Done — 6/8/12-slide browser/PDF checks and graph validation |
 | Encode narration-driven scenes and retain valid partial outputs | Pending |
 | Persist narrated Job policy and recover/publish long renders | Pending |
 | Complete local/cluster acceptance and controlled rollout | Pending |
@@ -548,3 +548,9 @@ recommendations are not execution instructions.
 - Replaced the unavailable John Van Sickle archive (wrong checksum/HTML response) with public digest-pinned static FFmpeg 7.0.2 plus exact executable hashes/GPL/version notices. Did not bypass checksum checks or depend on a private historical image in CI.
 - RED: 16 missing-feature speech tests and the successful-cache preparer case failed before implementation. GREEN: 18 speech tests, 452 supported Python tests, Ruff/Pyright and hash installation passed. Generated six real scenes with networking disabled and empty caches using the locked environment.
 - Built local UBI image `1aad897c6dea`. Actual offline image smoke passed with read-only root, UID28128/group0, 2 CPUs/4Gi limit, empty scratch caches: 5.2s audio, 13.638s elapsed, peak process RSS1,411,387,392 bytes, cgroup peak2,426,052,608 bytes. This is local speech acceptance, not full video/OCP/publication acceptance.
+
+#### 9.3.5 Render variable executive chapters — ✅ 8 November 2026
+- Added template-3 ordered slide rendering, source-linked visible claims, exact counters, per-slide graphs, numbered chapters, safe speaker notes and transcript; retained the original template-2 path.
+- Actual browser preflight checked every scene and representative graph states. Six-, eight- and twelve-slide decks and failed/incomplete examples rendered successfully; inspected all 42 PDF pages, including the corrected graph page. Missing fonts/logos, oversized titles/claims/results/diagram labels and overlapping node labels are refused.
+- Real TopoLoop fixture exposed an incorrect object-only edge requirement in Python/Node; corrected it to actual string pairs with RED→GREEN coverage. Source assets/helpers/transcript remain in recovery allowlists. Image runtime copies follow dependency layers to avoid repeated model downloads during code iteration.
+- GREEN: 24 Node tests, 453 supported Python tests, Ruff and scoped Pyright. Local deck/PDF acceptance only; measured narrated encoding follows in Task 6.

@@ -49,10 +49,7 @@ RUN ln -s /scratch/cache/slidev node_modules/.slidev && \
     mkdir -p node_modules/@slidev/cli/node_modules && \
     ln -s /scratch/cache/slidev-cli-vite node_modules/@slidev/cli/node_modules/.vite && \
     ln -s /scratch/cache/slidev-cli-vite-temp node_modules/@slidev/cli/node_modules/.vite-temp
-COPY renderer/render.mjs renderer/branding.mjs renderer/scene-validation.mjs renderer/style.css renderer/README.md ./
-COPY renderer/components/ ./components/
-COPY renderer/vendor/ ./vendor/
-COPY renderer/assets/ ./assets/
+COPY renderer/assets/kokoro/ ./assets/kokoro/
 
 WORKDIR /opt/autopoc
 COPY requirements.lock /opt/autopoc/requirements.lock
@@ -70,6 +67,10 @@ RUN uv venv --python /usr/bin/python3.12 /opt/autopoc/speech-venv && \
       --manifest /opt/autopoc/renderer/assets/kokoro/manifest.json \
       --output-dir /opt/autopoc/speech-assets --include-package-licenses && \
     rm -rf /tmp/uv-cache
+COPY renderer/render.mjs renderer/branding.mjs renderer/storyboard.mjs renderer/scene-validation.mjs renderer/style.css renderer/README.md /opt/autopoc/renderer/
+COPY renderer/components/ /opt/autopoc/renderer/components/
+COPY renderer/vendor/ /opt/autopoc/renderer/vendor/
+COPY renderer/assets/ /opt/autopoc/renderer/assets/
 COPY src/ /opt/autopoc/src/
 COPY data/ /opt/autopoc/data/
 COPY LICENSE /opt/autopoc/LICENSE

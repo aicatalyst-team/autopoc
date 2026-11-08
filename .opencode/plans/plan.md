@@ -296,7 +296,7 @@ implementation-plan.md section 9.3; every completed task must update both files.
 | Seal source-linked storyboards and reviewed narration | ✅ Done — 53 scoped tests; legacy inputs retained |
 | Update author/reviewer workflow and ADR | ✅ Done — source-linked examples and real configured-model reviews |
 | Package offline Heart speech and measured timeline | ✅ Done — 18 speech tests; actual constrained offline image smoke |
-| Render variable slide chapters | Pending |
+| Render variable slide chapters | ✅ Done — variable decks, source notes/transcript and actual browser/PDF checks |
 | Encode narrated video and preserve partial outputs | Pending |
 | Persist long-render policy/recovery/publication | Pending |
 | Complete local/OCP acceptance and controlled rollout | Pending |

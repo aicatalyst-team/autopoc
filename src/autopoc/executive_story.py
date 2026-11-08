@@ -97,7 +97,16 @@ def validate_graph(graph) -> None:
             isinstance(graph.get(field), list) and len(graph[field]) <= maximum,
             "Topology exceeds executive graph limits",
         )
-        _need(all(isinstance(row, dict) for row in graph[field]), "Invalid storyboard graph")
+        if field == "edges":
+            _need(
+                all(
+                    isinstance(row, list) and len(row) == 2 and all(isinstance(v, str) for v in row)
+                    for row in graph[field]
+                ),
+                "Invalid storyboard graph edges",
+            )
+        else:
+            _need(all(isinstance(row, dict) for row in graph[field]), "Invalid storyboard graph")
 
 
 def validate_story(narrative: dict, evidence_index: dict, members: dict[str, bytes]) -> None:

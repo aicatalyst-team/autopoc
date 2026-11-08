@@ -187,3 +187,17 @@ def test_authoring_acceptance_examples_preserve_original_evidence(case, totals):
     if case == "failed":
         assert narrative["conflicts"]
         assert "incomplete_validation" in narrative["coverage_gaps"]
+
+
+def test_story_accepts_real_topoloop_edge_pairs(tmp_path):
+    from pathlib import Path
+
+    docs = v3_documents(tmp_path)
+    doc = json.loads(docs[1].read_text())
+    doc["slides"][2]["graph"] = json.loads(
+        (Path(__file__).parent / "fixtures/executive-story/graph.json").read_text()
+    )
+    doc["slides"][2]["graph_claim_ids"] = ["claim-2"]
+    docs[1].write_text(json.dumps(doc))
+    refresh_review(*docs)
+    assert verify_inputs(seal(docs, tmp_path))["run_id"] == "run-1"

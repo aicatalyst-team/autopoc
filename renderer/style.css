@@ -68,3 +68,10 @@
 .executive .flow-claims { flex:none; gap:8px; }
 .executive .flow-claims li { font-size:20px; line-height:1.3; }
 .slidev-nav-controls,.slidev-slide-number,.slidev-toolbar { display:none !important; }
+
+.narrated.opening h1 { font-size:48px; }
+.narrated .scene-header { margin-bottom:24px; }
+.narrated .results { padding-top:0; margin-bottom:26px; }
+.narrated .results div { gap:12px; padding-top:16px; }
+.narrated .result-claims li { font-size:22px; }
+.narrated .flow-claims { gap:8px; }

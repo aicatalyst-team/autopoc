@@ -144,7 +144,7 @@ OpenCode model. No new LLM Python service, credentials or provider.
 - [x] **Step 4: Verify unit tests, hash installation and a real offline smoke.** Run the Task 4 suite; install the generated renderer lock with hash checking, run dependency audit, and generate a short Heart scene with network disabled and empty writable caches. Record sample rate/duration/hash, package/model identities and time/memory. Verify the main worker can import CLI modules without speech dependencies.
 - [x] **Step 5: Update trackers and commit.** Commit message: `feat: generate offline Heart narration in the renderer`.
 
-### Task 5: Render dynamic evidence-backed slide chapters
+### Task 5: ✅ Render dynamic evidence-backed slide chapters
 
 **Files:** new `renderer/storyboard.mjs`, `renderer/storyboard.test.mjs`;
 modify `renderer/render.mjs`, `renderer/components/ExecutiveSlide.vue`,
@@ -157,11 +157,11 @@ modify `renderer/render.mjs`, `renderer/components/ExecutiveSlide.vue`,
 - `ExecutiveSlide` accepts `slideId` for template 3, resolves ledger claims/graphs and derives numbering/section markers from storyboard order; legacy `kind` behavior remains available only for legacy data.
 - Prepared source contains narration text as speaker notes and `transcript.txt` without requiring playback. No model execution in Vue/browser.
 
-- [ ] **Step 1: Add failing variable-deck tests.** Use six-, eight- and twelve-slide fixtures, repeated setup/results chapters, optional execution and null diagrams. Assert slide order/title/claim rendering, exact result totals, source notes, graph ownership and correct numbering after slide six. Include long/unsafe text and oversized diagram-label layout failures.
-- [ ] **Step 2: Run `make test-renderer`; expect new template-3 cases to fail.** Keep existing Node tests active.
-- [ ] **Step 3: Implement storyboard-driven preparation and scene props.** Replace fixed six-index decisions only in the new path; graph validation/preflight receives each slide's graph. Retain Red Hat assets, fixed trusted components and the existing source sanitization boundary. Do not execute generated Vue/JavaScript. Adapt browser validation to iterate all slide IDs and representative diagram states, with content failures invalidating deck/PDF as before.
-- [ ] **Step 4: Verify Node/Python contracts and browser layout.** Run `make test-renderer` and affected `tests/test_executive_inputs.py`/`tests/test_executive_render.py`. Use the actual browser check on multi-slide fixtures; inspect every PDF page. Source and browser ZIPs must retain fonts/logos/licenses/helpers and transcript after extraction.
-- [ ] **Step 5: Update trackers and commit.** Commit message: `feat: render variable executive slide chapters`.
+- [x] **Step 1: Add failing variable-deck tests.** Use six-, eight- and twelve-slide fixtures, repeated setup/results chapters, optional execution and null diagrams. Assert slide order/title/claim rendering, exact result totals, source notes, graph ownership and correct numbering after slide six. Include long/unsafe text and oversized diagram-label layout failures.
+- [x] **Step 2: Run `make test-renderer`; expect new template-3 cases to fail.** Keep existing Node tests active.
+- [x] **Step 3: Implement storyboard-driven preparation and scene props.** Replace fixed six-index decisions only in the new path; graph validation/preflight receives each slide's graph. Retain Red Hat assets, fixed trusted components and the existing source sanitization boundary. Do not execute generated Vue/JavaScript. Adapt browser validation to iterate all slide IDs and representative diagram states, with content failures invalidating deck/PDF as before.
+- [x] **Step 4: Verify Node/Python contracts and browser layout.** Run `make test-renderer` and affected `tests/test_executive_inputs.py`/`tests/test_executive_render.py`. Use the actual browser check on multi-slide fixtures; inspect every PDF page. Source and browser ZIPs must retain fonts/logos/licenses/helpers and transcript after extraction.
+- [x] **Step 5: Update trackers and commit.** Commit message: `feat: render variable executive slide chapters`.
 
 ### Task 6: Orchestrate measured narration and encode synchronized video
 

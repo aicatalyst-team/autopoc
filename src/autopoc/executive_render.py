@@ -232,7 +232,7 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int = 600)
             "recovery.json": json.dumps(recovery, indent=2).encode(),
         }
         # ponytail: fixed trusted template allowlist; extend only with reviewed renderer assets.
-        for name in ("slides.md", "package.json", "package-lock.json", "style.css"):
+        for name in ("slides.md", "package.json", "package-lock.json", "style.css", "transcript.txt"):
             path = source / name
             _safe_path(path)
             if path.is_file():
@@ -245,7 +245,7 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int = 600)
                 for name in ("narrative.json", "scenes.json", "versions.json")
             }
         )
-        for name in ("render.mjs", "branding.mjs", "scene-validation.mjs", "README.md"):
+        for name in ("render.mjs", "branding.mjs", "scene-validation.mjs", "storyboard.mjs", "README.md"):
             path = renderer / name
             if path.is_file():
                 source_files[name] = path.read_bytes()

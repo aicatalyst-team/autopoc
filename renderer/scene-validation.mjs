@@ -32,6 +32,7 @@ export function inspectScene() {
   const root = document.querySelector('.executive[data-executive-ready="true"]')
   const result = { errors: [], missingFonts: [], missingImages: [], overflow: [] }
   if (!root) { result.errors.push('Executive scene is missing'); return result }
+  Object.assign(result, { id:root.dataset.slideId, count:Number(root.dataset.slideCount), section:root.dataset.slideSection, hasGraph:root.dataset.slideGraph === 'true' })
   if (root.dataset.executiveError) result.errors.push(root.dataset.executiveError)
   for (const family of ['Display', 'Text', 'Mono']) for (const weight of [400, 500, 700])
     if (!document.fonts.check(`${weight} 16px "Red Hat ${family}"`)) result.missingFonts.push(`Red Hat ${family} ${weight}`)
@@ -81,6 +82,12 @@ export function inspectScene() {
               || rect.top < box.top - tolerance || rect.bottom > box.bottom + tolerance) clipped = true
       }
       if (clipped) result.overflow.push(`diagram ${element.classList[0]} text`)
+    }
+    const labels = [...stage.querySelectorAll('.tl-node.on .tl-node-t')].filter(visible).map(el => el.getBoundingClientRect())
+    for (let i = 0; i < labels.length; i++) for (let j = i+1; j < labels.length; j++) {
+      const a = labels[i], b = labels[j]
+      if (a.left < b.right - tolerance && a.right > b.left + tolerance && a.top < b.bottom - tolerance && a.bottom > b.top + tolerance)
+        result.overflow.push('diagram node labels overlap')
     }
     const heading = stage.querySelector('.tl-hud-top')?.getBoundingClientRect()
     if (!heading) continue
