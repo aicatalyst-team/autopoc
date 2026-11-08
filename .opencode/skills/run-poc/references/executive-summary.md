@@ -4,6 +4,17 @@ Run after phase 10 and reconcile on every startup/resume, including after the
 blog is completed. This extension never advances the PoC phase cursor, changes
 test outcomes, or reruns tests. Failure is non-blocking for the optional blog.
 
+## Narration mode selection
+
+First reconcile any existing checkpoint using its saved image/mode/policy.
+For a new run, `AUTOPOC_EXECUTIVE_NARRATION=kokoro` selects
+`executive-narration.md`: evidence-backed narrative schema 2, template 3,
+offline Heart speech and variable scenes timed from measured audio. That
+reference supersedes the silent six-scene limits below for narrated runs.
+Unset/`none` keeps the silent schema-1/template-2 workflow below. Reject other
+values rather than silently choosing a mode. Use a compatible tested image
+digest; do not restyle or regenerate old checkpoints under new settings.
+
 ## Resume first
 
 Read `project.run_id` and the fork checkout from state. Run:

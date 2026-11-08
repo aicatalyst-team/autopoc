@@ -161,3 +161,29 @@ def test_empty_json_selection_is_not_supporting_evidence(tmp_path):
     refresh_review(*docs)
     with pytest.raises(ValueError):
         seal(docs, tmp_path)
+
+
+@pytest.mark.parametrize(
+    "case,totals",
+    [
+        ("simple", {"pass": 1, "fail": 0, "error": 0, "skip": 0, "incomplete": 0}),
+        ("complex", {"pass": 3, "fail": 0, "error": 0, "skip": 0, "incomplete": 0}),
+        ("failed", {"pass": 1, "fail": 1, "error": 0, "skip": 0, "incomplete": 1}),
+    ],
+)
+def test_authoring_acceptance_examples_preserve_original_evidence(case, totals):
+    from pathlib import Path
+    from autopoc.evidence import verify_bundle
+    from autopoc.executive_story import validate_scene_plan, validate_story
+
+    root = Path(__file__).parent / "fixtures" / "executive-story" / case
+    index = verify_bundle(root / "evidence.zip")
+    with zipfile.ZipFile(root / "evidence.zip") as archive:
+        members = {n: archive.read(n) for n in archive.namelist()}
+    narrative = json.loads((root / "narrative.json").read_text())
+    validate_story(narrative, index, members)
+    validate_scene_plan(json.loads((root / "scenes.json").read_text()), narrative)
+    assert narrative["results"] == totals
+    if case == "failed":
+        assert narrative["conflicts"]
+        assert "incomplete_validation" in narrative["coverage_gaps"]

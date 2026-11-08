@@ -471,7 +471,7 @@ recommendations are not execution instructions.
 - Updated renderer/configuration/workflow docs with local assets, v2/v1 compatibility, overflow handling and rollout requirements. No default branch was merged/pushed; deployed configuration is unchanged.
 
 
-## Phase 9: Kokoro Voice-over — Audition/design/planning ✅; implementation pending
+## Phase 9: Kokoro Voice-over — Audition/design/planning ✅; implementation in progress
 
 ## Progress
 
@@ -506,7 +506,7 @@ recommendations are not execution instructions.
 |------|--------|
 | Retain sanitized supplemental logs/traces/setup evidence | ✅ Done — 67 scoped tests; full suite 401 passed |
 | Seal source-linked storyboards and reviewed narration | ✅ Done — 53 scoped tests; legacy inputs retained |
-| Update configured-model author/reviewer workflow and ADR | Pending |
+| Update configured-model author/reviewer workflow and ADR | ✅ Done — three configured-model acceptance reviews |
 | Package offline Heart assets and generate measured audio | Pending |
 | Render variable executive slide chapters | Pending |
 | Encode narration-driven scenes and retain valid partial outputs | Pending |
@@ -531,3 +531,11 @@ recommendations are not execution instructions.
 - Added narrative/input schema 2 and template 3 with source-linked ledger claims, ordered variable slides, title/bullet/graph/narration references, explicit gaps/conflicts and exact original result totals. Validates actual line ranges and RFC 6901 selectors against sanitized evidence bytes.
 - Review binds the exact script, evidence and scene policy; measured-audio timing is deferred until generation. Silent narrative-1 still seals as template 2 by default; explicit legacy templates remain verifiable. Kept revision-2 rendering support while introducing latest revision 3.
 - RED: four positive narrated cases failed before schema support; an additional regression demonstrated empty-object selectors were accepted, then corrected. GREEN: 53 story/input/cluster tests passed; Ruff and scoped Pyright checked. Full suite and task ledger capture run with the task completion commit.
+
+
+#### 9.3.3 Define and validate narrative authoring/review — ✅ 8 November 2026
+- Added the opt-in narration reference, complete synthetic schema example and ADR 0014. Guidance covers fact ledger → proportional outline → visible/spoken text → independent review, source selectors, exact counts, explicit conflicts/gaps and conditional troubleshooting.
+- Behavioral control with the existing configured Qwen model followed the old schema-1/silent/fixed-duration instructions; updated guidance produced schema 2, measured timing, Heart and relevant-fix selection. Three synthetic simple/complex/failed examples pass contract validation and actual same-model semantic review; receipts bind exact draft/evidence/scenes bytes and are explicitly acceptance-only.
+- Review caught architecture overclaims and a conflict needing visible explanation; corrected both. Clarified claim-ID-to-visible-text resolution and separated objective factual blockers from style suggestions/tool-count guesses. Retained actual failed-review diagnostics privately instead of fabricating approvals.
+- Configured endpoint is cluster-internal: acceptance used a temporary port-forward and existing worker model credentials in memory, not a new provider or stored secret. OpenCode CLI's unbounded generation did not yield a usable completion; bounded same-model API checks did. This does not assert end-to-end unattended worker acceptance.
+- GREEN: 93 story/skill tests, full supported suite 434 passed, and CI-pinned Ruff 0.15.11 passed. Production narration/rendering remain subsequent tasks.

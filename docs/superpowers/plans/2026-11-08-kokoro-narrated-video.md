@@ -118,11 +118,11 @@ and `tests/fixtures/executive-story/{simple,complex,failed}/` source/expected fi
 `narrative.json`, `scenes.json`, `review.json` using the existing configured
 OpenCode model. No new LLM Python service, credentials or provider.
 
-- [ ] **Step 1: Add acceptance fixtures and failing workflow assertions.** Simple fixture has only smoke evidence and no traces; complex has several components/scenario groups; failed has a relevant fix and incomplete coverage. Assert retained exact totals/gaps and source references in expected documents. Skill checks require fact extraction, narrative-2 review of spoken text, relevance-based troubleshooting, no test replay and no automatic production-readiness claim.
-- [ ] **Step 2: Run relevant skill tests and document the missing requirements.** `python -m pytest tests/test_skill_files.py -q --no-cov`; expect new assertions to fail until instructions change.
-- [ ] **Step 3: Write the authoring/review instructions and ADR.** Document ledger → proportional outline → titles/points/spoken sentences → independent semantic review. Include exact schema-2 examples and tools to compute hashes. Describe report/result conflict handling, evidence-supported technical detail, conditional execution/fix scenes and limitations/recommendations. Document `none` versus `kokoro` format selection and operational bounds, with no prompt telling the model to fit two minutes.
-- [ ] **Step 4: Validate fixtures and perform a content acceptance pass.** Validate all three expected outputs with Task 2 functions. Run a separate configured-model review on these drafts against their evidence, requiring an example that qualifies a contradictory report and excludes routine retries. Preserve review findings/limitations; deterministic tests verify structure, not the truth of prose. Run skill checks again; expect pass.
-- [ ] **Step 5: Update trackers and commit.** Commit message: `feat: define evidence-backed slide and narration authoring`.
+- [x] **Step 1: Add acceptance fixtures and failing workflow assertions.** Simple fixture has only smoke evidence and no traces; complex has several components/scenario groups; failed has a relevant fix and incomplete coverage. Assert retained exact totals/gaps and source references in expected documents. Skill checks require fact extraction, narrative-2 review of spoken text, relevance-based troubleshooting, no test replay and no automatic production-readiness claim.
+- [x] **Step 2: Run relevant skill tests and document the missing requirements.** `python -m pytest tests/test_skill_files.py -q --no-cov`; expect new assertions to fail until instructions change.
+- [x] **Step 3: Write the authoring/review instructions and ADR.** Document ledger → proportional outline → titles/points/spoken sentences → independent semantic review. Include exact schema-2 examples and tools to compute hashes. Describe report/result conflict handling, evidence-supported technical detail, conditional execution/fix scenes and limitations/recommendations. Document `none` versus `kokoro` format selection and operational bounds, with no prompt telling the model to fit two minutes.
+- [x] **Step 4: Validate fixtures and perform a content acceptance pass.** Validate all three expected outputs with Task 2 functions. Run a separate configured-model review on these drafts against their evidence, requiring an example that qualifies a contradictory report and excludes routine retries. Preserve review findings/limitations; deterministic tests verify structure, not the truth of prose. Run skill checks again; expect pass.
+- [x] **Step 5: Update trackers and commit.** Commit message: `feat: define evidence-backed slide and narration authoring`.
 
 ### Task 4: Package offline Heart speech and generate measured audio
 
@@ -232,5 +232,6 @@ Recommended execution: native in this chat, task by task, because these tasks
 share narrative/timeline/version contracts and benefit from keeping that context
 together. A fresh whole-branch reviewer follows implementation. Subagent-driven
 execution is also available if the user prefers independent review per task.
-Review this plan and choose the execution method before implementation, as
-required by the writing-plans skill's execution-handoff instruction.
+The user approved the plan on 8 November 2026. Native execution is active in
+the managed `codex/kokoro-narration` worktree; the per-plan ledger records
+completed tasks, exact checks and implementation rulings.

@@ -2,7 +2,7 @@
 
 Updated: 8 November 2026.
 
-## Kokoro narration planning — 8 November 2026
+## Kokoro narration implementation — 8 November 2026
 
 The user selected Heart (`af_heart`) after a local CPU audition and requested
 video length proportional to PoC scope/complexity. The agreed story covers
@@ -14,8 +14,10 @@ The [new design](superpowers/specs/2026-11-08-kokoro-narrated-video-design.md)
 and [eight-task implementation plan](superpowers/plans/2026-11-08-kokoro-narrated-video.md)
 cover offline renderer-only speech, source-backed visible/spoken text, variable
 slides/timing, version compatibility and durable recovery. Independent builder
-review found no important gaps. This is planning, not implemented narration or
-rollout; plan review/execution choice remains pending. Google TTS-only and fixed
+review found no important gaps. The user approved implementation on 8 November. Supplemental evidence and reviewed
+storyboard contracts are implemented on `codex/kokoro-narration`; authoring and configured-model content examples are also verified. Offline
+speech, rendering and full worker/cluster acceptance work are in progress. Narration rollout
+is not yet claimed. Google TTS-only and fixed
 six-slide/two-minute wording below describes the earlier silent milestone.
 Kokoro does not resolve Google Drive publication credentials.
 

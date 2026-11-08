@@ -264,7 +264,7 @@ local only while the production service-account credential is repaired.
 Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-red-hat-presentation-branding-design.md).
 
 
-## Phase 9: Kokoro Voice-over — Audition/design/planning ✅; implementation pending
+## Phase 9: Kokoro Voice-over — Audition/design/planning ✅; implementation in progress
 
 | Task | Status |
 |------|--------|
@@ -272,7 +272,7 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Generate two local Kokoro voice samples | ✅ 8 November — Heart 22.150s and Fenrir 20.325s; CPU generation about 14.2s each |
 | Verify sample integrity and preserve audition measurements | ✅ Finite non-silent WAVs; MP3 probe and full decode passed; script/package inventory/results retained locally |
 | Select a voice and agree on content/timing direction | ✅ Heart selected; length follows PoC complexity; source-backed objective/testing/setup/results plus limitations/recommendation |
-| Save and independently check design and implementation plan | ✅ Eight tasks defined; builder review found no important gaps; plan review/execution choice pending |
+| Save and independently check design and implementation plan | ✅ Eight tasks defined; builder review found no important gaps; user approved implementation 8 November |
 | Check OCP GPU capacity and AutoPoC namespace access | ✅ 8 November — one L40S and two A100 devices unrequested; Job/pod creation allowed, no namespace quota found; workload not tested |
 | Implement and validate narrated rendering | In progress — supplemental evidence complete; renderer/narration tasks pending |
 
@@ -284,8 +284,7 @@ resource acceptance remain future design/validation work if Kokoro is selected.
 Planning completed 8 November: [design](../../docs/superpowers/specs/2026-11-08-kokoro-narrated-video-design.md)
 and [implementation plan](../../docs/superpowers/plans/2026-11-08-kokoro-narrated-video.md).
 Use final report, original results, staged setup, logs and available traces;
-include fixes only when they help explain the PoC outcome. Implementation remains
-pending plan review. The eight implementation tasks and status are tracked in
+include fixes only when they help explain the PoC outcome. Implementation was authorized on 8 November; native execution is in progress. The eight implementation tasks and status are tracked in
 implementation-plan.md section 9.3; every completed task must update both files.
 
 
@@ -295,7 +294,7 @@ implementation-plan.md section 9.3; every completed task must update both files.
 |------|--------|
 | Retain sanitized supplemental logs/traces/setup evidence | ✅ Done — 67 scoped / 401 full-suite Python tests passed |
 | Seal source-linked storyboards and reviewed narration | ✅ Done — 53 scoped tests; legacy inputs retained |
-| Update author/reviewer workflow and ADR | Pending |
+| Update author/reviewer workflow and ADR | ✅ Done — source-linked examples and real configured-model reviews |
 | Package offline Heart speech and measured timeline | Pending |
 | Render variable slide chapters | Pending |
 | Encode narrated video and preserve partial outputs | Pending |
