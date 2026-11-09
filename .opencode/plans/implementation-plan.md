@@ -484,7 +484,7 @@ recommendations are not execution instructions.
 | External refinement review | ✅ Done | 9 November: seven findings checked against implementation |
 | Apply accepted refinements | ✅ Done | 9 November: four implemented with tests, one rejected on evidence, two documented; offline listening still pending |
 | Omit PoC dates from voice-over | ✅ Done | 9 November: author/reviewer rules updated; existing sealed demo unchanged |
-| Fresh OpenShell end-to-end branch run | In progress | 9 November: access/preflight complete; isolated worker/deployment/testing/report/narrated-media run |
+| Fresh OpenShell end-to-end branch run | ✅ Done | 9 November: deployed, original 5/5 pass, corrected report persisted, final 3m28s Kokoro video and five artifacts retrieved/verified; Drive/listening gates remain |
 | Controlled production rollout | Pending | Drive invalid_grant, human listening and explicit merge/live configuration approval |
 
 ### 9.1 Generate and verify a local Kokoro audition — ✅ 8 November 2026
@@ -669,7 +669,7 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
 - Verified the actual ZIP transcript and reviewed the documentation diff. No
   runtime code changed and no new rendering or PoC execution is claimed.
 
-### 9.7 Fresh OpenShell end-to-end branch run — In progress, 9 November 2026
+### 9.7 Fresh OpenShell end-to-end branch run — ✅ 9 November 2026; optional publication/listening gates remain
 
 #### 9.7.1 Verify access and prepare an isolated branch-based run — ✅
 
@@ -846,7 +846,7 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   unchanged reviewed input hashes. Sealed new input `3cc8dffa...19d07bd4`,
   narrative `2c46538a...52f4ef`, in a separate immutable layout-v4 revision.
 
-#### 9.7.13 Render and inspect narrated media — In progress
+#### 9.7.13 Render and inspect narrated media — ✅ 9 November 2026
 
 - First actual offline OCP attempt rejected scene 1 for visible-content layout
   overflow after 8.566s, before speech. It retained valid source/summary partial
@@ -868,7 +868,7 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   report evidence. Retain its immutable inputs/outputs and technical receipt;
   align final report/narration evidence before delivering the final package.
 
-#### 9.7.14 Align final source facts and artifact package — In progress
+#### 9.7.14 Align final source facts and artifact package — ✅ 9 November 2026
 
 - Exact pinned NVIDIA source includes gateway CI/dev HA values (two replicas,
   Deployment and an external PostgreSQL example) and supervisor E2E HA values
@@ -879,9 +879,10 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   Final package must distinguish source availability from tested HA behavior;
   preserve all five original outcomes without rerunning any tests.
 
-Remaining: finalize source-aligned report/narration and conditional blog; inspect
-actual results/report and genuine narrative review; render/retrieve/verify the
-new narrated video when eligible. No end-to-end success is claimed yet.
+Completed: fresh deployment, original five-case validation, corrected report,
+full-source reviewed narration and final offline video generation/direct retrieval.
+Drive/Docs publication, optional blog lint configuration and human listening remain
+explicitly blocked or pending. This one-off result does not activate production.
 
 ### 9.6 Apply the accepted refinements — ✅ 9 November 2026
 
@@ -988,3 +989,25 @@ pronunciation confirmation, Drive credentials and merge approval remain gates.
   Google Docs/Drive authorization remains blocked by the measured refresh failure.
   These optional publishing gates do not change the five PoC outcomes or block
   independent executive rendering and direct local delivery.
+
+##### 9.7.13.2 Render, retrieve and independently verify final media — ✅ 9 November 2026
+
+- Final offline OCP render-v5 succeeded: 208.267s (3m28s), 6248 frames at 30fps,
+  1280×720 H.264 with 24kHz AAC. Runtime 450.941s, measured peak memory
+  2,757,124,096 bytes and scratch 95,337,178 bytes, within 2 CPU/4Gi limits.
+- Retrieved all five artifacts. Independently verified every size/SHA-256, final
+  seal/review/evidence identities, timeline and sentence/scene WAV hashes and
+  duration/frame counts. Full host FFmpeg decode passed. All six final PDF pages
+  pixel-match the visually inspected preflight; inspected all six video scenes.
+- Reverified original script unchanged and all five original payload hashes:
+  exactly one captured execution, five passes, no test replay. Gateway and
+  supervisor remain ready with zero restarts. Report and narration explicitly
+  distinguish available source HA examples from untested HA runtime behavior.
+- Local delivery: `/home/aavraham/.codex/visualizations/2026/11/09/openshell-kokoro-90b344e8/`.
+  Public receipt: `docs/validation/openshell-kokoro-e2e-2026-11-09.json`.
+  Baseline engine remains 35f79ec; later branch refinements are not claimed here.
+- Date-free narration is verified from reviewed text; human listening and
+  pronunciation acceptance are pending. Drive refresh failed, so no cloud video
+  URL, production dispatch/reconcile acceptance or successful upload is claimed.
+  Optional blog content is published to the artifact branch; its Vale config and
+  Google Docs upload gates remain blocked. Keep the application and workspace PVC.

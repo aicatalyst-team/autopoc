@@ -279,7 +279,7 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Apply the accepted refinements | ✅ 9 November — four implemented with tests, one rejected on evidence, two documented; section 9.6 |
 | Omit PoC dates from spoken narration | ✅ 9 November — author/reviewer policy and design updated; existing demo has not been re-rendered |
 | Prepare a fresh OpenShell end-to-end branch run | ✅ 9 November — access, image identity, protected source branch and isolated run configuration verified |
-| Execute fresh OpenShell deployment/tests/report/video | In progress — run 90b344e86812455caf110467384bbbea; direct retrieval planned while Drive authentication is blocked |
+| Execute fresh OpenShell deployment/tests/report/video | ✅ 9 November — fresh deployment, original 5/5 pass, corrected report, reviewed 3m28s Kokoro video and all five artifacts locally verified; Drive/listening gates remain |
 | Fresh OpenShell source intake | ✅ 9 November — pinned source inspected; gateway/supervisor/sandbox identified; evaluation next |
 | Fresh OpenShell evaluation | ✅ 9 November — assessment completed/staged; artifact publication underway |
 | Fresh OpenShell protected-fork adoption | ✅ 9 November — new source branch/remote/attestation verified, no default-branch writes |
@@ -296,9 +296,9 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Corrected OpenShell canonical report generation | ✅ 9 November — scoped wording inspected, five original results preserved; final publication and narration review/seal still pending |
 | Full-corpus content review and independent seal | ✅ 9 November — actual configured-model approval on all twelve bundle members and original script; immutable v3 seal retained |
 | OpenShell compact-layout review/seal | ✅ 9 November — all six browser/PDF pages inspected, fresh full-evidence review approved, immutable layout-v4 input sealed |
-| OpenShell narrated render acceptance | In progress — technical render-v4 succeeded; final source-aligned package pending, original tests unchanged |
+| OpenShell narrated render acceptance | ✅ 9 November — final render-v5 succeeded, 3m28s/6248 frames, five artifact hashes/media decode verified; human listening pending |
 | Compact-layout offline technical render | ✅ 9 November — OCP generated all five artifacts, 3m21s/6040-frame video; candidate retained as superseded pending final HA-source correction |
-| Final OpenShell source/artifact alignment | In progress — pinned source has HA CI/dev/E2E examples; availability must be separated from untested HA runtime behavior in final evidence |
+| Final OpenShell source/artifact alignment | ✅ 9 November — final report/narration/evidence distinguish available HA examples from untested behavior; exact final input independently reviewed and delivered |
 
 This is a local throwaway audition, not production narration acceptance. Technical
 pronunciation, offline packaging, per-scene synchronization and restricted OCP
@@ -377,3 +377,13 @@ from cloud publication. Track execution in implementation-plan.md section 9.7.
   real v3 reviews, 9.146/10 overall, sanitized Markdown/SEO/HTML appended as
   357bac0f…7f8aa2. Phase 11 validation/upload stays blocked: missing Vale config
   and existing Google authorization failure; neither is reported as passing.
+
+- ✅ Final OpenShell generation/direct delivery (9.7.13.2): six-scene Heart video
+  3m28s, 6248 frames; all five artifact hashes and complete media decode passed.
+  Final PDF pages match inspected preflight; all six video scenes inspected.
+  Original one execution/five passing attempts preserved. Measured renderer
+  450.941s, 2.57GiB peak, 95,337,178 bytes scratch. Report and optional blog are
+  appended to immutable fork artifact revisions. App/workspace retained.
+  Receipt: docs/validation/openshell-kokoro-e2e-2026-11-09.json. Drive/Docs auth,
+  optional blog Vale configuration and human listening remain explicit gates;
+  production rollout and later branch refinements are not accepted by this run.
