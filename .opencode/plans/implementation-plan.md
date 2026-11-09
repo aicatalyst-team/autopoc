@@ -1203,3 +1203,25 @@ Standing correction: the original review claimed pronunciation control was
 needed because reviewed text cannot be reworded after approval. The mechanism
 and its review binding remain justified, but the scale of the problem was
 overestimated. Add an entry only after measuring the default in the image.
+
+##### 9.8.2 Publish branch images for a later full run — ✅ 9 November 2026
+
+Built from a clean tree at `59c442d` and pushed under new tags; nothing
+previously published was overwritten or retagged.
+
+- `quay.io/aicatalyst/autopoc-executive-renderer:kokoro-tuned-59c442d`
+  `sha256:09738e536bcd6622ebaf63da1525fc8434c820c9f3f34ffba3a093f46574c24a`
+- `quay.io/aicatalyst/autopoc-opencode:kokoro-tuned-59c442d`
+  `sha256:ab2c5d90d2aade47ccd6c52b376330e93196775c1d63fd94b61186b4852e01f4`
+
+The renderer image is byte-identical to the one the 9.8.1 measurements ran
+against (same local image ID), and its packaged lexicon hashes to
+`2d35409050361931caaf9964c286dee794c3ceb13c3a86c3cdfd97f572a3822c`, matching the
+committed file. The worker imports the executive CLI modules with no speech
+dependencies present and reports the tuned 3.0 estimate rate.
+
+Both images must be used together. The worker seals `lexicon_sha256` into
+`scenes.json`, and an older renderer accepts that field and ignores it, so
+pairing this worker with a previously cached renderer would silently drop
+pronunciation while the seal still claimed it. No cluster run was started and
+no deployment configuration was changed.
