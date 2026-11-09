@@ -715,6 +715,14 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
 - Worker verified the pinned source branch, remote and operator protection
   attestation, then recorded fork adoption completed without default-branch writes.
 
-Remaining: execute the remaining eight phases or record a bounded mandatory failure; inspect
+#### 9.7.5 Author and publish the fresh PoC plan — ✅ 9 November 2026
+
+- State records plan completed; immutable plan publication succeeded. Five
+  scenarios: gateway-health, gateway-metrics, sandbox-exec,
+  sandbox-node-placement and network-denial. These are planned checks, not results.
+- Containerization follows using three fresh source builds and disclosed
+  reference Dockerfiles. Runtime deployment/testing have not yet succeeded.
+
+Remaining: execute the remaining seven phases or record a bounded mandatory failure; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
 new narrated video when eligible. No end-to-end success is claimed yet.

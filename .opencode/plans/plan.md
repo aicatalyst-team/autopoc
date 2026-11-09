@@ -282,6 +282,7 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Fresh OpenShell source intake | ✅ 9 November — pinned source inspected; gateway/supervisor/sandbox identified; evaluation next |
 | Fresh OpenShell evaluation | ✅ 9 November — assessment completed/staged; artifact publication underway |
 | Fresh OpenShell protected-fork adoption | ✅ 9 November — new source branch/remote/attestation verified, no default-branch writes |
+| Fresh OpenShell PoC plan | ✅ 9 November — five scenarios planned/published; containerization next, no test results yet |
 
 This is a local throwaway audition, not production narration acceptance. Technical
 pronunciation, offline packaging, per-scene synchronization and restricted OCP
