@@ -137,6 +137,33 @@ def test_reviewed_text_cannot_smuggle_engine_phoneme_markup(tmp_path):
         )
 
 
+def test_lexicon_covers_the_terms_real_narration_actually_speaks(tmp_path):
+    """The first delivered narration exposed a seed set chosen from the spec's
+    vocabulary rather than from spoken content: it matched 2 of 18 hard terms.
+    These are the initialisms and brands whose default reading is most likely
+    wrong. Each remains provisional until the listening pass confirms it.
+    """
+    from autopoc.executive_speech import LEXICON
+
+    for token in ("NVIDIA", "mTLS", "OIDC", "PVC", "UBI9", "Quay", "PoC", "vLLM"):
+        assert token in LEXICON.entries, token
+
+
+def test_a_digit_suffixed_term_needs_its_own_entry(tmp_path):
+    """`UBI` must not fire inside `UBI9` — a partial override would mispronounce
+    the whole token — so every spoken surface form needs an explicit entry.
+    """
+    from autopoc.executive_speech import LEXICON
+
+    assert LEXICON.apply("Built on UBI9 images.") == (
+        f"Built on [UBI9](/{LEXICON.entries['UBI9']}/) images."
+    )
+    assert LEXICON.apply("Built on UBI images.") == (
+        f"Built on [UBI](/{LEXICON.entries['UBI']}/) images."
+    )
+    assert LEXICON.apply("The rubies are UBIquitous.") == "The rubies are UBIquitous."
+
+
 def test_packaged_lexicon_only_uses_supported_american_phonemes(tmp_path):
     """Symbols outside Misaki's US vocabulary are dropped silently at inference."""
     from autopoc.executive_speech import US_VOCAB, LEXICON, load_lexicon

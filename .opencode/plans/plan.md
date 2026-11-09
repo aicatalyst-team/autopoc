@@ -418,3 +418,9 @@ those renderer-code fixes. Final media output verification remains pending.
   unchanged. Receipt: docs/validation/openshell-kokoro-3d-2026-11-09.json.
   Temporary helper removed after retaining proof; app/PVC and prior video kept.
   Drive and listening gates remain; no production activation or product-code fix.
+
+- ✅ Evidence-based tuning of the applied refinements (9.8), 9 November: lexicon
+  rebuilt from spoken content (2/18 to 7/18 hard terms), duration guard
+  recalibrated from the measured 2.05 words/second, Vale config discovery fixed
+  and result counters ordered by outcome. 496 Python tests at 86.44%, 40 Node
+  checks. Renderer capability gate and human listening remain open.

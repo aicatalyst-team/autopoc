@@ -91,3 +91,15 @@ test('accept real TopoLoop edge pairs with evidence ownership', async () => {
   data.narrative.slides[3].graph_claim_ids = ['claim-3']
   await prepare(data, async () => {})
 })
+
+test('result counters render in outcome order, not JSON key order', async () => {
+  const { resultOrder } = await import('./storyboard.mjs')
+  const data = await fixture()
+  assert.deepEqual(resultOrder, ['pass', 'fail', 'error', 'skip', 'incomplete'])
+  // Authored narratives serialize alphabetically; the deck must not inherit it.
+  assert.notDeepEqual(Object.keys(data.narrative.results).sort(), resultOrder)
+  assert.deepEqual([...resultOrder].sort(), Object.keys(data.narrative.results).sort())
+  const vue = await readFile(new URL('./components/ExecutiveSlide.vue', import.meta.url), 'utf8')
+  assert.match(vue, /v-for="status in resultOrder"/)
+  assert.doesNotMatch(vue, /v-for="\(value, status\) in narrative\.results"/)
+})

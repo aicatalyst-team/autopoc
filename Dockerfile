@@ -69,9 +69,12 @@ COPY .opencode/skills/ /opt/autopoc/.opencode/skills/
 COPY opencode.json /opt/autopoc/opencode.json
 COPY AGENTS.md /opt/autopoc/AGENTS.md
 
-# Vale prose linting config and styles
+# Vale prose linting config and styles. Vale otherwise discovers .vale.ini by
+# walking up from the working directory, which fails for content on the run PVC
+# outside /opt/autopoc; pin it so linting works from any directory.
 COPY .vale.ini /opt/autopoc/.vale.ini
 COPY .vale/styles/ /opt/autopoc/.vale/styles/
+ENV VALE_CONFIG_PATH=/opt/autopoc/.vale.ini
 
 # Initialize a git repo so OpenCode discovers project-local skills.
 # Must happen after all COPY commands that write to /opt/autopoc.

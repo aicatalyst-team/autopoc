@@ -251,6 +251,22 @@ def test_plausible_long_script_is_left_to_measured_audio(tmp_path):
     validate_scene_plan(plan, narrative)
 
 
+def test_estimate_stays_below_the_slowest_measured_delivery(tmp_path):
+    """Delivered narration measured 1.84 words/second in its slowest scene.
+
+    The guard must assume speech faster than anything observed, or it would
+    reject scripts that do fit; it must not be so loose that a script well over
+    budget still reaches synthesis before failing.
+    """
+    from autopoc.executive_story import DEFAULT_TIMING_POLICY, FASTEST_WORDS_PER_SECOND
+
+    assert FASTEST_WORDS_PER_SECOND > 2.20
+    budget = DEFAULT_TIMING_POLICY["max_total_seconds"]
+    measured_capacity = budget * 2.05
+    rejects_above = budget * FASTEST_WORDS_PER_SECOND
+    assert rejects_above / measured_capacity <= 1.5
+
+
 def test_story_accepts_real_topoloop_edge_pairs(tmp_path):
     from pathlib import Path
 

@@ -5,6 +5,7 @@ import { usePreferredReducedMotion } from '@vueuse/core'
 import TopoLoop from '../vendor/topoloop/src/TopoLoop.vue'
 import { redhatTheme } from './redhat-theme.ts'
 import { loadSceneAssets } from '../scene-validation.mjs'
+import { resultOrder } from '../storyboard.mjs'
 import narrative from '../narrative.json'
 import scenes from '../scenes.json'
 
@@ -55,7 +56,7 @@ onBeforeUnmount(() => { window.removeEventListener('executive-reset', reset); wi
     </header>
     <main class="scene-content" :class="{ 'graph-content': graphScene, 'graph-results': graphScene && resultsScene }" data-layout-region="slide content">
       <div v-if="resultsScene" class="results">
-        <div v-for="(value, status) in narrative.results" :key="status" :class="status" :data-layout-region="'result ' + status"><strong>{{ value }}</strong><span>{{ status }}</span></div>
+        <div v-for="status in resultOrder" :key="status" :class="status" :data-layout-region="'result ' + status"><strong>{{ narrative.results[status] }}</strong><span>{{ status }}</span></div>
       </div>
       <div v-if="graphScene" class="topology-stage" :class="{ 'scenario-stage': section === 'execution' || kind === 'test_execution' }">
         <TopoLoop v-if="graph && (active || isPrintMode)" :key="generation" :spec="graph" :theme="redhatTheme" :seed="1" :rate="rate" :freeze-at="validationTime ?? (isPrintMode || reducedMotion === 'reduce' ? 3 : null)" />

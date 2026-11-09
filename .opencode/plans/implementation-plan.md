@@ -1117,3 +1117,57 @@ renderer and Heart policy; no deployment/test replay or production rollout.
   Job and observing its Pod deleted.
 - Kept the application/workspace PVC and prior artifacts. Completed draft,
   inspection and renderer Jobs retain their normal seven-day TTL for audit.
+
+### 9.8 Tune the refinements against delivered evidence — ✅ 9 November 2026
+
+The 9 November OpenShell delivery produced the first real narration, which made
+three of the 9.6 choices measurable instead of assumed. Plan: Task 9 follow-up.
+
+1. **Lexicon rebuilt from spoken content.** The seed set was chosen from the
+   design vocabulary, not from narration. Against the delivered transcript it
+   fired on 2 of 18 hard terms, and four entries (Kokoro, Qwen, Slidev, RBAC)
+   never occurred. Added `NVIDIA`, `mTLS`, `OIDC`, `PVC` and `UBI9`: coverage is
+   now 7 of 18. `UBI9` needed its own entry because `UBI` correctly refuses to
+   match inside a longer token — every spoken surface form needs an entry, which
+   is now asserted by test. Deliberately excluded, with the reasons recorded in
+   the lexicon's `selection` field: CamelCase product names Misaki already
+   splits (OpenShift, OpenShell, StatefulSet, NetworkPolicies), common
+   initialisms it already spells out (GPU, TCP, SDK, API, CPU), and contested
+   readings such as kubectl. All entries stay provisional until listening.
+2. **Duration estimate recalibrated.** Measured from the delivered audio: 410
+   words over 199.60s of speech is 2.05 words/second, per-scene range 1.84-2.20.
+   The code assumed 2.4 and guarded at 4.0, so the guard was 1.95x looser than
+   reality: a 900s budget really holds about 1848 words while the guard only
+   rejected above about 3600, leaving scripts between those sizes to pass
+   sealing and fail after synthesis. Now 3.0 — still above the slowest observed
+   scene by 63%, so it cannot reject a script that fits, but it catches roughly
+   1.5x overruns instead of only 2x.
+3. **Vale config discovery fixed.** `.vale.ini` was never missing; it is in the
+   worker image at `/opt/autopoc/.vale.ini`. The blog step was the only Vale
+   call that `cd`-ed into the run PVC first, and Vale resolves config by walking
+   up from the working directory, which never reaches `/opt/autopoc`. The plan
+   and report calls pass absolute paths from the image working directory and
+   succeeded. The blog call now uses that same pattern, and the image pins
+   `VALE_CONFIG_PATH`. Not executed here: vale is not installed on this host, so
+   this is a corrected discovery path, not a reproduced lint run.
+4. **Result counters render in outcome order.** The deck iterated
+   `narrative.results` directly, so display order followed JSON key order.
+   Authored narratives serialize alphabetically, which put the only meaningful
+   figure, 5 pass, fourth behind four zeros on the delivered results slide.
+   The renderer now uses an explicit `pass, fail, error, skip, incomplete`
+   order. Colour coding is unchanged; zero-valued error and fail still render
+   red, which is a separate design question.
+
+Observed from the 3D re-render, not acted on: peak memory rose from 2.757GB to
+3.399GB of the 4Gi limit, 79%, once TopoLoop graph scenes were added, so the
+remaining headroom is about 0.9GB and the long-stress case is the one to watch.
+The visual preflight also recorded two unfixed renderer issues - `freezeAt`
+repaint scheduling and a geometry guard that excludes full node subtitles and
+namespace captions - and a clipped decorative caption reached draft output and
+was caught by human inspection rather than by the guard.
+
+Verification: 496 Python tests at 86.44% against the unchanged 80% gate, 40 Node
+checks, pinned Ruff 0.15.11 and Pyright clean. No render, PoC replay, image
+rebuild or cluster change. The renderer capability gate stays open by decision:
+a worker rebuilt from HEAD would seal `lexicon_sha256` into plans that the
+warm-cached baseline renderer accepts and silently ignores.

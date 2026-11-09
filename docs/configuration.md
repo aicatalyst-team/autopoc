@@ -102,8 +102,15 @@ in `scenes.json`, so a changed pronunciation cannot reuse an approved scene
 plan and must be re-reviewed; a plan without the field renders with no
 overrides. Phoneme values must use Misaki's American English vocabulary —
 unsupported symbols are dropped silently at inference, so they are rejected at
-load. The seed entries are expected pronunciations, not measured ones; confirm
-each during the acceptance listening pass.
+load. Entries are expected pronunciations, not measured ones; confirm each
+during the acceptance listening pass.
+
+Entries are selected from terms delivered narration actually speaks, and the
+file's `selection` field records why each class is in or out. CamelCase product
+names and common initialisms are deliberately absent because Misaki already
+handles them. A digit-suffixed surface form needs its own entry: `UBI` does not
+fire inside `UBI9`. When a render mispronounces a term, add that exact surface
+form rather than rewording the reviewed script.
 
 Narrated videos carry a sentence-level English `mov_text` caption track built
 from the measured timeline, and `captions.vtt` is retained in

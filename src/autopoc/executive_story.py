@@ -30,10 +30,13 @@ DEFAULT_TIMING_POLICY = {
     "max_total_seconds": 900,
     "max_scenes": 30,
 }
-# Heart at speed 0.95 delivers roughly 2.4 words per second. Estimating at 4.0
-# keeps the seal-time guard a lower bound, so it can only reject scripts that no
-# delivery speed could fit; it never prejudges a script that might actually fit.
-FASTEST_WORDS_PER_SECOND = 4.0
+# Measured from the delivered OpenShell narration (410 words over 199.60s of
+# speech): Heart at speed 0.95 averages 2.05 words per second, per-scene range
+# 1.84-2.20. Estimating at 3.0 stays a lower bound - 63% faster than the slowest
+# observed scene - so the guard still cannot reject a script that might fit,
+# while catching scripts roughly 1.5x over budget instead of only 2x over.
+# Re-measure from docs/validation/ receipts before changing this.
+FASTEST_WORDS_PER_SECOND = 3.0
 # misaki.en.LINK_REGEX: Misaki reads "[word](/ips/)" in ordinary text as a
 # pronunciation or stress override, so reviewed scripts must never contain it.
 MARKUP = re.compile(r"\[[^\]]+\]\([^)]*\)")

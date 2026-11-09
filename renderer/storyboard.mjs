@@ -1,5 +1,9 @@
 /** Pure data validation/mapping. This module is safe to import in the browser. */
 export const storySections = ['objective', 'testing', 'setup', 'execution', 'results', 'limitations', 'recommendation']
+// Outcome significance, not JSON key order. Authored narratives serialize
+// results alphabetically, which put the only meaningful figure fourth behind
+// four zeros on the delivered 9 November deck.
+export const resultOrder = ['pass', 'fail', 'error', 'skip', 'incomplete']
 export const timingPolicy = { lead_seconds:.35, tail_seconds:.65, min_scene_seconds:6, sentence_gap_seconds:.20, max_scene_seconds:120, max_total_seconds:900, max_scenes:30 }
 const white = /[\p{White_Space}\u001c-\u001f]+/u
 const trim = value => value.replace(/^[\p{White_Space}\u001c-\u001f]+|[\p{White_Space}\u001c-\u001f]+$/gu, '')

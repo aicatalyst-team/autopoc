@@ -882,9 +882,14 @@ Report written and committed.
  3. The blog-create skill handles the content generation (draft, review loop, finalize).
  4. **Run Vale linting on final blog post:**
     ```bash
-    cd "$WORK_DIR/repos/$PROJECT_NAME/.autopoc/blog"
-    vale --output=JSON final.md 2>/dev/null || true
+    vale --output=JSON "$WORK_DIR/repos/$PROJECT_NAME/.autopoc/blog/final.md" 2>/dev/null || true
     ```
+    Do not `cd` into the workspace first. Vale finds `.vale.ini` by walking up
+    from the working directory, and `$WORK_DIR` is the run PVC, which never
+    reaches the image's `/opt/autopoc`. That is what produced the E100
+    "missing .vale.ini" in the 9 November OpenShell run while plan and report
+    linting, which pass absolute paths from the image working directory,
+    both succeeded.
  5. **MANDATORY — Upload to Google Docs (if GOOGLE_DOCS_FOLDER_ID is set):**
     Do NOT skip this step. After committing the blog to the artifacts branch,
     run the upload command before moving on to sheet write-back or the next PoC.

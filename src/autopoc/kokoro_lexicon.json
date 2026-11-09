@@ -1,14 +1,20 @@
 {
   "schema_version": 1,
   "language": "en-US",
+  "selection": "Initialisms and coined or brand names whose default grapheme-to-phoneme reading is most likely wrong, chosen from terms that delivered narration actually speaks. Deliberately excluded: CamelCase product names (OpenShift, OpenShell, StatefulSet, NetworkPolicies) that Misaki already splits into ordinary words; common initialisms (GPU, TCP, SDK, API, CPU) it already spells out; and contested readings such as kubectl. Every entry is an expected pronunciation, not a measured one, until the acceptance listening pass confirms it. A digit-suffixed form needs its own entry: UBI does not fire inside UBI9.",
   "entries": {
     "Kokoro": "kˈOkəɹO",
+    "NVIDIA": "ɛnvˈɪdiə",
+    "OIDC": "ˌOˌIdˌiˈsi",
+    "PVC": "pˌivˌiˈsi",
     "PoC": "pˌiˌOsˈi",
     "Quay": "kˈi",
     "Qwen": "ʧwˈɛn",
     "RBAC": "ˈɑɹbæk",
     "Slidev": "slˈIdɛv",
     "UBI": "jˌubˌiˈI",
+    "UBI9": "jˌubˌiˌInˈIn",
+    "mTLS": "ˌɛmtˌiˌɛlˈɛs",
     "vLLM": "vˌiˈɛlˌɛlˈɛm"
   }
 }
