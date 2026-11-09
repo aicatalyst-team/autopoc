@@ -483,6 +483,7 @@ recommendations are not execution instructions.
 | Engineering implementation and acceptance | ✅ Done | Eight tasks; real local and restricted-v2 OCP media acceptance; independent review fixes verified |
 | External refinement review | ✅ Done | 9 November: seven findings checked against implementation; follow-up changes remain proposed |
 | Omit PoC dates from voice-over | ✅ Done | 9 November: author/reviewer rules updated; existing sealed demo unchanged |
+| Fresh OpenShell end-to-end branch run | In progress | 9 November: access/preflight complete; isolated worker/deployment/testing/report/narrated-media run |
 | Controlled production rollout | Pending | Drive invalid_grant, human listening and explicit merge/live configuration approval |
 
 ### 9.1 Generate and verify a local Kokoro audition — ✅ 8 November 2026
@@ -666,3 +667,32 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   review/seal/render, not an unreviewed speech-time text substitution.
 - Verified the actual ZIP transcript and reviewed the documentation diff. No
   runtime code changed and no new rendering or PoC execution is claimed.
+
+### 9.7 Fresh OpenShell end-to-end branch run — In progress, 9 November 2026
+
+#### 9.7.1 Verify access and prepare an isolated branch-based run — ✅
+
+- User requested a new full OpenShell deployment, original validation, report and
+  narrated video from the local AutoPoC branch. Current OCP login and Job/project
+  creation permissions are verified. Existing deployments are retained.
+- Built/pushed worker from engine commit `35f79ec`; image digest
+  `sha256:e59d3c31d599e30528a1f974bf71162dceab9d9cec8a67e3074da3b39b24cd99`.
+  Six code/config/guidance hashes match this checkout, including date-free speech
+  guidance. No pending review refinements are represented as implemented.
+- New run `90b344e86812455caf110467384bbbea`; source NVIDIA/OpenShell revision
+  `f4a6137513b777c9b362be54baf388f7d45398aa`, new source branch
+  `codex/openshell-kokoro-20261109-90b344e8` in the existing protected fork.
+  Operator reverified main protection and scoped worker GitHub access.
+- Worker Job `autopoc-openshell-kokoro-90b344e8` in `autopoc-test`; new workspace
+  PVC and application namespace `poc-openshell-kokoro-20261109`. Runtime and
+  validation grants follow the prior restricted setup, scoped to the new run.
+  Current configured Qwen model is retained; no shared Secret/CronJob changes.
+- Rechecked Drive refresh: `RefreshError` persists. Plan is local sealed inputs
+  on the run PVC, trusted pinned Kokoro renderer on OCP and direct verified
+  retrieval. This tests actual generation, not Drive publication or automatic
+  production dispatch. Reference Dockerfiles/storage lessons are disclosed setup
+  assistance, never new-run results. All validation/evidence must be fresh.
+
+Remaining: execute eleven phases or record a bounded mandatory failure; inspect
+actual results/report and genuine narrative review; render/retrieve/verify the
+new narrated video when eligible. No end-to-end success is claimed yet.

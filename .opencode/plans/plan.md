@@ -277,6 +277,8 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Implement and validate narrated rendering | ✅ Done — eight tasks, reviewed offline image, real local/OCP video acceptance |
 | Review external implementation refinements | ✅ 9 November — all seven checked; dispositions in implementation-plan.md section 9.5; follow-up changes proposed |
 | Omit PoC dates from spoken narration | ✅ 9 November — author/reviewer policy and design updated; existing demo has not been re-rendered |
+| Prepare a fresh OpenShell end-to-end branch run | ✅ 9 November — access, image identity, protected source branch and isolated run configuration verified |
+| Execute fresh OpenShell deployment/tests/report/video | In progress — run 90b344e86812455caf110467384bbbea; direct retrieval planned while Drive authentication is blocked |
 
 This is a local throwaway audition, not production narration acceptance. Technical
 pronunciation, offline packaging, per-scene synchronization and restricted OCP
@@ -322,3 +324,10 @@ date/timestamp from spoken text, including dates written in words; use "the
 archived run" if historical context matters. Original evidence dates remain.
 Authoring and independent-review guidance now enforce this content requirement.
 The existing sealed demo remains unchanged pending a fresh reviewed render.
+
+Fresh OpenShell run preflight — ✅ 9 November 2026. Worker built from current
+engine commit 35f79ec, fresh application namespace/workspace/source branch, same
+pinned NVIDIA source and configured Qwen model. Prior deployments/results remain
+untouched. Deployment/testing/report/reviewed Kokoro rendering are in progress;
+Drive refresh still fails, so generation and direct retrieval are distinguished
+from cloud publication. Track execution in implementation-plan.md section 9.7.
