@@ -676,14 +676,14 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   narrated video from the local AutoPoC branch. Current OCP login and Job/project
   creation permissions are verified. Existing deployments are retained.
 - Built/pushed worker from engine commit `35f79ec`; image digest
-  `sha256:e59d3c31d599e30528a1f974bf71162dceab9d9cec8a67e3074da3b39b24cd99`.
+  `sha256:220d1bceb1a37e642830d76efbeb50327eb9b872d9e5f27079852c5de9589326`.
   Six code/config/guidance hashes match this checkout, including date-free speech
   guidance. No pending review refinements are represented as implemented.
 - New run `90b344e86812455caf110467384bbbea`; source NVIDIA/OpenShell revision
   `f4a6137513b777c9b362be54baf388f7d45398aa`, new source branch
   `codex/openshell-kokoro-20261109-90b344e8` in the existing protected fork.
   Operator reverified main protection and scoped worker GitHub access.
-- Worker Job `autopoc-openshell-kokoro-90b344e8` in `autopoc-test`; new workspace
+- Worker Job `autopoc-openshell-kokoro-90b344e8-r1` in `autopoc-test`; new workspace
   PVC and application namespace `poc-openshell-kokoro-20261109`. Runtime and
   validation grants follow the prior restricted setup, scoped to the new run.
   Current configured Qwen model is retained; no shared Secret/CronJob changes.
@@ -692,6 +692,11 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   retrieval. This tests actual generation, not Drive publication or automatic
   production dispatch. Reference Dockerfiles/storage lessons are disclosed setup
   assistance, never new-run results. All validation/evidence must be fresh.
+- Initial launch referenced the local image manifest digest, which differs from
+  the registry-published manifest. It failed with `manifest unknown` before init
+  or PoC execution. Retained admission events, obtained the actual push digest,
+  and replaced only this pending worker Job using the same fresh workspace/run.
+  This is a disclosed launch correction, not a PoC-test retry or result.
 
 Remaining: execute eleven phases or record a bounded mandatory failure; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
