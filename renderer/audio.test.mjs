@@ -86,7 +86,8 @@ test('real FFmpeg preserves silence, tones and boundaries with one AAC encode',{
     const vtt=execFileSync('ffmpeg',['-v','error','-i',join(f.root,'executive-summary.mp4'),'-map','0:s:0','-f','webvtt','pipe:1'],{maxBuffer:4*1024*1024}).toString()
     const spoken=JSON.parse(await readFile(join(f.input,'narrative.json'))).slides[0].narration[0].text
     assert.ok(vtt.includes(spoken),vtt.slice(0,400))
-    assert.match(vtt,/00:00:00\.350 --> 00:00:01\.350/)
+    // We write HH:MM:SS.mmm; FFmpeg's webvtt muxer re-emits the hour-less form.
+    assert.match(vtt,/(?:00:)?00:00\.350 --> (?:00:)?00:01\.350/)
   }finally {await rm(f.root,{recursive:true,force:true})}
 })
 

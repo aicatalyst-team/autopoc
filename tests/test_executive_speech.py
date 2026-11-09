@@ -88,13 +88,13 @@ def test_lexicon_guides_synthesis_without_altering_reviewed_text(tmp_path):
     from autopoc.executive_speech import LEXICON, generate_narration
 
     narrative, scenes, assets = inputs(tmp_path, lexicon=True)
-    with_narration(narrative, "We pushed the image to Quay.")
+    with_narration(narrative, "We completed the PoC.")
     engine = RecordingEngine()
     result = generate_narration(
         narrative, scenes, tmp_path / "output", asset_root=assets, engine=engine
     )
-    assert engine.texts[0] == f"We pushed the image to [Quay](/{LEXICON.entries['Quay']}/)."
-    assert "We pushed the image to Quay." in (tmp_path / "output" / "transcript.txt").read_text()
+    assert engine.texts[0] == f"We completed the [PoC](/{LEXICON.entries['PoC']}/)."
+    assert "We completed the PoC." in (tmp_path / "output" / "transcript.txt").read_text()
     assert result["lexicon_sha256"] == LEXICON.sha256
 
 
@@ -116,12 +116,12 @@ def test_inputs_sealed_before_the_lexicon_keep_their_original_pronunciation(tmp_
     from autopoc.executive_speech import generate_narration
 
     narrative, scenes, assets = inputs(tmp_path)
-    with_narration(narrative, "We pushed the image to Quay.")
+    with_narration(narrative, "We completed the PoC.")
     engine = RecordingEngine()
     result = generate_narration(
         narrative, scenes, tmp_path / "output", asset_root=assets, engine=engine
     )
-    assert engine.texts[0] == "We pushed the image to Quay."
+    assert engine.texts[0] == "We completed the PoC."
     assert result["lexicon_sha256"] is None
 
 
@@ -137,31 +137,40 @@ def test_reviewed_text_cannot_smuggle_engine_phoneme_markup(tmp_path):
         )
 
 
-def test_lexicon_covers_the_terms_real_narration_actually_speaks(tmp_path):
-    """The first delivered narration exposed a seed set chosen from the spec's
-    vocabulary rather than from spoken content: it matched 2 of 18 hard terms.
-    These are the initialisms and brands whose default reading is most likely
-    wrong. Each remains provisional until the listening pass confirms it.
+def test_every_entry_records_the_default_it_replaces(tmp_path):
+    """Overrides are only justified by a measured-wrong default.
+
+    Comparing Misaki's g2p with and without each override inside the renderer
+    image on 9 November 2026 showed its defaults are mostly right: NVIDIA, Quay,
+    UBI, UBI9 and mTLS were already correct, and an override for UBI9 was worse
+    than the default because it dropped the word break before "nine". An entry
+    with no recorded default is an assumption, so require the evidence.
     """
-    from autopoc.executive_speech import LEXICON
+    from autopoc.executive_speech import LEXICON, LEXICON_PATH
 
-    for token in ("NVIDIA", "mTLS", "OIDC", "PVC", "UBI9", "Quay", "PoC", "vLLM"):
-        assert token in LEXICON.entries, token
+    document = json.loads(LEXICON_PATH.read_text())
+    assert set(document["measured_defaults"]) == set(LEXICON.entries)
+    for token, default in document["measured_defaults"].items():
+        assert default != LEXICON.entries[token], f"{token} override matches the default"
+    for already_correct in ("NVIDIA", "Quay", "UBI", "UBI9", "mTLS"):
+        assert already_correct not in LEXICON.entries, already_correct
 
 
-def test_a_digit_suffixed_term_needs_its_own_entry(tmp_path):
-    """`UBI` must not fire inside `UBI9` — a partial override would mispronounce
-    the whole token — so every spoken surface form needs an explicit entry.
+def test_overrides_never_fire_inside_a_longer_token(tmp_path):
+    """A partial match would mispronounce the whole word, so every spoken
+    surface form needs its own entry rather than relying on a prefix.
     """
-    from autopoc.executive_speech import LEXICON
+    from autopoc.executive_speech import Lexicon, load_lexicon
 
-    assert LEXICON.apply("Built on UBI9 images.") == (
-        f"Built on [UBI9](/{LEXICON.entries['UBI9']}/) images."
+    path = tmp_path / "lex.json"
+    path.write_text(
+        json.dumps({"schema_version": 1, "language": "en-US", "entries": {"UBI": "jˌubˌiˈI"}})
     )
-    assert LEXICON.apply("Built on UBI images.") == (
-        f"Built on [UBI](/{LEXICON.entries['UBI']}/) images."
-    )
-    assert LEXICON.apply("The rubies are UBIquitous.") == "The rubies are UBIquitous."
+    lexicon = load_lexicon(path)
+    assert isinstance(lexicon, Lexicon)
+    assert lexicon.apply("Built on UBI9 images.") == "Built on UBI9 images."
+    assert lexicon.apply("They are UBIquitous.") == "They are UBIquitous."
+    assert lexicon.apply("Built on UBI images.") == "Built on [UBI](/jˌubˌiˈI/) images."
 
 
 def test_packaged_lexicon_only_uses_supported_american_phonemes(tmp_path):
@@ -172,7 +181,7 @@ def test_packaged_lexicon_only_uses_supported_american_phonemes(tmp_path):
     for token, phonemes in LEXICON.entries.items():
         assert set(phonemes) <= US_VOCAB, (token, set(phonemes) - US_VOCAB)
     broken = tmp_path / "broken.json"
-    broken.write_text(json.dumps({"schema_version": 1, "entries": {"Quay": "kgi"}}))
+    broken.write_text(json.dumps({"schema_version": 1, "entries": {"PoC": "kgi"}}))
     with pytest.raises(ValueError):
         load_lexicon(broken)
 

@@ -1171,3 +1171,35 @@ checks, pinned Ruff 0.15.11 and Pyright clean. No render, PoC replay, image
 rebuild or cluster change. The renderer capability gate stays open by decision:
 a worker rebuilt from HEAD would seal `lexicon_sha256` into plans that the
 warm-cached baseline renderer accepts and silently ignores.
+
+##### 9.8.1 Measure the lexicon against the real engine — ✅ 9 November 2026
+
+Built the renderer image from `67d8b2e` and compared Misaki g2p output with and
+without each override inside it. This was the first time any override reached
+the real engine, and it overturned the premise behind most of them.
+
+- Misaki's defaults are better than assumed. `NVIDIA` (`ɛnvˈɪdiə`), `Quay`
+  (`kˈi`), `UBI`, `UBI9` and `mTLS` were already correct; `OIDC`, `PVC` and
+  `vLLM` differed only in stress-marker position. The `UBI9` override was worse
+  than the default: Misaki says `jˌubˌiˈI nˈIn`, keeping the word break before
+  "nine", while the override ran them together. Quay, the term that motivated
+  the whole mechanism, was never mispronounced.
+- Removed all eight. The five that remain each replace a measured-wrong
+  default, now recorded in the lexicon's `measured_defaults` field and enforced
+  by test: Kokoro `kəkˈɔɹO`, PoC `pˈOsˌi` (said "poh-see"), Qwen `kjˈuwˈɛn`,
+  RBAC `ˌɑɹbˌiˌAsˈi`, Slidev `slˈIdəv`. Of these only PoC appears in delivered
+  PoC narration; the rest are AutoPoC's own tooling names.
+- Offline Heart smoke passed with no network and empty caches. Identical
+  phonemes still produced differing PCM bytes across two synthesis calls, which
+  is consistent with the existing rule not to promise byte-identical audio.
+- Caption mux verified under real libx264 for the first time: `mov_text` track
+  present, reviewed sentence exact, cues at the measured offsets. One real
+  defect found and fixed - in the test, not the feature. FFmpeg's webvtt muxer
+  re-emits the hour-less `MM:SS.mmm` form, so the assertion expecting
+  `HH:MM:SS.mmm` failed. Image suites now pass 16/16 FFmpeg and 2/2 browser,
+  the latter also covering the new outcome-ordered result counters.
+
+Standing correction: the original review claimed pronunciation control was
+needed because reviewed text cannot be reworded after approval. The mechanism
+and its review binding remain justified, but the scale of the problem was
+overestimated. Add an entry only after measuring the default in the image.
