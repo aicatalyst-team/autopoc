@@ -951,3 +951,24 @@ pronunciation confirmation, Drive credentials and merge approval remain gates.
   files. Fresh browser/PDF layout preflight is running before final sealing.
 - The one-off run remains pinned to code 35f79ec and the existing trusted renderer;
   later feature-branch refinements are not part of this measured run.
+
+##### 9.7.14.2 Approve and seal final source-aligned narrative — ✅ 9 November 2026
+
+- Same trusted renderer's browser/PDF preflight passed all six slides; operator
+  visually inspected all six 1280×720 pages with no clipping or overlap.
+- First full-source review exhausted its response budget without a verdict and
+  was rejected. Preserved that response; a fresh stateless configured Qwen
+  request with adequate output budget returned finish_reason=stop, approval,
+  zero blockers, twelve evidence members checked and unchanged input hashes.
+  Both exact pinned HA example files and the original audited test script were
+  included. Reviewer confirmed date-free narration and scoped network claims.
+- Sealed final input `15bd7f8c...3cdc7da`; final offline render-v5 now dispatched
+  against the immutable image and isolated transfer directory. Final delivery
+  and independent output verification remain pending.
+
+##### 9.7.14.3 Persist corrected canonical report — ✅ 9 November 2026
+
+- Common append-only artifact publisher wrote corrected canonical report
+  revision `40175095...7671dc`, commit `5023e376c603fa49916dcaef90ee114767c4eff1`
+  in the OpenShell fork's autopoc-artifacts branch. Prior report revisions remain
+  retained; source checkout/main were not changed. State records this revision.
