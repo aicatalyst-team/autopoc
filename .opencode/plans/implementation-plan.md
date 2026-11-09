@@ -486,6 +486,7 @@ recommendations are not execution instructions.
 | Omit PoC dates from voice-over | ✅ Done | 9 November: author/reviewer rules updated; existing sealed demo unchanged |
 | Fresh OpenShell end-to-end branch run | ✅ Done | 9 November: deployed, original 5/5 pass, corrected report persisted, final 3m28s Kokoro video and five artifacts retrieved/verified; Drive/listening gates remain |
 | Regenerate OpenShell with 3D views | ✅ Done | Two TopoLoop scenes; reviewed 3m28s video, animated browser deck/PDF/source retrieved and verified, original tests unchanged |
+| Simplify future voice-over English | ✅ Done | Author/reviewer guidance and synthetic example updated; STE principles without a restricted vocabulary; existing media retained |
 | Controlled production rollout | Pending | Drive invalid_grant, human listening and explicit merge/live configuration approval |
 
 ### 9.1 Generate and verify a local Kokoro audition — ✅ 8 November 2026
@@ -1225,3 +1226,45 @@ Both images must be used together. The worker seals `lexicon_sha256` into
 pairing this worker with a previously cached renderer would silently drop
 pronunciation while the seal still claimed it. No cluster run was started and
 no deployment configuration was changed.
+
+### 9.9 Simplify English in future voice-overs — ✅ 9 November 2026
+
+User requested English inspired by ASD-STE100 without its strict vocabulary,
+then explicitly selected future videos only. No current OpenShell media revision,
+new render, deployment or existing sealed-script change was requested.
+
+| Task | Status |
+|------|--------|
+| Update author/reviewer writing guidance and design/configuration notes | ✅ 9.9.1 |
+| Update and validate the synthetic narration example | ✅ 9.9.2 |
+| Confirm existing media preserved and record build/rollout scope | ✅ 9.9.3 |
+
+#### 9.9.1 Define the adapted voice-over style — ✅ 9 November 2026
+
+- Updated executive-narration.md: one main idea per sentence, active voice where
+  useful, simple verbs/tenses, consistent terms and helpful first-use explanations.
+  Aim for 10–20 words, normally within 25, with clear technical exceptions rather
+  than new hard schema limits. No controlled dictionary or compliance claim.
+- Preserve uncertainty, coverage limits, original-versus-planned distinctions and
+  all important facts. Include a source-linked network example. Simplification
+  happens before review/sealing; no synthesis-time paraphrase or duration target.
+- Independent review requests revision for dense/ambiguous wording while allowing
+  necessary technical vocabulary and justified sentence-length exceptions.
+  Updated the design and configuration notes, including worker-build scope.
+
+#### 9.9.2 Validate the revised synthetic spoken example — ✅ 9 November 2026
+
+- Changed only narration entries; retained visible claims, titles, selectors,
+  chapter order, graph fields, counts and classifications. Seven spoken entries,
+  maximum ten words per entry, with the original limitations preserved.
+- Verified its evidence archive and ran actual validate_story/validate_scene_plan
+  against the simple fixture. Both contracts passed; git diff whitespace checks
+  passed. This is documentation/example validation, not a new model or live run.
+
+#### 9.9.3 Preserve existing media and record activation scope — ✅ 9 November 2026
+
+- Rechecked all ten artifact hashes across the existing plain and 3D OpenShell
+  deliveries. Every file is unchanged. No TTS, PoC tests or cluster work ran.
+- Rules are committed source guidance. Dockerfile copies them into the worker
+  image, so the next worker build must include this revision before future runs
+  use it. No deployed image/shared settings or production rollout was changed.

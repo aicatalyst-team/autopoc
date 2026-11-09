@@ -66,7 +66,7 @@
       ],
       "narration": [
         {
-          "text": "Evaluate the synthetic server deployment on OpenShift.",
+          "text": "The goal is to test the server on OpenShift.",
           "claim_ids": [
             "claim-0"
           ]
@@ -87,7 +87,7 @@
       ],
       "narration": [
         {
-          "text": "Use HTTP checks to validate the deployed components.",
+          "text": "The test plan uses HTTP checks for the deployed components.",
           "claim_ids": [
             "claim-1"
           ]
@@ -108,7 +108,7 @@
       ],
       "narration": [
         {
-          "text": "One synthetic server was deployed.",
+          "text": "The setup included one server.",
           "claim_ids": [
             "claim-2"
           ]
@@ -150,7 +150,13 @@
       ],
       "narration": [
         {
-          "text": "Authenticated workflows and production reliability remain unproven.",
+          "text": "The results do not prove that workflows with authentication work.",
+          "claim_ids": [
+            "claim-4"
+          ]
+        },
+        {
+          "text": "They also do not prove reliability in production.",
           "claim_ids": [
             "claim-4"
           ]
@@ -171,7 +177,7 @@
       ],
       "narration": [
         {
-          "text": "Validate authenticated workflows before considering production use.",
+          "text": "Test workflows that require authentication before considering production use.",
           "claim_ids": [
             "claim-5"
           ]

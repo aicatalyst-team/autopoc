@@ -31,8 +31,57 @@ these three passes:
    `execution` follows setup. Repeated chapters remain contiguous. A simple PoC
    can use six slides; add slides when there is another point worth explaining.
 3. **Visible and spoken text:** write a takeaway title, 1–4 visible claims,
-   and fuller natural spoken sentences. Spoken explanation adds context while
-   preserving visible conclusions and caveats. It does not read logs aloud.
+   and fuller spoken explanations in the simple-English style below. Spoken
+   explanation adds context while preserving visible conclusions and caveats.
+   It does not read logs aloud.
+
+## Voice-over writing style
+
+For newly authored narration, use clear, simple technical English inspired by
+ASD-STE100. This is an adapted style for listening, not a claim of compliance
+with the standard. Do not restrict general words to its approved dictionary.
+The [official STE FAQ](https://www.asd-ste100.org/STE_faq.html) describes the
+principles that inform this approach.
+
+- Give the listener one main idea per sentence. Explain the result first,
+  then the reason or supporting detail. Split long lists and nested clauses.
+- Aim for 10–20 words per sentence; normally stay within 25. These are writing
+  targets, not new schema limits. Keep a longer sentence when a necessary
+  technical name or a clear explanation requires it. Do not shorten by dropping
+  articles, conditions, evidence limits or important facts.
+- Prefer active voice and concrete subjects: "The gateway returned a response"
+  or "The test created a sandbox." Use passive voice when the actor is unknown
+  or does not matter. Never invent an actor to make a sentence active.
+- Use simple verbs and familiar words. Prefer "use," "test," "start" and
+  "show" to unnecessarily formal alternatives. Avoid idioms, metaphors,
+  marketing language, long noun chains and sentences joined by semicolons.
+- Use the same term for the same component or action. Keep necessary product
+  names and technical terms, such as OpenShift, Kubernetes, sandbox and mTLS.
+  Briefly explain an unfamiliar term or acronym on first use when it helps the
+  listener. Do not read long resource identifiers aloud without a story reason.
+- Use simple past tense for recorded actions and results. Use present tense
+  for supported general facts, and clearly label plans and next steps.
+- Preserve uncertainty and scope. "We did not test this" is different from
+  "This failed." A working configuration does not prove security or production
+  readiness. Simplify the wording without changing these distinctions.
+- Read the draft as speech. Use complete, natural sentences and clear pronoun
+  references. Keep necessary detail; this style is not a shorter-video target.
+
+For example, replace a dense account of the network check with separate
+source-linked narration entries:
+
+> The test worker ran inside the cluster, outside the application namespace.
+> It connected to the gateway's metrics port.
+> It could not connect to port 2222 on the sandbox.
+> These results cover one network check from one location.
+> They do not prove that all network restrictions work.
+
+Each new sentence must retain the claim IDs that support it. Add or split slides
+if the clearer explanation needs more room; keep the existing sentence, word,
+slide and duration contracts. Do not merge ideas into dense sentences to fit.
+Apply this style before review and sealing, never as a synthesis-time rewrite.
+Existing reviewed/sealed scripts, recovery inputs and videos remain unchanged
+unless the user separately requests a new content revision.
 
 Do not speak the PoC's execution date or timestamp, whether written as digits
 or words. Run/report dates are provenance, not voice-over content. When the
@@ -127,13 +176,20 @@ check counts, planned/observed/inferred distinctions, platform suitability,
 coverage gaps, relevance of included fixes, intelligible narration and slide
 ordering. Reject an unsupported spoken claim even if the visible slide is correct.
 Retained logs/traces are evidence, not mandatory content.
+Check the requested simple-English style as well: short, focused sentences,
+clear subjects, consistent terms and useful explanations of unfamiliar terms.
+Request revision when dense or ambiguous wording makes the outcome hard to
+follow. Necessary technical vocabulary and a justified sentence above the
+25-word target are not failures by themselves. Do not apply an approved-word
+dictionary gate or claim formal ASD-STE100 compliance.
 Reject narration that states the PoC's execution date or timestamp, including
 spelled-out calendar dates. Revise to date-free historical context before
 approval; do not remove or alter dates in the original evidence.
 
 Use tools for character/word counts and selector checks rather than estimating
 them. Blocking findings identify unsupported/misleading claims, missing caveats,
-incorrect results or a violated data/layout contract. Stylistic preferences go
+incorrect results, wording that obscures the meaning, or a violated data/layout
+contract. Stylistic preferences go
 in non-blocking observations. A source-backed conflict is useful content when
 it changes how the viewer should interpret the reported outcome.
 

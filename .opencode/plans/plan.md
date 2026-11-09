@@ -424,3 +424,16 @@ those renderer-code fixes. Final media output verification remains pending.
   recalibrated from the measured 2.05 words/second, Vale config discovery fixed
   and result counters ordered by outcome. 496 Python tests at 86.44%, 40 Node
   checks. Renderer capability gate and human listening remain open.
+
+### Simple English for future voice-overs — ✅ 9 November 2026
+
+| Task | Status |
+|------|--------|
+| Adapt ASD-STE100 principles for authoring/review without a controlled dictionary | ✅ 9.9.1 — short focused sentences, active voice, simple verbs, consistent technical terms; facts/caveats retained |
+| Update the synthetic spoken example and verify its existing data contracts | ✅ 9.9.2 — seven entries, maximum ten words; evidence/story/scene checks passed |
+| Preserve current media and document worker-build activation | ✅ 9.9.3 — all ten old artifact hashes unchanged; future videos only, next worker build required |
+
+The user explicitly chose future videos only. Existing OpenShell scripts/videos
+remain unchanged. Targets of 10–20 words per sentence, normally within 25, guide
+writing rather than introduce a schema gate. Necessary technical vocabulary is
+allowed; no formal STE compliance is claimed. No live rollout occurred.

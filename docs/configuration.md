@@ -91,6 +91,12 @@ Job/CronJob templates and the launcher forward this setting. See
 `.opencode/skills/run-poc/references/executive-narration.md` for authoring and
 independent review. Select a renderer digest tested with template 3 and the
 exact packaged speech manifest; an image digest alone does not prove capability.
+New narration follows simple technical English inspired by ASD-STE100: short
+sentences, one main idea at a time, active voice and consistent terminology.
+Necessary technical vocabulary is allowed; no controlled dictionary is enforced.
+The author and reviewer apply this style before sealing. Existing videos and
+recovery inputs keep their reviewed wording. Updated authoring guidance must be
+included in the next worker build; it does not change an already deployed image.
 No per-video model download is needed. CPU Kokoro dependencies/model/voice and
 licenses are installed only in the separate renderer image at build time.
 

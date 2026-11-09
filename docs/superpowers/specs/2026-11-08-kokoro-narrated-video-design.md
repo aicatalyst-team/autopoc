@@ -75,6 +75,17 @@ while preserving original-versus-later evidence distinctions. Original dates
 remain in evidence/provenance; this is a spoken-content restriction. The content
 reviewer must reject a spoken run date before approval and sealing.
 
+User refinement, 9 November 2026: future narration uses simple technical English
+inspired by ASD-STE100, with unrestricted necessary technical vocabulary and no
+formal compliance claim. Prefer one idea per sentence, active voice, simple
+verbs/tenses and consistent terms. Aim for 10–20 words per sentence and normally
+no more than 25, with clear technical exceptions rather than a new hard schema
+limit. Explain unfamiliar terms when useful, and preserve all evidence limits,
+uncertainty and planned-versus-observed distinctions. The author and independent
+reviewer follow the detailed style in `executive-narration.md`. Apply changes
+before sealing; no synthesis-time paraphrase. The user explicitly chose future
+videos only, so the existing OpenShell videos and sealed inputs are unchanged.
+
 The separate reviewer sees all evidence and the exact final JSON, including the
 spoken script. It checks factual support, totals, claim classification,
 conflicts, omissions, platform distinctions and the relevance of troubleshooting.
