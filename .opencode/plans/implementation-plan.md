@@ -937,3 +937,17 @@ on this host because its ffmpeg lacks libx264; two of them predate this work.
 The caption mux was therefore verified separately against the real encoder.
 No render, PoC replay, cluster change or rollout occurred. Human listening,
 pronunciation confirmation, Drive credentials and merge approval remain gates.
+
+##### 9.7.14.1 Freeze final source-aligned media candidate — ✅ 9 November 2026
+
+- Suspended the content-only r2 worker after it exceeded useful wording-review
+  rounds; its Pod is gone, with drafts and prior reviews retained on the PVC.
+- Froze the corrected report/evidence and a compact six-chapter narrative as
+  final-media-v5. Evidence digest is `4e3f9119...5ad433e`; all five original
+  captured outcomes remain unchanged. Explicitly distinguish bundled HA
+  examples from HA behavior not exercised by this PoC.
+- Final independent configured-Qwen review includes all twelve verified bundle
+  members, the audited original test script, and both exact pinned HA source
+  files. Fresh browser/PDF layout preflight is running before final sealing.
+- The one-off run remains pinned to code 35f79ec and the existing trusted renderer;
+  later feature-branch refinements are not part of this measured run.
