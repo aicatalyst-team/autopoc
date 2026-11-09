@@ -36,13 +36,17 @@ def speech_assets(root):
     return root
 
 
-def inputs(tmp_path, *, slides=6):
+def inputs(tmp_path, *, slides=6, lexicon=False):
+    from autopoc.executive_speech import LEXICON
+
     assets = speech_assets(tmp_path / "assets")
     docs = v3_documents(tmp_path / "run", slides=slides)
     scenes = json.loads(docs[2].read_text())
     scenes["narration"]["model_manifest_sha256"] = hashlib.sha256(
         (assets / "manifest.json").read_bytes()
     ).hexdigest()
+    if lexicon:
+        scenes["narration"]["lexicon_sha256"] = LEXICON.sha256
     docs[2].write_text(json.dumps(scenes))
     return docs[1], docs[2], assets
 
@@ -60,6 +64,90 @@ class PCMEngine:
             else struct.pack("<h", 1000) * int(24000 * self.seconds)
         )
         return SpeechChunk(self.sample_rate, pcm)
+
+
+class RecordingEngine(PCMEngine):
+    def __init__(self, **options):
+        super().__init__(**options)
+        self.texts = []
+
+    def synthesize(self, text):
+        self.texts.append(text)
+        return super().synthesize(text)
+
+
+def with_narration(narrative, text):
+    doc = json.loads(narrative.read_text())
+    doc["slides"][0]["narration"] = [{"text": text, "claim_ids": ["claim-0"]}]
+    narrative.write_text(json.dumps(doc))
+    return doc
+
+
+def test_lexicon_guides_synthesis_without_altering_reviewed_text(tmp_path):
+    """Pronunciation is a synthesis detail; reviewed and published text is exact."""
+    from autopoc.executive_speech import LEXICON, generate_narration
+
+    narrative, scenes, assets = inputs(tmp_path, lexicon=True)
+    with_narration(narrative, "We pushed the image to Quay.")
+    engine = RecordingEngine()
+    result = generate_narration(
+        narrative, scenes, tmp_path / "output", asset_root=assets, engine=engine
+    )
+    assert engine.texts[0] == f"We pushed the image to [Quay](/{LEXICON.entries['Quay']}/)."
+    assert "We pushed the image to Quay." in (tmp_path / "output" / "transcript.txt").read_text()
+    assert result["lexicon_sha256"] == LEXICON.sha256
+
+
+def test_changed_pronunciation_cannot_reuse_a_reviewed_speech_identity(tmp_path):
+    from autopoc.executive_speech import generate_narration
+
+    narrative, scenes, assets = inputs(tmp_path, lexicon=True)
+    plan = json.loads(scenes.read_text())
+    plan["narration"]["lexicon_sha256"] = "0" * 64
+    scenes.write_text(json.dumps(plan))
+    with pytest.raises(ValueError, match="lexicon"):
+        generate_narration(
+            narrative, scenes, tmp_path / "output", asset_root=assets, engine=PCMEngine()
+        )
+
+
+def test_inputs_sealed_before_the_lexicon_keep_their_original_pronunciation(tmp_path):
+    """Absent identity means no overrides, so recovered renders stay comparable."""
+    from autopoc.executive_speech import generate_narration
+
+    narrative, scenes, assets = inputs(tmp_path)
+    with_narration(narrative, "We pushed the image to Quay.")
+    engine = RecordingEngine()
+    result = generate_narration(
+        narrative, scenes, tmp_path / "output", asset_root=assets, engine=engine
+    )
+    assert engine.texts[0] == "We pushed the image to Quay."
+    assert result["lexicon_sha256"] is None
+
+
+def test_reviewed_text_cannot_smuggle_engine_phoneme_markup(tmp_path):
+    """Misaki reads [word](/ips/) as an override, so scripts must not contain it."""
+    from autopoc.executive_speech import generate_narration
+
+    narrative, scenes, assets = inputs(tmp_path, lexicon=True)
+    with_narration(narrative, "The deployment [failed](/sʌksˈɛst/) on the first attempt.")
+    with pytest.raises(ValueError, match="markup"):
+        generate_narration(
+            narrative, scenes, tmp_path / "output", asset_root=assets, engine=PCMEngine()
+        )
+
+
+def test_packaged_lexicon_only_uses_supported_american_phonemes(tmp_path):
+    """Symbols outside Misaki's US vocabulary are dropped silently at inference."""
+    from autopoc.executive_speech import US_VOCAB, LEXICON, load_lexicon
+
+    assert LEXICON.entries
+    for token, phonemes in LEXICON.entries.items():
+        assert set(phonemes) <= US_VOCAB, (token, set(phonemes) - US_VOCAB)
+    broken = tmp_path / "broken.json"
+    broken.write_text(json.dumps({"schema_version": 1, "entries": {"Quay": "kgi"}}))
+    with pytest.raises(ValueError):
+        load_lexicon(broken)
 
 
 def test_measured_sentence_samples_preserve_offsets_and_script(tmp_path):
@@ -92,6 +180,31 @@ def test_measured_sentence_samples_preserve_offsets_and_script(tmp_path):
         ) == (24000, 1, 2, 52800)
     assert "A second reviewed sentence." in (tmp_path / "output" / "transcript.txt").read_text()
     assert json.loads((tmp_path / "output" / "timeline.json").read_text()) == result
+
+
+def test_captions_follow_measured_speech_and_quote_the_reviewed_script(tmp_path):
+    """Cue times are scene start plus the lead-in plus the measured offsets."""
+    from autopoc.executive_speech import generate_narration
+
+    narrative, scenes, assets = inputs(tmp_path)
+    doc = json.loads(narrative.read_text())
+    doc["slides"][0]["narration"] = [
+        {"text": "Results & caveats for <one> server.", "claim_ids": ["claim-0"]},
+        {"text": "A second reviewed sentence.", "claim_ids": ["claim-0"]},
+    ]
+    narrative.write_text(json.dumps(doc))
+    result = generate_narration(
+        narrative, scenes, tmp_path / "output", asset_root=assets, engine=PCMEngine()
+    )
+    captions = (tmp_path / "output" / "captions.vtt").read_text(encoding="utf-8")
+    assert captions.startswith("WEBVTT\n\n")
+    assert (
+        "00:00:00.350 --> 00:00:01.350\nResults &amp; caveats for &lt;one&gt; server." in captions
+    )
+    assert "00:00:01.550 --> 00:00:02.550\nA second reviewed sentence." in captions
+    assert "00:00:06.350 --> 00:00:07.350" in captions
+    assert result["captions_sha256"] == hashlib.sha256(captions.encode()).hexdigest()
+    assert captions.count("-->") == sum(len(s["sentence_offsets"]) for s in result["scenes"])
 
 
 def test_long_audio_extends_scene_instead_of_speeding_or_clipping(tmp_path):

@@ -30,6 +30,13 @@ DEFAULT_TIMING_POLICY = {
     "max_total_seconds": 900,
     "max_scenes": 30,
 }
+# Heart at speed 0.95 delivers roughly 2.4 words per second. Estimating at 4.0
+# keeps the seal-time guard a lower bound, so it can only reject scripts that no
+# delivery speed could fit; it never prejudges a script that might actually fit.
+FASTEST_WORDS_PER_SECOND = 4.0
+# misaki.en.LINK_REGEX: Misaki reads "[word](/ips/)" in ordinary text as a
+# pronunciation or stress override, so reviewed scripts must never contain it.
+MARKUP = re.compile(r"\[[^\]]+\]\([^)]*\)")
 
 
 def _need(condition, message="Invalid executive storyboard") -> None:
@@ -183,7 +190,9 @@ def validate_story(narrative: dict, evidence_index: dict, members: dict[str, byt
         words = 0
         for sentence in sentences:
             _need(isinstance(sentence, dict))
-            words += len(_text(sentence.get("text"), 2000).split())
+            spoken = _text(sentence.get("text"), 2000)
+            _need(not MARKUP.search(spoken), "Narration must not contain engine markup")
+            words += len(spoken.split())
             _claim_refs(sentence.get("claim_ids"), claims)
         _need(words <= 180, "Narration exceeds per-slide word limit")
         graph = slide.get("graph")
@@ -217,6 +226,12 @@ def validate_scene_plan(plan: dict, narrative: dict) -> None:
     _need(type(speed) in (int, float) and speed == 0.95)
     digest = narration.get("model_manifest_sha256")
     _need(isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest))
+    # Optional: plans reviewed before the lexicon existed render without overrides.
+    lexicon = narration.get("lexicon_sha256")
+    _need(
+        lexicon is None or (isinstance(lexicon, str) and re.fullmatch(r"[0-9a-f]{64}", lexicon)),
+        "Invalid reviewed pronunciation identity",
+    )
     policy = plan.get("timing_policy")
     _need(isinstance(policy, dict) and set(policy) == set(DEFAULT_TIMING_POLICY))
     policy = cast(dict, policy)
@@ -227,3 +242,36 @@ def validate_scene_plan(plan: dict, narrative: dict) -> None:
         ),
         "Unsupported narration timing policy",
     )
+    estimate_total_seconds(narrative, policy)
+
+
+def estimate_total_seconds(narrative: dict, policy: dict) -> float:
+    """Reject only scripts no delivery speed can fit, and say by how much.
+
+    This is a lower bound, not a prediction: it assumes speech far faster than
+    Heart actually produces, so an accepted script may still exceed the guard
+    once measured. Measured PCM in `executive_speech` stays authoritative, and
+    nothing here clips, paces or shortens reviewed narration.
+    """
+    slides = narrative["slides"]
+    total, spoken = 0.0, 0
+    for slide in slides:
+        sentences = slide.get("narration") or []
+        words = sum(len(str(s.get("text", "")).split()) for s in sentences)
+        spoken += words
+        speech = (
+            words / FASTEST_WORDS_PER_SECOND
+            + max(len(sentences) - 1, 0) * policy["sentence_gap_seconds"]
+        )
+        total += max(
+            policy["min_scene_seconds"],
+            speech + policy["lead_seconds"] + policy["tail_seconds"],
+        )
+    _need(
+        total <= policy["max_total_seconds"],
+        f"Narration cannot fit the {policy['max_total_seconds']:g}s guard: {spoken} words"
+        f" over {len(slides)} scenes need at least an estimated {total:.1f}s even at"
+        " implausibly fast delivery. Shorten the script or seal a reviewed larger"
+        " render policy; narration is never clipped or accelerated to fit.",
+    )
+    return total

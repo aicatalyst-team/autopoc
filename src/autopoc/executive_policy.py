@@ -6,6 +6,11 @@ import hashlib
 import json
 import re
 
+# 3600s leaves 600s of scheduling/image-pull headroom over the 3000s process
+# budget. 3120s is retained because descriptors sealed before 9 November 2026
+# persisted it; their recorded Job intent must stay dispatchable unchanged.
+NARRATED_JOB_DEADLINES = (3120, 3600)
+
 
 def render_policy(verified: dict) -> dict:
     """Derive a durable policy only from verified sealed content."""
@@ -18,7 +23,7 @@ def render_policy(verified: dict) -> dict:
         "profile": "kokoro-v3" if narrated else "silent-v2",
         "narration": "kokoro" if narrated else "none",
         "render_timeout_seconds": 3000 if narrated else 600,
-        "job_deadline_seconds": 3120 if narrated else 600,
+        "job_deadline_seconds": NARRATED_JOB_DEADLINES[-1] if narrated else 600,
         "scene_policy_sha256": hashlib.sha256(raw).hexdigest(),
     }
 
@@ -33,20 +38,27 @@ def saved_policy(checkpoint: dict, verified: dict | None = None) -> dict | None:
     if not isinstance(policy, dict) or policy.get("profile") not in ("silent-v2", "kokoro-v3"):
         raise ValueError("Invalid saved render policy")
     narrated = policy["profile"] == "kokoro-v3"
+    deadline = policy.get("job_deadline_seconds")
     expected = {
         "profile": "kokoro-v3" if narrated else "silent-v2",
         "narration": "kokoro" if narrated else "none",
         "render_timeout_seconds": 3000 if narrated else 600,
-        "job_deadline_seconds": 3120 if narrated else 600,
+        # Honour the deadline this checkpoint actually recorded, so a resumed
+        # attempt keeps its own Job intent instead of adopting a later default.
+        "job_deadline_seconds": deadline if narrated else 600,
         "scene_policy_sha256": policy.get("scene_policy_sha256"),
     }
     if (
         policy != expected
+        or (narrated and deadline not in NARRATED_JOB_DEADLINES)
         or not isinstance(expected["scene_policy_sha256"], str)
         or not re.fullmatch(r"[0-9a-f]{64}", expected["scene_policy_sha256"])
     ):
         raise ValueError("Invalid saved render policy")
-    if verified is not None and policy != render_policy(verified):
+    if verified is not None and policy != {
+        **render_policy(verified),
+        "job_deadline_seconds": policy["job_deadline_seconds"],
+    }:
         raise ValueError("Saved policy differs from sealed format")
     return policy
 

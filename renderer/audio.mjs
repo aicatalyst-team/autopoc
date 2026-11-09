@@ -64,7 +64,18 @@ export async function loadTimeline(path,input) {
     pcm.push(padding);frames+=frameCount
   }
   need(finite(t.duration_seconds) && same(t.duration_seconds,frames/30) && t.duration_seconds<=p.timing_policy.max_total_seconds)
-  return {...t,pcm:Buffer.concat(pcm)}
+  return {...t,pcm:Buffer.concat(pcm),captions:await captionFile(dirname(path),t)}
+}
+
+/** Sentence captions are generated beside the measured timeline and hash-bound,
+ * so a changed cue file fails the render instead of shipping altered wording. */
+async function captionFile(root,timeline) {
+  need(timeline.captions_path==='captions.vtt' && /^[0-9a-f]{64}$/.test(timeline.captions_sha256))
+  const path=join(root,timeline.captions_path)
+  need(!(await lstat(path)).isSymbolicLink())
+  const raw=await readFile(path)
+  need(raw.length<=4*1024*1024 && sha(raw)===timeline.captions_sha256 && raw.toString('utf8',0,6)==='WEBVTT')
+  return path
 }
 
 export async function muxPresentation(segments,timeline,output,run) {
@@ -77,14 +88,15 @@ export async function muxPresentation(segments,timeline,output,run) {
   await writeFile(join(output,'concat.txt'),segments.map(p=>`file '${resolve(p).replaceAll("'","'\\''")}'`).join('\n'))
   await run('ffmpeg',['-v','error','-y','-f','concat','-safe','0','-i','concat.txt','-an','-c:v','copy','silent.mp4'],output)
   await writeFile(join(output,'padded-narration.wav'),pcmWav(timeline.pcm))
-  await run('ffmpeg',['-v','error','-y','-i','silent.mp4','-i','padded-narration.wav','-map','0:v:0','-map','1:a:0','-c:v','copy','-c:a','aac','-b:a','128k','-ar','24000','-movflags','+faststart','executive-summary.mp4'],output)
+  await run('ffmpeg',['-v','error','-y','-i','silent.mp4','-i','padded-narration.wav','-i',timeline.captions,'-map','0:v:0','-map','1:a:0','-map','2:s:0','-c:v','copy','-c:a','aac','-b:a','128k','-ar','24000','-c:s','mov_text','-metadata:s:s:0','language=eng','-movflags','+faststart','executive-summary.mp4'],output)
   const probe=JSON.parse(await run('ffprobe',['-v','error','-show_format','-show_streams','-of','json','executive-summary.mp4'],output))
   const video=probe.streams.find(s=>s.codec_type==='video'),audio=probe.streams.find(s=>s.codec_type==='audio')
-  need(probe.streams.length===2 && video && audio && video.codec_name==='h264' && video.width===1280 && video.height===720 && video.pix_fmt==='yuv420p' && video.avg_frame_rate==='30/1' && Number(video.nb_frames)===timeline.scenes.reduce((sum,s)=>sum+s.frame_count,0) && audio.codec_name==='aac')
+  const text=probe.streams.find(s=>s.codec_type==='subtitle')
+  need(probe.streams.length===3 && video && audio && text && text.codec_name==='mov_text' && video.codec_name==='h264' && video.width===1280 && video.height===720 && video.pix_fmt==='yuv420p' && video.avg_frame_rate==='30/1' && Number(video.nb_frames)===timeline.scenes.reduce((sum,s)=>sum+s.frame_count,0) && audio.codec_name==='aac')
   need(Math.abs(Number(probe.format.duration)-timeline.duration_seconds)<=.25 && Math.abs(Number(audio.duration)-timeline.duration_seconds)<=.25 && Math.abs(Number(video.duration)-timeline.duration_seconds)<=.25)
   need((await lstat(join(output,'executive-summary.mp4'))).size<=1024**3)
   await run('ffmpeg',['-v','error','-xerror','-i','executive-summary.mp4','-f','null','-'],output)
-  return {status:'validated',path:'executive-summary.mp4',duration_seconds:Number(probe.format.duration),width:1280,height:720,fps:video.avg_frame_rate,audio_codec:audio.codec_name}
+  return {status:'validated',path:'executive-summary.mp4',duration_seconds:Number(probe.format.duration),width:1280,height:720,fps:video.avg_frame_rate,audio_codec:audio.codec_name,subtitle_codec:text.codec_name}
 }
 
 /** Playwright's first recorded frame can arrive after context creation. Crop

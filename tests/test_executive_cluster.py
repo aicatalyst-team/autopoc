@@ -388,7 +388,10 @@ def test_narrated_policy_is_durable_before_upload_and_survives_late_completion(
     assert again["render_policy"] == cp["render_policy"]
     assert first["job"]["uid"] == second["job"]["uid"]
     assert len(created) == 1 and drive.counter == count
-    assert created[0]["spec"]["activeDeadlineSeconds"] == 3120
+    assert (
+        created[0]["spec"]["activeDeadlineSeconds"] == cp["render_policy"]["job_deadline_seconds"]
+    )
+    assert cp["render_policy"]["job_deadline_seconds"] == 3600
     assert created[0]["spec"]["template"]["spec"]["containers"][0]["args"][-2:] == [
         "--timeout-seconds",
         "3000",
@@ -443,6 +446,23 @@ def test_narrated_receipt_caps_are_selected_by_kind(kind, amount, ok):
     else:
         with pytest.raises(ValueError):
             _receipt(cp, kind, value)
+
+
+def test_legacy_and_current_narrated_deadlines_are_both_durable(repository, tmp_path):
+    """New policy keeps startup headroom; 3120s descriptors stay dispatchable."""
+    from tests.executive_fixtures import make_v3_input
+    from autopoc.executive_inputs import verify_inputs
+    from autopoc.executive_policy import render_policy, saved_policy
+
+    verified = verify_inputs(make_v3_input(tmp_path / "run"))
+    current = render_policy(verified)
+    assert current["job_deadline_seconds"] == 3600
+    assert current["render_timeout_seconds"] == 3000
+    legacy = {**current, "job_deadline_seconds": 3120}
+    assert saved_policy({"render_policy": legacy}, verified) == legacy
+    assert saved_policy({"render_policy": current}, verified) == current
+    with pytest.raises(ValueError):
+        saved_policy({"render_policy": {**current, "job_deadline_seconds": 3300}}, verified)
 
 
 @pytest.mark.parametrize("change", ["timeout", "profile", "image"])

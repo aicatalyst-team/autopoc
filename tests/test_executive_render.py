@@ -390,6 +390,9 @@ def test_narration_stages_preserve_deck_and_reviewed_source(tmp_path, monkeypatc
                 json.dumps({"duration_seconds": 248, "scenes": []})
             )
             (speech / "transcript.txt").write_text("Exact reviewed sentences")
+            (speech / "captions.vtt").write_text(
+                "WEBVTT\n\n00:00:00.350 --> 00:00:01.350\nExact reviewed sentences\n"
+            )
 
     monkeypatch.setattr(executive_render, "_run_renderer", fake)
     result = executive_render.render_executive(package, tmp_path / "output")
@@ -420,7 +423,14 @@ def test_narration_stages_preserve_deck_and_reviewed_source(tmp_path, monkeypatc
             source.namelist()
         )
         if failure not in {"speech", "content"}:
-            assert {"timeline.json", "narration/slide-0.wav"} <= set(source.namelist())
+            # Captions and the lexicon travel with recovery: a recovered render
+            # must show the exact cues and pronunciations the timeline names.
+            assert {
+                "timeline.json",
+                "narration/slide-0.wav",
+                "captions.vtt",
+                "speech-assets/kokoro_lexicon.json",
+            } <= set(source.namelist())
 
 
 def test_narrated_timeout_bound_is_distinct_from_legacy(tmp_path, monkeypatch):

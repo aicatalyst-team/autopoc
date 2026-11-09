@@ -327,7 +327,7 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int | None
             if path.is_file():
                 source_files[name] = path.read_bytes()
         if narrated:
-            for name in ("timeline.json", "transcript.txt"):
+            for name in ("timeline.json", "transcript.txt", "captions.vtt"):
                 path = speech / name
                 _safe_path(path)
                 if path.is_file():
@@ -347,6 +347,12 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int | None
                     for k, v in _tree(speech_assets / "licenses").items()
                 }
             )
+            # The lexicon changed what was spoken, so recovery must be able to
+            # show which pronunciations the timeline identity refers to.
+            from autopoc.executive_speech import LEXICON_PATH
+
+            if LEXICON_PATH.is_file():
+                source_files["speech-assets/kokoro_lexicon.json"] = LEXICON_PATH.read_bytes()
         (output_dir / "render-inputs.zip").write_bytes(raw)
         _json(output_dir / "recovery.json", recovery)
         _zip(output_dir / "executable-source.zip", source_files)

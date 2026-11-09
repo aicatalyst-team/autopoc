@@ -5,6 +5,9 @@ const white = /[\p{White_Space}\u001c-\u001f]+/u
 const trim = value => value.replace(/^[\p{White_Space}\u001c-\u001f]+|[\p{White_Space}\u001c-\u001f]+$/gu, '')
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value)
 const need = (condition, message = 'Invalid executive storyboard') => { if (!condition) throw new Error(message) }
+// misaki.en.LINK_REGEX: Misaki reads "[word](/ips/)" as a pronunciation or
+// stress override, so reviewed scripts must never contain it.
+const markup = /\[[^\]]+\]\([^)]*\)/
 const text = (value, limit) => { need(typeof value === 'string' && Array.from(value).length >= 1 && Array.from(value).length <= limit && !!trim(value)); return value }
 const id = value => { need(typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(value)); return value }
 
@@ -52,7 +55,7 @@ export function validateStoryboard(narrative, plan) {
     refs(slide.title_claim_ids, claims); refs(slide.bullet_claim_ids, claims, 1, 4)
     need(Array.isArray(slide.narration) && slide.narration.length >= 1 && slide.narration.length <= 12)
     let words = 0
-    for (const sentence of slide.narration) { need(object(sentence)); words += trim(text(sentence.text, 2000)).split(white).length; refs(sentence.claim_ids, claims) }
+    for (const sentence of slide.narration) { need(object(sentence) && !markup.test(text(sentence.text, 2000))); words += trim(sentence.text).split(white).length; refs(sentence.claim_ids, claims) }
     need(words <= 180)
     if (slide.graph != null) {
       need(object(slide.graph))
@@ -66,6 +69,8 @@ export function validateStoryboard(narrative, plan) {
   need(Array.isArray(plan.slide_ids) && plan.slide_ids.length === narrative.slides.length && plan.slide_ids.every((s, i) => s === narrative.slides[i].id))
   need(object(plan.narration) && plan.narration.engine === 'kokoro' && plan.narration.voice === 'af_heart' && plan.narration.speed === .95
     && typeof plan.narration.model_manifest_sha256 === 'string' && /^[0-9a-f]{64}$/.test(plan.narration.model_manifest_sha256))
+  // Optional: plans reviewed before the lexicon existed render without overrides.
+  need(plan.narration.lexicon_sha256 == null || /^[0-9a-f]{64}$/.test(plan.narration.lexicon_sha256))
   need(object(plan.timing_policy) && Object.keys(plan.timing_policy).sort().join() === Object.keys(timingPolicy).sort().join())
   need(Object.entries(timingPolicy).every(([key, value]) => Number.isFinite(plan.timing_policy[key]) && plan.timing_policy[key] === value))
   return narrative.slides

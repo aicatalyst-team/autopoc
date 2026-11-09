@@ -16,11 +16,15 @@ from pathlib import Path
 from typing import Protocol
 
 from autopoc.evidence import _json
-from autopoc.executive_story import validate_scene_plan
+from autopoc.executive_story import MARKUP, validate_scene_plan
 
 MODEL_REVISION = "f3ff3571791e39611d31c381e3a41a3af07b4987"
 MODEL_FILES = {"config.json", "kokoro-v1_0.pth", "voices/af_heart.pt"}
 SAMPLE_RATE = 24000
+# Misaki's American English inventory (misaki.en.US_VOCAB). Symbols outside it
+# are dropped during inference, so an override using them would fail silently.
+US_VOCAB = frozenset("AIOWYbdfhijklmnpstuvwzæðŋɑɔəɛɜɡɪɹɾʃʊʌʒʤʧˈˌθᵊᵻʔ")
+LEXICON_PATH = Path(__file__).with_name("kokoro_lexicon.json")
 
 
 def _safe(path: Path) -> None:
@@ -67,6 +71,55 @@ def verify_speech_assets(asset_root: Path) -> dict:
         return manifest
     except (OSError, KeyError, TypeError, AttributeError) as exc:
         raise ValueError("Offline speech assets are unavailable") from exc
+
+
+@dataclass(frozen=True)
+class Lexicon:
+    """Synthesis-only pronunciations; visible text and transcripts stay exact."""
+
+    entries: dict[str, str]
+    sha256: str | None
+    pattern: re.Pattern | None
+
+    def apply(self, text: str) -> str:
+        if self.pattern is None:
+            return text
+        return self.pattern.sub(lambda m: f"[{m[0]}](/{self.entries[m[0]]}/)", text)
+
+
+def load_lexicon(path: Path = LEXICON_PATH) -> Lexicon:
+    """Reject unsupported symbols rather than let inference drop them silently."""
+    _safe(path)
+    try:
+        if path.stat().st_size > 64 * 1024:
+            raise ValueError("Invalid pronunciation lexicon size")
+        document = _json(path.read_bytes())
+        if document.get("schema_version") != 1 or document.get("language") != "en-US":
+            raise ValueError("Unsupported pronunciation lexicon")
+        entries = document["entries"]
+        if not isinstance(entries, dict) or not 1 <= len(entries) <= 256:
+            raise ValueError("Unsupported pronunciation lexicon")
+    except (OSError, KeyError, TypeError, AttributeError) as exc:
+        raise ValueError("Pronunciation lexicon is unavailable") from exc
+    for token, phonemes in entries.items():
+        if (
+            not isinstance(token, str)
+            or not re.fullmatch(r"[A-Za-z][A-Za-z0-9+.-]{0,63}", token)
+            or not isinstance(phonemes, str)
+            or not 1 <= len(phonemes) <= 64
+            or not set(phonemes) <= US_VOCAB
+        ):
+            raise ValueError(f"Unsupported pronunciation entry: {token!r}")
+    # Longest first so a token never matches inside a longer entry.
+    pattern = re.compile(
+        r"(?<![\w-])(?:%s)(?![\w-])"
+        % "|".join(re.escape(t) for t in sorted(entries, key=len, reverse=True))
+    )
+    return Lexicon(entries, _sha(path), pattern)
+
+
+LEXICON = load_lexicon()
+NO_LEXICON = Lexicon({}, None, None)
 
 
 @dataclass(frozen=True)
@@ -134,6 +187,17 @@ class _HeartEngine:
         return SpeechChunk(SAMPLE_RATE, self.np.rint(audio * 32767).astype("<i2").tobytes())
 
 
+def _cue_time(seconds: float) -> str:
+    whole, milliseconds = divmod(round(seconds * 1000), 1000)
+    minutes, second = divmod(whole, 60)
+    return f"{minutes // 60:02d}:{minutes % 60:02d}:{second:02d}.{milliseconds:03d}"
+
+
+def _cue_text(text: str) -> str:
+    """WebVTT reads &, < and > as markup; the spoken script stays exact."""
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def _write_wav(path: Path, pcm: bytes) -> None:
     _safe(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -159,12 +223,19 @@ def generate_narration(
     identity = _sha(asset_root / "manifest.json")
     if plan["narration"]["model_manifest_sha256"] != identity:
         raise ValueError("Reviewed speech model identity differs from packaged assets")
+    # Absent identity means the scene plan was reviewed without overrides; keep
+    # those renders byte-comparable instead of silently changing pronunciation.
+    reviewed = plan["narration"].get("lexicon_sha256")
+    lexicon = NO_LEXICON if reviewed is None else LEXICON
+    if reviewed is not None and reviewed != LEXICON.sha256:
+        raise ValueError("Reviewed pronunciation lexicon differs from the packaged lexicon")
     if output_dir.exists() and any(output_dir.iterdir()):
         raise ValueError("Narration output must be a new directory")
     if engine is None:
         engine = _HeartEngine(asset_root, manifest)
     output_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
     policy, entries, transcript, total_frames = plan["timing_policy"], [], [], 0
+    cues = ["WEBVTT", ""]
     for slide in narrative["slides"]:
         identity = slide["id"]
         if not isinstance(identity, str) or not re.fullmatch(
@@ -181,7 +252,9 @@ def generate_narration(
             text = sentence["text"]
             if not isinstance(text, str) or not text.strip() or len(text) > 2000:
                 raise ValueError("Invalid reviewed narration sentence")
-            chunk = engine.synthesize(text)
+            if MARKUP.search(text):
+                raise ValueError("Reviewed narration must not contain engine markup")
+            chunk = engine.synthesize(lexicon.apply(text))
             if (
                 type(chunk.sample_rate) is not int
                 or chunk.sample_rate != SAMPLE_RATE
@@ -235,8 +308,17 @@ def generate_narration(
                 "sentence_audio": sentence_files,
             }
         )
+        speech_start = total_frames / 30 + policy["lead_seconds"]
+        for offset, sentence in zip(offsets, sentences):
+            cues.append(
+                f"{_cue_time(speech_start + offset['start_seconds'])} -->"
+                f" {_cue_time(speech_start + offset['end_seconds'])}"
+            )
+            cues.extend([_cue_text(sentence["text"]), ""])
         total_frames += frames
         transcript.extend([slide["title"], *(s["text"] for s in sentences), ""])
+    captions = output_dir / "captions.vtt"
+    captions.write_text("\n".join(cues), encoding="utf-8")
     timeline = {
         "schema_version": 1,
         "run_id": narrative["run_id"],
@@ -244,6 +326,9 @@ def generate_narration(
         "scenes_sha256": _sha(scenes_path),
         "narration": plan["narration"],
         "model_revision": manifest["revision"],
+        "lexicon_sha256": lexicon.sha256,
+        "captions_path": captions.name,
+        "captions_sha256": _sha(captions),
         "sample_rate": SAMPLE_RATE,
         "fps": 30,
         "duration_seconds": total_frames / 30,

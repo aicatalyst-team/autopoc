@@ -77,7 +77,7 @@ def test_narrated_profile_retains_isolation_with_long_budget():
     manifest = job(profile="kokoro-v3")
     pod = manifest["spec"]["template"]["spec"]
     container = pod["containers"][0]
-    assert manifest["spec"]["activeDeadlineSeconds"] == 3120
+    assert manifest["spec"]["activeDeadlineSeconds"] == 3600
     assert container["args"][-2:] == ["--timeout-seconds", "3000"]
     assert container["resources"]["limits"] == {
         "cpu": "2",
@@ -89,6 +89,20 @@ def test_narrated_profile_retains_isolation_with_long_budget():
     assert container["securityContext"]["readOnlyRootFilesystem"] is True
     assert job()["spec"]["activeDeadlineSeconds"] == 600
     assert "--timeout-seconds" not in job()["spec"]["template"]["spec"]["containers"][0]["args"]
+
+
+def test_narrated_deadline_leaves_startup_headroom_without_breaking_sealed_attempts():
+    """Pull/scheduling time erodes a Job deadline, so the default keeps 600s headroom.
+
+    Checkpoints sealed before 9 November 2026 persisted 3120s; dispatching those
+    must keep working rather than silently adopting the new default.
+    """
+    deadline = job(profile="kokoro-v3")["spec"]["activeDeadlineSeconds"]
+    assert deadline - 3000 >= 600
+    assert job(profile="kokoro-v3", deadline=3120)["spec"]["activeDeadlineSeconds"] == 3120
+    for invalid in (3119, 3601):
+        with pytest.raises(ValueError):
+            job(profile="kokoro-v3", deadline=invalid)
 
 
 @pytest.mark.parametrize(

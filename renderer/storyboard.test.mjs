@@ -59,7 +59,7 @@ test('notes and data cannot inject generated Vue or HTML', async () => {
   })
 })
 
-for (const change of ['unknown claim', 'duplicate slide', 'missing chapter', 'wrong order', 'huge title', 'missing narration', 'unbound graph', 'boolean counts', 'timing guess']) {
+for (const change of ['unknown claim', 'duplicate slide', 'missing chapter', 'wrong order', 'huge title', 'missing narration', 'unbound graph', 'boolean counts', 'timing guess', 'engine markup', 'bad lexicon identity']) {
   test(`reject ${change} before writing a usable deck`, async () => {
     const data = await fixture()
     const slide = data.narrative.slides[0]
@@ -72,6 +72,8 @@ for (const change of ['unknown claim', 'duplicate slide', 'missing chapter', 'wr
     if (change === 'unbound graph') slide.graph = { nodes: [], edges: [], acts: [] }
     if (change === 'boolean counts') data.narrative.results.pass = true
     if (change === 'timing guess') data.scenes.durations = [20,20,20,20,20,20]
+    if (change === 'engine markup') slide.narration[0].text = 'Pushed to [Quay](/kˈi/) today.'
+    if (change === 'bad lexicon identity') data.scenes.narration.lexicon_sha256 = 'not-a-digest'
     await assert.rejects(prepare(data, async () => {}))
   })
 }

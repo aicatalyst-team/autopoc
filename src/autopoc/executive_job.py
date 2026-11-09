@@ -43,7 +43,10 @@ def build_renderer_job(
     if profile not in ("silent-v2", "kokoro-v3"):
         raise ValueError("Unknown renderer profile")
     narrated = profile == "kokoro-v3"
-    deadline = (3120 if narrated else 600) if deadline is None else deadline
+    # A Job deadline runs from startTime, so scheduling and image pull consume it
+    # before rendering begins; the default keeps 600s of headroom over the 3000s
+    # process budget. 3120s stays accepted for descriptors sealed before 9 Nov 2026.
+    deadline = (3600 if narrated else 600) if deadline is None else deadline
     if type(deadline) is not int or not (3120 if narrated else 30) <= deadline <= (
         3600 if narrated else 1800
     ):
