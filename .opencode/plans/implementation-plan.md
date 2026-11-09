@@ -745,6 +745,15 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   published the unique supervisor tag. Gateway remains Running with active native
   compiler processes; the sandbox/supervisor images are retained without rebuild.
 
+#### 9.7.8 Verify the offline renderer on the target node — ✅ 9 November 2026
+
+- Temporary tokenless/read-only renderer check Job succeeded on the intended OCP
+  node with deny-egress policy applied. It verified all packaged Heart asset
+  sizes/hashes and exact manifest identity `cc53829e...f00c24` without inference.
+- Retained receipt/log and removed the check Job. The renderer image is now
+  cached on that node; subsequent rendering is warm-cache acceptance, not a new
+  cold-pull deadline or human-listening claim. No PoC tests were executed here.
+
 Remaining: finish the gateway build and execute the remaining five phases or record a bounded mandatory failure; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
 new narrated video when eligible. No end-to-end success is claimed yet.
