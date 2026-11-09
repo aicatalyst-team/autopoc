@@ -287,6 +287,7 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Fresh OpenShell UBI containerization | ✅ 9 November — three component Dockerfiles verified/committed/pushed; actual builds next |
 | Fresh OpenShell sandbox image build | ✅ 9 November — sandbox-1 Complete/published; gateway and supervisor still building |
 | Fresh OpenShell supervisor image build | ✅ 9 November — supervisor-1 Complete/published; gateway still compiling |
+| Fresh OpenShell gateway/prover and complete runtime image build | ✅ 9 November — all three component builds Complete/published on first builds; deployment/testing next |
 | Fresh OpenShell offline-renderer readiness | ✅ 9 November — OCP packaged-asset verification succeeded; temporary check Job removed, renderer image cached |
 
 This is a local throwaway audition, not production narration acceptance. Technical

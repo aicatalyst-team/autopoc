@@ -731,7 +731,7 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   retained. State records containerization complete; build access is being checked.
 - These are build definitions, not successful images or runtime validation.
 
-#### 9.7.7 Build the three new runtime images — In progress
+#### 9.7.7 Build the three new runtime images — ✅ 9 November 2026
 
 ##### 9.7.7.1 Build and publish the sandbox image — ✅ 9 November 2026
 
@@ -745,6 +745,14 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   published the unique supervisor tag. Gateway remains Running with active native
   compiler processes; the sandbox/supervisor images are retained without rebuild.
 
+##### 9.7.7.3 Build and publish the full gateway/prover image — ✅ 9 November 2026
+
+- OpenShift build `openshell-kokoro-90b344e8-gateway-1` is Complete/published.
+  All three first component builds succeeded, preserving the full prover and
+  unique run-specific tags. Actual build receipts retain digests/timestamps.
+- This closes image generation only. Worker must still record build completion,
+  deploy the application and execute original validation; no runtime pass assumed.
+
 #### 9.7.8 Verify the offline renderer on the target node — ✅ 9 November 2026
 
 - Temporary tokenless/read-only renderer check Job succeeded on the intended OCP
@@ -754,7 +762,7 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   cached on that node; subsequent rendering is warm-cache acceptance, not a new
   cold-pull deadline or human-listening claim. No PoC tests were executed here.
 
-Remaining: finish the gateway build and execute the remaining five phases or record a bounded mandatory failure; inspect
+Remaining: execute the remaining five pipeline phases or record a bounded mandatory failure; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
 new narrated video when eligible. No end-to-end success is claimed yet.
 
