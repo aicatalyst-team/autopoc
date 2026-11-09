@@ -781,7 +781,22 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
 - Pod readiness/readiness probes are not counted as the planned five-case
   validation. Validation, report, conditional blog and narrated output remain open.
 
-Remaining: execute original validation/report/blog or record a bounded mandatory failure; inspect
+#### 9.7.11 Execute the original five-case validation — ✅ 9 November 2026
+
+- Worker state records poc_execute/capture completed and test exit code 0.
+  One captured execution `af1836af24fc49a38c665ed61bfa76da` contains five passing
+  scenarios: gateway-health, gateway-metrics, sandbox-exec,
+  sandbox-node-placement and network-denial. No failed/error/skip/incomplete
+  planned scenarios are reported. Original attempt index is retained.
+- Reviewed the actual generated script. Network-denial checks worker TCP access
+  to sandbox SSH port 2222 against a reachable gateway port 9090 control; SDK
+  execution also succeeded. This is a limited ingress-path observation, not proof
+  of all egress policy, application mediation, filesystem isolation or production
+  security. Reports/narration must retain that scope.
+- Exploratory setup probes preceded the canonical captured suite and were cleaned
+  up; they are not extra passing planned scenarios. No tests need replay for media.
+
+Remaining: generate/publish the report and conditional blog; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
 new narrated video when eligible. No end-to-end success is claimed yet.
 

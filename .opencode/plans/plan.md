@@ -291,6 +291,7 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Fresh OpenShell offline-renderer readiness | ✅ 9 November — OCP packaged-asset verification succeeded; temporary check Job removed, renderer image cached |
 | Fresh OpenShell initial install/readiness | ✅ 9 November — gateway/supervisor ready under restricted-v2 with expected new image IDs |
 | Fresh OpenShell deploy/apply checkpoints | ✅ 9 November — worker recorded both phases completed, zero deploy retries; captured original validation next |
+| Fresh OpenShell captured original validation | ✅ 9 November — one captured execution, five pass/zero fail/error/skip/incomplete; ingress-path scope remains limited |
 
 This is a local throwaway audition, not production narration acceptance. Technical
 pronunciation, offline packaging, per-scene synchronization and restricted OCP
