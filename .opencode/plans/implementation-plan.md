@@ -1032,9 +1032,9 @@ renderer and Heart policy; no deployment/test replay or production rollout.
 | Task | Status |
 |------|--------|
 | Author evidence-linked setup topology and five-check walkthrough | ✅ 9.8.1 |
-| Validate actual browser/PDF diagram states and inspect pages | In progress |
-| Obtain fresh independent full-evidence review and seal changed bytes | Pending |
-| Render/retrieve/verify revised slides and narrated video | Pending |
+| Validate actual browser/PDF diagram states and inspect pages | ✅ 9.8.2 |
+| Obtain fresh independent full-evidence review and seal changed bytes | ✅ 9.8.3 |
+| Render/retrieve/verify revised slides and narrated video | In progress |
 | Retain prior revisions, record acceptance and stop temporary helper | Pending |
 
 #### 9.8.1 Author the two evidence-linked TopoLoop views — ✅ 9 November 2026
@@ -1048,3 +1048,33 @@ renderer and Heart policy; no deployment/test replay or production rollout.
   Structural/claim-selector validation passed against the same evidence archive.
 - Actual trusted-image browser/PDF preflight is running before review/sealing.
   Earlier verified v5 artifacts are preserved and remain available.
+
+#### 9.8.2 Validate and inspect the 3D layouts — ✅ 9 November 2026
+
+- Retained draft revisions v6–v9 while resolving label/title/subtitle overlaps
+  and a clipped decorative namespace caption. Final v10 uses concise labels,
+  separated storage geometry, and no decorative namespace shell. No renderer
+  guards/fonts were changed and no graph was dropped.
+- Trusted-image browser/PDF preparation passed all six slides. Inspected both
+  changed 3D pages; the other four pages pixel-match the already inspected deck.
+- Supplemented native preflight with a reset/remount before each requested frozen
+  time: the vendored animation stops its frame loop after freezing, so subsequent
+  freeze-prop changes alone do not repaint later states. Independent inspection
+  checked complete label boxes, not only titles. All 21 final states passed,
+  with all five actual test-step headings and the setup-tour heading observed.
+- Remaining product follow-up: make freeze changes repaint without a remount and
+  extend the native guard to whole labels/group captions. This regeneration uses
+  the existing pinned image; supplemental verification closes that inspection gap
+  for these deliverables without claiming a product-code fix.
+
+#### 9.8.3 Review and seal the final 3D candidate — ✅ 9 November 2026
+
+- Fresh independent configured-Qwen review of exact v10 narrative/scenes,
+  all twelve evidence members, original script and pinned HA examples returned
+  finish_reason=stop, approval and zero blockers. Exact hashes remained unchanged.
+- New immutable input `670eef1c...ce270ef`; underlying evidence remains
+  `4e3f9119...5ad433e`. Every spoken sentence and original outcome is unchanged;
+  the two graphs are evidence-linked and the network scope remains limited.
+- Dispatched `autopoc-openshell-kokoro-90b344e8-3d-render-v10` with the same
+  offline digest-pinned renderer, CPU/memory limits and isolated PVC transport.
+  Final media generation/retrieval/verification remain in progress.

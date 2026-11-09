@@ -396,6 +396,13 @@ from cloud publication. Track execution in implementation-plan.md section 9.7.
 | Task | Status |
 |------|--------|
 | Author setup and original-five-check TopoLoop diagrams | ✅ 9.8.1 — evidence-linked candidate; speech and outcomes unchanged |
-| Validate browser/PDF states and inspect the revised slides | In progress |
-| Fresh independent review and immutable seal | Pending |
-| Render and verify revised slides/video, retain originals and stop helper | Pending |
+| Validate browser/PDF states and inspect the revised slides | ✅ 9.8.2 — final v10, 21 reset-based full-label states passed; two 3D pages inspected |
+| Fresh independent review and immutable seal | ✅ 9.8.3 — genuine full-corpus Qwen approval, zero blockers; input 670eef1c…ce270ef |
+| Render and verify revised slides/video, retain originals and stop helper | In progress — offline 3d-render-v10 dispatched |
+
+3D regeneration: final v10 retains both TopoLoop scenes, every spoken sentence
+and all original outcomes. Full browser/PDF checks plus independent remount-based
+inspection passed 21 animation states. The latter compensates for the current
+freeze-prop repaint limitation and checks complete node-label boxes. Product
+follow-ups are recorded in implementation-plan.md 9.8.2; this run does not claim
+those renderer-code fixes. Final media output verification remains pending.
