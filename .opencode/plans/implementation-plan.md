@@ -485,6 +485,7 @@ recommendations are not execution instructions.
 | Apply accepted refinements | ✅ Done | 9 November: four implemented with tests, one rejected on evidence, two documented; offline listening still pending |
 | Omit PoC dates from voice-over | ✅ Done | 9 November: author/reviewer rules updated; existing sealed demo unchanged |
 | Fresh OpenShell end-to-end branch run | ✅ Done | 9 November: deployed, original 5/5 pass, corrected report persisted, final 3m28s Kokoro video and five artifacts retrieved/verified; Drive/listening gates remain |
+| Regenerate OpenShell with 3D views | In progress | User requested TopoLoop setup and original-test walkthrough; same sealed evidence, no test replay |
 | Controlled production rollout | Pending | Drive invalid_grant, human listening and explicit merge/live configuration approval |
 
 ### 9.1 Generate and verify a local Kokoro audition — ✅ 8 November 2026
@@ -1020,3 +1021,30 @@ pronunciation confirmation, Drive credentials and merge approval remain gates.
 - Application gateway/supervisor and the bound run workspace PVC remain intact.
   Completed/failed renderer candidates retain their normal seven-day TTL for
   inspection; no shared worker, credential or prior PoC was changed.
+
+### 9.8 Restore TopoLoop 3D views in the OpenShell deliverables — In progress
+
+User requested regenerated slides/video with 3D after the omission was traced to
+an authoring shortcut. Keep the six chapters, all reviewed spoken sentences,
+original five outcomes and corrected HA/source facts. Use the existing pinned
+renderer and Heart policy; no deployment/test replay or production rollout.
+
+| Task | Status |
+|------|--------|
+| Author evidence-linked setup topology and five-check walkthrough | ✅ 9.8.1 |
+| Validate actual browser/PDF diagram states and inspect pages | In progress |
+| Obtain fresh independent full-evidence review and seal changed bytes | Pending |
+| Render/retrieve/verify revised slides and narrated video | Pending |
+| Retain prior revisions, record acceptance and stop temporary helper | Pending |
+
+#### 9.8.1 Author the two evidence-linked TopoLoop views — ✅ 9 November 2026
+
+- Created an independent 3d-v6 candidate: setup graph shows PoC SDK worker,
+  gateway, supervisor, sandbox workload/runtime and gateway block PVC. A second
+  graph walks the five original checks; TCP nonresponse remains a limited
+  reachability observation rather than a policy-causation claim.
+- Shortened graph-slide visible bullet selections to leave room for labels;
+  retained all six chapters, exact five-result totals and every spoken sentence.
+  Structural/claim-selector validation passed against the same evidence archive.
+- Actual trusted-image browser/PDF preflight is running before review/sealing.
+  Earlier verified v5 artifacts are preserved and remain available.

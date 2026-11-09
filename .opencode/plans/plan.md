@@ -390,3 +390,12 @@ from cloud publication. Track execution in implementation-plan.md section 9.7.
 
 - ✅ Delivery-helper cleanup (9.7.15): temporary helper/publisher Jobs and Pods
   removed after receipt retention; healthy app and bound recovery PVC retained.
+
+### OpenShell 3D regeneration — In progress (9 November 2026)
+
+| Task | Status |
+|------|--------|
+| Author setup and original-five-check TopoLoop diagrams | ✅ 9.8.1 — evidence-linked candidate; speech and outcomes unchanged |
+| Validate browser/PDF states and inspect the revised slides | In progress |
+| Fresh independent review and immutable seal | Pending |
+| Render and verify revised slides/video, retain originals and stop helper | Pending |
