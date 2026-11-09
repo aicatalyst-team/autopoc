@@ -292,10 +292,11 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Fresh OpenShell initial install/readiness | ✅ 9 November — gateway/supervisor ready under restricted-v2 with expected new image IDs |
 | Fresh OpenShell deploy/apply checkpoints | ✅ 9 November — worker recorded both phases completed, zero deploy retries; captured original validation next |
 | Fresh OpenShell captured original validation | ✅ 9 November — one captured execution, five pass/zero fail/error/skip/incomplete; ingress-path scope remains limited |
-| Finalize OpenShell report/narration scope | In progress — content-only same-run recovery addresses overclaims; original five outcomes/script/index preserved, fresh model review required |
+| Finalize OpenShell report/narration scope | ✅ 9 November — corrected claims and compact visible copy independently approved against full evidence; original five outcomes preserved |
 | Corrected OpenShell canonical report generation | ✅ 9 November — scoped wording inspected, five original results preserved; final publication and narration review/seal still pending |
 | Full-corpus content review and independent seal | ✅ 9 November — actual configured-model approval on all twelve bundle members and original script; immutable v3 seal retained |
-| OpenShell narrated render/layout acceptance | In progress — first attempt rejected overflow before speech; compact draft passes all six browser/PDF checks, fresh review required before retry |
+| OpenShell compact-layout review/seal | ✅ 9 November — all six browser/PDF pages inspected, fresh full-evidence review approved, immutable layout-v4 input sealed |
+| OpenShell narrated render acceptance | In progress — new offline render-v4 Job running; first layout-rejected attempt retained separately, original tests unchanged |
 
 This is a local throwaway audition, not production narration acceptance. Technical
 pronunciation, offline packaging, per-scene synchronization and restricted OCP

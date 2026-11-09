@@ -796,7 +796,7 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
 - Exploratory setup probes preceded the canonical captured suite and were cleaned
   up; they are not extra passing planned scenarios. No tests need replay for media.
 
-#### 9.7.12 Finalize bounded report/narration claims — In progress
+#### 9.7.12 Finalize bounded report/narration claims — ✅ 9 November 2026
 
 - Operator review found draft overclaims: the two-target ingress observation
   described as policy proof, confirmed isolation, fully reproducible evidence,
@@ -836,6 +836,16 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   the tested renderer digest. All 78 copied worker code/config/data files were
   additionally checked against base commit 35f79ec with no mismatches.
 
+##### 9.7.12.3 Validate compact visible copy, re-review and seal layout-v4 — ✅ 9 November 2026
+
+- All six compact slides passed actual browser/PDF preflight and were visually
+  inspected as 1280x720 page renders. Spoken sentences are unchanged; visible
+  titles/claims fit without weakening layout checks or shrinking fonts.
+- Fresh independent Qwen review included all twelve bundle members and the
+  original script; actual complete response approved with zero blockers and
+  unchanged reviewed input hashes. Sealed new input `3cc8dffa...19d07bd4`,
+  narrative `2c46538a...52f4ef`, in a separate immutable layout-v4 revision.
+
 #### 9.7.13 Render and inspect narrated media — In progress
 
 - First actual offline OCP attempt rejected scene 1 for visible-content layout
@@ -844,8 +854,9 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
 - Shortened visible titles/claims and reduced crowded bullet selections in an
   independent layout-v4 draft, preserving every spoken sentence and all original
   evidence/results. Actual same-image browser/PDF draft preflight now succeeds
-  across all six slides. Fresh full-evidence model review is pending for these
-  changed bytes before a new seal/render; no validation tests are replayed.
+  across all six slides. A fresh full-evidence review approved the changed bytes
+  before sealing. Actual offline Job `autopoc-openshell-kokoro-90b344e8-render-v4`
+  is running with a new isolated input/output directory; no tests are replayed.
 
 Remaining: publish the corrected report and finish the conditional blog; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
