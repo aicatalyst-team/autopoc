@@ -972,3 +972,19 @@ pronunciation confirmation, Drive credentials and merge approval remain gates.
   revision `40175095...7671dc`, commit `5023e376c603fa49916dcaef90ee114767c4eff1`
   in the OpenShell fork's autopoc-artifacts branch. Prior report revisions remain
   retained; source checkout/main were not changed. State records this revision.
+
+##### 9.7.14.4 Finalize and persist the optional blog content — ✅ 9 November 2026
+
+- Corrected HA availability, operator-assisted prerequisites, gateway mTLS
+  termination and non-causal network wording; added an explicitly partial SDK
+  excerpt from the original script. Four independent configured-Qwen rubric
+  requests reviewed the exact v3 draft: overall 9.146/10, minimum dimension 8,
+  zero blocking findings. Preserved their actual requests/responses and scores.
+- Generated Markdown/SEO/branded HTML with two Mermaid diagrams and no unresolved
+  template fields. Sanitized and appended revision `357bac0f...7f8aa2`, commit
+  `3d5fb93cd4930ba30366e6ab44393a068f257164` in the fork artifact branch.
+- Optional phase 11 remains `generated_validation_blocked`: Vale was invoked but
+  returned E100 because its configuration is missing; no lint success is claimed.
+  Google Docs/Drive authorization remains blocked by the measured refresh failure.
+  These optional publishing gates do not change the five PoC outcomes or block
+  independent executive rendering and direct local delivery.

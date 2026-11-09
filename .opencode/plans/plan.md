@@ -372,3 +372,8 @@ from cloud publication. Track execution in implementation-plan.md section 9.7.
   blockers; date-free narration sealed as 15bd7f8c…3cdc7da. Corrected report
   append-only revision 40175095…7671dc saved. Final render-v5 dispatched;
   artifact retrieval/verification remains pending.
+
+- ✅ Optional OpenShell blog content/reviews/artifact persistence (9.7.14.4): four
+  real v3 reviews, 9.146/10 overall, sanitized Markdown/SEO/HTML appended as
+  357bac0f…7f8aa2. Phase 11 validation/upload stays blocked: missing Vale config
+  and existing Google authorization failure; neither is reported as passing.
