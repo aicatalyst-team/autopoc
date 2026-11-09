@@ -294,6 +294,8 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Fresh OpenShell captured original validation | ✅ 9 November — one captured execution, five pass/zero fail/error/skip/incomplete; ingress-path scope remains limited |
 | Finalize OpenShell report/narration scope | In progress — content-only same-run recovery addresses overclaims; original five outcomes/script/index preserved, fresh model review required |
 | Corrected OpenShell canonical report generation | ✅ 9 November — scoped wording inspected, five original results preserved; final publication and narration review/seal still pending |
+| Full-corpus content review and independent seal | ✅ 9 November — actual configured-model approval on all twelve bundle members and original script; immutable v3 seal retained |
+| OpenShell narrated render/layout acceptance | In progress — first attempt rejected overflow before speech; compact draft passes all six browser/PDF checks, fresh review required before retry |
 
 This is a local throwaway audition, not production narration acceptance. Technical
 pronunciation, offline packaging, per-scene synchronization and restricted OCP

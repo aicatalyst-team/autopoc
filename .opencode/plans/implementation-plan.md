@@ -825,6 +825,28 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   report generation only; immutable final publication, narration review/sealing
   and the conditional blog remain to be verified.
 
+##### 9.7.12.2 Review the complete evidence corpus and seal the scoped content — ✅ 9 November 2026
+
+- In addition to the worker's genuine content review, an independent configured
+  Qwen request included every one of the twelve verified bundle members and the
+  original audited script. Actual complete response approved with zero blockers;
+  exact narrative/scenes/evidence hashes matched unchanged files. Retained raw
+  request/response/verdict privately; no prior verdict was edited into approval.
+- Sealed this approval as independent input revision `3731b138...d9b833` using
+  the tested renderer digest. All 78 copied worker code/config/data files were
+  additionally checked against base commit 35f79ec with no mismatches.
+
+#### 9.7.13 Render and inspect narrated media — In progress
+
+- First actual offline OCP attempt rejected scene 1 for visible-content layout
+  overflow after 8.566s, before speech. It retained valid source/summary partial
+  artifacts and private diagnostics. No narrated-video success is claimed.
+- Shortened visible titles/claims and reduced crowded bullet selections in an
+  independent layout-v4 draft, preserving every spoken sentence and all original
+  evidence/results. Actual same-image browser/PDF draft preflight now succeeds
+  across all six slides. Fresh full-evidence model review is pending for these
+  changed bytes before a new seal/render; no validation tests are replayed.
+
 Remaining: publish the corrected report and finish the conditional blog; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
 new narrated video when eligible. No end-to-end success is claimed yet.
