@@ -275,7 +275,8 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Save and independently check design and implementation plan | ✅ Eight tasks defined; builder review found no important gaps; user approved implementation 8 November |
 | Check OCP GPU capacity and AutoPoC namespace access | ✅ 8 November — one L40S and two A100 devices unrequested; Job/pod creation allowed, no namespace quota found; workload not tested |
 | Implement and validate narrated rendering | ✅ Done — eight tasks, reviewed offline image, real local/OCP video acceptance |
-| Review external implementation refinements | ✅ 9 November — all seven checked; dispositions in implementation-plan.md section 9.5; follow-up changes proposed |
+| Review external implementation refinements | ✅ 9 November — all seven checked; dispositions in implementation-plan.md section 9.5 |
+| Apply the accepted refinements | ✅ 9 November — four implemented with tests, one rejected on evidence, two documented; section 9.6 |
 | Omit PoC dates from spoken narration | ✅ 9 November — author/reviewer policy and design updated; existing demo has not been re-rendered |
 | Prepare a fresh OpenShell end-to-end branch run | ✅ 9 November — access, image identity, protected source branch and isolated run configuration verified |
 | Execute fresh OpenShell deployment/tests/report/video | In progress — run 90b344e86812455caf110467384bbbea; direct retrieval planned while Drive authentication is blocked |
@@ -315,6 +316,16 @@ Capture timing/frame regression and real offline failure recovery — ✅ 8 Nove
 Independent whole-branch review corrections — ✅ 8 November 2026. Two Important findings fixed with failing-then-passing regressions; 482 Python tests at 86.24%, actual result-diagram browser tests pass. No Critical or Minor findings.
 
 Engineering acceptance and controlled-rollout preparation — ✅ 8 November 2026. 482 Python tests/86.24%, actual image/browser/FFmpeg checks, local8/12-slide videos and restricted-v2 OpenShift completion verified. Exact measurements and image revisions are retained in docs/validation/kokoro-narration-2026-11-08.json. Drive invalid_grant, human listening and explicit merge/live-configuration approval remain rollout gates; no production publication is claimed.
+
+Accepted refinements applied — ✅ 9 November 2026. Identity-bound pronunciation
+lexicon, sentence `mov_text` captions from the measured timeline, a 3600s
+narrated Job deadline keeping sealed 3120s descriptors valid, and a seal-time
+duration estimate are implemented with tests: 493 Python tests at 86.44%, 39
+Node checks, pinned Ruff and Pyright clean, caption mux confirmed against real
+FFmpeg. The coverage exclusion was correctly rejected. Late-result collection
+and asset-origin provenance were documented, not automated or invented. Details
+in implementation-plan.md section 9.6. Human listening, pronunciation
+confirmation, Drive credentials and merge approval remain gates.
 
 External refinement review — ✅ 9 November 2026. Pronunciation lexicon (identity-bound),
 sentence captions, a 3600s deadline for new narrated attempts, early duration

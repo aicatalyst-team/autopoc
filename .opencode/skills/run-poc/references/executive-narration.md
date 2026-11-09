@@ -85,7 +85,8 @@ Write `scenes.json` before content review. Its schema-2 shape is:
   "slide_ids": ["objective", "testing", "setup", "results", "limitations", "recommendation"],
   "narration": {
     "engine": "kokoro", "voice": "af_heart", "speed": 0.95,
-    "model_manifest_sha256": "HASH_OF_THE_ACTUAL_TESTED_RENDERER_ASSET_MANIFEST"
+    "model_manifest_sha256": "HASH_OF_THE_ACTUAL_TESTED_RENDERER_ASSET_MANIFEST",
+    "lexicon_sha256": "SHA256_OF_src/autopoc/kokoro_lexicon.json_IN_THE_TESTED_IMAGE"
   },
   "timing_policy": {
     "lead_seconds": 0.35, "tail_seconds": 0.65, "min_scene_seconds": 6,
@@ -97,12 +98,25 @@ Write `scenes.json` before content review. Its schema-2 shape is:
 
 Replace IDs with the exact ordered storyboard IDs. Obtain the actual asset
 manifest/hash from the tested renderer build/release; never invent or reuse the
-example's identity. Do not generate guessed `durations`. Kokoro measures each
+example's identity.
+
+`lexicon_sha256` is the SHA-256 of `src/autopoc/kokoro_lexicon.json` in that
+same image — compute it, do not copy it. The lexicon changes only how coined
+names and initialisms are spoken; it never changes the reviewed text, so it is
+not a content decision. Omitting the field is valid and means the render uses
+no pronunciation overrides. Never write Misaki's `[word](/ips/)` override
+syntax into a narration sentence: the engine would read it as phonemes, and
+both validators reject it.
+
+Do not generate guessed `durations`. Kokoro measures each
 reviewed sentence, inserts 0.20s sentence gaps and uses
 `max(6, audio_seconds + 0.35 + 0.65)` per scene. There is no two-minute target
 or three-minute editorial ceiling. The 120s/scene and 900s total defaults are
 operational guards: an overflow requires content/policy revision, not clipping,
-speeding up speech or silently dropping findings.
+speeding up speech or silently dropping findings. Sealing also estimates total
+length from word counts at a speed much faster than Heart, so it rejects only
+scripts that could never fit 900s; that diagnostic is a resource guard, not a
+length target, and it does not replace the measured limits.
 
 ## Independently review all visible and spoken claims
 

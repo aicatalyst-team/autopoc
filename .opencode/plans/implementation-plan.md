@@ -481,7 +481,8 @@ recommendations are not execution instructions.
 | Voice selection | ✅ Done | User selected Heart (`af_heart`) |
 | Design and implementation planning | ✅ Done | User-approved evidence-backed story, variable timing and eight implementation tasks |
 | Engineering implementation and acceptance | ✅ Done | Eight tasks; real local and restricted-v2 OCP media acceptance; independent review fixes verified |
-| External refinement review | ✅ Done | 9 November: seven findings checked against implementation; follow-up changes remain proposed |
+| External refinement review | ✅ Done | 9 November: seven findings checked against implementation |
+| Apply accepted refinements | ✅ Done | 9 November: four implemented with tests, one rejected on evidence, two documented; offline listening still pending |
 | Omit PoC dates from voice-over | ✅ Done | 9 November: author/reviewer rules updated; existing sealed demo unchanged |
 | Fresh OpenShell end-to-end branch run | In progress | 9 November: access/preflight complete; isolated worker/deployment/testing/report/narrated-media run |
 | Controlled production rollout | Pending | Drive invalid_grant, human listening and explicit merge/live configuration approval |
@@ -733,3 +734,58 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
 Remaining: execute the remaining six phases or record a bounded mandatory failure; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
 new narrated video when eligible. No end-to-end success is claimed yet.
+
+### 9.6 Apply the accepted refinements — ✅ 9 November 2026
+
+Implements the dispositions in 9.5. Section 9.5 recorded proposals; this
+section records what was actually built, verified and deliberately not built.
+Plan task: `docs/superpowers/plans/2026-11-08-kokoro-narrated-video.md` Task 9.
+
+1. **Pronunciation lexicon — implemented.** `src/autopoc/kokoro_lexicon.json`
+   is applied only to the string handed to Kokoro, through Misaki's documented
+   `[word](/ips/)` override; slides, transcript and captions keep the reviewed
+   wording byte-for-byte. Phonemes are validated against Misaki's US vocabulary
+   (`misaki.en.US_VOCAB`, read from the installed package) because unsupported
+   symbols are dropped silently at inference. `narration.lexicon_sha256` in
+   `scenes.json` binds the lexicon to the review, so changing a pronunciation
+   cannot reuse an approved plan; plans without the field render with no
+   overrides, keeping earlier sealed inputs comparable. Reviewed text containing
+   the override syntax is rejected by both the Python and Node validators —
+   previously such text would have been silently reinterpreted as phonemes.
+   The eight seed entries are expected pronunciations, not measured ones.
+2. **Sentence captions — implemented.** `generate_narration` writes
+   `captions.vtt` from the measured timeline (scene start + 0.35s lead-in +
+   measured sentence offsets) and records `captions_sha256`. The renderer
+   verifies that hash before recording, so altered wording fails the render,
+   and muxes an English `mov_text` track; the media validator now requires
+   three streams. `captions.vtt` and the lexicon are retained in
+   `executable-source.zip` for recovery. Word-aligned subtitles remain out of
+   scope. Verified against real FFmpeg 8.1.3: the extracted track returns the
+   exact reviewed sentence at `00:00.350 --> 00:01.350`.
+3. **Job deadline — implemented.** New narrated policy derives 3600s; 3120s
+   stays accepted and `submit_renderer` dispatches each descriptor's own
+   recorded value, so previous attempts are not reinterpreted.
+4. **Early duration estimate — implemented.** `validate_scene_plan` estimates
+   total length at 4.0 words/second (Heart delivers roughly 2.4), so it rejects
+   only scripts no delivery speed could fit and reports estimate against limit.
+   False-rejection risk is therefore nil by construction; the trade is that it
+   accepts scripts that measured PCM may still reject, which stays authoritative.
+5. **Coverage collision — not implemented, correctly.** 493 Python tests at
+   86.44% against the unchanged 80% gate. No pragma and no lowered gate.
+6. **Late reconciliation — documented, not automated.** Spec, configuration
+   docs and the ADR now state that outlasting the 300s worker wait is the normal
+   narrated flow, that collection needs a dispatch, startup/resume or explicit
+   `executive-reconcile`, and that report links must not be called automatic
+   until a trigger is scheduled. No collector was added.
+7. **Asset origin — documented accurately.** `renderer/assets/kokoro/README.md`
+   now states that the pins are the bytes downloaded at the pinned revision
+   during the 8 November audition, that later builds verify against them, and
+   explicitly that this is continuity rather than an upstream signature check
+   or a safety assessment. No historical sign-off was invented.
+
+Verification: 493 Python tests (86.44%, 80% gate), 39 Node checks, Ruff 0.15.11
+pinned and Pyright clean. Three FFmpeg/browser integration tests remain skipped
+on this host because its ffmpeg lacks libx264; two of them predate this work.
+The caption mux was therefore verified separately against the real encoder.
+No render, PoC replay, cluster change or rollout occurred. Human listening,
+pronunciation confirmation, Drive credentials and merge approval remain gates.

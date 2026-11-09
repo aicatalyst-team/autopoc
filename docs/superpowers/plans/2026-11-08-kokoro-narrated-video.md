@@ -27,10 +27,10 @@ UBI 9, existing immutable Git/Drive checkpoints and OpenShift Jobs.
 - No content-model calls, speech API calls, model downloads or dependency installation during offline rendering.
 - Six required chapters: objective, testing, setup, results, limitations, recommendation; optional execution between setup/results; repeated sections contiguous.
 - Bounds: 6–30 slides; title 100 characters; 1–4 visible claims/slide; ledger claim 280 characters; at most 12 sentences/180 spoken words per slide; graph 12 nodes/20 edges/5 acts per slide.
-- Timing: 0.20s between sentences; `max(6.0, audio_seconds + 0.35 + 0.65)` per scene; 120s/scene, 900s total operational bounds; fail explicitly rather than clip or accelerate.
+- Timing: 0.20s between sentences; `max(6.0, audio_seconds + 0.35 + 0.65)` per scene, rounded up to the next 30fps frame with the frame count recorded; 120s/scene, 900s total operational bounds; fail explicitly rather than clip or accelerate.
 - Evidence limits: 32 supplemental records, 512KiB original bytes each, existing 20MiB total; sealed inputs remain 24MiB.
 - Template-3 output limits: 512MiB source ZIP and 1GiB video; retain five top-level artifact kinds.
-- Template-3 provisional resources: 2 CPU, 4Gi memory, 8Gi scratch, 10Gi ephemeral storage, 3000s render timeout, 3120s Job deadline; Job deadline upper bound 3600s.
+- Template-3 provisional resources: 2 CPU, 4Gi memory, 8Gi scratch, 10Gi ephemeral storage, 3000s render timeout, 3600s Job deadline (the allowed upper bound, leaving 600s for scheduling and image pull); descriptors sealed with the earlier 3120s deadline stay valid and dispatch with their own value.
 - Worker wait stays 300s by default, allowable 0–600s; durable late reconciliation handles longer videos.
 - Opt in with `AUTOPOC_EXECUTIVE_NARRATION=kokoro` and a compatible digest-pinned image; unset/`none` keeps the current silent path.
 - Generate renderer dependencies from `renderer/pyproject.toml` with hash-pinned `renderer/requirements.lock`; never hand-edit locks or add speech dependencies to the worker.
@@ -140,7 +140,7 @@ OpenCode model. No new LLM Python service, credentials or provider.
 
 - [x] **Step 1: Write failing audio/asset tests using an injected PCM engine.** Assert two 1s sentences with one 0.20s gap produce audio 2.20s and scene 6.0s; a 10s single sentence produces scene 11.0s and lead-in 0.35s at mux time. Reject wrong sample rate, empty/malformed PCM, NaN/nonfinite measurements, missing/corrupt voice/language assets, 120s+ scene and 900s+ total. Confirm exact reviewed sentences are passed, with no paraphrase or silent omission.
 - [x] **Step 2: Run `python -m pytest tests/test_executive_speech.py -q --no-cov`; confirm missing implementation fails.** Ordinary unit tests must not require downloading weights or installing Torch.
-- [x] **Step 3: Implement local inference/timeline and the build-only asset preparer.** Use Kokoro model revision `f3ff3571791e39611d31c381e3a41a3af07b4987`; record SHA-256/config/weight/Heart voice plus license provenance. Declare and hash-lock the CPU packages and explicit spaCy English wheel, starting from audition versions and fixing any reported security incompatibility before acceptance. Add `make renderer-lock` using pip-compile with the explicit CPU Torch index/version, without changing main `requirements.lock`. Install in `/opt/autopoc/speech-venv`, preload required assets under `/opt/autopoc/speech-assets`, and verify before inference. Avoid runtime auto-install paths; load all models/voices from explicit local paths with offline settings and no implicit HF token.
+- [x] **Step 3: Implement local inference/timeline and the build-only asset preparer.** Use Kokoro model revision `f3ff3571791e39611d31c381e3a41a3af07b4987`; record SHA-256/config/weight/Heart voice plus license provenance. Declare and hash-lock the CPU packages and explicit spaCy English wheel, starting from audition versions and fixing any reported security incompatibility before acceptance. Add `make renderer-lock` with the explicit CPU Torch index/version, without changing main `requirements.lock`; implemented with `uv pip compile` after pip-tools spent minutes and gigabytes rediscovering distribution metadata. Install in `/opt/autopoc/speech-venv`, preload required assets under `/opt/autopoc/speech-assets`, and verify before inference. Avoid runtime auto-install paths; load all models/voices from explicit local paths with offline settings and no implicit HF token.
 - [x] **Step 4: Verify unit tests, hash installation and a real offline smoke.** Run the Task 4 suite; install the generated renderer lock with hash checking, run dependency audit, and generate a short Heart scene with network disabled and empty writable caches. Record sample rate/duration/hash, package/model identities and time/memory. Verify the main worker can import CLI modules without speech dependencies.
 - [x] **Step 5: Update trackers and commit.** Commit message: `feat: generate offline Heart narration in the renderer`.
 
@@ -195,7 +195,7 @@ modify `src/autopoc/executive_render.py`, `tests/test_executive_render.py`,
 
 - [x] **Step 1: Add failing durable-policy tests.** Cover new narrated profile/deadlines/resources, unchanged legacy Job, environment change after checkpoint, stale/incompatible image/template, deleted worker directory, late completion beyond worker wait, unchanged input retry, bounded explicit retry and speech-failed partial publication. Assert duplicate dispatch does not allocate a new Job or upload IDs.
 - [x] **Step 2: Run job/cluster/Drive test modules with `--no-cov`; confirm new policy/CLI cases fail.** Use `python -m pytest tests/test_executive_job.py tests/test_executive_cluster.py tests/test_google_drive_tools.py -q --no-cov`; do not create a duplicate Drive suite.
-- [x] **Step 3: Implement version-specific saved profiles and output bounds.** Keep legacy 600s default/1800s allowed deadline behavior; narrated defaults are 3000s rendering/3120s Job, upper bound 3600s. Use 2 CPU/4Gi/8Gi scratch/10Gi ephemeral storage provisionally. Preserve tokenless renderer, read-only root, scoped RBAC and immutable checkpoint history. Configured image digest is required; do not infer compatibility from a mutable tag. Resume with saved configuration, rejecting conflicts rather than adopting new environment values.
+- [x] **Step 3: Implement version-specific saved profiles and output bounds.** Keep legacy 600s default/1800s allowed deadline behavior; narrated defaults are 3000s rendering/3600s Job (3120s remains accepted for descriptors sealed before 9 November 2026). Use 2 CPU/4Gi/8Gi scratch/10Gi ephemeral storage provisionally. Preserve tokenless renderer, read-only root, scoped RBAC and immutable checkpoint history. Configured image digest is required; do not infer compatibility from a mutable tag. Resume with saved configuration, rejecting conflicts rather than adopting new environment values.
 - [x] **Step 4: Verify state and report-link behavior.** Run affected suites plus Task 2 and Task 6 suites. Confirm failed narration never gets a successful video link, valid partial artifacts stay accessible, long renders reconcile after blog completion, exact output hashes/size ceilings are checked on upload/download, and complete legacy output remains reusable without re-rendering. Document that Drive authorization is still required even though Google TTS is not.
 - [x] **Step 5: Update trackers and commit.** Commit message: `feat: recover and publish bounded narrated render jobs`.
 
@@ -218,6 +218,32 @@ branch; production deployment/publication is claimed only with observed evidence
 
 
 **Observed outcome:** Engineering work and local/restricted-OCP acceptance complete. Working-credential Drive publication/reconciliation is blocked by invalid_grant; human listening and merge/live activation remain pending. These external/human rollout gates are not marked successful. See docs/validation/kokoro-narration-2026-11-08.json and both project trackers.
+
+### Task 9: Apply the accepted external refinements — 9 November 2026
+
+Added after the eight planned tasks closed. An external review raised seven
+findings; dispositions are recorded in `.opencode/plans/implementation-plan.md`
+section 9.5. Four were accepted as changes, one was rejected on evidence and two
+became documentation.
+
+**Files:** new `src/autopoc/kokoro_lexicon.json`; modify
+`src/autopoc/executive_speech.py`, `src/autopoc/executive_story.py`,
+`src/autopoc/executive_policy.py`, `src/autopoc/executive_job.py`,
+`src/autopoc/executive_render.py`, `renderer/audio.mjs`,
+`renderer/storyboard.mjs`, their tests, this plan, the design spec,
+`docs/adr/0014-offline-kokoro-narration.md`, `docs/configuration.md`,
+`AGENTS.md`, `renderer/assets/kokoro/README.md` and both project trackers.
+
+- [x] **Step 1: Pronunciation lexicon bound to the reviewed speech identity.** Apply a versioned synthesis-only lexicon through Misaki's `[word](/ips/)` override; keep visible text, transcript and captions byte-exact. Validate phonemes against Misaki's US vocabulary, because unsupported symbols are dropped silently. Reject reviewed scripts that contain the override syntax, in Python and Node. Bind the lexicon hash into `scenes.json` so a changed pronunciation cannot reuse an approved plan; absent means no overrides. Seed entries are expected, not measured, pronunciations.
+- [x] **Step 2: Sentence captions from the measured timeline.** Emit WebVTT at scene start plus lead-in plus measured offsets, hash it into the timeline, retain it in the source ZIP and mux an English `mov_text` track. Require the third stream in the media validator. Keep the five public artifact kinds.
+- [x] **Step 3: Narrated Job deadline 3600s.** A deadline runs from `startTime`, so pull and scheduling erode rendering time; keep 600s of headroom. Accept and dispatch sealed 3120s descriptors unchanged.
+- [x] **Step 4: Seal-time duration estimate.** Estimate from word counts, scene padding and gaps at a speed far faster than Heart, so only impossible scripts are rejected; report estimate and limit. Measured PCM stays authoritative.
+- [x] **Step 5: Verify and record.** 493 Python tests at 86.44% with the unchanged 80% gate, 39 Node checks, pinned Ruff 0.15.11 and Pyright clean. The `mov_text` mux was confirmed against real FFmpeg, extracting the exact reviewed sentence at the expected cue times. No coverage exclusion was needed — the earlier collision concern was hypothetical and the gate already passes.
+
+Not implemented, deliberately: no `no cover` pragma or lowered gate (rejected on
+measured evidence); no always-running late-result collector (documented as a
+rollout gate instead); no invented historical sign-off for the asset pins (the
+preparer verifies committed pins and that is what the documentation now says).
 
 ## Planning review and execution handoff
 

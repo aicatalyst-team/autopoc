@@ -94,13 +94,37 @@ exact packaged speech manifest; an image digest alone does not prove capability.
 No per-video model download is needed. CPU Kokoro dependencies/model/voice and
 licenses are installed only in the separate renderer image at build time.
 
+`src/autopoc/kokoro_lexicon.json` supplies pronunciations for coined names and
+initialisms. It is applied only to the text handed to the engine: slides, the
+transcript and the captions keep the exact reviewed wording, so editing it is
+never a content change. Its SHA-256 is recorded as `narration.lexicon_sha256`
+in `scenes.json`, so a changed pronunciation cannot reuse an approved scene
+plan and must be re-reviewed; a plan without the field renders with no
+overrides. Phoneme values must use Misaki's American English vocabulary —
+unsupported symbols are dropped silently at inference, so they are rejected at
+load. The seed entries are expected pronunciations, not measured ones; confirm
+each during the acceptance listening pass.
+
+Narrated videos carry a sentence-level English `mov_text` caption track built
+from the measured timeline, and `captions.vtt` is retained in
+`executable-source.zip`. Cue text is the reviewed sentence with only WebVTT
+markup characters escaped. Captions are sentence-level, not word-synchronized.
+
 Verified sealed format determines a durable `render_policy` saved before upload
-and Job submission. Narrated defaults: 3000s total renderer budget, 3120s Job
-active deadline (up to 3600s via the bounded profile), 2 CPU/4Gi memory, 8Gi
-scratch and 10Gi ephemeral-storage limit. Legacy Jobs retain their 600s default
-and 1800s deadline ceiling. Resource bounds are provisional until measured on
-the target cluster. `--wait-seconds` remains 300 by default, accepting 0–600;
-late Jobs finish through `executive-reconcile` after the worker continues.
+and Job submission. Narrated defaults: 3000s total renderer budget, 3600s Job
+active deadline, 2 CPU/4Gi memory, 8Gi scratch and 10Gi ephemeral-storage
+limit. A Job deadline runs from `startTime`, so scheduling and pulling the
+renderer image consume it before rendering begins; the 600s of headroom keeps a
+slow start from being reported as a render failure. Descriptors sealed with the
+earlier 3120s deadline stay valid and dispatch with their own recorded value.
+Legacy Jobs retain their 600s default and 1800s deadline ceiling. Resource
+bounds are provisional until measured on the target cluster. `--wait-seconds`
+remains 300 by default, accepting 0–600. Measured narrated renders took 352s on
+OpenShift and 853s under the long stress case, so exceeding the worker wait is
+the normal narrated flow, not an exception: late Jobs finish through
+`executive-reconcile`, which needs a dispatch, a startup/resume or an explicit
+command. There is no always-running collector, so report links are not updated
+automatically; schedule the trigger before relying on unattended narration.
 Resumes use saved image/mode/policy/launch configuration, ignoring later mode
 and image environment changes and rejecting conflicting explicit launch values.
 Legacy descriptors without a policy retain their original serialized identity.

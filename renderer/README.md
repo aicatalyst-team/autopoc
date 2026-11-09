@@ -102,14 +102,18 @@ Scene duration is measured PCM length plus 0.35s lead and 0.65s tail, at least
 6s, rounded upward to a 30fps frame. Sentence gaps are 0.20s. Default limits are
 30 slides, 120s per slide and 900s total; revise and re-review content if it
 exceeds those limits. Graph timing scales to this measured interval and remains
-illustrative. Timeline, exact transcript, sentence/scene WAVs, dependency locks
-and speech identity/licenses stay in the editable source ZIP, excluding model
-weights and private diagnostics. Narrated source ZIP/video ceilings are 512MiB
-and 1GiB. The same five public artifact kinds remain.
+illustrative. Timeline, exact transcript, captions, sentence/scene WAVs,
+dependency locks, the pronunciation lexicon and speech identity/licenses stay in
+the editable source ZIP, excluding model weights and private diagnostics.
+Narrated source ZIP/video ceilings are 512MiB and 1GiB. The same five public
+artifact kinds remain.
 
 Audio is padded as PCM per scene and concatenated before a single AAC encode;
-video segments remain H.264 1280x720/30fps/yuv420p. Every scene and final stream
-must match measured duration within 0.25s, and the entire final file must decode.
+video segments remain H.264 1280x720/30fps/yuv420p. Sentence captions are built
+from the measured timeline, hash-checked against it and muxed as an English
+`mov_text` track, so a narrated file has three streams. Every scene and final
+stream must match measured duration within 0.25s, and the entire final file
+must decode.
 Speech failure retains validated deck/PDF/source/summary and marks video failed.
 No silent fallback is published as a successful narrated video. Private speech
 and recording logs remain beside renderer.log and outside public ZIPs.

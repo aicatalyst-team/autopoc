@@ -1,7 +1,10 @@
 # Evidence-based slide text and Kokoro narration
 
-Status: user approved implementation on 8 November 2026; execution in progress.
-Date: 8 November 2026.
+Status: user approved implementation on 8 November 2026; eight tasks complete.
+Refined on 9 November 2026 after an external review: pronunciation lexicon,
+sentence captions, a 3600s narrated Job deadline, a seal-time duration estimate
+and an explicit late-collection rollout gate. Production rollout still pending.
+Date: 8 November 2026; revised 9 November 2026.
 
 ## Intent and confirmed requirements
 
@@ -158,6 +161,21 @@ accepting the production lock. Main application dependencies remain unchanged.
 Builder-selected defaults: `af_heart`, American English, speed 0.95, two Torch
 threads, 24kHz mono PCM. Synthesize each reviewed sentence, join with 0.20s
 inter-sentence silence, then measure the result from actual sample counts.
+
+A versioned project lexicon supplies pronunciations for coined names and
+initialisms through Misaki's documented `[word](/ips/)` override, applied only
+to the string handed to the engine. Visible text, transcript and captions keep
+the exact reviewed wording, so pronunciation is never a content change. Phoneme
+values are validated against Misaki's American English vocabulary, because
+unsupported symbols are otherwise dropped silently during inference. Reviewed
+scripts must not themselves contain that override syntax; both validators
+reject it rather than letting authored text be reinterpreted as phonemes. The
+lexicon hash joins the reviewed speech identity in `scenes.json`, so changing a
+pronunciation cannot reuse an approved scene plan, and plans sealed without the
+field keep rendering with no overrides. Seed entries are provisional: they
+encode expected pronunciations, not measured ones, and the acceptance listening
+pass must confirm or correct each of them.
+
 Record sentence boundaries and an engine/model/script identity per scene.
 No claim of word-level alignment or live execution timing is made.
 
@@ -171,10 +189,28 @@ not editorial targets. Exceeding one returns an actionable partial result for
 revision or a separately reviewed larger render policy. Never clip, rush,
 silently drop material or time-stretch speech to satisfy a limit.
 
+The structural maxima permit scripts that no delivery speed could fit in 900s,
+and that failure would otherwise surface only after synthesis. Sealing
+therefore estimates total length from word counts, scene padding and sentence
+gaps, and reports the estimate against the limit. The estimate assumes delivery
+far faster than Heart, so it rejects only the impossible and cannot pre-judge a
+script that might fit; it is a resource diagnostic, not a duration prediction
+and not an editorial ceiling. Measured PCM remains the only authority for what
+a render actually costs.
+
 Match diagram progression to the scene interval and retain the existing
 illustrative-timing caveat. Keep visible slide text, narration transcript and
-speaker notes available without audio. Word-synchronized subtitles, additional
-voices/languages, music and voice cloning are outside this first implementation.
+speaker notes available without audio.
+
+Sentence-level captions come from the same measured timeline: each cue spans
+one sentence, starting at its scene start plus the lead-in plus the measured
+offset. Write WebVTT beside the audio, hash it into the timeline so altered
+wording fails the render, retain it in the source package and mux it as an
+English `mov_text` track in the existing MP4. This adds no public artifact
+kind. Captions quote the reviewed sentence exactly, with only WebVTT markup
+characters escaped. Word-synchronized subtitles need alignment data Kokoro does
+not provide and stay out of scope, as do additional voices and languages,
+music and voice cloning.
 
 ## Rendering, failure behavior and recovery
 
@@ -212,12 +248,23 @@ the initial supported voice. Store narration mode, policy/profile identity,
 render timeout and Job deadline in the durable checkpoint before dispatch;
 resume must use that saved configuration rather than new environment values.
 
-Builder-selected initial template-3 budgets: 3000s renderer timeout and 3120s
-Job deadline; worker wait remains 300s by default and still permits 0–600s.
-Allow a 3600s upper bound for narrated Job deadlines. Initial resource profile
-is 2 CPU, 4Gi memory, 8Gi scratch with 10Gi ephemeral-storage limit, measured
-before rollout. Legacy profiles/deadlines stay unchanged. Longer videos should
-complete through existing late reconciliation after the worker continues.
+Template-3 budgets: 3000s renderer timeout and a 3600s Job deadline, the
+allowed upper bound. A Job deadline runs from `startTime`, so scheduling and
+pulling a multi-gigabyte renderer image consume it before rendering begins;
+600s of headroom keeps a slow start from being reported as a render failure.
+Descriptors sealed with the earlier 3120s deadline stay valid and dispatch with
+their own recorded value rather than being reinterpreted. Worker wait remains
+300s by default and still permits 0–600s. Initial resource profile is 2 CPU,
+4Gi memory, 8Gi scratch with 10Gi ephemeral-storage limit, measured before
+rollout. Legacy profiles/deadlines stay unchanged.
+
+Measured narrated renders took 352s on OpenShift and 374s locally, and 853s
+under the long stress case, so exceeding the 300s worker wait is the normal
+narrated flow rather than an exception. Durable late completion is tested, but
+collection currently needs a dispatch, a startup/resume or an explicit command;
+no always-running collector exists. Rollout therefore requires naming a
+reliable collection trigger, and report links must not be described as updating
+automatically until one is in place.
 
 ## Acceptance and rollout
 

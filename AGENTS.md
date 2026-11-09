@@ -167,9 +167,14 @@ content review, configuration, dispatch and independent recovery.
 - `executive-seal` binds reviewed narrative, evidence, scenes and a digest-pinned renderer image.
 - `executive-render` runs offline; `executive-dispatch`, `executive-status`, `executive-recover` and `executive-reconcile` handle durable publication and recovery independently of the eleven-phase cursor.
 - `Dockerfile.executive` / `renderer/` define the separate trusted renderer; `deploy/executive/rbac.yaml` scopes cluster access. The main worker and renderer have separate images and resource limits.
-- Narrated render policy is saved before dispatch: 3000s process budget, 3120s Job
-  deadline, 2 CPU/4Gi memory/8Gi scratch/10Gi ephemeral storage. Worker wait is
-  independently bounded; reconcile late outputs without rerunning PoC tests.
+- Narrated render policy is saved before dispatch: 3000s process budget, 3600s Job
+  deadline (600s of headroom for scheduling and image pull; sealed 3120s
+  descriptors stay valid), 2 CPU/4Gi memory/8Gi scratch/10Gi ephemeral storage.
+  Worker wait is independently bounded and narrated renders normally outlast it;
+  reconcile late outputs without rerunning PoC tests.
+- `src/autopoc/kokoro_lexicon.json` changes pronunciation only, never the reviewed
+  text, and its hash is bound into `scenes.json`; editing it requires a new review.
+  Narration text must never contain Misaki's `[word](/ips/)` override syntax.
 - Keep private diagnostics and credentials out of published artifacts. Input symlinks are rejected; a ConfigMap-based acceptance harness must copy its sealed input to a regular scratch file first. Production retrieves inputs through verified downloads.
 
 Narrated validation records are in `docs/validation/kokoro-narration-2026-11-08.json`.
