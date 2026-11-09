@@ -34,6 +34,14 @@ these three passes:
    and fuller natural spoken sentences. Spoken explanation adds context while
    preserving visible conclusions and caveats. It does not read logs aloud.
 
+Do not speak the PoC's execution date or timestamp, whether written as digits
+or words. Run/report dates are provenance, not voice-over content. When the
+historical context matters, say "the archived run" or "the recorded evidence"
+without its calendar date. For example, replace "This narration describes the
+archived October twentieth run" with "This narration describes the archived
+run." Preserve original-versus-later evidence distinctions. Keep dates in the
+underlying evidence and provenance; this restriction applies to spoken text.
+
 Include a troubleshooting/fix detail **if it explains the observed outcome,
 reveals an adoption/platform constraint, or changes the recommendation**.
 Exclude incidental login retries, routine setup noise and fixes with no bearing
@@ -105,6 +113,9 @@ check counts, planned/observed/inferred distinctions, platform suitability,
 coverage gaps, relevance of included fixes, intelligible narration and slide
 ordering. Reject an unsupported spoken claim even if the visible slide is correct.
 Retained logs/traces are evidence, not mandatory content.
+Reject narration that states the PoC's execution date or timestamp, including
+spelled-out calendar dates. Revise to date-free historical context before
+approval; do not remove or alter dates in the original evidence.
 
 Use tools for character/word counts and selector checks rather than estimating
 them. Blocking findings identify unsupported/misleading claims, missing caveats,

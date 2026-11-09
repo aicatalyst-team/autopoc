@@ -65,6 +65,13 @@ The workflow has three authoring passes followed by independent content review:
    diagram must resolve to ledger claims. Spoken detail may exceed visible text
    but must preserve the same conclusions, caveats and uncertainty.
 
+User refinement, 9 November 2026: the voice-over must not state the PoC's
+execution date or timestamp, including spelled-out calendar dates. Use "the
+archived run" or "the recorded evidence" when historical context is needed,
+while preserving original-versus-later evidence distinctions. Original dates
+remain in evidence/provenance; this is a spoken-content restriction. The content
+reviewer must reject a spoken run date before approval and sealing.
+
 The separate reviewer sees all evidence and the exact final JSON, including the
 spoken script. It checks factual support, totals, claim classification,
 conflicts, omissions, platform distinctions and the relevance of troubleshooting.

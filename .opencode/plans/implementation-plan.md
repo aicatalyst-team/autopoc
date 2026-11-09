@@ -482,6 +482,7 @@ recommendations are not execution instructions.
 | Design and implementation planning | ✅ Done | User-approved evidence-backed story, variable timing and eight implementation tasks |
 | Engineering implementation and acceptance | ✅ Done | Eight tasks; real local and restricted-v2 OCP media acceptance; independent review fixes verified |
 | External refinement review | ✅ Done | 9 November: seven findings checked against implementation; follow-up changes remain proposed |
+| Omit PoC dates from voice-over | ✅ Done | 9 November: author/reviewer rules updated; existing sealed demo unchanged |
 | Controlled production rollout | Pending | Drive invalid_grant, human listening and explicit merge/live configuration approval |
 
 ### 9.1 Generate and verify a local Kokoro audition — ✅ 8 November 2026
@@ -650,3 +651,18 @@ Primary technical references checked: [Misaki pronunciation overrides](https://g
 [Kubernetes Job deadline semantics](https://kubernetes.io/docs/reference/kubernetes-api/batch/job-v1/).
 Verification for this review: source/CI/recorded-acceptance inspection and
 documentation diff checks only; no new render, PoC replay or rollout occurred.
+
+### 9.6 Exclude the PoC date from spoken narration — ✅ 9 November 2026
+
+- User requested that the voice-over not mention the PoC date. Confirmed the
+  archived Omnigent source transcript says "This narration describes the archived
+  October twentieth run."
+- Updated narrated authoring guidance, independent-review rejection criteria and
+  the design to omit the run's execution date/timestamp in digits or words. Use
+  "the archived run" when relevant, retaining historical evidence distinctions
+  and the original provenance dates.
+- Scope: content policy only. Existing sealed inputs, review receipts, transcript
+  and generated MP4 are unchanged; revising that demo requires a fresh content
+  review/seal/render, not an unreviewed speech-time text substitution.
+- Verified the actual ZIP transcript and reviewed the documentation diff. No
+  runtime code changed and no new rendering or PoC execution is claimed.

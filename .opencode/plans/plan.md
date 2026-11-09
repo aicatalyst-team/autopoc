@@ -276,6 +276,7 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Check OCP GPU capacity and AutoPoC namespace access | ✅ 8 November — one L40S and two A100 devices unrequested; Job/pod creation allowed, no namespace quota found; workload not tested |
 | Implement and validate narrated rendering | ✅ Done — eight tasks, reviewed offline image, real local/OCP video acceptance |
 | Review external implementation refinements | ✅ 9 November — all seven checked; dispositions in implementation-plan.md section 9.5; follow-up changes proposed |
+| Omit PoC dates from spoken narration | ✅ 9 November — author/reviewer policy and design updated; existing demo has not been re-rendered |
 
 This is a local throwaway audition, not production narration acceptance. Technical
 pronunciation, offline packaging, per-scene synchronization and restricted OCP
@@ -315,3 +316,9 @@ follow-ups. The 80% gate already passes at 86.24%; no coverage exclusion is
 needed. Asset preparation already verifies committed pins; initial upstream
 verification deserves accurate dated documentation, not an invented sign-off.
 Review is complete; these proposed changes are not implemented by this review.
+
+Date-free voice-over policy — ✅ 9 November 2026. Omit the PoC execution
+date/timestamp from spoken text, including dates written in words; use "the
+archived run" if historical context matters. Original evidence dates remain.
+Authoring and independent-review guidance now enforce this content requirement.
+The existing sealed demo remains unchanged pending a fresh reviewed render.
