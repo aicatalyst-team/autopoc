@@ -750,8 +750,8 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
 - OpenShift build `openshell-kokoro-90b344e8-gateway-1` is Complete/published.
   All three first component builds succeeded, preserving the full prover and
   unique run-specific tags. Actual build receipts retain digests/timestamps.
-- This closes image generation only. Worker must still record build completion,
-  deploy the application and execute original validation; no runtime pass assumed.
+- Worker subsequently recorded build completed with zero build retries after
+  digest verification. Deployment preparation is underway; no runtime pass assumed.
 
 #### 9.7.8 Verify the offline renderer on the target node — ✅ 9 November 2026
 
