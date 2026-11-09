@@ -1078,3 +1078,13 @@ renderer and Heart policy; no deployment/test replay or production rollout.
 - Dispatched `autopoc-openshell-kokoro-90b344e8-3d-render-v10` with the same
   offline digest-pinned renderer, CPU/memory limits and isolated PVC transport.
   Final media generation/retrieval/verification remain in progress.
+
+##### 9.8.4.1 Complete the actual offline 3D render — ✅ 9 November 2026
+
+- OCP 3d-render-v10 succeeded with both graph scenes and all five artifact kinds.
+  Video: 208.267s (3m28s), 6248 frames; elapsed 469.283s, peak 3,399,409,664
+  bytes and scratch 97,810,483 bytes, within the unchanged 2 CPU/4Gi limits.
+- Downloaded all five artifacts to a separate 3D delivery directory, retaining
+  the earlier video. All six final PDF pages pixel-match the inspected preflight.
+  Independent full-media decode, hash/timeline checks and inspection of exported
+  animated test steps are finishing before final delivery acceptance.

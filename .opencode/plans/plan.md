@@ -406,3 +406,7 @@ inspection passed 21 animation states. The latter compensates for the current
 freeze-prop repaint limitation and checks complete node-label boxes. Product
 follow-ups are recorded in implementation-plan.md 9.8.2; this run does not claim
 those renderer-code fixes. Final media output verification remains pending.
+
+- ✅ Actual 3D render (9.8.4.1): both graph scenes and five outputs generated;
+  3m28s/6248 frames, 469.283s render, 3,399,409,664-byte peak. New files retrieved,
+  six final PDF pages match preflight. Final playback/animation inspection pending.
