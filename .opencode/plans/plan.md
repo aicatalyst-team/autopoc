@@ -391,14 +391,14 @@ from cloud publication. Track execution in implementation-plan.md section 9.7.
 - ✅ Delivery-helper cleanup (9.7.15): temporary helper/publisher Jobs and Pods
   removed after receipt retention; healthy app and bound recovery PVC retained.
 
-### OpenShell 3D regeneration — In progress (9 November 2026)
+### OpenShell 3D regeneration — ✅ 9 November 2026
 
 | Task | Status |
 |------|--------|
 | Author setup and original-five-check TopoLoop diagrams | ✅ 9.8.1 — evidence-linked candidate; speech and outcomes unchanged |
 | Validate browser/PDF states and inspect the revised slides | ✅ 9.8.2 — final v10, 21 reset-based full-label states passed; two 3D pages inspected |
 | Fresh independent review and immutable seal | ✅ 9.8.3 — genuine full-corpus Qwen approval, zero blockers; input 670eef1c…ce270ef |
-| Render and verify revised slides/video, retain originals and stop helper | In progress — offline 3d-render-v10 dispatched |
+| Render and verify revised slides/video, retain originals and stop helper | ✅ 9.8.4–5 — both 3D scenes, 3m28s video and five files verified; previous video retained, helper deleted |
 
 3D regeneration: final v10 retains both TopoLoop scenes, every spoken sentence
 and all original outcomes. Full browser/PDF checks plus independent remount-based
@@ -410,3 +410,11 @@ those renderer-code fixes. Final media output verification remains pending.
 - ✅ Actual 3D render (9.8.4.1): both graph scenes and five outputs generated;
   3m28s/6248 frames, 469.283s render, 3,399,409,664-byte peak. New files retrieved,
   six final PDF pages match preflight. Final playback/animation inspection pending.
+
+- ✅ Final 3D delivery/cleanup (9.8.4–5): two animated TopoLoop scenes, 3m28s /
+  6248-frame video, all five artifact hashes and full playback decode passed.
+  Six PDF pages match preflight; inspected six video chapters, all five animated
+  checks and three setup poses. Speech/date policy and original five passes
+  unchanged. Receipt: docs/validation/openshell-kokoro-3d-2026-11-09.json.
+  Temporary helper removed after retaining proof; app/PVC and prior video kept.
+  Drive and listening gates remain; no production activation or product-code fix.

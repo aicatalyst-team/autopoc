@@ -485,7 +485,7 @@ recommendations are not execution instructions.
 | Apply accepted refinements | ✅ Done | 9 November: four implemented with tests, one rejected on evidence, two documented; offline listening still pending |
 | Omit PoC dates from voice-over | ✅ Done | 9 November: author/reviewer rules updated; existing sealed demo unchanged |
 | Fresh OpenShell end-to-end branch run | ✅ Done | 9 November: deployed, original 5/5 pass, corrected report persisted, final 3m28s Kokoro video and five artifacts retrieved/verified; Drive/listening gates remain |
-| Regenerate OpenShell with 3D views | In progress | User requested TopoLoop setup and original-test walkthrough; same sealed evidence, no test replay |
+| Regenerate OpenShell with 3D views | ✅ Done | Two TopoLoop scenes; reviewed 3m28s video, animated browser deck/PDF/source retrieved and verified, original tests unchanged |
 | Controlled production rollout | Pending | Drive invalid_grant, human listening and explicit merge/live configuration approval |
 
 ### 9.1 Generate and verify a local Kokoro audition — ✅ 8 November 2026
@@ -1022,7 +1022,7 @@ pronunciation confirmation, Drive credentials and merge approval remain gates.
   Completed/failed renderer candidates retain their normal seven-day TTL for
   inspection; no shared worker, credential or prior PoC was changed.
 
-### 9.8 Restore TopoLoop 3D views in the OpenShell deliverables — In progress
+### 9.8 Restore TopoLoop 3D views in the OpenShell deliverables — ✅ 9 November 2026
 
 User requested regenerated slides/video with 3D after the omission was traced to
 an authoring shortcut. Keep the six chapters, all reviewed spoken sentences,
@@ -1034,8 +1034,8 @@ renderer and Heart policy; no deployment/test replay or production rollout.
 | Author evidence-linked setup topology and five-check walkthrough | ✅ 9.8.1 |
 | Validate actual browser/PDF diagram states and inspect pages | ✅ 9.8.2 |
 | Obtain fresh independent full-evidence review and seal changed bytes | ✅ 9.8.3 |
-| Render/retrieve/verify revised slides and narrated video | In progress |
-| Retain prior revisions, record acceptance and stop temporary helper | Pending |
+| Render/retrieve/verify revised slides and narrated video | ✅ 9.8.4 |
+| Retain prior revisions, record acceptance and stop temporary helper | ✅ 9.8.5 |
 
 #### 9.8.1 Author the two evidence-linked TopoLoop views — ✅ 9 November 2026
 
@@ -1088,3 +1088,32 @@ renderer and Heart policy; no deployment/test replay or production rollout.
   the earlier video. All six final PDF pages pixel-match the inspected preflight.
   Independent full-media decode, hash/timeline checks and inspection of exported
   animated test steps are finishing before final delivery acceptance.
+
+#### 9.8.4 Verify and deliver the revised slides/video — ✅ 9 November 2026
+
+- Verified all five downloaded size/SHA-256 identities, exact final seal/review/
+  evidence bindings, sentence/scene WAV hashes, timeline, 6248 frames and full
+  host FFmpeg decode. Both graph scenes are present in source and render manifest;
+  every spoken sentence exactly matches the previous reviewed video.
+- Inspected all six exported video chapters, all five distinct animated test
+  steps and three setup-camera samples. The animations visibly progress through
+  health, metrics, SDK exec, placement and the stopped TCP attempt. All six final
+  PDF pages pixel-match the inspected preflight; no clipped labels/captions remain.
+- Final delivery directory:
+  `/home/aavraham/.codex/visualizations/2026/11/09/openshell-kokoro-90b344e8-3d/`.
+  Includes MP4, PDF, animated browser ZIP, executable source ZIP and Markdown,
+  plus retained recovery/review/animation-state records. Prior v5 media is intact.
+- Public receipt: `docs/validation/openshell-kokoro-3d-2026-11-09.json`.
+  Original one execution/five passes preserved; no deployment or test replay.
+  Drive publication remains blocked by prior authorization failure, human listening
+  remains pending, and no production activation or later renderer refinements are
+  claimed. This request regenerated artifacts without changing product code.
+
+#### 9.8.5 Retain receipts and stop the temporary regeneration helper — ✅ 9 November 2026
+
+- Retained the genuine final review, sealed input, completed Job receipt, private
+  renderer diagnostics, state snapshot and independent media verification. Saved
+  output verification back to the run PVC before removing the temporary 3D helper
+  Job and observing its Pod deleted.
+- Kept the application/workspace PVC and prior artifacts. Completed draft,
+  inspection and renderer Jobs retain their normal seven-day TTL for audit.
