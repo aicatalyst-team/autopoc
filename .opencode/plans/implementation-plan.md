@@ -731,7 +731,15 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   retained. State records containerization complete; build access is being checked.
 - These are build definitions, not successful images or runtime validation.
 
-Remaining: execute the remaining six phases or record a bounded mandatory failure; inspect
+#### 9.7.7 Build the three new runtime images — In progress
+
+##### 9.7.7.1 Build and publish the sandbox image — ✅ 9 November 2026
+
+- OpenShift build `openshell-kokoro-90b344e8-sandbox-1` is Complete and published
+  the unique `kokoro-90b344e8` sandbox tag. Its build receipt is retained privately.
+  Gateway/supervisor remain Running; no deployment/test success is claimed.
+
+Remaining: finish builds and execute the remaining five phases or record a bounded mandatory failure; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
 new narrated video when eligible. No end-to-end success is claimed yet.
 
