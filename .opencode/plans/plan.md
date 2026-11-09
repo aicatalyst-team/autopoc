@@ -387,3 +387,6 @@ from cloud publication. Track execution in implementation-plan.md section 9.7.
   Receipt: docs/validation/openshell-kokoro-e2e-2026-11-09.json. Drive/Docs auth,
   optional blog Vale configuration and human listening remain explicit gates;
   production rollout and later branch refinements are not accepted by this run.
+
+- ✅ Delivery-helper cleanup (9.7.15): temporary helper/publisher Jobs and Pods
+  removed after receipt retention; healthy app and bound recovery PVC retained.

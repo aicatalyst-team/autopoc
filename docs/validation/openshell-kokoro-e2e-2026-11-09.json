@@ -199,5 +199,12 @@
         "runs/90b344e86812455caf110467384bbbea/heads/blog.json"
       ]
     }
+  },
+  "cleanup": {
+    "temporary_artifact_helper_job": "deleted",
+    "temporary_publisher_job": "deleted",
+    "application": "retained",
+    "workspace_pvc": "retained_bound",
+    "completed_renderer_jobs": "retained with seven-day TTL and private receipts"
   }
 }

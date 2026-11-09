@@ -1011,3 +1011,12 @@ pronunciation confirmation, Drive credentials and merge approval remain gates.
   URL, production dispatch/reconcile acceptance or successful upload is claimed.
   Optional blog content is published to the artifact branch; its Vale config and
   Google Docs upload gates remain blocked. Keep the application and workspace PVC.
+
+##### 9.7.15 Stop temporary delivery helpers and retain the deployment — ✅ 9 November 2026
+
+- Saved final media verification/public validation receipts to the PVC and
+  retained private review/render proof locally. Deleted only this run's temporary
+  artifact-helper and publisher Jobs; both helper Pods are gone.
+- Application gateway/supervisor and the bound run workspace PVC remain intact.
+  Completed/failed renderer candidates retain their normal seven-day TTL for
+  inspection; no shared worker, credential or prior PoC was changed.
