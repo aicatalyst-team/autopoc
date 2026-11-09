@@ -739,7 +739,13 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   the unique `kokoro-90b344e8` sandbox tag. Its build receipt is retained privately.
   Gateway/supervisor remain Running; no deployment/test success is claimed.
 
-Remaining: finish builds and execute the remaining five phases or record a bounded mandatory failure; inspect
+##### 9.7.7.2 Build and publish the supervisor image — ✅ 9 November 2026
+
+- OpenShift build `openshell-kokoro-90b344e8-supervisor-1` is Complete and
+  published the unique supervisor tag. Gateway remains Running with active native
+  compiler processes; the sandbox/supervisor images are retained without rebuild.
+
+Remaining: finish the gateway build and execute the remaining five phases or record a bounded mandatory failure; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
 new narrated video when eligible. No end-to-end success is claimed yet.
 

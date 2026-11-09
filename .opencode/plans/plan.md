@@ -286,6 +286,7 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Fresh OpenShell PoC plan | ✅ 9 November — five scenarios planned/published; containerization next, no test results yet |
 | Fresh OpenShell UBI containerization | ✅ 9 November — three component Dockerfiles verified/committed/pushed; actual builds next |
 | Fresh OpenShell sandbox image build | ✅ 9 November — sandbox-1 Complete/published; gateway and supervisor still building |
+| Fresh OpenShell supervisor image build | ✅ 9 November — supervisor-1 Complete/published; gateway still compiling |
 
 This is a local throwaway audition, not production narration acceptance. Technical
 pronunciation, offline packaging, per-scene synchronization and restricted OCP
