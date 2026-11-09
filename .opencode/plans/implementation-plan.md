@@ -762,7 +762,19 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   cached on that node; subsequent rendering is warm-cache acceptance, not a new
   cold-pull deadline or human-listening claim. No PoC tests were executed here.
 
-Remaining: execute the remaining five pipeline phases or record a bounded mandatory failure; inspect
+#### 9.7.9 Install OpenShell and observe initial workload readiness — ✅ 9 November 2026
+
+- Helm install returned success in the isolated application namespace. Gateway
+  StatefulSet and supervisor Deployment each report one ready replica; both
+  application pods are Running/ready under restricted-v2.
+- Actual running gateway/supervisor image IDs match their new build receipts.
+  Gateway is on the configured worker-2 node. Retained an operator observation
+  privately; it does not replace original validation or worker evidence captures.
+- Worker deploy/apply checkpoints were still pending at this observation;
+  persistence and original five-case validation remain outstanding. No test pass
+  or completed pipeline/report/video is inferred from pod readiness.
+
+Remaining: persist deployment checkpoints and execute original validation/report/blog or record a bounded mandatory failure; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
 new narrated video when eligible. No end-to-end success is claimed yet.
 

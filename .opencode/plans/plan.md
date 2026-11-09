@@ -289,6 +289,7 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Fresh OpenShell supervisor image build | ✅ 9 November — supervisor-1 Complete/published; gateway still compiling |
 | Fresh OpenShell gateway/prover and complete runtime image build | ✅ 9 November — three images published/verified; worker build phase completed with zero retries; deployment preparation underway |
 | Fresh OpenShell offline-renderer readiness | ✅ 9 November — OCP packaged-asset verification succeeded; temporary check Job removed, renderer image cached |
+| Fresh OpenShell initial install/readiness | ✅ 9 November — gateway/supervisor ready under restricted-v2 with expected new image IDs; worker deployment checkpoints and original validation pending |
 
 This is a local throwaway audition, not production narration acceptance. Technical
 pronunciation, offline packaging, per-scene synchronization and restricted OCP
