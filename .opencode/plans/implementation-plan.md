@@ -698,6 +698,13 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   and replaced only this pending worker Job using the same fresh workspace/run.
   This is a disclosed launch correction, not a PoC-test retry or result.
 
-Remaining: execute eleven phases or record a bounded mandatory failure; inspect
+#### 9.7.2 Fresh OpenShell intake — ✅ 9 November 2026
+
+- Worker state records intake completed for the pinned source and this new run;
+  gateway, supervisor and sandbox sources/chart/SDK were inspected. Reference
+  setup provenance is staged separately from new validation results.
+- Evaluation is next. No build/deployment/test/report/video success is claimed.
+
+Remaining: execute the remaining ten phases or record a bounded mandatory failure; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
 new narrated video when eligible. No end-to-end success is claimed yet.
