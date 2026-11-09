@@ -774,7 +774,14 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   persistence and original five-case validation remain outstanding. No test pass
   or completed pipeline/report/video is inferred from pod readiness.
 
-Remaining: persist deployment checkpoints and execute original validation/report/blog or record a bounded mandatory failure; inspect
+#### 9.7.10 Complete deployment/apply checkpoints — ✅ 9 November 2026
+
+- Worker state now records both deploy/apply completed with zero deploy retries.
+  It retained readiness observations and is preparing captured original execution.
+- Pod readiness/readiness probes are not counted as the planned five-case
+  validation. Validation, report, conditional blog and narrated output remain open.
+
+Remaining: execute original validation/report/blog or record a bounded mandatory failure; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
 new narrated video when eligible. No end-to-end success is claimed yet.
 
