@@ -814,7 +814,18 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   reproducibility/coverage wording; it is retained unchanged, not edited into an
   approval. Date-free speech and exact new review/evidence hashes remain required.
 
-Remaining: finalize/publish the corrected report and conditional blog; inspect
+##### 9.7.12.1 Generate and inspect the corrected canonical report — ✅ 9 November 2026
+
+- Worker report status is completed. Operator inspected the revised canonical
+  text: five original outcomes retained, limited in-cluster TCP ingress contrast
+  clearly described, no blanket isolation/reproducibility/zero-gap assurance,
+  UBI core/bootstrap versus Ubuntu workload images distinguished, future
+  HA/persistence/auth/load/GPU work qualified rather than asserted as supported.
+- Original index/payload/script hashes remain the authority. This closes local
+  report generation only; immutable final publication, narration review/sealing
+  and the conditional blog remain to be verified.
+
+Remaining: publish the corrected report and finish the conditional blog; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
 new narrated video when eligible. No end-to-end success is claimed yet.
 

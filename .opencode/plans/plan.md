@@ -293,6 +293,7 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Fresh OpenShell deploy/apply checkpoints | ✅ 9 November — worker recorded both phases completed, zero deploy retries; captured original validation next |
 | Fresh OpenShell captured original validation | ✅ 9 November — one captured execution, five pass/zero fail/error/skip/incomplete; ingress-path scope remains limited |
 | Finalize OpenShell report/narration scope | In progress — content-only same-run recovery addresses overclaims; original five outcomes/script/index preserved, fresh model review required |
+| Corrected OpenShell canonical report generation | ✅ 9 November — scoped wording inspected, five original results preserved; final publication and narration review/seal still pending |
 
 This is a local throwaway audition, not production narration acceptance. Technical
 pronunciation, offline packaging, per-scene synchronization and restricted OCP
