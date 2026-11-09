@@ -796,7 +796,25 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
 - Exploratory setup probes preceded the canonical captured suite and were cleaned
   up; they are not extra passing planned scenarios. No tests need replay for media.
 
-Remaining: generate/publish the report and conditional blog; inspect
+#### 9.7.12 Finalize bounded report/narration claims — In progress
+
+- Operator review found draft overclaims: the two-target ingress observation
+  described as policy proof, confirmed isolation, fully reproducible evidence,
+  unqualified zero gaps and an unsupported specific external-database HA action.
+  These exceed the five recorded assertions. Narrow the report AND narrative,
+  retain exact counts, distinguish UBI core/bootstrap images from Ubuntu workload,
+  and require a fresh actual configured-model review before sealing/rendering.
+- Paused only the original content worker after validation. Resume Job
+  `autopoc-openshell-kokoro-90b344e8-r2` reuses the same workspace/run, existing
+  application and original captures. Its init verifies original script/index
+  hashes and all five outcomes, archives prior draft/review files, and records
+  operator assistance. No core phase/counter reset or new test execution is allowed.
+- The content Job budget is bounded within the remaining original four-hour run
+  budget. Existing raw model verdict found classification blockers and noted
+  reproducibility/coverage wording; it is retained unchanged, not edited into an
+  approval. Date-free speech and exact new review/evidence hashes remain required.
+
+Remaining: finalize/publish the corrected report and conditional blog; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
 new narrated video when eligible. No end-to-end success is claimed yet.
 
