@@ -705,6 +705,16 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   setup provenance is staged separately from new validation results.
 - Evaluation is next. No build/deployment/test/report/video success is claimed.
 
-Remaining: execute the remaining ten phases or record a bounded mandatory failure; inspect
+#### 9.7.3 Evaluate OpenShell — ✅ 9 November 2026
+
+- Fresh-run evaluation is completed and staged; worker is publishing its initial
+  evaluation artifact. This is an assessment, not deployment/test acceptance.
+
+#### 9.7.4 Adopt the protected fork and isolated source branch — ✅ 9 November 2026
+
+- Worker verified the pinned source branch, remote and operator protection
+  attestation, then recorded fork adoption completed without default-branch writes.
+
+Remaining: execute the remaining eight phases or record a bounded mandatory failure; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
 new narrated video when eligible. No end-to-end success is claimed yet.

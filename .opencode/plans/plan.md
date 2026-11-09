@@ -280,6 +280,8 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Prepare a fresh OpenShell end-to-end branch run | ✅ 9 November — access, image identity, protected source branch and isolated run configuration verified |
 | Execute fresh OpenShell deployment/tests/report/video | In progress — run 90b344e86812455caf110467384bbbea; direct retrieval planned while Drive authentication is blocked |
 | Fresh OpenShell source intake | ✅ 9 November — pinned source inspected; gateway/supervisor/sandbox identified; evaluation next |
+| Fresh OpenShell evaluation | ✅ 9 November — assessment completed/staged; artifact publication underway |
+| Fresh OpenShell protected-fork adoption | ✅ 9 November — new source branch/remote/attestation verified, no default-branch writes |
 
 This is a local throwaway audition, not production narration acceptance. Technical
 pronunciation, offline packaging, per-scene synchronization and restricted OCP
