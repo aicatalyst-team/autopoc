@@ -275,6 +275,7 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Save and independently check design and implementation plan | ✅ Eight tasks defined; builder review found no important gaps; user approved implementation 8 November |
 | Check OCP GPU capacity and AutoPoC namespace access | ✅ 8 November — one L40S and two A100 devices unrequested; Job/pod creation allowed, no namespace quota found; workload not tested |
 | Implement and validate narrated rendering | ✅ Done — eight tasks, reviewed offline image, real local/OCP video acceptance |
+| Review external implementation refinements | ✅ 9 November — all seven checked; dispositions in implementation-plan.md section 9.5; follow-up changes proposed |
 
 This is a local throwaway audition, not production narration acceptance. Technical
 pronunciation, offline packaging, per-scene synchronization and restricted OCP
@@ -306,3 +307,11 @@ Capture timing/frame regression and real offline failure recovery — ✅ 8 Nove
 Independent whole-branch review corrections — ✅ 8 November 2026. Two Important findings fixed with failing-then-passing regressions; 482 Python tests at 86.24%, actual result-diagram browser tests pass. No Critical or Minor findings.
 
 Engineering acceptance and controlled-rollout preparation — ✅ 8 November 2026. 482 Python tests/86.24%, actual image/browser/FFmpeg checks, local8/12-slide videos and restricted-v2 OpenShift completion verified. Exact measurements and image revisions are retained in docs/validation/kokoro-narration-2026-11-08.json. Drive invalid_grant, human listening and explicit merge/live-configuration approval remain rollout gates; no production publication is claimed.
+
+External refinement review — ✅ 9 November 2026. Pronunciation lexicon (identity-bound),
+sentence captions, a 3600s deadline for new narrated attempts, early duration
+diagnostics and an explicit normal late-result collection flow are proposed
+follow-ups. The 80% gate already passes at 86.24%; no coverage exclusion is
+needed. Asset preparation already verifies committed pins; initial upstream
+verification deserves accurate dated documentation, not an invented sign-off.
+Review is complete; these proposed changes are not implemented by this review.

@@ -481,6 +481,7 @@ recommendations are not execution instructions.
 | Voice selection | ✅ Done | User selected Heart (`af_heart`) |
 | Design and implementation planning | ✅ Done | User-approved evidence-backed story, variable timing and eight implementation tasks |
 | Engineering implementation and acceptance | ✅ Done | Eight tasks; real local and restricted-v2 OCP media acceptance; independent review fixes verified |
+| External refinement review | ✅ Done | 9 November: seven findings checked against implementation; follow-up changes remain proposed |
 | Controlled production rollout | Pending | Drive invalid_grant, human listening and explicit merge/live configuration approval |
 
 ### 9.1 Generate and verify a local Kokoro audition — ✅ 8 November 2026
@@ -587,3 +588,65 @@ recommendations are not execution instructions.
 - Missing assets, forced termination, 75s global timeout, 4GiB child OOM and dedicated disk-full injections preserve valid partial outputs without narrated-video success. Admission/upload/restart/late-state cases remain deterministic tests, not falsely reported live Drive publication.
 - GREEN:482 supported Python tests at 86.24%, Ruff/Pyright,35 default Node checks plus14actual FFmpeg and2actual browser checks. One fresh reviewer; two Important findings fixed in one RED→GREEN pass; no Critical or deferred Minor findings.
 - PR https://github.com/aviavraham/autopoc/pull/4 is stacked on the approved planning branch. Temporary cluster test resources and model port-forward were removed after verified retrieval. All eight engineering tasks are closed; worktree retained for review. Drive refresh still fails invalid_grant; durable publication, human listening/pronunciation and explicit merge/live-worker approval remain pending. No production rollout is claimed.
+
+### 9.5 Review external implementation refinements — ✅ 9 November 2026
+
+Review completed against the current checkout and recorded acceptance, not only
+the original plan. This section records dispositions; it does not claim the
+proposed follow-up code or new acceptance is complete.
+
+1. **Pronunciation control — proposed improvement.** The real Heart adapter sends
+   reviewed sentences directly to Kokoro; there is no project lexicon. Misaki's
+   upstream README documents inline phoneme overrides. Add a small versioned
+   synthesis-only lexicon, preserving visible text/transcript exactly, and bind
+   its hash into the reviewed speech identity. Changing pronunciation must not
+   silently reuse an old speech identity. Validate short technical-term samples
+   before full renders; human listening is still required. No actual incorrect
+   pronunciation of OpenShift, Kubernetes or Quay is established by this review.
+2. **Sentence captions — proposed improvement.** Measured sentence offsets already
+   exist. Caption times must add scene start and the 0.35s lead-in to those
+   offsets. Retain WebVTT in the source ZIP and encode an English mov_text track
+   in the existing MP4, preserving the five public artifact kinds. This needs
+   escaping, timing/readability and player checks, source recovery support and
+   an update to the current exact-two-stream media validator. Word-aligned
+   subtitles remain outside scope; this is an extension, not an existing promise.
+3. **Job deadline — accept rationale; change proposed.** Current defaults really
+   are 3000s process / 3120s Job. Kubernetes measures activeDeadlineSeconds from
+   Job startTime, so pending/pull time erodes rendering time. Recommend a 3600s
+   default for new narrated policy. Preserve existing sealed/checkpoint policy
+   bytes and Job intent; do not silently reinterpret previous 3120s attempts.
+   A pull longer than 120s reduces the full process budget; it does not itself
+   kill a 3120s Job before rendering starts.
+4. **Early duration estimate — accept need with qualification; proposed.** The
+   structural maxima permit scripts likely to exceed the measured 900s guard.
+   Add a cheap seal-time estimate including scene padding and sentence gaps,
+   with actionable diagnostics. A words-per-minute assumption is not proof of
+   actual duration: document any conservative rejection policy and its false
+   rejection risk. Retain measured PCM limits as authoritative; no clipping or
+   speed-up, and no change to the user's complexity-driven duration preference.
+5. **Coverage collision — not present in current acceptance.** The recorded full
+   suite passed 482 tests at 86.24%, above the unchanged 80% gate. CI also builds
+   the renderer and directly initializes _HeartEngine/synthesizes offline audio.
+   Those image checks are separate from unit coverage. No no-cover pragma or
+   lowered gate is justified just to solve a hypothetical future collision.
+6. **Late reconciliation — accept operational emphasis; proposed follow-up.**
+   Reviewed-image Omnigent took 352.369s on OCP and 373.815s locally; the long
+   stress took 853.337s, all beyond the default 300s worker wait. Durable late
+   completion is tested, but reconciliation currently requires dispatch,
+   startup/resume or an explicit command; an always-running collector is not
+   established. Treat this as a normal narrated flow and specify a reliable
+   collection trigger before unattended rollout. Do not describe late report
+   link updates as automatic without that trigger.
+7. **Asset origin attestation — partial agreement; proposed documentation.**
+   prepare-kokoro-assets.py reads the committed manifest, checks revision-scoped
+   URLs and verifies exact size/SHA-256 before exposing files. It does not
+   generate expected hashes from a first download. The existing README says
+   the pins identify the auditioned bytes, but an explicit dated account of
+   how initial pins were checked against upstream would improve provenance.
+   Record only verification actually performed; do not invent a historical
+   human sign-off or imply matching upstream establishes model safety.
+
+Primary technical references checked: [Misaki pronunciation overrides](https://github.com/hexgrad/misaki/blob/main/README.md),
+[Kubernetes Job deadline semantics](https://kubernetes.io/docs/reference/kubernetes-api/batch/job-v1/).
+Verification for this review: source/CI/recorded-acceptance inspection and
+documentation diff checks only; no new render, PoC replay or rollout occurred.
