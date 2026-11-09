@@ -858,7 +858,28 @@ documentation diff checks only; no new render, PoC replay or rollout occurred.
   before sealing. Actual offline Job `autopoc-openshell-kokoro-90b344e8-render-v4`
   is running with a new isolated input/output directory; no tests are replayed.
 
-Remaining: publish the corrected report and finish the conditional blog; inspect
+##### 9.7.13.1 Complete the compact-layout offline technical render — ✅ 9 November 2026
+
+- Actual OCP render-v4 Job succeeded and generated all five artifact kinds.
+  Six-scene video is 201.333s / 6040 frames; renderer elapsed 450.197s,
+  peak memory 2,981,449,728 bytes and measured scratch 92,998,835 bytes.
+- This candidate remains superseded for final delivery: a later primary-source
+  review found bundled HA examples, correcting a factual absence claim in its
+  report evidence. Retain its immutable inputs/outputs and technical receipt;
+  align final report/narration evidence before delivering the final package.
+
+#### 9.7.14 Align final source facts and artifact package — In progress
+
+- Exact pinned NVIDIA source includes gateway CI/dev HA values (two replicas,
+  Deployment and an external PostgreSQL example) and supervisor E2E HA values
+  (two shared supervisors). Operator verified both files at f4a61375, not only
+  their names. These configurations were not exercised by this PoC.
+- The worker's source-grounded blog review discovered the examples and is
+  correcting report/narration/blog references, followed by fresh content review.
+  Final package must distinguish source availability from tested HA behavior;
+  preserve all five original outcomes without rerunning any tests.
+
+Remaining: finalize source-aligned report/narration and conditional blog; inspect
 actual results/report and genuine narrative review; render/retrieve/verify the
 new narrated video when eligible. No end-to-end success is claimed yet.
 

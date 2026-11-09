@@ -297,6 +297,8 @@ Design: [Red Hat presentation branding](../../docs/superpowers/specs/2026-11-03-
 | Full-corpus content review and independent seal | ✅ 9 November — actual configured-model approval on all twelve bundle members and original script; immutable v3 seal retained |
 | OpenShell compact-layout review/seal | ✅ 9 November — all six browser/PDF pages inspected, fresh full-evidence review approved, immutable layout-v4 input sealed |
 | OpenShell narrated render acceptance | In progress — new offline render-v4 Job running; first layout-rejected attempt retained separately, original tests unchanged |
+| Compact-layout offline technical render | ✅ 9 November — OCP generated all five artifacts, 3m21s/6040-frame video; candidate retained as superseded pending final HA-source correction |
+| Final OpenShell source/artifact alignment | In progress — pinned source has HA CI/dev/E2E examples; availability must be separated from untested HA runtime behavior in final evidence |
 
 This is a local throwaway audition, not production narration acceptance. Technical
 pronunciation, offline packaging, per-scene synchronization and restricted OCP
