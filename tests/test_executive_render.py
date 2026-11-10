@@ -324,13 +324,30 @@ def test_runtime_metrics_count_scratch_without_following_symlinks(tmp_path):
 
 
 @pytest.mark.parametrize("failure", [None, "speech", "record", "pdf", "content"])
-def test_narration_stages_preserve_deck_and_reviewed_source(tmp_path, monkeypatch, failure):
+@pytest.mark.parametrize("template", [3, 4])
+def test_narration_stages_preserve_deck_and_reviewed_source(
+    tmp_path, monkeypatch, failure, template
+):
     from tests.executive_fixtures import make_v3_input
 
-    package = make_v3_input(tmp_path / "run", slides=8)
+    from tests.test_executive_inputs import generic_documents, generic_seal
+
+    run = tmp_path / "run"
+    package = (
+        generic_seal(run, generic_documents(run, 1))
+        if template == 4
+        else make_v3_input(run, slides=8)
+    )
+    verified = executive_render.verify_inputs(package)
     root = tmp_path / "renderer"
     root.mkdir()
-    for name in ("render.mjs", "audio.mjs", "storyboard.mjs", "requirements.lock"):
+    for name in (
+        "render.mjs",
+        "audio.mjs",
+        "storyboard.mjs",
+        "check-timing.mjs",
+        "requirements.lock",
+    ):
         (root / name).write_text("trusted runtime")
     monkeypatch.setenv("AUTOPOC_RENDERER_ROOT", str(root))
     monkeypatch.setenv("AUTOPOC_SPEECH_PYTHON", "/trusted/speech-python")
@@ -344,9 +361,25 @@ def test_narration_stages_preserve_deck_and_reviewed_source(tmp_path, monkeypatc
             data, output = map(Path, command[2:4])
             calls.append(stage)
             if stage == "prepare":
+                if template == 4:
+                    from autopoc.executive_story import derive_checks
+
+                    assert json.loads((data / "checks.json").read_text()) == derive_checks(
+                        verified["evidence_index"]
+                    )
+                    assert json.loads((data / "visuals.json").read_text()) == verified["visuals"]
+                    image = data / "visuals/assets/image0.png"
+                    assert (
+                        hashlib.sha256(image.read_bytes()).hexdigest()
+                        == verified["visuals"]["assets"][0]["sha256"]
+                    )
                 source = output / "source"
                 (source / "dist").mkdir(parents=True)
                 (source / "dist/index.html").write_text("prepared deck")
+                if template == 4:
+                    for base in [source / "public/visuals", source / "dist/visuals"]:
+                        base.mkdir(parents=True)
+                        (base / "image0.png").write_bytes(image.read_bytes())
                 (source / "slides.md").write_text("<ExecutiveSlide />")
                 (source / "transcript.txt").write_text("Exact reviewed sentences")
                 (output / "executive-summary.pdf").write_bytes(b"%PDF")
@@ -378,6 +411,9 @@ def test_narration_stages_preserve_deck_and_reviewed_source(tmp_path, monkeypatc
                 manifest["scenes"] = [{"id": "slide-0", "duration_seconds": 31}]
                 (output / "presentation-manifest.json").write_text(json.dumps(manifest))
         else:
+            assert calls == ["prepare"]
+            narrative = Path(command[command.index("--narrative") + 1])
+            assert json.loads(narrative.read_text()) == verified["narrative"]
             calls.append("speech")
             assert command[:3] == ["/trusted/speech-python", "-m", "autopoc.executive_speech"]
             if failure == "speech":
@@ -419,9 +455,31 @@ def test_narration_stages_preserve_deck_and_reviewed_source(tmp_path, monkeypatc
     summary = (tmp_path / "output/executive-summary.md").read_text()
     assert "Silent video" not in summary
     with zipfile.ZipFile(tmp_path / "output/executable-source.zip") as source:
-        assert {"storyboard.mjs", "audio.mjs", "requirements.lock", "transcript.txt"} <= set(
-            source.namelist()
-        )
+        assert {
+            "storyboard.mjs",
+            "audio.mjs",
+            "check-timing.mjs",
+            "requirements.lock",
+            "transcript.txt",
+        } <= set(source.namelist())
+        if template == 4:
+            from autopoc.executive_story import derive_checks
+
+            assert json.loads(source.read("checks.json")) == derive_checks(
+                verified["evidence_index"]
+            )
+            assert json.loads(source.read("visuals.json")) == verified["visuals"]
+            assert (
+                hashlib.sha256(source.read("public/visuals/image0.png")).hexdigest()
+                == verified["visuals"]["assets"][0]["sha256"]
+            )
+        if template == 4 and failure != "content":
+            with zipfile.ZipFile(tmp_path / "output/static-site.zip") as site:
+                assert json.loads(site.read("checks.json")) == derive_checks(
+                    verified["evidence_index"]
+                )
+                assert json.loads(site.read("visuals.json")) == verified["visuals"]
+                assert site.read("visuals/image0.png") == source.read("public/visuals/image0.png")
         if failure not in {"speech", "content"}:
             # Captions and the lexicon travel with recovery: a recovered render
             # must show the exact cues and pronunciations the timeline names.
@@ -468,3 +526,40 @@ def test_local_cli_propagates_explicit_budget(monkeypatch, capsys):
     monkeypatch.setattr(executive_render, "render_executive", render)
     args.func(args)
     assert calls == [{"timeout": 2500}]
+
+
+def test_schema3_changed_visual_payload_fails_before_any_render_process(tmp_path, monkeypatch):
+    from tests.test_executive_inputs import generic_documents, generic_seal, rewrite_package
+
+    package = generic_seal(tmp_path, generic_documents(tmp_path, 1))
+
+    def alter(data):
+        data["visuals.zip"] += b"changed reviewed asset bytes"
+
+    altered = rewrite_package(package, tmp_path / "altered.zip", alter)
+    calls = []
+    monkeypatch.setattr(
+        executive_render, "_run_renderer", lambda *args, **kwargs: calls.append(args)
+    )
+    with pytest.raises(ValueError, match="review"):
+        executive_render.render_executive(altered, tmp_path / "output")
+    assert calls == []
+    assert not (tmp_path / "output").exists()
+
+
+def test_schema3_recovery_source_keeps_assets_when_preparation_cannot_start(tmp_path, monkeypatch):
+    from tests.test_executive_inputs import generic_documents, generic_seal
+
+    package = generic_seal(tmp_path, generic_documents(tmp_path, 1))
+    verified = executive_render.verify_inputs(package)
+
+    def fail(*args, **kwargs):
+        raise OSError("renderer unavailable")
+
+    monkeypatch.setattr(executive_render, "_run_renderer", fail)
+    result = executive_render.render_executive(package, tmp_path / "output")
+    assert result["status"] == "partial"
+    with zipfile.ZipFile(tmp_path / "output/executable-source.zip") as source:
+        image = source.read("public/visuals/image0.png")
+        assert hashlib.sha256(image).hexdigest() == verified["visuals"]["assets"][0]["sha256"]
+        assert source.read("render-inputs.zip") == package.read_bytes()

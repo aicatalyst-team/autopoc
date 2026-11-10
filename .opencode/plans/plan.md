@@ -492,7 +492,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Generic author/reviewer guidance and examples (plan Task 3) | ✅ 10.4 — three source-linked schema-3 worked stories and asset manifests validated; 176 targeted tests passed |
 | Reusable identity/check layouts and timing (plan Task 4) | ✅ 10.5 — 109 actual-browser/Node checks, zero skips; 16 real FFmpeg checks; seven-page PDF and measured cue inspected |
 | 3D pose lifecycle and full label inspection (plan Task 5) | ✅ 10.6 — 15 actual-browser tests, zero skips; all 10 poses and 60 collision/containment samples; 122 Node tests passed |
-| Offline integration, packaging and recovery (plan Task 6) | Pending |
+| Offline integration, packaging and recovery (plan Task 6) | ✅ 10.7 — 632 Python tests, 87.18% coverage; 134 offline actual-browser/Node/FFmpeg checks, zero skips; source ZIP rebuilt |
 | Pronunciation and measured generic acceptance (plan Task 7) | Pending |
 | En-MaaS provider preflight for the fresh run | ✅ 10.9.1 — external settings/key found; actual worker text/tool calls and in-cluster authenticated connection verified |
 | Prepare isolated namespace, access, workspace and source branch | ✅ 10.9.2 — new run c00040c2 only; no application workload launched |
@@ -679,3 +679,38 @@ PVC. The PVC waits for its first consumer; this is environment preparation,
 not successful application deployment or a completed PoC. Fresh branch images
 and main worker launch remain pending engineering acceptance. Earlier resources
 and artifacts are retained.
+
+
+### 10.7 ✅ Offline integration, packaging and recovery — 10 November 2026
+
+Template 4 now follows verified preparation/decode/layout, exact reviewed Heart
+speech and measured recording sequentially. CURRENT_TEMPLATE_VERSION is 4;
+render admission explicitly retains templates 2/3/4. Schema-3 staging derives
+checks.json only from verified evidence, writes the verified visual manifest and
+unpacks only its selected PNGs into controlled private paths. Source/browser ZIPs
+carry the checks, manifest and exact public PNGs; source recovery retains PNGs
+even if preparation cannot start. The trusted timing module is included in both
+the executable-source allowlist and renderer Dockerfile. The worker Dockerfile
+installs the minimal autopoc-tools executable; a real process test verifies CLI
+dispatch. Actual fresh-worker image verification remains Task 7.
+
+Templates 3/4 deliberately share the existing kokoro-v3 resource-policy profile:
+3000s process, 3600s new Job, existing CPU/memory/storage limits; saved 3120s
+Job descriptors retain their launch intent. Schema-3 late recovery preserves
+input/asset/check identities and all five artifact hashes after the worker wait
+expires, reconciles idempotently, and rejects changed input/output bytes without
+rerunning scenarios. A browser-test readiness wait fixes an async reset race;
+no collision, font, containment or decode guard was weakened.
+
+RED reproduced missing worker executable, rejected/silent template-4 dispatch,
+missing timing/metadata packages and missing recovery PNGs before preparation.
+GREEN: 95 focused Python checks; full suite 632 passed at 87.18% coverage;
+134 actual-browser/Node/FFmpeg checks passed offline with zero skips; CI Ruff
+0.15.11, touched-file formatting and Pyright passed. Actual Python/Node
+preparation produced a schema-3 deck/PDF and ZIPs in the cached offline image;
+extracting the source ZIP into fresh scratch and rebuilding with its included
+files plus provisioned npm dependencies succeeded. This focused packaging smoke
+intentionally stopped speech and retained a partial result. Fresh image builds,
+actual Heart schema-3 listening/visual acceptance, restricted-v2/OCP validation,
+Drive publishing and shared activation remain later gates. Phase 10 remains in
+progress.

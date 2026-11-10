@@ -48,7 +48,7 @@ try {
     assert.deepEqual(await page.locator('.tl-fatal').allTextContents(), [])
     const root = page.locator('.executive[data-executive-ready="true"]')
     assert.equal(await root.locator('.slide-number').textContent(), String(i))
-    if (narrative.schema_version === 2) {
+    if ([2,3].includes(narrative.schema_version)) {
       const slide = narrative.slides[i-1]
       assert.equal(snapshot.id, slide.id)
       assert.equal(await root.locator('h1').textContent(), slide.title)

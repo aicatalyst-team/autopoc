@@ -3,12 +3,14 @@
 The Python wrapper accepts only a sealed input ZIP validated by
 `autopoc.executive_inputs.verify_inputs`. Reviewed JSON remains data; only the
 trusted renderer components generate executable Slidev content. The renderer
-never replays PoC tests or visits a workload. Phase 1 video is silent.
+never replays PoC tests, fetches project URLs or visits a workload.
 
-New seals use **template revision 2**, the default Red Hat presentation theme:
-a red opening, white content slides, local Red Hat Display/Text/Mono fonts and
-official corporate artwork. The six evidence-based scenes and their durations
-are unchanged. All runtime branding resources and notices are committed under
+Schema-3 seals use **template revision 4**, with reviewed identity, checks,
+summary and optional topology layouts. Schema-2/template-3 narration and
+schema-1/template-2 silent inputs remain supported explicitly. Scene plans stay
+schema 2 for both narrated templates. Template 2 keeps its six silent scenes.
+All templates use the Red Hat theme: a red opening, white content slides, local
+Red Hat Display/Text/Mono fonts and official corporate artwork. All runtime branding resources and notices are committed under
 `assets/redhat/`; generated decks copy them into `public/brand/` for offline use.
 Missing or changed assets fail verification. Font/image loading, text bounds,
 diagram labels and original logs are checked before PDF export and recording,
@@ -16,9 +18,8 @@ including the PDF still and each animation act/log state. Overfull content fails
 with a request to shorten reviewed text rather than silently clipping it.
 
 Revision-1 inputs remain verifiable/recoverable but require their original
-digest-pinned renderer to render again. The v2 image refuses fresh v1 rendering;
-matching complete v1 output can still be reused after integrity checks. Do not
-pair a new default v2 seal with the old renderer digest. `executive-seal
+digest-pinned renderer to render again. This image refuses fresh v1 rendering;
+matching complete v1 output can still be reused after integrity checks. Use the compatible digest recorded with each sealed revision. `executive-seal
 --template-version 1` is available only for explicit legacy-image recovery.
 
 From an installed AutoPoC checkout with Node >=22.18, npm dependencies and
@@ -27,7 +28,7 @@ Playwright browsers already provisioned:
 ```sh
 export AUTOPOC_RENDERER_ROOT="$PWD/renderer"
 export AUTOPOC_RENDER_NODE_MODULES="$PWD/renderer/node_modules"
-uv run autopoc-tools executive-render --inputs /absolute/render-inputs.zip --output-dir /absolute/output
+scripts/autopoc-tools executive-render --inputs /absolute/render-inputs.zip --output-dir /absolute/output
 ```
 
 The final command is also the container argument list after `executive-render`.
@@ -47,7 +48,7 @@ The check blocks external requests and exercises missing fonts/logos and
 oversized claims, titles, counts and diagram labels.
 
 Outputs include the editable `executable-source.zip`, browser `static-site.zip`,
-`executive-summary.pdf`, `executive-summary.mp4` (silent template 2, Heart narration template 3), `executive-summary.md`,
+`executive-summary.pdf`, `executive-summary.mp4` (silent template 2, Heart narration templates 3/4), `executive-summary.md`,
 and `presentation-manifest.json`. The source ZIP includes trusted components,
 local fonts/licenses, dependency lock, speaker notes, claim references in
 `narrative.json`, sealed inputs and recovery metadata. It excludes `node_modules`,
@@ -60,7 +61,7 @@ separate operations. Each packaged artifact is hashed and sized. Matching
 complete output is reused only after hash checks; a conflicting or partial
 nonempty output directory requires a new destination. Video failure preserves
 usable PDF/deck outputs and records `partial`. Input paths and output ancestors
-cannot be symlinks. The wrapper defaults to a 600s budget for silent template 2 and 3000s for narrated template 3. Explicit budgets may be lower, never higher. One shared deadline bounds the complete process sequence.
+cannot be symlinks. The wrapper defaults to a 600s budget for silent template 2 and 3000s for narrated templates 3/4. Explicit budgets may be lower, never higher. One shared deadline bounds the complete process sequence.
 
 Build and publish independently of the worker/recorder images:
 
@@ -91,7 +92,7 @@ test using the Node boundary does not establish Chromium/UBI compatibility or
 resource sizing. Mutable upstream FFmpeg release replacement causes checksum
 failure and requires an explicitly reviewed checksum update.
 
-Template 3 performs three sequential stages: prepare/validate deck and PDF, exit
+Templates 3 and 4 perform three sequential stages: prepare/validate deck and PDF, exit
 Chromium, generate exact reviewed sentences with offline CPU Kokoro, exit the
 speech process, then record the prepared deck and mux audio. Speech runs only
 from `/opt/autopoc/speech-venv` with model/config/Heart assets verified against
@@ -144,3 +145,23 @@ capture frames to 30fps, briefly hold the terminal frame if needed, and trim to
 the exact reviewed frame count. Per-scene and final frame totals must match,
 preventing cumulative drift across long decks. See the retained genuine WebM
 regression fixture and the actual FFmpeg integration tests.
+
+Template 4 input staging is derived only after sealed-input verification:
+`checks.json` copies every original scenario identity/name/outcome;
+`visuals.json` is the verified manifest; reviewed PNG bytes are unpacked to
+`visuals/assets/<id>.png`. Preparation copies them to `public/visuals/<id>.png`
+and fully decodes every image before starting speech. No URL is fetched.
+Checks and manifest JSON, exact PNG bytes and trusted `check-timing.mjs` travel
+in the source ZIP; the browser ZIP includes the same metadata and public PNGs.
+The editable source can be rebuilt with its included lockfile/components/assets
+using pre-provisioned npm dependencies (`npm run build`). To rerender, validate
+its sealed `render-inputs.zip` through the Python wrapper and original image pin.
+
+Templates 3/4 deliberately share the saved `kokoro-v3` resource-policy profile:
+3000s process budget, 3600s new Job deadline, 2 CPU/4Gi memory, 8Gi scratch and
+10Gi ephemeral storage. Existing sealed 3120s Job descriptors retain their
+original deadline. A 300s worker wait may expire before successful completion;
+reconcile durable receipts and hashes independently without replaying scenarios.
+Schema 3 anchors recording to a private pre-roll slate and measured frame PTS;
+legacy schema 2 retains its original capture trim. The slate and raw frames stay
+in private scratch and are excluded from published/source archives.

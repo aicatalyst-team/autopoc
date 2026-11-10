@@ -16,7 +16,7 @@ from autopoc.evidence import verify_bundle
 MAX_BYTES = 24 * 1024 * 1024
 MEMBERS = {"evidence.zip", "narrative.json", "review.json", "scenes.json", "versions.json"}
 TOPICS = ("purpose", "testing_strategy", "test_execution", "platform_suitability")
-CURRENT_TEMPLATE_VERSION = 3
+CURRENT_TEMPLATE_VERSION = 4
 
 
 def _hash(data: bytes) -> str:

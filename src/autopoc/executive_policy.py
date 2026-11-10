@@ -10,11 +10,13 @@ import re
 # budget. 3120s is retained because descriptors sealed before 9 November 2026
 # persisted it; their recorded Job intent must stay dispatchable unchanged.
 NARRATED_JOB_DEADLINES = (3120, 3600)
+# The profile names resource/timing policy, not a template admission rule.
+# Templates 3 and 4 share kokoro-v3; retain saved descriptor identities unchanged.
 
 
 def render_policy(verified: dict) -> dict:
     """Derive a durable policy only from verified sealed content."""
-    narrated = verified["versions"]["template"] == 3
+    narrated = verified["versions"]["template"] in (3, 4)
     scenes = verified["scenes"]
     raw = json.dumps(
         scenes["timing_policy"] if narrated else scenes, sort_keys=True, separators=(",", ":")
@@ -32,7 +34,7 @@ def saved_policy(checkpoint: dict, verified: dict | None = None) -> dict | None:
     """Legacy descriptors retain their bytes; new ones must match sealed policy."""
     policy = checkpoint.get("render_policy")
     if policy is None:
-        if verified is not None and verified["versions"]["template"] == 3:
+        if verified is not None and verified["versions"]["template"] in (3, 4):
             raise ValueError("Narrated inputs require a saved render policy")
         return None
     if not isinstance(policy, dict) or policy.get("profile") not in ("silent-v2", "kokoro-v3"):

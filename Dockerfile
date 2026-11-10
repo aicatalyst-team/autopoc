@@ -63,6 +63,8 @@ RUN pip install --no-cache-dir -r /tmp/requirements.lock && rm /tmp/requirements
 # Copy project source (tools, config, prompts, templates)
 COPY src/ /opt/autopoc/src/
 COPY data/ /opt/autopoc/data/
+COPY scripts/autopoc-tools /usr/local/bin/autopoc-tools
+RUN chmod 755 /usr/local/bin/autopoc-tools
 
 # Copy OpenCode skills and configuration
 COPY .opencode/skills/ /opt/autopoc/.opencode/skills/

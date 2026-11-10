@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import os
 import signal
@@ -13,7 +14,7 @@ import time
 import zipfile
 from pathlib import Path
 
-from autopoc.executive_inputs import CURRENT_TEMPLATE_VERSION, MAX_BYTES, TOPICS, verify_inputs
+from autopoc.executive_inputs import MAX_BYTES, TOPICS, verify_inputs
 
 TOPIC_TITLES = dict(
     zip(
@@ -170,7 +171,7 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int | None
         sealed = private / "render-inputs.zip"
         sealed.write_bytes(raw)
         validated = verify_inputs(sealed)
-        narrated = validated["versions"]["template"] == 3
+        narrated = validated["versions"]["template"] in (3, 4)
         maximum = 3000 if narrated else 600
         timeout = maximum if timeout is None else timeout
         if type(timeout) is not int or not 1 <= timeout <= maximum:
@@ -179,7 +180,7 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int | None
         _safe_path(output_dir)
         if output_dir.exists() and any(output_dir.iterdir()):
             return _reuse(output_dir, identity)
-        if validated["versions"]["template"] not in (2, CURRENT_TEMPLATE_VERSION):
+        if validated["versions"]["template"] not in (2, 3, 4):
             raise ValueError("Legacy inputs require their original pinned renderer image")
         output_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
         os.chmod(output_dir, 0o700)
@@ -189,6 +190,18 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int | None
             for name in ("narrative.json", "scenes.json", "versions.json"):
                 (data / name).write_bytes(archive.read(name))
             evidence_hash = _sha(archive.read("evidence.zip"))
+            if validated["versions"]["schema"] == 3:
+                from autopoc.executive_story import derive_checks
+
+                # Only verified metadata and bytes frozen above enter the browser.
+                _json(data / "checks.json", derive_checks(validated["evidence_index"]))
+                _json(data / "visuals.json", validated["visuals"])
+                visual_root = data / "visuals/assets"
+                visual_root.mkdir(parents=True, mode=0o700)
+                with zipfile.ZipFile(io.BytesIO(archive.read("visuals.zip"))) as visuals:
+                    for asset in validated["visuals"]["assets"]:
+                        name = f"{asset['id']}.png"
+                        (visual_root / name).write_bytes(visuals.read(f"assets/{name}"))
         renderer = Path(os.environ.get("AUTOPOC_RENDERER_ROOT", "/opt/autopoc/renderer"))
         engine_output = private / "rendered"
         engine_output.mkdir(mode=0o700)
@@ -300,6 +313,8 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int | None
             "package-lock.json",
             "style.css",
             "transcript.txt",
+            "checks.json",
+            "visuals.json",
         ):
             path = source / name
             _safe_path(path)
@@ -313,11 +328,21 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int | None
                 for name in ("narrative.json", "scenes.json", "versions.json")
             }
         )
+        if validated["versions"]["schema"] == 3:
+            for name in ("checks.json", "visuals.json"):
+                source_files[name] = (data / name).read_bytes()
+            # Keep inspectable reviewed assets even when preparation could not start.
+            for asset in validated["visuals"]["assets"]:
+                name = f"{asset['id']}.png"
+                source_files[f"public/visuals/{name}"] = (
+                    data / "visuals/assets" / name
+                ).read_bytes()
         for name in (
             "render.mjs",
             "branding.mjs",
             "scene-validation.mjs",
             "storyboard.mjs",
+            "check-timing.mjs",
             "audio.mjs",
             "requirements.lock",
             "pyproject.toml",
@@ -364,6 +389,9 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int | None
             "index.html" in static
             and state.get("artifacts", {}).get("deck", {}).get("status") == "validated"
         ):
+            for name in ("checks.json", "visuals.json"):
+                if name in source_files:
+                    static[name] = source_files[name]
             _zip(output_dir / "static-site.zip", static)
             artifact("deck", "static-site.zip", (output_dir / "static-site.zip").read_bytes())
         else:

@@ -98,6 +98,7 @@ test('generic layouts define projects, show provenance and all checks in browser
       await page.evaluate(()=>window.dispatchEvent(new CustomEvent('executive-clock',{detail:{elapsed_seconds:0}})))
       assert.equal(await current.locator('.check-active').count(),0)
       await page.evaluate(()=>window.dispatchEvent(new CustomEvent('executive-reset')))
+      await current.waitFor() // Reset settles fonts/layout asynchronously before inspection.
       assert.equal(await current.locator('.check-active').count(),0)
      }
     }

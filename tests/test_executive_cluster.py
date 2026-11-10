@@ -345,14 +345,22 @@ def test_dispatch_exits_nonzero_when_renderer_admission_fails(repository, tmp_pa
     assert exit_info.value.code == 1
 
 
+@pytest.mark.parametrize("template", [3, 4])
 def test_narrated_policy_is_durable_before_upload_and_survives_late_completion(
-    repository, tmp_path, monkeypatch
+    repository, tmp_path, monkeypatch, template
 ):
     from autopoc import executive_cluster as cluster
     from tests.executive_fixtures import make_v3_input
 
     source, _ = repository
-    package = make_v3_input(tmp_path / "run", slides=8)
+    from tests.test_executive_inputs import generic_documents, generic_seal
+
+    run = tmp_path / "run"
+    package = (
+        generic_seal(run, generic_documents(run, 1))
+        if template == 4
+        else make_v3_input(run, slides=8)
+    )
     drive = Drive()
 
     def before():
@@ -404,6 +412,97 @@ def test_narrated_policy_is_durable_before_upload_and_survives_late_completion(
         cluster.submit_renderer(source, "run-1", "autopoc-test", wait_seconds=0)["job"]["status"]
         == "completed"
     )
+
+    if template == 4:
+        import argparse
+        import io
+        import zipfile
+
+        from autopoc.executive_inputs import verify_inputs
+        from autopoc.executive_render import _zip
+        from autopoc.executive_story import derive_checks
+
+        expected = verify_inputs(recovered)
+        expected_checks = derive_checks(expected["evidence_index"])
+        render_calls = []
+
+        def render(sealed, output, **kwargs):
+            render_calls.append(1)
+            assert kwargs == {"timeout": 3000}
+            verified = verify_inputs(sealed)
+            assert verified["visuals"] == expected["visuals"]
+            assert derive_checks(verified["evidence_index"]) == expected_checks
+            output.mkdir(parents=True)
+            with zipfile.ZipFile(sealed) as outer:
+                with zipfile.ZipFile(io.BytesIO(outer.read("visuals.zip"))) as visuals:
+                    image = visuals.read("assets/image0.png")
+            metadata = {
+                "checks.json": json.dumps(expected_checks).encode(),
+                "visuals.json": json.dumps(verified["visuals"]).encode(),
+            }
+            _zip(
+                output / "executable-source.zip",
+                {
+                    **metadata,
+                    "render-inputs.zip": sealed.read_bytes(),
+                    "public/visuals/image0.png": image,
+                },
+            )
+            _zip(
+                output / "static-site.zip",
+                {**metadata, "index.html": b"deck", "visuals/image0.png": image},
+            )
+            (output / "executive-summary.pdf").write_bytes(b"PDF")
+            (output / "executive-summary.mp4").write_bytes(b"video")
+            (output / "executive-summary.md").write_text("Reviewed executive summary")
+            manifest = {"run_id": "run-1", "status": "generated_unpublished", "artifacts": {}}
+            for kind, name in cluster.ARTIFACTS.items():
+                if kind != "manifest":
+                    raw = (output / name).read_bytes()
+                    manifest["artifacts"][kind] = {
+                        "status": "generated_unpublished",
+                        "path": name,
+                        "sha256": hashlib.sha256(raw).hexdigest(),
+                        "size": len(raw),
+                    }
+            return manifest
+
+        monkeypatch.setattr("autopoc.executive_render.render_executive", render)
+        args = argparse.Namespace(
+            input_id=cp["input_id"],
+            input_sha256=cp["input_sha256"],
+            recovery_id=cp["recovery_id"],
+            recovery_sha256=cp["recovery_sha256"],
+            output_dir=tmp_path / "late-output",
+        )
+        published = cluster.render_remote(args, drive=drive)
+        assert published["status"] == "outputs_published"
+        receipts = dict(published["artifacts"])
+        for receipt in receipts.values():
+            assert hashlib.sha256(drive.files[receipt["file_id"]]).hexdigest() == receipt["sha256"]
+        before_reconcile = dict(drive.files)
+        reconciled = cluster.reconcile_outputs(source, "run-1", None, drive)
+        assert reconciled["status"] == "complete"
+        assert (
+            cluster.reconcile_outputs(source, "run-1", None, drive)["artifacts"]
+            == reconciled["artifacts"]
+        )
+        assert drive.files == before_reconcile
+        assert render_calls == [1]
+        receipt = receipts["source"]
+        with zipfile.ZipFile(io.BytesIO(drive.files[receipt["file_id"]])) as archive:
+            assert json.loads(archive.read("checks.json")) == expected_checks
+            assert (
+                hashlib.sha256(archive.read("public/visuals/image0.png")).hexdigest()
+                == expected["visuals"]["assets"][0]["sha256"]
+            )
+        drive.files[receipt["file_id"]] += b"altered output"
+        with pytest.raises(ValueError, match="integrity"):
+            cluster.reconcile_outputs(source, "run-1", None, drive)
+        drive.files[cp["input_id"]] += b"altered input"
+        with pytest.raises(ValueError, match="integrity"):
+            recover_inputs(source, "run-1", tmp_path / "altered-recovery", drive)
+        assert render_calls == [1]
 
 
 @pytest.mark.parametrize(

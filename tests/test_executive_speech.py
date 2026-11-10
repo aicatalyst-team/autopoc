@@ -36,11 +36,16 @@ def speech_assets(root):
     return root
 
 
-def inputs(tmp_path, *, slides=6, lexicon=False):
+def inputs(tmp_path, *, slides=6, lexicon=False, generic=False):
     from autopoc.executive_speech import LEXICON
+    from tests.test_executive_inputs import generic_documents
 
     assets = speech_assets(tmp_path / "assets")
-    docs = v3_documents(tmp_path / "run", slides=slides)
+    docs = (
+        generic_documents(tmp_path / "run", 1)
+        if generic
+        else v3_documents(tmp_path / "run", slides=slides)
+    )
     scenes = json.loads(docs[2].read_text())
     scenes["narration"]["model_manifest_sha256"] = hashlib.sha256(
         (assets / "manifest.json").read_bytes()
@@ -186,10 +191,11 @@ def test_packaged_lexicon_only_uses_supported_american_phonemes(tmp_path):
         load_lexicon(broken)
 
 
-def test_measured_sentence_samples_preserve_offsets_and_script(tmp_path):
+@pytest.mark.parametrize("generic", [False, True])
+def test_measured_sentence_samples_preserve_offsets_and_script(tmp_path, generic):
     from autopoc.executive_speech import generate_narration
 
-    narrative, scenes, assets = inputs(tmp_path)
+    narrative, scenes, assets = inputs(tmp_path, generic=generic)
     doc = json.loads(narrative.read_text())
     doc["slides"][0]["narration"].append(
         {"text": "A second reviewed sentence.", "claim_ids": ["claim-0"]}
@@ -218,11 +224,12 @@ def test_measured_sentence_samples_preserve_offsets_and_script(tmp_path):
     assert json.loads((tmp_path / "output" / "timeline.json").read_text()) == result
 
 
-def test_captions_follow_measured_speech_and_quote_the_reviewed_script(tmp_path):
+@pytest.mark.parametrize("generic", [False, True])
+def test_captions_follow_measured_speech_and_quote_the_reviewed_script(tmp_path, generic):
     """Cue times are scene start plus the lead-in plus the measured offsets."""
     from autopoc.executive_speech import generate_narration
 
-    narrative, scenes, assets = inputs(tmp_path)
+    narrative, scenes, assets = inputs(tmp_path, generic=generic)
     doc = json.loads(narrative.read_text())
     doc["slides"][0]["narration"] = [
         {"text": "Results & caveats for <one> server.", "claim_ids": ["claim-0"]},
