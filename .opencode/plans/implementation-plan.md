@@ -487,7 +487,7 @@ recommendations are not execution instructions.
 | Fresh OpenShell end-to-end branch run | ✅ Done | 9 November: deployed, original 5/5 pass, corrected report persisted, final 3m28s Kokoro video and five artifacts retrieved/verified; Drive/listening gates remain |
 | Regenerate OpenShell with 3D views | ✅ Done | Two TopoLoop scenes; reviewed 3m28s video, animated browser deck/PDF/source retrieved and verified, original tests unchanged |
 | Simplify future voice-over English | ✅ Done | Author/reviewer guidance and synthetic example updated; STE principles without a restricted vocabulary; existing media retained |
-| Presentation feedback and revised storytelling | In progress | 10 November: audience confirmed, interactive eight-scene storyboard delivered; design feedback pending, no production changes |
+| Presentation feedback design and planning | ✅ Done | 10 November: storyboard direction approved; generic repository-independent design and seven-task plan saved; builder check complete; product implementation pending |
 | Controlled production rollout | Pending | Drive invalid_grant, human listening and explicit merge/live configuration approval |
 
 ### 9.1 Generate and verify a local Kokoro audition — ✅ 8 November 2026
@@ -1270,7 +1270,7 @@ new render, deployment or existing sealed-script change was requested.
   image, so the next worker build must include this revision before future runs
   use it. No deployed image/shared settings or production rollout was changed.
 
-### 9.10 Brainstorm presentation-feedback improvements — In progress, 10 November 2026
+### 9.10 Brainstorm presentation-feedback improvements — ✅ Design/planning complete, 10 November 2026
 
 User requested brainstorming on opening context, authentic project imagery,
 less text, explicit test names, AutoPoC pronunciation, fair test-scope wording,
@@ -1281,8 +1281,8 @@ product-code change has been authorized by this brainstorming request.
 |------|--------|
 | Inspect actual slides, sentence timing, terminology and renderer capabilities | ✅ 9.10.1 |
 | Confirm audience and show a visual storyboard | ✅ 9.10.2 |
-| Agree revised story and visual treatment | In progress |
-| Save an agreed design and implementation plan | Pending agreement |
+| Agree revised story and visual treatment | ✅ 9.10.3 — approved storyboard direction; generic for any source repository |
+| Save design and proposed implementation plan | ✅ 9.10.4 — fresh builder check complete; technical choices await review |
 | Implement and regenerate media | Not started |
 
 #### 9.10.1 Ground the feedback in the existing deliverable — ✅ 10 November 2026
@@ -1343,3 +1343,36 @@ product-code change has been authorized by this brainstorming request.
   proposal, not an implemented renderer feature or a newly sealed/reviewed script.
   Pronunciation audition/full-name override, actual image support, final storyboard
   agreement and any production regeneration remain future work.
+
+#### 9.10.3 Confirm reusable story direction — ✅ 10 November 2026
+
+- User approved the visual storyboard and explicitly required the template to
+  work for any PoC sourced from GitHub or another open-source code platform.
+- Project identity, source metadata, components, deployment target, checks,
+  outcomes and recommendations must be evidence-driven. OpenShell's five checks
+  and eight scenes are examples, not fixed constants. CLI/library projects do
+  not need an invented web interface or infrastructure diagram.
+- Keep variable chapter repetition and existing resource bounds. Optional source
+  imagery has an honest definition/diagram fallback; failures/incomplete checks
+  remain visible. Existing media and deployed settings are unchanged.
+
+#### 9.10.4 Save a generic design and implementation plan — ✅ 10 November 2026
+
+- Saved `docs/superpowers/specs/2026-11-10-generic-poc-storytelling-design.md`
+  and `docs/superpowers/plans/2026-11-10-generic-poc-storytelling.md`.
+- Fresh builder check found no important unanswered questions. Self-reviewed
+  plan against existing Python/renderer version dispatch, evidence-derived test
+  inventory, sentence timing (including the 0.35s lead-in), asset packaging,
+  browser-test opt-in and legacy recovery constraints.
+- Proposed seven tasks cover generic schema/layout validation; optional reviewed
+  assets; source-independent author/reviewer guidance; identity/check layouts;
+  actual TopoLoop pose/collision checks; offline rendering and late recovery;
+  pronunciation audition and measured multi-project acceptance.
+- Proposed engineering choices are explicit: schema-3/template-4 inputs preserve
+  old formats; PNG assets are staged locally before review, with no mandatory new
+  crawler/browser service; no new image-generation provider. Authentic captures
+  are optional, with source-linked text/diagram fallback. These choices remain
+  reviewable and are not claimed as user-approved implementation details.
+- Planning phase is complete. Product code, new pronunciation/audio/video,
+  automated capture infrastructure, production rollout and cloud publication
+  have not been implemented by this documentation change.

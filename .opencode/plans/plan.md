@@ -438,14 +438,15 @@ remain unchanged. Targets of 10–20 words per sentence, normally within 25, gui
 writing rather than introduce a schema gate. Necessary technical vocabulary is
 allowed; no formal STE compliance is claimed. No live rollout occurred.
 
-### Presentation feedback discussion — In progress, 10 November 2026
+### Presentation feedback discussion — ✅ Design/planning complete, 10 November 2026
 
 | Task | Status |
 |------|--------|
 | Inspect actual presentation, narration timing and pronunciation support | ✅ 9.10.1 — definition missing from cover; five checks not named in speech; next-step speech begins about 20s into its slide; AutoPoC has no full-name override |
 | Confirm audience and provide a visual storyboard | ✅ 9.10.2 — technical managers/customer engineers; interactive eight-scene mockup delivered |
-| Agree revised story and visuals | In progress — awaiting feedback on the mockup |
-| Design, implementation and any new media revision | Pending agreement; not started |
+| Agree revised story and visuals | ✅ 9.10.3 — storyboard direction approved; template must work for any repository/code host |
+| Save generic design and proposed implementation plan | ✅ 9.10.4 — builder check complete; seven tasks documented; technical choices await review |
+| Implement product changes and any new media revision | Not started — existing media/deployed settings unchanged |
 
 Potential directions are recorded in implementation-plan.md 9.10.1. Scope
 wording must distinguish coverage gaps from product failures. New source images
@@ -460,3 +461,15 @@ need offline, reviewed asset support. Existing delivered media is unchanged.
   Existing ten media artifact hashes unchanged. Product implementation and new
   audio/video remain unstarted; final design agreement and pronunciation audition
   are still pending. Preview session credentials are not committed/exported.
+
+- ✅ Generic design/planning (9.10.3–9.10.4): approved story direction explicitly
+  generalized beyond OpenShell. Saved
+  `docs/superpowers/specs/2026-11-10-generic-poc-storytelling-design.md` and
+  `docs/superpowers/plans/2026-11-10-generic-poc-storytelling.md`; fresh builder
+  check found no important unanswered questions. The seven-task proposal covers
+  optional reviewed imagery/fallback, source-independent identity and check
+  inventories, timed layouts, 3D verification, offline packaging/recovery and
+  multi-project validation. Eight slides/five checks are reference examples,
+  not template requirements. Schema/versioning and local asset staging are
+  proposed engineering choices pending review. Implementation, pronunciation
+  selection, new media and rollout remain unstarted.
