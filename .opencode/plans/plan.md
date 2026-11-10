@@ -756,8 +756,8 @@ Shared CronJobs/settings and earlier application deployments remain untouched.
 | Plan | ✅ 10.9.7 — completed |
 | Containerize | ✅ 10.9.8 — completed |
 | Build | ✅ 10.9.9 — all three original images built and published |
-| Deploy manifests | Pending |
-| Apply | Pending |
+| Deploy manifests | ✅ 10.9.10 — generated, linted and committed |
+| Apply | In progress — workloads created; permitted readiness observations after Helm wait RBAC error |
 | Execute original validation | Pending |
 | Report and reviewed media inputs | Pending |
 | Eligible blog | Pending |
@@ -849,3 +849,12 @@ gateway `dcda18953431340ab766bc71ad3bed03ec53752cf7ab7167edc949b20575ce15`
 (921 seconds). Gateway's native Z3/full-feature release compilation was the
 longest step; no replacement build or build retry was needed. Application
 deployment, original validation, report and actual media remain pending.
+
+### 10.9.10 Fresh deployment manifests — ✅ 10 November 2026
+
+The actual worker completed Helm values/manifests, official Helm checksum
+verification, lint and a scoped source-branch commit. Application resources were
+created in the new namespace. Helm's wait failed because the bounded runner
+cannot list ReplicaSets; this original apply error is retained. The worker is
+using permitted direct workload observations for the bounded apply retry, with
+no privilege expansion. Apply acceptance and original tests remain pending.
