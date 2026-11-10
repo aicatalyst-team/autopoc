@@ -1671,7 +1671,7 @@ Shared CronJobs/settings and earlier application deployments remain untouched.
 | Deploy manifests | ✅ 10.9.10 — generated, linted and committed |
 | Apply | ✅ 10.9.11 — bounded retry and direct workload readiness passed |
 | Execute original validation | ✅ 10.9.12 — one pass, one error, three skips; lifecycle objective not achieved |
-| Report and reviewed media inputs | Report ✅ 10.9.13; reviewed media inputs in progress |
+| Report and reviewed media inputs | ✅ 10.9.13/10.9.16; original approved seal retained, audience revision under review |
 | Eligible blog | ✅ 10.9.14 — eligibility assessed; skipped after unsuccessful validation |
 | Offline renderer and local retrieval | Pending original execution/report |
 
@@ -1816,3 +1816,16 @@ material assistance in the spoken outcome, and use explicit "not tested here"
 wording for scope exclusions. This changes editorial guidance only, with no
 schema/runtime or evidence relaxation. The current draft still requires a new
 editorial revision and genuine independent review before final rendering.
+
+### 10.9.16 Original worker authoring, review and seal — ✅ 10 November 2026
+
+The actual worker Job completed. It retained a regular nine-slide schema-3 /
+template-4 / policy-2 seal, SHA-256
+`647ad00eed09ce632f279470b53dfb6ce5da6c724b7eaaa394ea35719ec5c882`,
+with genuine independent same-model content approval. The original reviewed
+bytes remain preserved. Parent independently rehashed all 47 evidence members.
+Operator is preparing a separate audience-focused content revision with a new
+genuine review and the final documentation-corrected renderer pin; no PoC test
+replay, original-seal mutation or inherited/fabricated approval is permitted.
+The fresh cycle recorded unsuccessful lifecycle results; media output remains
+pending and no cloud publication or full human acceptance is claimed.

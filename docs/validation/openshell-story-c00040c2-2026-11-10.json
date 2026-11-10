@@ -85,5 +85,26 @@
   ],
   "human_full_listening_acceptance": "pending",
   "shared_activation": false,
-  "default_branch_push": false
+  "default_branch_push": false,
+  "worker_job_status": "Complete",
+  "source_packaging_branch_head": "803fba14",
+  "evidence_members_independently_hashed": 47,
+  "original_worker_inputs": {
+    "sha256": "647ad00eed09ce632f279470b53dfb6ce5da6c724b7eaaa394ea35719ec5c882",
+    "narrative_sha256": "12b23a36b45696d908ec0e62efac72980a194595f7dc0cf70d9a998d4a2aefa0",
+    "scenes_sha256": "992b9abc70768cdeb2d0fde94c6264dbb95c38ee7985039fdcfd4f4b46f7f8b9",
+    "visuals_sha256": "2924896aad0f8c9a40c558a03712cfe180ce4f30b2f94f04b45720341ee79158",
+    "renderer_image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:1c1dc7b1510b25c113eb28a053d1e9f01fe449860171ba9397a62eab6964f215",
+    "genuine_independent_content_approval": true,
+    "preserved": true
+  },
+  "editorial_revision": {
+    "reason": "Keep narration focused on PoC outcomes; remove media/publication/Git procedure and use explicit untested-scope wording.",
+    "guidance_commit": "7fbba6d",
+    "slides": 9,
+    "words": 566,
+    "max_sentence_words": 17,
+    "same_evidence_scenes_visuals": true,
+    "genuine_independent_review": "in_progress"
+  }
 }
