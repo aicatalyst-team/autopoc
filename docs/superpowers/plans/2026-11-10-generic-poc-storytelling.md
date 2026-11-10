@@ -10,7 +10,7 @@
 
 **Spec:** [Generic PoC storytelling design](../specs/2026-11-10-generic-poc-storytelling-design.md).
 
-Status: proposed implementation; no tasks below have been implemented. The user approved the storyboard direction and required generic reuse. Technical choices below remain reviewable before execution.
+Status: implementation authorized on 10 November 2026, followed by a fresh OpenShell full cycle. Execution is in progress; checkboxes and Phase 10 in both project trackers record current completion and measured acceptance. Engineering choices and later evidence-based refinements remain documented and reviewable.
 
 ## Global Constraints
 
@@ -42,7 +42,7 @@ Status: proposed implementation; no tasks below have been implemented. The user 
 - `renderer/render.mjs`, `renderer/scene-validation.mjs`, vendored `TopoLoop.vue`: preparation/decode, pose lifecycle, complete visual inspection.
 - `src/autopoc/executive_render.py`, `executive_policy.py`, `executive_job.py`, `executive_speech.py`: format integration, derived data, narration and output packaging without changing legacy behavior.
 - Existing Python/Node executive test modules plus new `tests/test_executive_visuals.py`: meaningful contract and browser tests. Extend synthetic fixtures under `tests/fixtures/executive-story/`; never rewrite archived evidence.
-- `docs/adr/0015-reviewed-executive-visual-assets.md`, configuration/renderer docs and validation record: architecture, operator recipe and measured acceptance.
+- `docs/adr/0015-reviewed-local-executive-visuals.md`, configuration/renderer docs and validation record: architecture, operator recipe and measured acceptance.
 
 ## ✅ Task 1: Define and validate generic story roles and check coverage
 

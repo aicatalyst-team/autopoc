@@ -1,8 +1,8 @@
 # Generic, evidence-based PoC storytelling
 
 Date: 10 November 2026.
-Status: storyboard direction approved; technical design proposed for review.
-This document describes future work, not implemented renderer behavior.
+Status: implementation authorized on 10 November 2026; engineering and acceptance in progress.
+Current progress and measured results are tracked in Phase 10 of both project plans.
 
 ## Intent and confirmed direction
 
@@ -206,10 +206,12 @@ design. Drive authorization and existing rollout gates remain outstanding.
 
 The fresh builder check on 10 November 2026 found “nothing important left.”
 The versioned schema/asset contract, local-staging-first capture boundary and
-resource bounds above are proposed engineering choices, not previously approved
-user requirements. An implementation plan accompanies this document; product
-execution remains pending review.
+resource bounds above originated as engineering choices, not initial user
+requirements. The user subsequently authorized implementing the agreed changes
+before a fresh OpenShell cycle. Engineering decisions remain documented and
+reviewable; acceptance is measured rather than inferred from this approval.
 
-The OpenShell storyboard is the worked visual reference only. Product code,
-new audio/video, image capture automation and production rollout have not been
-implemented by recording this design.
+The OpenShell storyboard is the worked visual reference only. See the
+implementation plan and Phase 10 trackers for committed code and acceptance.
+Recording this design did not activate production or publish media. Autonomous
+capture infrastructure remains outside this increment.
