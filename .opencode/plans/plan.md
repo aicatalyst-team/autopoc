@@ -1065,3 +1065,15 @@ All four content-review identities are unchanged; no new content approval is
 inferred for changed bytes. Distinct immutable v3 input/transfer prepare the
 third actual render, retaining both failed attempts and their good artifacts.
 OCP render/video acceptance remains pending.
+
+### 10.9.25 Actual OCP media render and five-artifact retrieval — ✅ 10 November 2026
+
+Renderer Job`autopoc-openshell-story-c00040c2-render-v3` completed successfully,
+21:17:01–21:28:06UTC, JobUIDdf1dade2-ff3e-4328-ab7b-458c39ce4547. All five
+artifact kinds report generated_unpublished and were retrieved to the local
+review directory with exact manifest size/SHA-256 checks. Actual MP4 is6558992
+bytes, hashc37c180b1c7a55a3d720137672f2f08d6103d7024a02981a9b5b687056c1c993.
+No PoC tests were rerun, and the original one-pass/one-error/three-skip outcome
+is unchanged. Both prior failed media attempts remain retained.
+Independent encoded-media, cue, final PDF and source-rebuild QA are in progress;
+human full listening and cloud publication remain separate pending gates.

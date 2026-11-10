@@ -76,7 +76,7 @@
   "report_publication_commit": "caef62b6f26ef8f4dd72c99da6e2317f55983c60",
   "blog": "ineligible_skipped",
   "cloud_publication": "not_authorized_blocked",
-  "media": "third_render_transfer_pending",
+  "media": "all_five_retrieved_independent_media_inspection_in_progress",
   "operator_assistance": [
     "Prepared isolated namespace, existing-pattern bounded RBAC, workspace PVC, fork branch and node placement.",
     "Supplied same-revision reference Dockerfiles and authentic pinned README context PNG.",
@@ -200,6 +200,56 @@
       },
       "encoded_scenes_before_failure": 3,
       "failure_retained": true
+    },
+    {
+      "job": "autopoc-openshell-story-c00040c2-render-v3",
+      "job_uid": "df1dade2-ff3e-4328-ab7b-458c39ce4547",
+      "pod_uid": "135ce924-9a96-4fef-90df-27c0f1db790a",
+      "started_at": "2026-11-10T21:17:01Z",
+      "completed_at": "2026-11-10T21:28:06Z",
+      "status": "generated_unpublished",
+      "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:51de7478b7b67667cf1ecc165f4b585ee96ee7947b9c126a7ca694544f987711",
+      "input_sha256": "13fd83db040ba122723f808b36ab8b2fcd277dc6a22362215d3905180d60ac85",
+      "runtime": {
+        "elapsed_seconds": 657.492,
+        "peak_memory_bytes": 3503050752,
+        "scratch_usage_bytes": 134407077
+      },
+      "artifacts": {
+        "deck": {
+          "path": "static-site.zip",
+          "sha256": "f4e08ef8d2a5719b7af2964f07fdfa735444b33262959f1252e8702eb074b746",
+          "size": 968874,
+          "status": "generated_unpublished"
+        },
+        "pdf": {
+          "path": "executive-summary.pdf",
+          "sha256": "f5c2ae1981f5cf560cfa4899bef8b1d06faa05add0af64dc429d08642cee285d",
+          "size": 196777,
+          "status": "generated_unpublished"
+        },
+        "source": {
+          "path": "executable-source.zip",
+          "sha256": "d114e73dd1f458df8c45fd96a4ab223aaf0b4468f3e76040efc86017f59860a1",
+          "size": 20385334,
+          "status": "generated_unpublished"
+        },
+        "summary": {
+          "path": "executive-summary.md",
+          "sha256": "4e77e7270794aa1cafed4e395ea01c7795e8b3470cc9a34dda7b63cfe9bb5195",
+          "size": 5783,
+          "status": "generated_unpublished"
+        },
+        "video": {
+          "path": "executive-summary.mp4",
+          "sha256": "c37c180b1c7a55a3d720137672f2f08d6103d7024a02981a9b5b687056c1c993",
+          "size": 6558992,
+          "status": "generated_unpublished"
+        }
+      },
+      "all_five_retrieved_hash_verified": true,
+      "admission": "restricted-v2",
+      "api_token_mounted": false
     }
   ],
   "renderer_source_commit": "4b5a221",
