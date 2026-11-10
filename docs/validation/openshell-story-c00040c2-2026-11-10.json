@@ -8,7 +8,7 @@
   "engine_branch": "codex/kokoro-narration",
   "worker_source_commit": "c99729080950cd95c126a2a3f07ef7c6698a705b",
   "worker_image": "quay.io/aicatalyst/autopoc-opencode@sha256:b169dd89db35f0ac895b4e688ff567d7e6b4c53fa892be3c3df9c00e1b43aa55",
-  "renderer_image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:c493de2e7ddc7fe5c42b6105c5e9a296b56099233a15ffba66e918e91ce401aa",
+  "renderer_image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:51de7478b7b67667cf1ecc165f4b585ee96ee7947b9c126a7ca694544f987711",
   "provider": {
     "name": "enmaas",
     "model": "gpt-6.1-sol",
@@ -76,7 +76,7 @@
   "report_publication_commit": "caef62b6f26ef8f4dd72c99da6e2317f55983c60",
   "blog": "ineligible_skipped",
   "cloud_publication": "not_authorized_blocked",
-  "media": "capture_duration_investigation_in_progress",
+  "media": "third_render_transfer_pending",
   "operator_assistance": [
     "Prepared isolated namespace, existing-pattern bounded RBAC, workspace PVC, fork branch and node placement.",
     "Supplied same-revision reference Dockerfiles and authentic pinned README context PNG.",
@@ -202,7 +202,7 @@
       "failure_retained": true
     }
   ],
-  "renderer_source_commit": "e478620",
+  "renderer_source_commit": "4b5a221",
   "live_layout_fix": {
     "commit": "e478620",
     "scope": "Abbreviate only40/64hex figure revision labels; retain full title/source card/URL/manifest. Fonts, clipping and validators unchanged.",
@@ -289,6 +289,39 @@
       "explicit_browser_skips": 11
     },
     "host_ffmpeg_limitation": "Initial host runs could not execute3H264tests because libx264 is absent; these tests passed in the trusted renderer runtime.",
-    "fresh_image_acceptance": "in_progress"
+    "fresh_image_acceptance": {
+      "local_image_id": "80cca9d7b15435acf8fc9602b6c66241cba8a1ec61a2a0a105396dae2c418271",
+      "browser": {
+        "passed": 17,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 257.937
+      },
+      "audio_ffmpeg": {
+        "passed": 17,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 15.23
+      }
+    }
+  },
+  "final_inputs": {
+    "run_id": "c00040c2196d4919b3e5b0a7fd947faf",
+    "input_sha256": "13fd83db040ba122723f808b36ab8b2fcd277dc6a22362215d3905180d60ac85",
+    "renderer_image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:51de7478b7b67667cf1ecc165f4b585ee96ee7947b9c126a7ca694544f987711",
+    "renderer_source_commit": "4b5a221",
+    "review": {
+      "schema_version": 3,
+      "reviewer": "configured-opencode",
+      "approved": true,
+      "findings": [],
+      "narrative_sha256": "6c4e64feb1aef95b23a51f86869b0b3ec20e6d780eaf17f541d274f6576c1def",
+      "evidence_sha256": "4bbfe024bdc4abc896cf417543e4bd561c666f2ca9596b8a51254b0273be2386",
+      "scenes_sha256": "992b9abc70768cdeb2d0fde94c6264dbb95c38ee7985039fdcfd4f4b46f7f8b9",
+      "visuals_sha256": "1514fbe613f2896b332b6482b40a2ead400ce0c5b3d804bcd971cd181dff5dc0"
+    },
+    "all_four_reviewed_inputs_unchanged_from_layout_r2": true,
+    "same_genuine_content_approval": true,
+    "purpose": "Corrected trusted recording runtime; no content/scene-policy/voice change or PoC replay."
   }
 }

@@ -1674,7 +1674,7 @@ Shared CronJobs/settings and earlier application deployments remain untouched.
 | Execute original validation | ✅ 10.9.12 — one pass, one error, three skips; lifecycle objective not achieved |
 | Report and reviewed media inputs | ✅ 10.9.13/10.9.16; original approved seal retained, audience revision under review |
 | Eligible blog | ✅ 10.9.14 — eligibility assessed; skipped after unsuccessful validation |
-| Offline renderer and local retrieval | In progress — deck/PDF/speech retained; strict 3D capture coverage fix validated, fresh image acceptance pending |
+| Offline renderer and local retrieval | In progress — deck/PDF/speech retained; strict 3D capture fix and fresh image accepted; third render pending |
 
 
 ### 10.8 ✅ Pronunciation and measured generic image acceptance — 10 November 2026
@@ -1962,3 +1962,19 @@ FFmpeg lacks libx264; the trusted-runtime rerun passed all three. No PoC checks
 were replayed. Fresh image rebuild, full image/browser acceptance, actual OCP
 rerender, publication and full human listening remain pending; Phase10 remains
 in progress. This is a local capture repair, not PoC functional success.
+
+### 10.9.24 Fresh capture-fix image acceptance and new seal — ✅ 10 November 2026
+
+Scoped independent code review of4b5a221 is clean. Fresh renderer
+`sha256:51de7478b7b67667cf1ecc165f4b585ee96ee7947b9c126a7ca694544f987711`
+passed all17actualbrowser tests (zero failures/skips,257.937s), including the
+busy3D regression, and all17audio/FFmpeg tests (zero failures/skips,15.230s)
+in its own trusted offline/read-only2CPU/4Gi runtime. No duration, frame,
+slate, caption or audio guard was relaxed.
+
+Resealed exact approved evidence/narrative/scenes/visuals bytes to that image;
+new input hash13fd83db040ba122723f808b36ab8b2fcd277dc6a22362215d3905180d60ac85.
+All four content-review identities are unchanged; no new content approval is
+inferred for changed bytes. Distinct immutable v3 input/transfer prepare the
+third actual render, retaining both failed attempts and their good artifacts.
+OCP render/video acceptance remains pending.
