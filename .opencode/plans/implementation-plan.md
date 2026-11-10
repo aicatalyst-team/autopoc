@@ -1400,7 +1400,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 |---|---|
 | Verify isolated branch and baseline | ✅ 10.1 — 496 Python tests, 86.44% coverage; 40 renderer tests passed, 5 browser-gated skips |
 | Generic story roles and complete check coverage (plan Task 1) | ✅ 10.2 — 566 Python tests, 86.71% coverage; 108 renderer tests passed, 5 browser-gated skips |
-| Reviewed optional visual assets (plan Task 2) | Pending |
+| Reviewed optional visual assets (plan Task 2) | ✅ 10.3 — 616 Python tests, 87.08% coverage; 108 renderer tests passed, 5 browser-gated skips |
 | Generic author/reviewer guidance and examples (plan Task 3) | Pending |
 | Reusable identity/check layouts and timing (plan Task 4) | Pending |
 | 3D pose lifecycle and full label inspection (plan Task 5) | Pending |
@@ -1448,3 +1448,26 @@ cover 21 encoded forbidden/control bytes. RED: encoded colon failed in Python;
 GREEN: 110 focused Python / 87 storyboard tests. Full verification: 566 Python
 passed, 86.71% coverage; 108 renderer passed, five browser skips; scoped lint,
 formatting and typecheck passed. Task 1 remains complete.
+
+
+### 10.3 ✅ Reviewed optional visual assets — 10 November 2026
+
+Completed plan Task 2. Deterministic local visuals.zip packages zero to four
+sanitized, provenance-bound PNGs, with structural/CRC checks, explicit chunk
+allowlists, bounded reads and compressed/expanded/pixel guards. Schema-3 inputs
+require the archive even when empty, hash all six payloads and bind the visual
+hash in review. Slide visual IDs and asset claim IDs are cross-checked. Exact
+legacy archive sets and (1,1,1), (1,2,1), (2,3,1) envelopes remain verifiable;
+(3,4,2) is admitted explicitly. CLI packaging/sealing and ADR 0015 are included.
+
+TDD RED: 25 missing visual-module failures, nine missing envelope/legacy failures,
+one missing CLI command, one identifier-boundary failure and one blocking FIFO
+failure. Final GREEN: 89 scoped tests; 616 full Python tests, 87.08% coverage;
+108 renderer tests passed with five explicit browser-gated skips. CI-pinned
+Ruff 0.15.11 full lint, scoped formatting and full Pyright passed. The local
+Ruff 0.17.4 reports 73 unrelated newer-rule findings; no unrelated fixes made.
+
+CURRENT_TEMPLATE_VERSION stays 3 until Task 6 updates renderer admission;
+sealing and CLI already accept explicit template 4 and preserve template 3 if
+the constant changes. Browser full decode, generic layouts, pixel inspection,
+listening and live publication remain later tasks. Phase 10 remains in progress.

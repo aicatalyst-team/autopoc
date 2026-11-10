@@ -348,8 +348,8 @@ def test_dispatch_exits_nonzero_when_renderer_admission_fails(repository, tmp_pa
 def test_narrated_policy_is_durable_before_upload_and_survives_late_completion(
     repository, tmp_path, monkeypatch
 ):
-    from tests.executive_fixtures import make_v3_input
     from autopoc import executive_cluster as cluster
+    from tests.executive_fixtures import make_v3_input
 
     source, _ = repository
     package = make_v3_input(tmp_path / "run", slides=8)
@@ -450,9 +450,9 @@ def test_narrated_receipt_caps_are_selected_by_kind(kind, amount, ok):
 
 def test_legacy_and_current_narrated_deadlines_are_both_durable(repository, tmp_path):
     """New policy keeps startup headroom; 3120s descriptors stay dispatchable."""
-    from tests.executive_fixtures import make_v3_input
     from autopoc.executive_inputs import verify_inputs
     from autopoc.executive_policy import render_policy, saved_policy
+    from tests.executive_fixtures import make_v3_input
 
     verified = verify_inputs(make_v3_input(tmp_path / "run"))
     current = render_policy(verified)
@@ -470,8 +470,9 @@ def test_remote_rejects_cli_or_saved_policy_conflicts_before_render(
     repository, tmp_path, monkeypatch, change
 ):
     import argparse
-    from tests.executive_fixtures import make_v3_input
+
     from autopoc import executive_cluster as cluster
+    from tests.executive_fixtures import make_v3_input
 
     source, _ = repository
     drive = Drive()
@@ -561,6 +562,7 @@ def test_reconcile_rejects_forged_size_even_with_valid_hash(repository, tmp_path
 
 def test_worker_templates_forward_narration_opt_in():
     from pathlib import Path
+
     import yaml
 
     root = Path(__file__).parents[1]
@@ -594,3 +596,53 @@ def test_resume_rejects_changed_saved_launch_credentials(repository, tmp_path):
         submit_renderer(
             source, "run-1", "autopoc-test", credentials_secret="changed-secret", wait_seconds=0
         )
+
+
+def test_visuals_cli_packages_and_seals_schema3(tmp_path, capsys):
+    import argparse
+
+    from autopoc.executive_cluster import register_cluster_commands
+    from autopoc.executive_inputs import verify_inputs
+    from tests.test_executive_inputs import generic_documents
+
+    docs = generic_documents(tmp_path)
+    parser = argparse.ArgumentParser()
+    register_cluster_commands(parser.add_subparsers(dest="command"))
+    args = parser.parse_args(
+        [
+            "executive-visuals",
+            "--manifest",
+            str(tmp_path / "manifest.json"),
+            "--output",
+            str(tmp_path / "cli.zip"),
+        ]
+    )
+    args.func(args)
+    assert json.loads(capsys.readouterr().out)["visuals_path"] == str(tmp_path / "cli.zip")
+    evidence, narrative, scenes, review, _ = docs
+    args = parser.parse_args(
+        [
+            "executive-seal",
+            "--evidence",
+            str(evidence),
+            "--narrative",
+            str(narrative),
+            "--scenes",
+            str(scenes),
+            "--review",
+            str(review),
+            "--visuals",
+            str(tmp_path / "cli.zip"),
+            "--output-dir",
+            str(tmp_path / "sealed"),
+            "--template-version",
+            "4",
+            "--renderer-image",
+            "quay.io/org/image@sha256:" + "b" * 64,
+        ]
+    )
+    args.func(args)
+    result = json.loads(capsys.readouterr().out)
+    assert (
+        verify_inputs(__import__("pathlib").Path(result["inputs_path"]))["visuals"]["assets"] == []
+    )

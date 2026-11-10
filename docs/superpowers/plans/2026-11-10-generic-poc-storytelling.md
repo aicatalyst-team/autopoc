@@ -62,16 +62,16 @@ Task 1 review fix round 2: complete decoded forbidden-domain character set
 covered in both languages; valid IPv6 retained (110 focused Python / 87 storyboard;
 full 566 Python / 108 renderer passed, five browser skips).
 
-## Task 2: Package optional visuals and bind them to review
+## Task 2: ✅ Package optional visuals and bind them to review
 
 **Files:** create `src/autopoc/executive_visuals.py`, `tests/test_executive_visuals.py`; modify `src/autopoc/executive_inputs.py`, `src/autopoc/executive_cluster.py`, `tests/test_executive_inputs.py`, `tests/test_executive_cluster.py`; create ADR 0015.
 
 **Interfaces:** `prepare_visuals(manifest_path: Path, output_path: Path) -> Path` reads explicitly named regular files adjacent to the local manifest and emits deterministic `visuals.zip`. `verify_visuals(path: Path, *, run_id: str, claim_ids: set[str]) -> dict` returns the validated manifest. Add `autopoc-tools executive-visuals --manifest PATH --output PATH`; extend `seal_inputs(..., visuals_path: Path | None = None)` and `executive-seal --visuals PATH`. `verify_inputs(path)` returns `visuals` (manifest or null) alongside its existing values. Schema-3 always includes an archive, including an empty one. Legacy exact member sets remain unchanged.
 
-- [ ] Add failing archive/CLI tests for zero/four assets, deterministic bytes, valid provenance, stale review/hash, wrong run/claim ID, unexpected ZIP members, duplicate keys/entries, symlinks, traversal, extension/content mismatch, PNG CRC/geometry errors, hidden PNG text/EXIF, oversized dimensions and compressed/expanded budgets. Bound input reads before decompression; avoid loading unbounded PNG data.
-- [ ] Run `pytest tests/test_executive_visuals.py tests/test_executive_inputs.py tests/test_executive_cluster.py -q`; implement PNG structural validation, sanitized manifest fields and safe ZIP handling with existing dependencies. Reject supplied invalid assets; do not silently edit bytes or drop them after review.
-- [ ] Add exact (3,4,2) envelope support, six-payload hashing and required schema-3 review `visuals_sha256`. Verify narrative visual IDs against the manifest and asset claim references against narrative claims. Preserve exact legacy allowlists and hash rules.
-- [ ] Re-run scoped tests; prove schema-2/template-3 and schema-1/template-2 fixtures remain verifiable, schema downgrade/unknown versions fail, and a changed visual requires review. Record ADR tradeoffs (optional staged capture, offline recovery, no text-only pixel-review claim); update trackers and commit.
+- [x] Add failing archive/CLI tests for zero/four assets, deterministic bytes, valid provenance, stale review/hash, wrong run/claim ID, unexpected ZIP members, duplicate keys/entries, symlinks, traversal, extension/content mismatch, PNG CRC/geometry errors, hidden PNG text/EXIF, oversized dimensions and compressed/expanded budgets. Bound input reads before decompression; avoid loading unbounded PNG data.
+- [x] Run `pytest tests/test_executive_visuals.py tests/test_executive_inputs.py tests/test_executive_cluster.py -q`; implement PNG structural validation, sanitized manifest fields and safe ZIP handling with existing dependencies. Reject supplied invalid assets; do not silently edit bytes or drop them after review.
+- [x] Add exact (3,4,2) envelope support, six-payload hashing and required schema-3 review `visuals_sha256`. Verify narrative visual IDs against the manifest and asset claim references against narrative claims. Preserve exact legacy allowlists and hash rules.
+- [x] Re-run scoped tests; prove schema-2/template-3 and schema-1/template-2 fixtures remain verifiable, schema downgrade/unknown versions fail, and a changed visual requires review. Record ADR tradeoffs (optional staged capture, offline recovery, no text-only pixel-review claim); update trackers and commit.
 
 ## Task 3: Author and review a generic story with useful visual fallbacks
 

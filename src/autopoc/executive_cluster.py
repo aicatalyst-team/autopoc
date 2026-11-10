@@ -19,8 +19,8 @@ import uuid
 from pathlib import Path
 
 from autopoc.artifacts import _git, _identifier, publish_artifacts
+from autopoc.executive_inputs import MAX_BYTES, verify_inputs
 from autopoc.executive_policy import artifact_limit, render_policy, saved_policy
-from autopoc.executive_inputs import CURRENT_TEMPLATE_VERSION, MAX_BYTES, verify_inputs
 
 ARTIFACTS = {
     "source": "executable-source.zip",
@@ -740,7 +740,12 @@ def register_cluster_commands(subparsers) -> None:
     def command(args: argparse.Namespace) -> None:
         from autopoc.executive_inputs import seal_inputs
 
-        if args.command == "executive-seal":
+        if args.command == "executive-visuals":
+            from autopoc.executive_visuals import prepare_visuals
+
+            path = prepare_visuals(args.manifest, args.output)
+            result = {"visuals_path": str(path), "visuals_sha256": _sha(path.read_bytes())}
+        elif args.command == "executive-seal":
             path = seal_inputs(
                 args.evidence,
                 args.narrative,
@@ -748,6 +753,7 @@ def register_cluster_commands(subparsers) -> None:
                 args.output_dir,
                 renderer_image=args.renderer_image,
                 scenes_path=args.scenes,
+                visuals_path=args.visuals,
                 template_version=args.template_version,
             )
             result = {
@@ -799,6 +805,10 @@ def register_cluster_commands(subparsers) -> None:
         if args.command == "executive-dispatch" and result.get("status") in {"partial", "failed"}:
             raise SystemExit(1)
 
+    visuals = subparsers.add_parser("executive-visuals", help="Package local reviewed PNG visuals")
+    visuals.add_argument("--manifest", type=Path, required=True)
+    visuals.add_argument("--output", type=Path, required=True)
+    visuals.set_defaults(func=command)
     seal = subparsers.add_parser(
         "executive-seal", help="Seal reviewed narrative and original evidence"
     )
@@ -806,10 +816,11 @@ def register_cluster_commands(subparsers) -> None:
         seal.add_argument(f"--{name}", type=Path, required=True)
     seal.add_argument("--renderer-image", required=True)
     seal.add_argument("--scenes", type=Path)
+    seal.add_argument("--visuals", type=Path)
     seal.add_argument(
         "--template-version",
         type=int,
-        choices=(1, 2, CURRENT_TEMPLATE_VERSION),
+        choices=(1, 2, 3, 4),
         default=None,
         help="Presentation template revision; use 1 only with the original renderer digest",
     )

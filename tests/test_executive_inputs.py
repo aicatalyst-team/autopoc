@@ -147,3 +147,181 @@ def test_seal_rejects_topology_the_renderer_would_refuse(tmp_path):
             tmp_path / "durable",
             renderer_image="quay.io/org/image@sha256:" + "b" * 64,
         )
+
+
+def generic_documents(root, count=0):
+    from autopoc.evidence import verify_bundle
+    from tests.executive_fixtures import v3_documents
+    from tests.test_executive_visuals import prepare, staged
+
+    evidence, narrative, scenes, review = v3_documents(root)
+    doc = json.loads(narrative.read_text())
+    doc["schema_version"] = 3
+    doc["project_context"] = {
+        "repository_url": "https://codeberg.org/org/demo",
+        "revision": None,
+        "definition_claim_id": "claim-0",
+        "homepage_url": None,
+        "documentation_url": None,
+    }
+    for slide in doc["slides"]:
+        slide.update(layout="summary", visual_id=None, checks=[])
+    doc["slides"][0]["layout"] = "identity"
+    if count:
+        doc["slides"][0]["visual_id"] = "image0"
+    testing = doc["slides"][1]
+    testing["layout"] = "checks"
+    scenario = verify_bundle(evidence)["final_results"]["results"][0]["scenario_id"]
+    testing["checks"] = [
+        {
+            "scenario_id": scenario,
+            "label_claim_id": "claim-1",
+            "purpose_claim_id": "claim-1",
+            "narration_sentence_indices": [0],
+        }
+    ]
+    narrative.write_text(json.dumps(doc))
+    manifest = staged(root, count)
+    visual = json.loads(manifest.read_text())
+    for asset in visual["assets"]:
+        asset["claim_ids"] = ["claim-0"]
+    manifest.write_text(json.dumps(visual))
+    visuals = prepare(manifest, root / "visuals.zip")
+    receipt = json.loads(review.read_text())
+    receipt.update(
+        schema_version=3,
+        narrative_sha256=hashlib.sha256(narrative.read_bytes()).hexdigest(),
+        visuals_sha256=hashlib.sha256(visuals.read_bytes()).hexdigest(),
+    )
+    review.write_text(json.dumps(receipt))
+    return evidence, narrative, scenes, review, visuals
+
+
+def generic_seal(root, docs, **kwargs):
+    evidence, narrative, scenes, review, visuals = docs
+    return seal_inputs(
+        evidence,
+        narrative,
+        review,
+        root / "sealed",
+        scenes_path=scenes,
+        visuals_path=visuals,
+        renderer_image="quay.io/org/image@sha256:" + "b" * 64,
+        **kwargs,
+    )
+
+
+@pytest.mark.parametrize("count", [0, 4])
+def test_schema3_binds_all_six_payloads_including_empty_visuals(tmp_path, count):
+    package = generic_seal(tmp_path, generic_documents(tmp_path, count))
+    result = verify_inputs(package)
+    assert result["versions"] == {
+        "schema": 3,
+        "template": 4,
+        "policy": 2,
+        "image": "quay.io/org/image@sha256:" + "b" * 64,
+    }
+    assert len(result["visuals"]["assets"]) == count
+    with zipfile.ZipFile(package) as archive:
+        index = json.loads(archive.read("index.json"))
+        assert len(index["files"]) == 6
+        assert "visuals.zip" in index["files"]
+
+
+@pytest.mark.parametrize(
+    "change", ["missing", "stale", "unknown_visual", "unknown_claim", "downgrade", "unknown"]
+)
+def test_schema3_requires_reviewed_visuals_and_exact_versions(tmp_path, change):
+    docs = list(generic_documents(tmp_path, 1))
+    doc = json.loads(docs[1].read_text())
+    receipt = json.loads(docs[3].read_text())
+    if change == "missing":
+        docs[4] = None
+    elif change == "stale":
+        receipt["visuals_sha256"] = "0" * 64
+    elif change == "unknown_visual":
+        doc["slides"][0]["visual_id"] = "missing"
+    elif change == "unknown_claim":
+        doc["claims"][0]["id"] = "changed"
+    docs[1].write_text(json.dumps(doc))
+    receipt["narrative_sha256"] = hashlib.sha256(docs[1].read_bytes()).hexdigest()
+    docs[3].write_text(json.dumps(receipt))
+    with pytest.raises(ValueError):
+        generic_seal(
+            tmp_path,
+            docs,
+            **(
+                {"template_version": 3 if change == "downgrade" else 5}
+                if change in ("downgrade", "unknown")
+                else {}
+            ),
+        )
+
+
+def test_current_template_does_not_retire_legacy_schema2(tmp_path, monkeypatch):
+    import autopoc.executive_inputs as module
+    from tests.executive_fixtures import make_v3_input
+
+    monkeypatch.setattr(module, "CURRENT_TEMPLATE_VERSION", 4)
+    result = verify_inputs(make_v3_input(tmp_path))
+    assert result["versions"]["template"] == 3
+    assert result["visuals"] is None
+
+
+def rewrite_package(path, output, change):
+    """Rehash an untrusted envelope so semantic guards are exercised independently."""
+    with zipfile.ZipFile(path) as archive:
+        data = {name: archive.read(name) for name in archive.namelist()}
+    change(data)
+    index = json.loads(data["index.json"])
+    index["files"] = {
+        name: {"sha256": hashlib.sha256(raw).hexdigest(), "size": len(raw)}
+        for name, raw in data.items()
+        if name != "index.json"
+    }
+    data["index.json"] = json.dumps(index).encode()
+    with zipfile.ZipFile(output, "w") as archive:
+        for name, raw in data.items():
+            archive.writestr(name, raw)
+    return output
+
+
+@pytest.mark.parametrize("change", ["drop", "policy", "schema", "review", "visual_bytes"])
+def test_rehashed_schema3_envelope_cannot_bypass_review_or_version_policy(tmp_path, change):
+    package = generic_seal(tmp_path, generic_documents(tmp_path, 1))
+
+    def mutate(data):
+        if change == "drop":
+            data.pop("visuals.zip")
+        elif change == "visual_bytes":
+            data["visuals.zip"] += b"changed after review"
+        else:
+            name = "review.json" if change == "review" else "versions.json"
+            doc = json.loads(data[name])
+            if change == "policy":
+                doc["policy"] = 1
+            elif change == "schema":
+                doc["schema"] = 2
+            else:
+                doc.pop("visuals_sha256")
+            data[name] = json.dumps(doc).encode()
+
+    with pytest.raises(ValueError):
+        verify_inputs(rewrite_package(package, tmp_path / "tampered.zip", mutate))
+
+
+def test_legacy_envelope_rejects_new_visual_payload(tmp_path):
+    evidence, narrative, review = inputs(tmp_path)
+    package = seal_inputs(
+        evidence,
+        narrative,
+        review,
+        tmp_path / "sealed",
+        renderer_image="quay.io/org/image@sha256:" + "b" * 64,
+    )
+
+    def mutate(data):
+        data["visuals.zip"] = b"not a legacy payload"
+
+    with pytest.raises(ValueError):
+        verify_inputs(rewrite_package(package, tmp_path / "tampered.zip", mutate))

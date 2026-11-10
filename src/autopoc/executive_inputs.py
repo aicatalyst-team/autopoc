@@ -51,18 +51,25 @@ def _validate(data: dict[str, bytes]) -> dict:
     scenes, versions = _json(data["scenes.json"]), _json(data["versions.json"])
     if (
         type(versions.get("schema")) is not int
-        or (versions.get("schema"), versions.get("template")) not in ((1, 1), (1, 2), (2, 3))
-        or versions.get("policy") != 1
+        or type(versions.get("policy")) is not int
+        or (versions.get("schema"), versions.get("template"), versions.get("policy"))
+        not in ((1, 1, 1), (1, 2, 1), (2, 3, 1), (3, 4, 2))
         or type(versions.get("template")) is not int
-        or versions["template"] not in (1, 2, CURRENT_TEMPLATE_VERSION)
     ):
         raise ValueError("Unsupported render-input version")
+    expected = MEMBERS | ({"visuals.zip"} if versions["schema"] == 3 else set())
+    if set(data) != expected:
+        raise ValueError("Invalid render-input members")
     if not re.fullmatch(r"[A-Za-z0-9./:_-]+@sha256:[0-9a-f]{64}", versions.get("image", "")):
         raise ValueError("Renderer image must be pinned by digest")
     if (
         type(review.get("schema_version")) is not int
         or review.get("schema_version") != versions["schema"]
-        or (versions["schema"] == 2 and review.get("scenes_sha256") != _hash(data["scenes.json"]))
+        or (
+            versions["schema"] in (2, 3)
+            and review.get("scenes_sha256") != _hash(data["scenes.json"])
+        )
+        or (versions["schema"] == 3 and review.get("visuals_sha256") != _hash(data["visuals.zip"]))
         or review.get("approved") is not True
         or review.get("reviewer") != "configured-opencode"
         or review.get("findings") != []
@@ -91,13 +98,31 @@ def _validate(data: dict[str, bytes]) -> dict:
     for name in ("narrative.json", "review.json", "scenes.json"):
         if sanitize_text(data[name].decode()) != data[name].decode():
             raise ValueError("Unsanitized render input")
-    if versions["schema"] == 2:
+    visuals = None
+    if versions["schema"] in (2, 3):
         from autopoc.executive_story import validate_scene_plan, validate_story
 
         with zipfile.ZipFile(io.BytesIO(data["evidence.zip"])) as archive:
             members = {name: archive.read(name) for name in archive.namelist()}
         validate_story(narrative, index, members)
         validate_scene_plan(scenes, narrative)
+        if versions["schema"] == 3:
+            from autopoc.executive_visuals import verify_visuals
+
+            with tempfile.TemporaryDirectory(prefix="autopoc-visuals-") as directory:
+                visual_path = Path(directory) / "visuals.zip"
+                visual_path.write_bytes(data["visuals.zip"])
+                visuals = verify_visuals(
+                    visual_path,
+                    run_id=index["run_id"],
+                    claim_ids={c["id"] for c in narrative["claims"]},
+                )
+            ids = {asset["id"] for asset in visuals["assets"]}
+            if any(
+                s["visual_id"] is not None and s["visual_id"] not in ids
+                for s in narrative["slides"]
+            ):
+                raise ValueError("Unknown narrative visual ID")
     else:
         for topic in TOPICS:
             claims = narrative.get(topic)
@@ -149,6 +174,7 @@ def _validate(data: dict[str, bytes]) -> dict:
         ):
             raise ValueError("Invalid scene timing")
     return {
+        "visuals": visuals,
         "run_id": index["run_id"],
         "evidence_index": index,
         "narrative": narrative,
@@ -166,6 +192,7 @@ def seal_inputs(
     renderer_image: str,
     scenes_path: Path | None = None,
     template_version: int | None = None,
+    visuals_path: Path | None = None,
 ) -> Path:
     """Write an immutable input ZIP after validating report, totals and review."""
     paths = {
@@ -173,6 +200,8 @@ def seal_inputs(
         "narrative.json": narrative_path,
         "review.json": review_path,
     }
+    if visuals_path is not None:
+        paths["visuals.zip"] = visuals_path
     if scenes_path:
         paths["scenes.json"] = scenes_path
     for path in paths.values():
@@ -183,14 +212,21 @@ def seal_inputs(
     data = {name: path.read_bytes() for name, path in paths.items()}
     narrative_schema = _json(data["narrative.json"]).get("schema_version")
     if template_version is None:
-        template_version = 3 if narrative_schema == 2 else 2
-    if narrative_schema == 2 and "scenes.json" not in data:
+        template_version = next(
+            (
+                template
+                for schema, template in ((1, 2), (2, 3), (3, 4))
+                if schema == narrative_schema
+            ),
+            None,
+        )
+    if narrative_schema in (2, 3) and "scenes.json" not in data:
         raise ValueError("Narrated inputs require a reviewed scene plan")
     data.setdefault("scenes.json", _dump({"durations": [20] * 6}))
     data["versions.json"] = _dump(
         {
             "schema": narrative_schema,
-            "policy": 1,
+            "policy": 2 if narrative_schema == 3 else 1,
             "template": template_version,
             "image": renderer_image,
         }
@@ -238,8 +274,10 @@ def verify_inputs(path: Path) -> dict:
         with zipfile.ZipFile(path) as archive:
             entries = archive.infolist()
             if (
-                len(entries) != 6
-                or {i.filename for i in entries} != MEMBERS | {"index.json"}
+                len(entries) not in (6, 7)
+                or len({i.filename for i in entries}) != len(entries)
+                or {i.filename for i in entries}
+                not in (MEMBERS | {"index.json"}, MEMBERS | {"index.json", "visuals.zip"})
                 or sum(i.file_size for i in entries) > MAX_BYTES
                 or any(
                     i.flag_bits & 1 or i.is_dir() or (i.external_attr >> 16) & 0o170000 == 0o120000
@@ -251,7 +289,7 @@ def verify_inputs(path: Path) -> dict:
         index = _json(data.pop("index.json"))
         if (
             type(index.get("schema_version")) is not int
-            or index.get("schema_version") not in (1, 2)
+            or index.get("schema_version") not in (1, 2, 3)
             or index.get("files")
             != {
                 name: {"sha256": _hash(content), "size": len(content)}
