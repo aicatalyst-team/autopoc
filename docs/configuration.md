@@ -52,7 +52,8 @@ image **digest** (`quay.io/<org>/autopoc-executive-renderer@sha256:...`). The
 Job/CronJob templates and launcher pass it to OpenCode. Without a configured
 renderer, record the extension as skipped rather than claiming generated media.
 
-Silent seals default to template revision 2 (Red Hat branding). Narrated schema-2 seals use template 3. Build
+Silent seals default to template revision 2 (Red Hat branding). Legacy narrated schema-2 seals use template 3; new generic schema-3 seals require
+template 4 and input policy 2, with scene-plan schema 2. Build
 and validate the new renderer image and upgrade the worker's sealing tools
 together before changing `AUTOPOC_EXECUTIVE_IMAGE`. An older revision-1 image
 cannot consume revision-2 inputs. Existing revision-1 checkpoints retain their
@@ -89,8 +90,31 @@ select evidence-backed variable chapters and Heart (`af_heart`) narration.
 Unset/`none` retains the silent path; other values are rejected by the workflow.
 Job/CronJob templates and the launcher forward this setting. See
 `.opencode/skills/run-poc/references/executive-narration.md` for authoring and
-independent review. Select a renderer digest tested with template 3 and the
+independent review. Select a renderer digest tested with the authored schema/template pair and the
 exact packaged speech manifest; an image digest alone does not prove capability.
+Schema 3 records a source-linked visible definition and credential-free HTTPS
+repository metadata for any Git host. It shows every verified final scenario
+once, in pages of at most five checks, preserving failure/error/skip/incomplete
+outcomes. An empty inventory remains explicit. CLI/library stories do not imply
+web UI or cluster deployment. Unknown source revisions are visibly disclosed.
+
+Optional PNGs are staged locally with source/attribution/revision provenance;
+`executive-visuals --manifest PATH --output PATH` packages the exact bytes without
+network access. No browser installation in the worker is assumed. Capture gaps
+use identity text or an evidence-backed diagram. Contextual current documentation
+is not proof of a pinned run, and runtime screenshots are unsupported. Concept
+art must be labeled conceptual. Four images maximum, 2 MiB per image, 4096 pixels
+per side and 16 million decoded pixels fit within an 8 MiB expanded visuals ZIP;
+24 MiB sealed-input and 20 MiB evidence limits still apply. Always provide the
+archive, even with zero images, using `executive-seal --visuals PATH
+--template-version 4`. Review schema 3 binds narrative/evidence/scenes/visuals
+SHA-256 values from exact final bytes. Text-only review checks manifest and
+captions; actual visual inspection is a separate acceptance record. Missing
+configured-model access blocks genuine review, never justifies fake approval.
+These local contracts do not establish that template-4 media or a deployed image
+has passed acceptance. See the narration reference for the complete recipe and
+worker-packaged synthetic examples; existing sealed media remains unchanged.
+
 New narration follows simple technical English inspired by ASD-STE100: short
 sentences, one main idea at a time, active voice and consistent terminology.
 Necessary technical vocabulary is allowed; no controlled dictionary is enforced.

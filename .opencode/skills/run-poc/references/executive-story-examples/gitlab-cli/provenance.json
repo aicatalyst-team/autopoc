@@ -1,0 +1,13 @@
+{
+  "synthetic": true,
+  "approval": "No model review was run; no approval receipt is provided.",
+  "source": "Locally authored fictional source.md; selectors describe only this synthetic evidence.",
+  "evidence_index": "Minimal story-validator input, not a verified evidence ZIP or a production evidence-create output.",
+  "repository": "Fictional HTTPS reference used only to demonstrate host independence; not fetched.",
+  "revision": "Fictional captured revision",
+  "documentation": "No supplemental documentation.",
+  "imagery": "No image; identity text fallback. No topology is invented.",
+  "scene_identity": "Placeholder model hash; replace with actual tested manifest and review before synthesis.",
+  "visual_inspection": "Required separately for any release; structural validation alone is not pixel inspection.",
+  "source_sha256": "7348352288a98f14ac5a0321d38959bcd8ca045cc2fff0e6b4494c7732b3b5f1"
+}

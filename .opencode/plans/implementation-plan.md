@@ -1401,7 +1401,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Verify isolated branch and baseline | ✅ 10.1 — 496 Python tests, 86.44% coverage; 40 renderer tests passed, 5 browser-gated skips |
 | Generic story roles and complete check coverage (plan Task 1) | ✅ 10.2 — 566 Python tests, 86.71% coverage; 108 renderer tests passed, 5 browser-gated skips |
 | Reviewed optional visual assets (plan Task 2) | ✅ 10.3 — 621 Python tests, 87.11% coverage; 108 renderer tests passed, 5 browser-gated skips |
-| Generic author/reviewer guidance and examples (plan Task 3) | Pending |
+| Generic author/reviewer guidance and examples (plan Task 3) | ✅ 10.4 — three source-linked schema-3 worked stories and asset manifests validated; 176 targeted tests passed |
 | Reusable identity/check layouts and timing (plan Task 4) | Pending |
 | 3D pose lifecycle and full label inspection (plan Task 5) | Pending |
 | Offline integration, packaging and recovery (plan Task 6) | Pending |
@@ -1481,3 +1481,29 @@ GREEN: 94 scoped tests; 621 full Python tests, 87.11% coverage; 108 renderer
 passed/five explicit browser skips; CI Ruff 0.15.11 full lint, scoped formatting
 and full Pyright passed. Frozen bytes feed overall budgets, review and the
 sealed archive without reopening the source. Phase 10 remains in progress.
+
+### 10.4 Generic author/reviewer guidance and examples — ✅ 10 November 2026
+
+Completed plan Task 3. New authoring guidance uses schema/template/policy (3,4,2)
+with scene-plan schema 2, a source-linked visible project definition, host-neutral
+repository metadata, exact original check inventory and five-row pagination.
+It distinguishes intended capabilities, observed negative results and absent
+coverage, keeps row speech aligned, and puts next actions at their slide start.
+Optional local PNG staging, source/capture attribution, image-free fallbacks,
+exact visuals/review hashes and the template-4 sealing recipe are documented.
+Text-only model review never substitutes for actual image inspection or genuine
+configured-model approval; unavailable review retains an unapproved draft.
+
+Three worker-packaged fictional worked stories retain line-linked sources and
+provenance: a GitHub service with six mixed-outcome checks and labeled concept
+imagery/unversioned documentation; a GitLab CLI without UI; and a Codeberg library
+with empty inventory, missing revision and no invented topology/deployment.
+Legacy examples remain intact and structural fixtures are clearly distinguished.
+
+Verification: all three examples passed validate_story, validate_scene_plan,
+derive_checks, deterministic prepare_visuals and verify_visuals with real PNG
+hashes/dimensions and source provenance hashes. Existing story/visual/input tests
+passed 176/176; git diff --check passed. The concept PNG was inspected by the
+agent for readable labels and explicit synthetic/context limits, not declared
+human media acceptance. No model review, speech/browser render, cluster change,
+publication or activation occurred. Phase 10 remains in progress.

@@ -58,3 +58,12 @@ validator checks uniqueness and cardinality against reviewed totals. Visual
 manifest existence/provenance and revision-unavailable display belong to the
 subsequent asset/layout tasks. Scene plans retain schema 2 and measured audio
 remains authoritative after the lower-bound duration guard.
+
+For **semantically meaningful schema-3 authoring**, use the worker-packaged
+[worked examples](../../../.opencode/skills/run-poc/references/executive-story-examples/README.md).
+They demonstrate a GitHub service with explicitly conceptual imagery and six
+mixed-outcome checks, a GitLab CLI with no UI, and a graphless Codeberg library
+with no recorded checks or revision. Each includes a synthetic source ledger,
+scene plan and visual/provenance manifest. They have no approval receipts.
+`schema3-cases.json` remains validator-only: its inherited placeholder prose
+is not a semantic example and must not guide project-specific claims.

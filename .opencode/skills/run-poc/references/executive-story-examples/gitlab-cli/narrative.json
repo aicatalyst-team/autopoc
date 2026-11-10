@@ -1,0 +1,313 @@
+{
+  "schema_version": 3,
+  "run_id": "synthetic-gitlab-cli",
+  "project_name": "Ledger Scan",
+  "claims": [
+    {
+      "id": "definition",
+      "text": "Ledger Scan is a fictional command line tool intended to find inconsistent records in local ledger files.",
+      "kind": "planned",
+      "sources": [
+        "source.md#L1-L1"
+      ]
+    },
+    {
+      "id": "question",
+      "text": "Assess local scanning and large-file handling without a web interface.",
+      "kind": "planned",
+      "sources": [
+        "source.md#L2-L2"
+      ]
+    },
+    {
+      "id": "setup",
+      "text": "The synthetic record used a local command line process and two fixture files without deploying a service.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L3-L3"
+      ]
+    },
+    {
+      "id": "scope",
+      "text": "Large-file completion and integration with other tools were not tested.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L4-L4"
+      ]
+    },
+    {
+      "id": "next",
+      "text": "Complete the large-file check and retain its exit status before recommending batch use.",
+      "kind": "recommendation",
+      "sources": [
+        "source.md#L5-L5"
+      ]
+    },
+    {
+      "id": "check-0-label",
+      "text": "Scan a consistent ledger",
+      "kind": "planned",
+      "sources": [
+        "source.md#L6-L6"
+      ]
+    },
+    {
+      "id": "check-0-purpose",
+      "text": "Check the exit status for a consistent fixture file.",
+      "kind": "planned",
+      "sources": [
+        "source.md#L7-L7"
+      ]
+    },
+    {
+      "id": "check-0-outcome",
+      "text": "The consistent fixture completed with the expected exit status.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L8-L8"
+      ]
+    },
+    {
+      "id": "check-1-label",
+      "text": "Scan a large ledger with duplicate references",
+      "kind": "planned",
+      "sources": [
+        "source.md#L9-L9"
+      ]
+    },
+    {
+      "id": "check-1-purpose",
+      "text": "Check duplicate reporting across a large fixture file.",
+      "kind": "planned",
+      "sources": [
+        "source.md#L10-L10"
+      ]
+    },
+    {
+      "id": "check-1-outcome",
+      "text": "The large-file attempt stopped before producing a final result.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L11-L11"
+      ]
+    },
+    {
+      "id": "outcome",
+      "text": "One check passed and one remained incomplete.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L12-L12"
+      ]
+    }
+  ],
+  "slides": [
+    {
+      "id": "identity",
+      "section": "objective",
+      "title": "Ledger Scan: purpose and PoC question",
+      "title_claim_ids": [
+        "definition"
+      ],
+      "bullet_claim_ids": [
+        "definition",
+        "question"
+      ],
+      "narration": [
+        {
+          "text": "Ledger Scan is a fictional command line tool intended to find inconsistent records in local ledger files.",
+          "claim_ids": [
+            "definition"
+          ]
+        },
+        {
+          "text": "Assess local scanning and large-file handling without a web interface.",
+          "claim_ids": [
+            "question"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "identity",
+      "visual_id": null,
+      "checks": []
+    },
+    {
+      "id": "checks-0",
+      "section": "testing",
+      "title": "Recorded checks and their purposes",
+      "title_claim_ids": [
+        "outcome"
+      ],
+      "bullet_claim_ids": [
+        "outcome"
+      ],
+      "narration": [
+        {
+          "text": "Scan a consistent ledger: Check the exit status for a consistent fixture file.",
+          "claim_ids": [
+            "check-0-label",
+            "check-0-purpose"
+          ]
+        },
+        {
+          "text": "The consistent fixture completed with the expected exit status.",
+          "claim_ids": [
+            "check-0-outcome"
+          ]
+        },
+        {
+          "text": "Scan a large ledger with duplicate references: Check duplicate reporting across a large fixture file.",
+          "claim_ids": [
+            "check-1-label",
+            "check-1-purpose"
+          ]
+        },
+        {
+          "text": "The large-file attempt stopped before producing a final result.",
+          "claim_ids": [
+            "check-1-outcome"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "checks",
+      "visual_id": null,
+      "checks": [
+        {
+          "scenario_id": "check-0",
+          "label_claim_id": "check-0-label",
+          "purpose_claim_id": "check-0-purpose",
+          "narration_sentence_indices": [
+            0,
+            1
+          ]
+        },
+        {
+          "scenario_id": "check-1",
+          "label_claim_id": "check-1-label",
+          "purpose_claim_id": "check-1-purpose",
+          "narration_sentence_indices": [
+            2,
+            3
+          ]
+        }
+      ]
+    },
+    {
+      "id": "setup",
+      "section": "setup",
+      "title": "Recorded setup",
+      "title_claim_ids": [
+        "setup"
+      ],
+      "bullet_claim_ids": [
+        "setup"
+      ],
+      "narration": [
+        {
+          "text": "The synthetic record used a local command line process and two fixture files without deploying a service.",
+          "claim_ids": [
+            "setup"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "summary",
+      "visual_id": null,
+      "checks": []
+    },
+    {
+      "id": "results",
+      "section": "results",
+      "title": "What the evidence records",
+      "title_claim_ids": [
+        "outcome"
+      ],
+      "bullet_claim_ids": [
+        "outcome"
+      ],
+      "narration": [
+        {
+          "text": "One check passed and one remained incomplete.",
+          "claim_ids": [
+            "outcome"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "summary",
+      "visual_id": null,
+      "checks": []
+    },
+    {
+      "id": "limits",
+      "section": "limitations",
+      "title": "Coverage limits",
+      "title_claim_ids": [
+        "scope"
+      ],
+      "bullet_claim_ids": [
+        "scope"
+      ],
+      "narration": [
+        {
+          "text": "Large-file completion and integration with other tools were not tested.",
+          "claim_ids": [
+            "scope"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "summary",
+      "visual_id": null,
+      "checks": []
+    },
+    {
+      "id": "next",
+      "section": "recommendation",
+      "title": "Next actions",
+      "title_claim_ids": [
+        "next"
+      ],
+      "bullet_claim_ids": [
+        "next"
+      ],
+      "narration": [
+        {
+          "text": "Complete the large-file check and retain its exit status before recommending batch use.",
+          "claim_ids": [
+            "next"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "summary",
+      "visual_id": null,
+      "checks": []
+    }
+  ],
+  "results": {
+    "pass": 1,
+    "fail": 0,
+    "error": 0,
+    "skip": 0,
+    "incomplete": 1
+  },
+  "conflicts": [],
+  "coverage_gaps": [
+    "Large-file completion and integration with other tools were not tested."
+  ],
+  "project_context": {
+    "repository_url": "https://gitlab.com/example/ledger-scan",
+    "revision": "fictional-revision-cli-1",
+    "definition_claim_id": "definition",
+    "homepage_url": null,
+    "documentation_url": null
+  }
+}

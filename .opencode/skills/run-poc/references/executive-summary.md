@@ -8,9 +8,13 @@ test outcomes, or reruns tests. Failure is non-blocking for the optional blog.
 
 First reconcile any existing checkpoint using its saved image/mode/policy.
 For a new run, `AUTOPOC_EXECUTIVE_NARRATION=kokoro` selects
-`executive-narration.md`: evidence-backed narrative schema 2, template 3,
-offline Heart speech and variable scenes timed from measured audio. That
-reference supersedes the silent six-scene limits below for narrated runs.
+`executive-narration.md`: evidence-backed generic narrative schema 3, template 4,
+input policy 2,
+offline Heart speech and variable scenes timed from measured audio. New schema-3
+stories require a tested compatible image and reviewed local visuals archive,
+including an empty manifest when no image is available. Repository URLs may use
+any open-source Git host; infer project type only from retained source evidence.
+That reference supersedes the silent six-scene limits below for narrated runs.
 Unset/`none` keeps the silent schema-1/template-2 workflow below. Reject other
 values rather than silently choosing a mode. Use a compatible tested image
 digest; do not restyle or regenerate old checkpoints under new settings.
@@ -31,7 +35,7 @@ worker stopped waiting. An existing Job is reconciled by name and UID.
 
 ## Preconditions and original evidence
 
-- New presentations use the Red Hat-branded template revision 2. Use a newly
+- New **silent** presentations use the Red Hat-branded template revision 2. Use a newly
   built, tested revision-2 renderer digest together with the updated worker;
   never dispatch a new v2 seal to the original v1 image. Old checkpoints retain
   their original image and revision and are recovered without restyling them.
