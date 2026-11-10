@@ -8,7 +8,7 @@
   "engine_branch": "codex/kokoro-narration",
   "worker_source_commit": "c99729080950cd95c126a2a3f07ef7c6698a705b",
   "worker_image": "quay.io/aicatalyst/autopoc-opencode@sha256:b169dd89db35f0ac895b4e688ff567d7e6b4c53fa892be3c3df9c00e1b43aa55",
-  "renderer_image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:259d5a19c48ea94311263f9b416cd6dfd3b1e73b9e1e2d411d4aaa502f9877cc",
+  "renderer_image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:c493de2e7ddc7fe5c42b6105c5e9a296b56099233a15ffba66e918e91ce401aa",
   "provider": {
     "name": "enmaas",
     "model": "gpt-6.1-sol",
@@ -76,7 +76,7 @@
   "report_publication_commit": "caef62b6f26ef8f4dd72c99da6e2317f55983c60",
   "blog": "ineligible_skipped",
   "cloud_publication": "not_authorized_blocked",
-  "media": "approved_and_sealed_actual_render_pending",
+  "media": "layout_revision_in_progress_after_fail_closed_preflight",
   "operator_assistance": [
     "Prepared isolated namespace, existing-pattern bounded RBAC, workspace PVC, fork branch and node placement.",
     "Supplied same-revision reference Dockerfiles and authentic pinned README context PNG.",
@@ -130,5 +130,47 @@
       "original_seal_preserved": true,
       "words": 596
     }
+  },
+  "render_attempts": [
+    {
+      "job": "autopoc-openshell-story-c00040c2-render-v1",
+      "pod_uid": "b9e86ba1-0466-44ee-9d73-5156491db739",
+      "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:259d5a19c48ea94311263f9b416cd6dfd3b1e73b9e1e2d411d4aaa502f9877cc",
+      "input_sha256": "f76785e10f01d7fbb50c4a01bccf12ddf3dac7ae0ce6b8dc50a5744bc53d3d70",
+      "status": "partial",
+      "error": "Scene 1 content validation failed: Layout overflow in slide content; shorten the reviewed text before rendering; Layout overflow in project visual; shorten the reviewed text before rendering",
+      "runtime": {
+        "elapsed_seconds": 8.452,
+        "peak_memory_bytes": 870047744,
+        "scratch_usage_bytes": 5652085
+      },
+      "speech_generated": false,
+      "artifacts": {
+        "deck": "failed",
+        "pdf": "failed",
+        "source": "generated_unpublished",
+        "summary": "generated_unpublished",
+        "video": "failed"
+      },
+      "retained": true
+    }
+  ],
+  "renderer_source_commit": "e478620",
+  "live_layout_fix": {
+    "commit": "e478620",
+    "scope": "Abbreviate only40/64hex figure revision labels; retain full title/source card/URL/manifest. Fonts, clipping and validators unchanged.",
+    "independent_code_review": "clean",
+    "regression_red_green": true,
+    "default_node": {
+      "passed": 122,
+      "integration_skipped": 13
+    },
+    "fresh_image_browser": {
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "duration_seconds": 198.789
+    },
+    "local_image_id": "0a21cda88243c1bc9d59ca6623a50cb25a26cb9fc93dbfec53dec779bf291b77"
   }
 }

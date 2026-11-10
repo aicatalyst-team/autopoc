@@ -954,3 +954,17 @@ passed; default `npm test` passed 122 tests, with 13 opt-in integration tests
 skipped. No font, image, clipping, validation or provenance policy changed.
 Fresh renderer image build and actual OpenShell render acceptance remain
 pending; these are local synthetic layout results only.
+
+### 10.9.19 Fresh layout-fix renderer image acceptance — ✅ 10 November 2026
+
+Scoped independent review of e478620 is clean. Built/pushed new renderer
+`sha256:c493de2e7ddc7fe5c42b6105c5e9a296b56099233a15ffba66e918e91ce401aa`
+from that commit. The full actual Chromium suite passed **16 tests, zero
+failures and zero skips**, 198.789 seconds, using this fresh image's runtime
+under offline/read-only UID28128, 2 CPU/4Gi. The meaningful new regression
+previously failed with full hashes and passed after the display-only fix.
+
+The earlier actual OCP render on259d failed closed during first-scene content
+preflight (8.452 seconds, before speech); its partial output/logs and original
+seal remain retained. Current input caption/attribution and 3D layout revisions
+are separately re-reviewed; the final OCP media render remains pending.
