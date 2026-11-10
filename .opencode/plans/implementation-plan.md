@@ -1639,3 +1639,8 @@ wording now distinguishes absent records from nonexecution and incomplete
 outcomes from a proven interruption. Browser lifecycle checks await paint and
 observed callback/canvas conditions instead of fixed 60–100ms sleeps.
 Task 7 image/media acceptance and Phase 10 fresh OpenShell cycle remain pending.
+
+Independent synthetic review caught the library minimal evidence-index coverage
+gap still using the older nonexecution inference. ✅ Corrected that remaining
+source field to the same record-not-established wording; fresh worker packaging
+and repeat library semantic review are required before media acceptance.
