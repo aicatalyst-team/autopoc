@@ -1661,9 +1661,9 @@ Shared CronJobs/settings and earlier application deployments remain untouched.
 
 | Fresh original PoC phase | Status |
 |---|---|
-| Intake | Pending |
-| Evaluate | Pending |
-| Fork/adopt prepared source branch | Pending |
+| Intake | ✅ 10.9.4 — completed |
+| Evaluate | ✅ 10.9.5 — completed |
+| Fork/adopt prepared source branch | ✅ 10.9.6 — completed |
 | Plan | Pending |
 | Containerize | Pending |
 | Build | Pending |
@@ -1707,3 +1707,23 @@ Fresh OpenShell eleven-phase execution has been launched separately by the
 controller; its results and retrieval remain in progress. Drive authorization/
 publication and explicit merge/live activation are separate gates. No shared configuration/default branch/Drive
 writes or changes to earlier delivered media. Phase 10 remains in progress.
+
+
+### 10.9.4 Fresh intake — ✅ 10 November 2026
+
+The actual branch worker completed source analysis of the pinned OpenShell
+checkout, including component, SDK and chart inspection. Its run-specific state
+marks intake completed. No old test outcomes were imported.
+
+### 10.9.5 Fresh evaluation — ✅ 10 November 2026
+
+The configured En-MaaS model completed the evaluation using the current strategy
+and retained its new evaluation/source analysis in this run's private staging.
+This is a project assessment, not runtime validation.
+
+### 10.9.6 Adopt the prepared fork/source branch — ✅ 10 November 2026
+
+Worker state marks the fork phase completed for the authorized prepared branch.
+The protected default branch remains outside the write scope. No build,
+deployment or PoC-test success is claimed at this stage. State currently records
+zero errors and zero build/deploy/container-fix retries; planning is next.
