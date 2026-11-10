@@ -755,7 +755,7 @@ Shared CronJobs/settings and earlier application deployments remain untouched.
 | Fork/adopt prepared source branch | ✅ 10.9.6 — completed |
 | Plan | ✅ 10.9.7 — completed |
 | Containerize | ✅ 10.9.8 — completed |
-| Build | In progress — actual compiler builds running |
+| Build | ✅ 10.9.9 — all three original images built and published |
 | Deploy manifests | Pending |
 | Apply | Pending |
 | Execute original validation | Pending |
@@ -837,3 +837,15 @@ build phase in progress. Cluster compiler builds are running; successful images,
 deployment and validation are not yet claimed. Source SDK dependencies are
 being installed in an isolated workspace environment, preserving the harness.
 State still records zero errors and no build/deploy/container-fix retries.
+
+### 10.9.9 Fresh original image builds — ✅ 10 November 2026
+
+All three first-attempt OCP builds completed and pushed unique run images:
+gateway `dcda18953431340ab766bc71ad3bed03ec53752cf7ab7167edc949b20575ce15`
+(2423 seconds), supervisor
+`eb2ae68363c52bf848f866d025826466eee91d019cafd371957fa362615e8199`
+(936 seconds), and sandbox
+`7a92fe2873dd0cb8a72b7e668c34aa55cc6e77057f731e2e56c98757b8cc6490`
+(921 seconds). Gateway's native Z3/full-feature release compilation was the
+longest step; no replacement build or build retry was needed. Application
+deployment, original validation, report and actual media remain pending.
