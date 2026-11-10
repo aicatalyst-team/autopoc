@@ -892,3 +892,14 @@ The original cycle reached blog eligibility assessment and recorded blog and
 blog_post skipped: a majority of planned scenarios did not pass. No success
 blog was generated. Cloud publication remains blocked and unapproved; local
 report-based media preparation continues from the retained unsuccessful run.
+
+### 10.9.15 Audience-focused narration guidance — ✅ 10 November 2026
+
+Actual fresh-run draft inspection found report-publication/branch/provenance
+procedure in the narration, including a draft-time statement that no video had
+been produced. Refined the generic author/reviewer instructions to keep media
+production/export/cloud/Git procedure in supporting records, retain only
+material assistance in the spoken outcome, and use explicit "not tested here"
+wording for scope exclusions. This changes editorial guidance only, with no
+schema/runtime or evidence relaxation. The current draft still requires a new
+editorial revision and genuine independent review before final rendering.

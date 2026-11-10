@@ -98,6 +98,20 @@ reveals an adoption/platform constraint, or changes the recommendation**.
 Exclude incidental login retries, routine setup noise and fixes with no bearing
 on the conclusion, even when their logs are retained as evidence.
 
+Keep the spoken story about the project and the PoC outcome. Presentation
+authoring, review/sealing, export state, cloud-upload permissions and routine
+Git administration belong in provenance/recovery records, not in slide bullets
+or narration. Do not narrate a draft-time statement such as "no video has been
+generated" inside the resulting video. Include operator assistance briefly
+only when it changes reproducibility, the demonstrated result or the adoption
+recommendation; keep the detailed assistance ledger in the report.
+
+For untested product capabilities, say "not tested here" or "not covered by
+this PoC" and name the scope. An observed operational error remains an error,
+but an unresolved cause does not establish a product defect. Avoid vague
+"unknown boundaries" wording when the evidence says the capability was not
+tested. These rules apply to every repository and project type.
+
 Each slide has `id`, `section`, `title`, `title_claim_ids`, `bullet_claim_ids`,
 `narration` (`[{text, claim_ids}]`), `graph` and `graph_claim_ids`. All factual
 title/point/sentence/diagram content resolves to ledger claims. Use `graph: null`
@@ -287,6 +301,10 @@ check counts, planned/observed/inferred distinctions, platform suitability,
 coverage gaps, relevance of included fixes, intelligible narration and slide
 ordering. Reject an unsupported spoken claim even if the visible slide is correct.
 Retained logs/traces are evidence, not mandatory content.
+Check that the viewer can follow the project purpose, setup, checks, outcomes
+and next actions without hearing the media-production or publication process.
+Request revision of misleading draft-time export claims and procedural detail
+that obscures that story; retain the underlying provenance outside narration.
 Check the requested simple-English style as well: short, focused sentences,
 clear subjects, consistent terms and useful explanations of unfamiliar terms.
 Request revision when dense or ambiguous wording makes the outcome hard to
