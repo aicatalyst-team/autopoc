@@ -410,5 +410,47 @@
     "included_assets_verified": 1,
     "dependencies": "trusted image-pinned npm dependencies"
   },
-  "artifact_manifest_sha256": "6f851deeaebc6a874bf2aa054e475b7ca5a7953552bfd582b597c781376856dd"
+  "artifact_manifest_sha256": "6f851deeaebc6a874bf2aa054e475b7ca5a7953552bfd582b597c781376856dd",
+  "durable_review_handoff": {
+    "commit": "a78bcbc23b8777906015cadab3278f893e7f640c",
+    "head_paths": [
+      "runs/c00040c2196d4919b3e5b0a7fd947faf/heads/review-media-handoff.json"
+    ],
+    "kind": "review-media-handoff",
+    "path": "runs/c00040c2196d4919b3e5b0a7fd947faf/review-media-handoff/f0043bfb3fe1e441f3b93b11c1fe61afaa128c33f9a703b2ef7e7c9fca1f7734",
+    "revision": "f0043bfb3fe1e441f3b93b11c1fe61afaa128c33f9a703b2ef7e7c9fca1f7734",
+    "run_id": "c00040c2196d4919b3e5b0a7fd947faf",
+    "repository": "aicatalyst-team/openshell",
+    "branch": "autopoc-artifacts",
+    "payloads_independently_refetched_and_verified": 5,
+    "previous_artifact_history_preserved": true,
+    "official_drive_checkpoint_replaced": false
+  },
+  "temporary_resource_cleanup": {
+    "run_specific_enmaas_secret_removed": true,
+    "readonly_retrieval_job_removed": true,
+    "retrieval_network_policy_removed": true,
+    "temporary_registry_auth_copy_removed": true,
+    "external_enmaas_key_unchanged": true,
+    "shared_credentials_and_settings_unchanged": true,
+    "application_and_evidence_workspaces_retained_for_review": true
+  },
+  "decision_notes": [
+    {
+      "decision": "Use a structural empty-check slide and renderer-derived no-checks message, without English phrase matching.",
+      "cost_if_wrong": "Adjust empty-inventory validation and layout."
+    },
+    {
+      "decision": "Anchor capture timing only for new schema3/template4; preserve legacy timing.",
+      "cost_if_wrong": "Rework capture timing and frame validation. Real3Dtail shortage was reproduced and corrected while retaining the anchor/guards."
+    },
+    {
+      "decision": "Package a minimal worker command wrapper for the advertised missing CLI.",
+      "cost_if_wrong": "Revert the small wrapper/integration; no alternate dependencies were added."
+    },
+    {
+      "decision": "Overlap the isolated fresh PoC build with final synthetic media QA and code review, holding output acceptance.",
+      "cost_if_wrong": "Correct images/content and rerender isolated outputs; never accept the old image after a required fix."
+    }
+  ]
 }

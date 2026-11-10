@@ -1388,7 +1388,7 @@ product-code change has been authorized by this brainstorming request.
   deployment/render or production activation. No cluster workloads changed.
 
 
-## Phase 10: Generic storytelling implementation and fresh OpenShell cycle — In progress, 10 November 2026
+## Phase 10: Generic storytelling implementation and fresh OpenShell cycle — ✅ Complete for local review delivery, 10 November 2026
 
 User explicitly requested implementation of the agreed generic storyboard first,
 then a fresh full OpenShell cycle using this AutoPoC branch. This authorizes a
@@ -1408,9 +1408,9 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Pronunciation and measured generic acceptance (plan Task 7) | ✅ 10.8 — selected pronunciation; three actual offline Heart renders, 19 PDF pages, 57 scene frames and 24 check-boundary frames; human/full live gates remain |
 | En-MaaS provider preflight for the fresh run | ✅ 10.9.1 — external settings/key found; actual worker text/tool calls and in-cluster authenticated connection verified |
 | Prepare isolated namespace, access, workspace and source branch | ✅ 10.9.2 — new run c00040c2 only; no application workload launched |
-| Fresh branch images and isolated OpenShell full cycle | In progress — original cycle/report recorded with blocked lifecycle; actual media capture fix under verification |
+| Fresh branch images and isolated OpenShell full cycle | ✅ 10.9.25/10.9.26 — actual cycle and media complete; lifecycle outcome1pass/1error/3skips remains blocked |
 | Repair strict narrated 3D capture coverage | ✅ 10.9.23 — exact short-tail reproduction; bounded schema-3 tail; strict encoded duration/frame/cue checks pass |
-| Retrieve and inspect slides/video for user review | Pending fresh run |
+| Retrieve and inspect slides/video for user review | ✅ 10.9.26 — all five artifacts/hash checks, nine PDF pages, encoded cue/media/source checks passed |
 | Final code-review/provenance correction | ✅ 10.10 — documented the local TopoLoop lifecycle patch while retaining upstream base and license attribution; Phase 10 remains in progress |
 
 ### 10.1 Verify isolated branch and clean baseline — ✅ 10 November 2026
@@ -1674,7 +1674,7 @@ Shared CronJobs/settings and earlier application deployments remain untouched.
 | Execute original validation | ✅ 10.9.12 — one pass, one error, three skips; lifecycle objective not achieved |
 | Report and reviewed media inputs | ✅ 10.9.13/10.9.16; original approved seal retained, audience revision under review |
 | Eligible blog | ✅ 10.9.14 — eligibility assessed; skipped after unsuccessful validation |
-| Offline renderer and local retrieval | In progress — deck/PDF/speech retained; strict 3D capture fix and fresh image accepted; third render pending |
+| Offline renderer and local retrieval | ✅ 10.9.25/10.9.26 — actual OCP output retrieved and independently verified |
 
 
 ### 10.8 ✅ Pronunciation and measured generic image acceptance — 10 November 2026
@@ -2010,3 +2010,25 @@ Real render elapsed657.492s, peakmemory3503050752bytes, scratch134407077bytes
 within2CPU/4Gi/8Gibudgets. No original PoC validation replay. Human full-video
 listening, Drive authorization/publication and shared rollout remain pending;
 the PoC lifecycle itself remains blocked with1pass/1error/3skips.
+
+### 10.9.27 Durable final handoff and scoped cleanup — ✅ 10 November 2026
+
+Persisted final sealed inputs, genuine content approval/verdict, actual artifact
+manifest and operator handoff on the authorized fork's append-only artifact
+branch, distinct review-media-handoff head. Commit
+`a78bcbc23b8777906015cadab3278f893e7f640c`; all five payloads were independently
+fetched and byte-verified, with previous artifact history retained. No source
+checkout/default branch or official Drive checkpoint was changed.
+
+Removed the completed run's temporary En-MaaS Secret, read-only retrieval Job/
+NetworkPolicy and local registry-auth copy. External key, shared credentials/
+settings, application deployment and retained evidence workspaces remain.
+Private development review ledger stays available while this feature branch
+is under review; no merge or global rollout was performed.
+
+Phase10 is complete for the requested generic implementation and fresh local
+slides/video review delivery: nine slides and296.333333-second narrated3Dvideo
+are verified. The upstream PoC lifecycle remains unsuccessful and honestly
+reported (1pass,1error,3skips); no root cause or product defect was invented.
+Human full listening, explicit Drive publication and shared activation remain
+separate gates, rather than claims of this completed local review cycle.
