@@ -76,7 +76,7 @@
   "report_publication_commit": "caef62b6f26ef8f4dd72c99da6e2317f55983c60",
   "blog": "ineligible_skipped",
   "cloud_publication": "not_authorized_blocked",
-  "media": "layout_revision_in_progress_after_fail_closed_preflight",
+  "media": "second_render_transfer_pending",
   "operator_assistance": [
     "Prepared isolated namespace, existing-pattern bounded RBAC, workspace PVC, fork branch and node placement.",
     "Supplied same-revision reference Dockerfiles and authentic pinned README context PNG.",
@@ -111,7 +111,7 @@
       "Linked actual pinned SDK use to retained observation, not planned objective.",
       "Added material Helm readiness permission constraint, direct rollout retry and no RBAC expansion."
     ],
-    "final_seal": {
+    "initial_editorial_seal": {
       "run_id": "c00040c2196d4919b3e5b0a7fd947faf",
       "input_sha256": "f76785e10f01d7fbb50c4a01bccf12ddf3dac7ae0ce6b8dc50a5744bc53d3d70",
       "review": {
@@ -172,5 +172,36 @@
       "duration_seconds": 198.789
     },
     "local_image_id": "0a21cda88243c1bc9d59ca6623a50cb25a26cb9fc93dbfec53dec779bf291b77"
+  },
+  "final_layout_inputs": {
+    "run_id": "c00040c2196d4919b3e5b0a7fd947faf",
+    "input_sha256": "44ac15a1fc42f0cd2b763b2cbd4cf04e02f4439c2c52ccdbbe6c01cb0b0ee634",
+    "review": {
+      "schema_version": 3,
+      "reviewer": "configured-opencode",
+      "approved": true,
+      "findings": [],
+      "narrative_sha256": "6c4e64feb1aef95b23a51f86869b0b3ec20e6d780eaf17f541d274f6576c1def",
+      "evidence_sha256": "4bbfe024bdc4abc896cf417543e4bd561c666f2ca9596b8a51254b0273be2386",
+      "scenes_sha256": "992b9abc70768cdeb2d0fde94c6264dbb95c38ee7985039fdcfd4f4b46f7f8b9",
+      "visuals_sha256": "1514fbe613f2896b332b6482b40a2ead400ce0c5b3d804bcd971cd181dff5dc0"
+    },
+    "renderer_image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:c493de2e7ddc7fe5c42b6105c5e9a296b56099233a15ffba66e918e91ce401aa",
+    "source_png_sha256": "420b14dcb4730c473fb90865e8a955815365b2d6b6eb40e7bdbc56fba70733f3",
+    "content_review_attempts": 2,
+    "source_evidence_and_scenes_unchanged": true,
+    "preflight": {
+      "slides": 9,
+      "sampled_graph_poses": 9,
+      "problems": 0
+    },
+    "words": 596
+  },
+  "layout_content_revision": {
+    "genuine_reviews": 2,
+    "initial_rejection_preserved": true,
+    "resolved_finding": "Restored exact restricted-v2 observation support after shortening a visible setup claim.",
+    "asset_change": "Shorter caption/attribution only; full source URL, full revision and PNG bytes retained.",
+    "graph_change": "One concise setup point, spaced abstract node positions, and a neutral observed storage-mount act; original scenario inventory unchanged."
   }
 }

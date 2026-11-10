@@ -761,7 +761,7 @@ Shared CronJobs/settings and earlier application deployments remain untouched.
 | Execute original validation | ✅ 10.9.12 — one pass, one error, three skips; lifecycle objective not achieved |
 | Report and reviewed media inputs | ✅ 10.9.13/10.9.16; original approved seal retained, audience revision under review |
 | Eligible blog | ✅ 10.9.14 — eligibility assessed; skipped after unsuccessful validation |
-| Offline renderer and local retrieval | Pending original execution/report |
+| Offline renderer and local retrieval | In progress — final reviewed layout seal; second actual render pending |
 
 
 ### 10.8 ✅ Pronunciation and measured generic image acceptance — 10 November 2026
@@ -968,3 +968,20 @@ The earlier actual OCP render on259d failed closed during first-scene content
 preflight (8.452 seconds, before speech); its partial output/logs and original
 seal remain retained. Current input caption/attribution and 3D layout revisions
 are separately re-reviewed; the final OCP media render remains pending.
+
+### 10.9.20 Final layout content review and sealed handoff — ✅ 10 November 2026
+
+The final current input passes actual fresh-image layout inspection for all
+nine slides and nine sampled 3D poses. Source-image caption/attribution are
+shorter; PNG bytes, full source URL and full capture revision are preserved.
+Setup has one concise visible point and three evidence-backed acts, including
+a neutral mounted gateway-data volume view. The diagram never adds a sixth
+test or implies a usable sandbox.
+
+A genuine review rejected a missing restricted-v2 selector after source-list
+shortening; the rejection and original bytes are retained. Corrected the exact
+claim/reference and obtained a new genuine approval of all101selectors. New
+seal is `44ac15a1fc42f0cd2b763b2cbd4cf04e02f4439c2c52ccdbbe6c01cb0b0ee634`,
+on the fresh tested c493de2e renderer. Original evidence and scene policy are
+byte-identical, and no PoC test was rerun. A distinct immutable ConfigMap and
+regular-copy transfer prepare v2; actual rendering/retrieval remain pending.
