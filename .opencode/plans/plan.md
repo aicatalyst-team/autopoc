@@ -495,6 +495,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Offline integration, packaging and recovery (plan Task 6) | Pending |
 | Pronunciation and measured generic acceptance (plan Task 7) | Pending |
 | En-MaaS provider preflight for the fresh run | ✅ 10.9.1 — external settings/key found; actual worker text/tool calls and in-cluster authenticated connection verified |
+| Prepare isolated namespace, access, workspace and source branch | ✅ 10.9.2 — new run c00040c2 only; no application workload launched |
 | Fresh branch images and isolated OpenShell full cycle | Pending implementation |
 | Retrieve and inspect slides/video for user review | Pending fresh run |
 
@@ -665,3 +666,16 @@ browser checks executed separately above. Three act frames and negative caption
 collision diagnostics were visually inspected. Expected damaged-PNG diagnostics
 are captured/asserted only within that negative test. No live activation,
 publication or human listening acceptance claimed. Phase 10 remains in progress.
+
+
+### 10.9.2 Prepare the isolated fresh OpenShell environment — ✅ 10 November 2026
+
+Created source branch codex/openshell-story-20261110-c00040c2 at pinned upstream
+f4a6137513b777c9b362be54baf388f7d45398aa in the existing protected fork. Reverified
+main protection before branch creation; the default branch was not written.
+Created namespace poc-openshell-story-c00040c2, runtime ServiceAccount, bounded
+existing-pattern runtime/validation permissions and a separate 10Gi workspace
+PVC. The PVC waits for its first consumer; this is environment preparation,
+not successful application deployment or a completed PoC. Fresh branch images
+and main worker launch remain pending engineering acceptance. Earlier resources
+and artifacts are retained.
