@@ -26,6 +26,10 @@ const titles = { purpose: 'Purpose and PoC objective', testing_strategy: 'Testin
 const narrated = [2,3].includes(narrative.schema_version)
 const generic = narrative.schema_version === 3
 const asset = computed(() => visuals.assets.find(asset => asset.id === slide.value?.visual_id))
+const sourceRevisionLabel = computed(() => {
+  const revision = asset.value?.source_revision
+  return /^(?:[a-f\d]{40}|[a-f\d]{64})$/i.test(revision) ? revision.slice(0, 12) + '…' : revision
+})
 const definition = computed(() => narrative.claims.find(claim => claim.id === narrative.project_context?.definition_claim_id))
 const index = computed(() => narrated ? narrative.slides.findIndex(s => s.id === props.slideId) : kinds.indexOf(props.kind))
 const slide = computed(() => narrated ? narrative.slides[index.value] : null)
@@ -69,7 +73,7 @@ onBeforeUnmount(() => { window.removeEventListener('executive-reset', reset); wi
         </div>
         <figure v-if="asset" class="project-visual" data-layout-region="project visual">
           <img :src="'/visuals/' + asset.id + '.png'" :alt="asset.alt" />
-          <figcaption><strong>{{ asset.kind === 'concept' ? 'Conceptual illustration' : asset.source_revision ? 'Source context · ' + asset.source_revision : 'Contextual current documentation' }}</strong><span>{{ asset.caption }}</span><small>{{ asset.attribution }}</small><small v-if="asset.source_url">{{ asset.source_url }}</small></figcaption>
+          <figcaption><strong :title="asset.source_revision">{{ asset.kind === 'concept' ? 'Conceptual illustration' : asset.source_revision ? 'Source context · ' + sourceRevisionLabel : 'Contextual current documentation' }}</strong><span>{{ asset.caption }}</span><small>{{ asset.attribution }}</small><small v-if="asset.source_url">{{ asset.source_url }}</small></figcaption>
         </figure>
       </div>
       <ExecutiveChecks v-else-if="generic && slide.layout === 'checks'" :slide="slide" :claims="narrative.claims" :checks="checks" :active="active" :print="isPrintMode" />

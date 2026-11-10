@@ -1847,3 +1847,23 @@ bound to final renderer `259d5a19…`. Original evidence/scenes/visuals bytes ma
 the preserved worker seal exactly; narrative/review/image identities are new.
 This operator content revision is disclosed assistance, not mutation of an old
 approval. Actual OCP rendering/media acceptance remains pending.
+
+### 10.9.18 Compact source revision labels — ✅ 10 November 2026
+
+| Task | Status |
+|------|--------|
+| Abbreviate only 40/64-character hexadecimal figure revisions to 12 characters plus ellipsis | ✅ Complete |
+| Preserve full revision in title, source card, pinned URL and staged visual metadata | ✅ Complete |
+| Verify real-browser regression and default renderer suite | ✅ Complete |
+
+The synthetic pinned-README browser regression failed against the original
+full-hash label, then passed for a 40-character hash, an uppercase 64-character
+hash and an unchanged named version. It verifies a single-line label, no
+first-slide layout problems, exact full title/URL/source-card revision and
+unchanged input/deck visual metadata. Checks ran offline/read-only as UID
+28128/group 0 with 2 CPU/4Gi in trusted local image `9ae79ec5170f…`:
+`AUTOPOC_BROWSER_INTEGRATION=1 node --test --test-name-pattern="pinned source captures" browser.test.mjs`
+passed; default `npm test` passed 122 tests, with 13 opt-in integration tests
+skipped. No font, image, clipping, validation or provenance policy changed.
+Fresh renderer image build and actual OpenShell render acceptance remain
+pending; these are local synthetic layout results only.

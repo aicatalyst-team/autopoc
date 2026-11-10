@@ -61,6 +61,42 @@ async function buildDeck(root, customize){
  await new Promise((accept,reject)=>{const child=spawn(process.execPath,[join(modules,'@slidev/cli/bin/slidev.mjs'),'build','slides.md','--out','dist'],{cwd:deck});let log='';child.stdout.on('data',d=>log+=d);child.stderr.on('data',d=>log+=d);child.on('exit',code=>code?reject(new Error(log)):accept())})
  return deck
 }
+test('pinned source captures abbreviate Git labels without changing source metadata',{skip:!process.env.AUTOPOC_BROWSER_INTEGRATION},async()=>{
+ const root=await mkdtemp(join(tmpdir(),'autopoc-source-revision-'));let browser
+ try{
+  const modules=resolve(process.env.AUTOPOC_RENDER_NODE_MODULES || new URL('./node_modules',import.meta.url).pathname)
+  const {chromium}=await import(join(modules,'playwright-chromium/index.mjs'))
+  browser=await chromium.launch({headless:true,executablePath:process.env.AUTOPOC_CHROMIUM_EXECUTABLE || undefined})
+  for(const [revision,label] of [
+   ['0123456789abcdef0123456789abcdef01234567','0123456789ab…'],
+   ['ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789','ABCDEF012345…'],
+   ['release-2026.11-reviewed','release-2026.11-reviewed'],
+  ]){
+   const input=join(root,revision),data=await stageExample(input,'github-service'),asset=data.visuals.assets[0]
+   // Synthetic source-capture metadata exercises layout, not real project evidence.
+   Object.assign(asset,{kind:'source_capture',source_revision:revision,source_url:`https://github.com/example/parcel-relay/blob/${revision}/documentation/project-overview/README.md`,caption:'Synthetic project overview from pinned documentation.',attribution:'Synthetic fixture · example/parcel-relay'})
+   data.narrative.project_context.revision=revision
+   await writeFile(join(input,'visuals.json'),JSON.stringify(data.visuals))
+   await writeFile(join(input,'narrative.json'),JSON.stringify(data.narrative))
+   const original=await readFile(join(input,'visuals.json'),'utf8'),deck=await buildDeck(input),hosted=await serve(join(deck,'dist'))
+   try{
+    const page=await browser.newPage({viewport:{width:1280,height:720}})
+    await page.goto(`${hosted.url}/1?embedded`,{waitUntil:'networkidle'})
+    const current=page.locator('.executive[data-executive-ready="true"]');await current.waitFor()
+    const heading=current.locator('.project-visual figcaption strong')
+    assert.equal(await heading.innerText(),`Source context · ${label}`)
+    assert.equal(await heading.getAttribute('title'),revision)
+    assert.equal(await heading.evaluate(element=>{const range=document.createRange();range.selectNodeContents(element);return range.getClientRects().length}),1,'The source label must fit on one line')
+    assert.deepEqual(sceneProblems(await page.evaluate(inspectScene)),[],'Pinned README metadata must fit the first slide')
+    assert.equal(await current.locator('.project-visual figcaption small').last().innerText(),asset.source_url)
+    assert.ok((await current.locator('.source-card').innerText()).includes(`Revision: ${revision}`))
+    assert.deepEqual(JSON.parse(await readFile(join(deck,'visuals.json'),'utf8')),data.visuals)
+    assert.equal(await readFile(join(input,'visuals.json'),'utf8'),original)
+    await page.close()
+   }finally{await new Promise(r=>hosted.server.close(r))}
+  }
+ }finally{await browser?.close();await rm(root,{recursive:true,force:true})}
+})
 test('generic layouts define projects, show provenance and all checks in browser and print',{skip:!process.env.AUTOPOC_BROWSER_INTEGRATION},async()=>{
  const root=await mkdtemp(join(tmpdir(),'autopoc-generic-'));let browser
  try{
