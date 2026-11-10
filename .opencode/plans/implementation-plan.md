@@ -1400,7 +1400,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 |---|---|
 | Verify isolated branch and baseline | ✅ 10.1 — 496 Python tests, 86.44% coverage; 40 renderer tests passed, 5 browser-gated skips |
 | Generic story roles and complete check coverage (plan Task 1) | ✅ 10.2 — 566 Python tests, 86.71% coverage; 108 renderer tests passed, 5 browser-gated skips |
-| Reviewed optional visual assets (plan Task 2) | ✅ 10.3 — 616 Python tests, 87.08% coverage; 108 renderer tests passed, 5 browser-gated skips |
+| Reviewed optional visual assets (plan Task 2) | ✅ 10.3 — 621 Python tests, 87.11% coverage; 108 renderer tests passed, 5 browser-gated skips |
 | Generic author/reviewer guidance and examples (plan Task 3) | Pending |
 | Reusable identity/check layouts and timing (plan Task 4) | Pending |
 | 3D pose lifecycle and full label inspection (plan Task 5) | Pending |
@@ -1471,3 +1471,13 @@ CURRENT_TEMPLATE_VERSION stays 3 until Task 6 updates renderer admission;
 sealing and CLI already accept explicit template 4 and preserve template 3 if
 the constant changes. Browser full decode, generic layouts, pixel inspection,
 listening and live publication remain later tasks. Phase 10 remains in progress.
+
+
+Task 2 review fix round 1: seal entry now freezes visual bytes with the same
+bounded, nonblocking, regular-file/no-follow reader as standalone preparation.
+Five RED regressions proved FIFO blocking, accepted parent symlinks, unbounded
+allocation, a final-file symlink replacement race and missing early byte freeze.
+GREEN: 94 scoped tests; 621 full Python tests, 87.11% coverage; 108 renderer
+passed/five explicit browser skips; CI Ruff 0.15.11 full lint, scoped formatting
+and full Pyright passed. Frozen bytes feed overall budgets, review and the
+sealed archive without reopening the source. Phase 10 remains in progress.

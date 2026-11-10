@@ -325,3 +325,99 @@ def test_legacy_envelope_rejects_new_visual_payload(tmp_path):
 
     with pytest.raises(ValueError):
         verify_inputs(rewrite_package(package, tmp_path / "tampered.zip", mutate))
+
+
+def test_seal_rejects_visual_fifo_without_blocking(tmp_path):
+    import os
+    import subprocess
+    import sys
+
+    evidence, narrative, scenes, review, visuals = generic_documents(tmp_path)
+    visuals.unlink()
+    os.mkfifo(visuals)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from pathlib import Path; from autopoc.executive_inputs import seal_inputs; import sys; "
+            "e,n,s,r,v,o=map(Path,sys.argv[1:]); "
+            'seal_inputs(e,n,r,o,scenes_path=s,visuals_path=v,renderer_image="quay.io/org/image@sha256:"+"b"*64)',
+            str(evidence),
+            str(narrative),
+            str(scenes),
+            str(review),
+            str(visuals),
+            str(tmp_path / "sealed"),
+        ],
+        capture_output=True,
+        timeout=2,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert b"ValueError" in result.stderr
+    assert not (tmp_path / "sealed").exists()
+
+
+def test_seal_rejects_visual_parent_symlink(tmp_path):
+    docs = list(generic_documents(tmp_path))
+    alias = tmp_path / "alias"
+    alias.symlink_to(tmp_path, target_is_directory=True)
+    docs[4] = alias / "visuals.zip"
+    with pytest.raises(ValueError):
+        generic_seal(tmp_path, docs)
+
+
+def test_seal_bounds_visual_read_before_allocating_oversized_bytes(tmp_path, monkeypatch):
+    from pathlib import Path
+    from autopoc.executive_visuals import MAX_ARCHIVE
+
+    docs = generic_documents(tmp_path)
+    with docs[4].open("wb") as stream:
+        stream.truncate(MAX_ARCHIVE + 1)
+    original = Path.read_bytes
+
+    def reject_unbounded_visual_read(path):
+        if path == docs[4]:
+            pytest.fail("sealing must bound visual reads before allocation")
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", reject_unbounded_visual_read)
+    with pytest.raises(ValueError):
+        generic_seal(tmp_path, docs)
+
+
+def test_seal_visual_replacement_race_rejects_symlink(tmp_path, monkeypatch):
+    import os
+
+    docs = generic_documents(tmp_path)
+    original = os.open
+
+    def replace_before_open(path, flags, *args, **kwargs):
+        if path == docs[4]:
+            target = tmp_path / "replacement.zip"
+            docs[4].rename(target)
+            docs[4].symlink_to(target)
+        return original(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(os, "open", replace_before_open)
+    with pytest.raises(ValueError):
+        generic_seal(tmp_path, docs)
+
+
+def test_seal_freezes_visual_bytes_before_other_inputs_are_read(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    docs = generic_documents(tmp_path)
+    reviewed = docs[4].read_bytes()
+    original = Path.read_bytes
+
+    def replace_after_visual_freeze(path):
+        if path == docs[0]:
+            docs[4].write_bytes(b"changed after visual read")
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", replace_after_visual_freeze)
+    package = generic_seal(tmp_path, docs)
+    with zipfile.ZipFile(package) as archive:
+        assert archive.read("visuals.zip") == reviewed
+    assert verify_inputs(package)["visuals"]["assets"] == []

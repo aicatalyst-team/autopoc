@@ -200,16 +200,26 @@ def seal_inputs(
         "narrative.json": narrative_path,
         "review.json": review_path,
     }
+    visual_bytes = None
     if visuals_path is not None:
-        paths["visuals.zip"] = visuals_path
+        from autopoc.executive_visuals import MAX_ARCHIVE, _read
+
+        try:
+            visual_bytes = _read(visuals_path, MAX_ARCHIVE)
+        except OSError as exc:
+            raise ValueError("Invalid visual input file") from exc
     if scenes_path:
         paths["scenes.json"] = scenes_path
     for path in paths.values():
         if path.is_symlink() or path.stat().st_size > MAX_BYTES:
             raise ValueError("Invalid render input file")
-    if sum(path.stat().st_size for path in paths.values()) > MAX_BYTES - 1024 * 1024:
+    if (
+        sum(path.stat().st_size for path in paths.values()) + len(visual_bytes or b"")
+    ) > MAX_BYTES - 1024 * 1024:
         raise ValueError("Render inputs exceed size limit")
     data = {name: path.read_bytes() for name, path in paths.items()}
+    if visual_bytes is not None:
+        data["visuals.zip"] = visual_bytes
     narrative_schema = _json(data["narrative.json"]).get("schema_version")
     if template_version is None:
         template_version = next(
