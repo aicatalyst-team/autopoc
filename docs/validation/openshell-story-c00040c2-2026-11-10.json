@@ -76,7 +76,7 @@
   "report_publication_commit": "caef62b6f26ef8f4dd72c99da6e2317f55983c60",
   "blog": "ineligible_skipped",
   "cloud_publication": "not_authorized_blocked",
-  "media": "actual_deck_pdf_prepared_speech_in_progress",
+  "media": "speech_complete_video_recording_in_progress",
   "operator_assistance": [
     "Prepared isolated namespace, existing-pattern bounded RBAC, workspace PVC, fork branch and node placement.",
     "Supplied same-revision reference Dockerfiles and authentic pinned README context PNG.",
@@ -159,7 +159,7 @@
       "pod_uid": "9b500324-a9b0-4445-b3c1-e10061ebb197",
       "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:c493de2e7ddc7fe5c42b6105c5e9a296b56099233a15ffba66e918e91ce401aa",
       "input_sha256": "44ac15a1fc42f0cd2b763b2cbd4cf04e02f4439c2c52ccdbbe6c01cb0b0ee634",
-      "status": "running_speech",
+      "status": "recording_video",
       "admission": "restricted-v2",
       "api_token_mounted": false,
       "network_policy": "deny_all_ingress_and_egress",
@@ -176,6 +176,14 @@
         "pdf": "validated",
         "pdf_sha256": "7193329243eaad194de6b6725e34ddaf33b3358713bb8daaf9702000c287c487",
         "pdf_bytes": 196777
+      },
+      "speech": {
+        "generated": true,
+        "duration_seconds": 296.3333333333333,
+        "frames": 8890,
+        "scene_count": 9,
+        "sentence_count": 55,
+        "human_full_listening": "pending"
       }
     }
   ],
@@ -227,5 +235,11 @@
     "resolved_finding": "Restored exact restricted-v2 observation support after shortening a visible setup claim.",
     "asset_change": "Shorter caption/attribution only; full source URL, full revision and PNG bytes retained.",
     "graph_change": "One concise setup point, spaced abstract node positions, and a neutral observed storage-mount act; original scenario inventory unchanged."
+  },
+  "pdf_inspection": {
+    "pages": 9,
+    "method": "Assistant inspected every rendered page PNG from the actual OCP-exported PDF.",
+    "layout": "readable_no_clipping_observed",
+    "human_acceptance": "pending"
   }
 }

@@ -996,3 +996,15 @@ actual preparation stage reports deck and PDF validated; PDF is196777bytes,
 SHA-2567193329243eaad194de6b6725e34ddaf33b3358713bb8daaf9702000c287c487.
 Kokoro sentence generation is in progress after browser preparation exited.
 Final packaging, video recording, retrieval and media inspection remain pending.
+
+### 10.9.22 Actual speech generation and nine-page PDF inspection — ✅ 10 November 2026
+
+OCP Kokoro synthesis finished before video recording. The measured timeline is
+296.333333 seconds,8890frames at30fps, nine scenes; no speech clipping or
+acceleration is used. Renderer entered recording after speech exited.
+Retrieved the actual prepared PDF and verified its recorded size/hash; pdfinfo
+reports nine pages. Assistant inspected every rendered page, including source
+identity/provenance, all five named check rows, 3D setup still, exact totals,
+untested-scope wording and immediate next actions. No clipping observed.
+Video encoding, final artifact verification/retrieval and human full listening
+remain pending. PDF/media inspection is not PoC functional success.
