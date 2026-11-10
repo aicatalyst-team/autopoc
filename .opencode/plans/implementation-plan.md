@@ -488,6 +488,7 @@ recommendations are not execution instructions.
 | Regenerate OpenShell with 3D views | ✅ Done | Two TopoLoop scenes; reviewed 3m28s video, animated browser deck/PDF/source retrieved and verified, original tests unchanged |
 | Simplify future voice-over English | ✅ Done | Author/reviewer guidance and synthetic example updated; STE principles without a restricted vocabulary; existing media retained |
 | Presentation feedback design and planning | ✅ Done | 10 November: storyboard direction approved; generic repository-independent design and seven-task plan saved; builder check complete; product implementation pending |
+| Restore cluster access | ✅ Done | 10 November: authenticated; existing OpenShell namespace active; Job-create permission verified; no workloads changed |
 | Controlled production rollout | Pending | Drive invalid_grant, human listening and explicit merge/live configuration approval |
 
 ### 9.1 Generate and verify a local Kokoro audition — ✅ 8 November 2026
@@ -1283,6 +1284,7 @@ product-code change has been authorized by this brainstorming request.
 | Confirm audience and show a visual storyboard | ✅ 9.10.2 |
 | Agree revised story and visual treatment | ✅ 9.10.3 — approved storyboard direction; generic for any source repository |
 | Save design and proposed implementation plan | ✅ 9.10.4 — fresh builder check complete; technical choices await review |
+| Restore and verify OCP access | ✅ 9.10.5 — authenticated; existing namespace accessible; Job-create permission confirmed |
 | Implement and regenerate media | Not started |
 
 #### 9.10.1 Ground the feedback in the existing deliverable — ✅ 10 November 2026
@@ -1376,3 +1378,11 @@ product-code change has been authorized by this brainstorming request.
 - Planning phase is complete. Product code, new pronunciation/audio/video,
   automated capture infrastructure, production rollout and cloud publication
   have not been implemented by this documentation change.
+
+#### 9.10.5 Restore and verify OCP access — ✅ 10 November 2026
+
+- Authenticated using the user-supplied credential; no credential bytes retained
+  in planning documents or committed files.
+- Verified the authenticated identity, active existing OpenShell PoC namespace
+  and permission to create batch Jobs there. This verifies access, not a new
+  deployment/render or production activation. No cluster workloads changed.
