@@ -4,9 +4,13 @@ Source: https://github.com/r-bit-rry/topoloop
 
 Commit: `8631cf7955ebf40a579aab4ce3d0cca50d215c21`
 
-The unmodified `src/`, README, package metadata and MIT license are copied
-from this revision. Demo assets and upstream development tooling are omitted.
-The presentation imports the Vue component directly, as upstream documents.
+The upstream source base, README, package metadata and MIT license are from this
+revision. Demo assets and upstream development tooling are omitted. The local
+patch in `src/TopoLoop.vue` (AutoPoC commit `002873d`) watches `freezeAt` and
+`rate` to repaint frozen views, centralizes frame scheduling so queued frames
+are cancelled and resumed safely, guards disposal, and routes resize events
+through the same lifecycle. The presentation imports the Vue component
+directly, as upstream documents.
 
 Bundled fonts retain their SIL Open Font License in `src/fonts/OFL.txt`.
 The browser build also ships `assets/topoloop-OFL.txt` and

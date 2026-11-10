@@ -1410,6 +1410,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Prepare isolated namespace, access, workspace and source branch | ✅ 10.9.2 — new run c00040c2 only; no application workload launched |
 | Fresh branch images and isolated OpenShell full cycle | In progress — new branch images built; isolated worker launched (10.9.3); original PoC phases pending |
 | Retrieve and inspect slides/video for user review | Pending fresh run |
+| Final code-review/provenance correction | ✅ 10.10 — documented the local TopoLoop lifecycle patch while retaining upstream base and license attribution; Phase 10 remains in progress |
 
 ### 10.1 Verify isolated branch and clean baseline — ✅ 10 November 2026
 
@@ -1727,3 +1728,11 @@ Worker state marks the fork phase completed for the authorized prepared branch.
 The protected default branch remains outside the write scope. No build,
 deployment or PoC-test success is claimed at this stage. State currently records
 zero errors and zero build/deploy/container-fix retries; planning is next.
+
+### 10.10 Final code-review/provenance correction — ✅ 10 November 2026
+
+Updated `renderer/vendor/topoloop/UPSTREAM.md` to preserve upstream commit
+`8631cf7955ebf40a579aab4ce3d0cca50d215c21` and MIT/license attribution while
+identifying the local lifecycle patch in `src/TopoLoop.vue` from `002873d`.
+Phase 10 remains in progress; fresh OpenShell execution and its delivery gates
+are ongoing.
