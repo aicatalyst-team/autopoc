@@ -85,7 +85,7 @@
     },
     {
       "id": "check-1-outcome",
-      "text": "The large-file attempt stopped before producing a final result.",
+      "text": "The retained large-file attempt has no final result; its outcome remains incomplete.",
       "kind": "observed",
       "sources": [
         "source.md#L11-L11"
@@ -164,7 +164,7 @@
           ]
         },
         {
-          "text": "The large-file attempt stopped before producing a final result.",
+          "text": "The retained large-file attempt has no final result; its outcome remains incomplete.",
           "claim_ids": [
             "check-1-outcome"
           ]

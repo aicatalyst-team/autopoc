@@ -8,5 +8,5 @@ Check the exit status for a consistent fixture file.
 The consistent fixture completed with the expected exit status.
 Scan a large ledger with duplicate references
 Check duplicate reporting across a large fixture file.
-The large-file attempt stopped before producing a final result.
+The retained large-file attempt has no final result; its outcome remains incomplete.
 One check passed and one remained incomplete.

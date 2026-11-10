@@ -590,3 +590,17 @@ and is not claimed by automated decoding or text checks. Merge and live worker
 configuration need user approval. The feature is a [stacked draft PR](https://github.com/aviavraham/autopoc/pull/4)
 on the approved planning branch, depending on the presentation branding work.
 No live worker configuration, credentials or PoC outcomes were changed.
+
+
+On 10 November 2026 the user listened to actual pinned Heart samples and selected
+“auto P-O-C” for the written name AutoPoC. The whole-name lexicon entry is
+`ˈɔTOpˈiˈOsˈi`; the standalone PoC entry remains separate. The pinned model and
+actual inline G2P preserve the `T` flap despite its absence from Misaki's exported
+American vocabulary. Only that measured symbol extends the accepted inventory.
+This changes synthesis only: reviewed sentences, transcript and captions retain
+AutoPoC exactly. A changed lexicon requires a new sealed review hash. Previous
+sealed inputs retain their original pronunciation identity and image pin.
+
+Generic template-4 acceptance and fresh images are in progress. A local image
+check does not establish fresh OpenShift deployment, Drive publication or human
+listening acceptance of a full video. Existing delivered media is preserved.

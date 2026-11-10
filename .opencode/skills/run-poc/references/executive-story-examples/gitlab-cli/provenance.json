@@ -9,5 +9,5 @@
   "imagery": "No image; identity text fallback. No topology is invented.",
   "scene_identity": "Placeholder model hash; replace with actual tested manifest and review before synthesis.",
   "visual_inspection": "Required separately for any release; structural validation alone is not pixel inspection.",
-  "source_sha256": "7348352288a98f14ac5a0321d38959bcd8ca045cc2fff0e6b4494c7732b3b5f1"
+  "source_sha256": "ea512ca6ed344d45f705d8c65afba6ff4728bde5568a62769b53540f0966e561"
 }

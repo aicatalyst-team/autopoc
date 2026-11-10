@@ -21,9 +21,10 @@ from autopoc.executive_story import MARKUP, validate_scene_plan
 MODEL_REVISION = "f3ff3571791e39611d31c381e3a41a3af07b4987"
 MODEL_FILES = {"config.json", "kokoro-v1_0.pth", "voices/af_heart.pt"}
 SAMPLE_RATE = 24000
-# Misaki's American English inventory (misaki.en.US_VOCAB). Symbols outside it
-# are dropped during inference, so an override using them would fail silently.
-US_VOCAB = frozenset("AIOWYbdfhijklmnpstuvwzæðŋɑɔəɛɜɡɪɹɾʃʊʌʒʤʧˈˌθᵊᵻʔ")
+# Misaki's American inventory plus the pinned Kokoro model's measured T flap.
+# The 10 November 2026 Heart audition verified model vocab and inline g2p retain
+# T although Misaki's exported US_VOCAB omits it. Reject all other unknowns.
+US_VOCAB = frozenset("AIOWYTbdfhijklmnpstuvwzæðŋɑɔəɛɜɡɪɹɾʃʊʌʒʤʧˈˌθᵊᵻʔ")
 LEXICON_PATH = Path(__file__).with_name("kokoro_lexicon.json")
 
 

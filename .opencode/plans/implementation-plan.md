@@ -1405,7 +1405,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Reusable identity/check layouts and timing (plan Task 4) | ✅ 10.5 — 109 actual-browser/Node checks, zero skips; 16 real FFmpeg checks; seven-page PDF and measured cue inspected |
 | 3D pose lifecycle and full label inspection (plan Task 5) | ✅ 10.6 — 15 actual-browser tests, zero skips; all 10 poses and 60 collision/containment samples; 122 Node tests passed |
 | Offline integration, packaging and recovery (plan Task 6) | ✅ 10.7 — 632 Python tests, 87.18% coverage; 134 offline actual-browser/Node/FFmpeg checks, zero skips; source ZIP rebuilt |
-| Pronunciation and measured generic acceptance (plan Task 7) | Pending |
+| Pronunciation and measured generic acceptance (plan Task 7) | In progress — ✅ selected full-name pronunciation implemented; fresh-image/media acceptance pending |
 | En-MaaS provider preflight for the fresh run | ✅ 10.9.1 — external settings/key found; actual worker text/tool calls and in-cluster authenticated connection verified |
 | Prepare isolated namespace, access, workspace and source branch | ✅ 10.9.2 — new run c00040c2 only; no application workload launched |
 | Fresh branch images and isolated OpenShell full cycle | Pending implementation |
@@ -1626,3 +1626,16 @@ intentionally stopped speech and retained a partial result. Fresh image builds,
 actual Heart schema-3 listening/visual acceptance, restricted-v2/OCP validation,
 Drive publishing and shared activation remain later gates. Phase 10 remains in
 progress.
+
+
+### 10.8.1 ✅ Selected full-name pronunciation — 10 November 2026
+
+User selected the listened-to Heart “auto P-O-C” audition. Exact measured
+phonemes are now a whole-name synthesis override; standalone PoC and reviewed
+transcript remain unchanged. Narrowly allow the pinned model's measured T flap,
+reject other unknown symbols, and retain sealed lexicon invalidation. Regression
+RED: two expected failures; GREEN: 30 speech tests passed. Deferred example
+wording now distinguishes absent records from nonexecution and incomplete
+outcomes from a proven interruption. Browser lifecycle checks await paint and
+observed callback/canvas conditions instead of fixed 60–100ms sleeps.
+Task 7 image/media acceptance and Phase 10 fresh OpenShell cycle remain pending.

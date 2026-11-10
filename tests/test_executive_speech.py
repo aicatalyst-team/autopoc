@@ -103,6 +103,41 @@ def test_lexicon_guides_synthesis_without_altering_reviewed_text(tmp_path):
     assert result["lexicon_sha256"] == LEXICON.sha256
 
 
+def test_selected_full_name_pronunciation_preserves_reviewed_transcript(tmp_path):
+    from autopoc.executive_speech import LEXICON, generate_narration
+
+    narrative, scenes, assets = inputs(tmp_path, lexicon=True)
+    text = "AutoPoC completes the PoC. AutoPoCplus remains unchanged."
+    with_narration(narrative, text)
+    engine = RecordingEngine()
+    generate_narration(narrative, scenes, tmp_path / "output", asset_root=assets, engine=engine)
+    assert engine.texts[0] == (
+        "[AutoPoC](/ˈɔTOpˈiˈOsˈi/) completes the [PoC](/pˌiˌOsˈi/). AutoPoCplus remains unchanged."
+    )
+    assert text in (tmp_path / "output" / "transcript.txt").read_text()
+    assert LEXICON.entries["AutoPoC"] == "ˈɔTOpˈiˈOsˈi"
+
+
+def test_measured_model_flap_is_allowed_but_unknown_symbols_stay_rejected(tmp_path):
+    from autopoc.executive_speech import load_lexicon
+
+    path = tmp_path / "lex.json"
+    path.write_text(
+        json.dumps(
+            {"schema_version": 1, "language": "en-US", "entries": {"AutoPoC": "ˈɔTOpˈiˈOsˈi"}}
+        )
+    )
+    assert load_lexicon(path).apply("AutoPoC") == "[AutoPoC](/ˈɔTOpˈiˈOsˈi/)"
+    for unknown in ("g", "X", "D", "ɬ"):
+        path.write_text(
+            json.dumps(
+                {"schema_version": 1, "language": "en-US", "entries": {"AutoPoC": "ˈɔ" + unknown}}
+            )
+        )
+        with pytest.raises(ValueError):
+            load_lexicon(path)
+
+
 def test_changed_pronunciation_cannot_reuse_a_reviewed_speech_identity(tmp_path):
     from autopoc.executive_speech import generate_narration
 
@@ -179,7 +214,7 @@ def test_overrides_never_fire_inside_a_longer_token(tmp_path):
 
 
 def test_packaged_lexicon_only_uses_supported_american_phonemes(tmp_path):
-    """Symbols outside Misaki's US vocabulary are dropped silently at inference."""
+    """Only measured pinned-model symbols may extend the exported US inventory."""
     from autopoc.executive_speech import US_VOCAB, LEXICON, load_lexicon
 
     assert LEXICON.entries

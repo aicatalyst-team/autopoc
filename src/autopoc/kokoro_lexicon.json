@@ -1,19 +1,21 @@
 {
   "schema_version": 1,
   "language": "en-US",
-  "selection": "Only terms whose default Misaki pronunciation was measured wrong in the renderer image on 9 November 2026, with the observed default recorded beside each. Misaki's grapheme-to-phoneme handling is better than assumed: NVIDIA, Quay, UBI, UBI9 and mTLS were already correct, OIDC, PVC and vLLM differed only in stress-marker placement, and an override for UBI9 was worse than the default because it removed the word break before 'nine'. Entries are cheap but not free - a wrong override degrades speech silently - so add one only after comparing g2p output with and without it inside the image. Measured, not assumed; re-measure when the model revision changes.",
+  "selection": "Only terms whose default Misaki pronunciation was measured wrong in the renderer image on 9 November 2026, with the observed default recorded beside each. Misaki's grapheme-to-phoneme handling is better than assumed: NVIDIA, Quay, UBI, UBI9 and mTLS were already correct, OIDC, PVC and vLLM differed only in stress-marker placement, and an override for UBI9 was worse than the default because it removed the word break before 'nine'. Entries are cheap but not free - a wrong override degrades speech silently - so add one only after comparing g2p output with and without it inside the image. Measured, not assumed; re-measure when the model revision changes. On 10 November 2026 the user listened to pinned Heart full-name samples and selected AutoPoC as auto P-O-C; the measured T flap is supported by the pinned model and preserved by inline g2p.",
   "measured_defaults": {
     "Kokoro": "kəkˈɔɹO",
     "PoC": "pˈOsˌi",
     "Qwen": "kjˈuwˈɛn",
     "RBAC": "ˌɑɹbˌiˌAsˈi",
-    "Slidev": "slˈIdəv"
+    "Slidev": "slˈIdəv",
+    "AutoPoC": "ˈɔTOpˈOsˌi"
   },
   "entries": {
     "Kokoro": "kˈOkəɹO",
     "PoC": "pˌiˌOsˈi",
     "Qwen": "ʧwˈɛn",
     "RBAC": "ˈɑɹbæk",
-    "Slidev": "slˈIdɛv"
+    "Slidev": "slˈIdɛv",
+    "AutoPoC": "ˈɔTOpˈiˈOsˈi"
   }
 }

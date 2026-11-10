@@ -165,3 +165,17 @@ reconcile durable receipts and hashes independently without replaying scenarios.
 Schema 3 anchors recording to a private pre-roll slate and measured frame PTS;
 legacy schema 2 retains its original capture trim. The slate and raw frames stay
 in private scratch and are excluded from published/source archives.
+
+
+On 10 November 2026 the user listened to actual pinned Heart samples and selected
+“auto P-O-C” for the written name AutoPoC. The whole-name lexicon entry is
+`ˈɔTOpˈiˈOsˈi`; the standalone PoC entry remains separate. The pinned model and
+actual inline G2P preserve the `T` flap despite its absence from Misaki's exported
+American vocabulary. Only that measured symbol extends the accepted inventory.
+This changes synthesis only: reviewed sentences, transcript and captions retain
+AutoPoC exactly. A changed lexicon requires a new sealed review hash. Previous
+sealed inputs retain their original pronunciation identity and image pin.
+
+Generic template-4 acceptance and fresh images are in progress. A local image
+check does not establish fresh OpenShift deployment, Drive publication or human
+listening acceptance of a full video. Existing delivered media is preserved.

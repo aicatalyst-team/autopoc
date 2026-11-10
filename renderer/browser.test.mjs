@@ -277,7 +277,7 @@ onMounted(()=>{window.freezeHarness=async(value,show=true)=>{freeze.value=value;
   await page.evaluate(()=>{window.originalCanvas=document.querySelector('.tl-canvas canvas')})
   const poses=new Map()
   for(const t of sceneCheckTimes(graph)){
-   await page.evaluate(t=>window.freezeHarness(t),t);await page.waitForTimeout(60)
+   await page.evaluate(async t=>{await window.freezeHarness(t);await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))},t)
    assert.equal(await page.locator('.tl-title').innerText(),graph.acts.find(a=>t>=a.t0&&t<a.t1).title,`act at ${t}`)
    assert.equal(await page.evaluate(()=>document.querySelector('.tl-canvas canvas')===window.originalCanvas),true,'inspection must retain one mounted canvas')
    assert.deepEqual(sceneProblems(await page.evaluate(inspectScene)),[],`pose ${t}`)
@@ -289,7 +289,7 @@ onMounted(()=>{window.freezeHarness=async(value,show=true)=>{freeze.value=value;
   const fixture=JSON.parse(await readFile(new URL('../tests/fixtures/executive-story/label-collisions.json',import.meta.url)))
   const diagnostics=[]
   for(const t of sceneCheckTimes(graph)){
-   await page.evaluate(t=>window.freezeHarness(t),t);await page.waitForTimeout(60)
+   await page.evaluate(async t=>{await window.freezeHarness(t);await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))},t)
    for(const item of fixture){
    await page.evaluate(item=>{const root=document.querySelector('.executive'),stage=document.createElement('div');stage.className='topology-stage collision-fixture';stage.style.cssText='position:absolute;inset:0';root.append(stage);for(const [className,text,x,y,w,h] of item.labels){const el=document.createElement('div');el.className=className;el.textContent=text;el.style.cssText=`position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;font:20px/24px sans-serif`;if(item.outside?.includes(className)){el.classList.add('external-collision-fixture');root.append(el)}else stage.append(el)}},item)
    const problems=sceneProblems(await page.evaluate(inspectScene))
@@ -304,16 +304,16 @@ onMounted(()=>{window.freezeHarness=async(value,show=true)=>{freeze.value=value;
 
   const baseline=await page.evaluate(()=>window.pendingFrames.size)
   for(let i=0;i<3;i++){
-   await page.evaluate(()=>window.freezeHarness(null));await page.waitForTimeout(100)
+   await page.evaluate(()=>window.freezeHarness(null));await page.waitForFunction(count=>window.pendingFrames.size===count,baseline+1)
    assert.equal(await page.evaluate(()=>window.pendingFrames.size),baseline+1,'release owns one animation callback')
    const released=await page.locator('.tl-canvas canvas').evaluate(canvas=>canvas.toDataURL())
-   await page.waitForTimeout(80)
+   await page.waitForFunction(image=>document.querySelector('.tl-canvas canvas').toDataURL()!==image,released)
    assert.notEqual(await page.locator('.tl-canvas canvas').evaluate(canvas=>canvas.toDataURL()),released,'release resumes visible animation')
-   await page.evaluate(()=>window.freezeHarness(5));await page.waitForTimeout(60)
+   await page.evaluate(()=>window.freezeHarness(5));await page.waitForFunction(count=>window.pendingFrames.size===count,baseline)
    assert.equal(await page.evaluate(()=>window.pendingFrames.size),baseline,'freeze cancels animation callback')
   }
-  await page.evaluate(()=>window.freezeHarness(null));await page.waitForTimeout(60)
-  await page.evaluate(()=>window.freezeHarness(null,false));await page.waitForTimeout(100)
+  await page.evaluate(()=>window.freezeHarness(null));await page.waitForFunction(count=>window.pendingFrames.size===count,baseline+1)
+  await page.evaluate(()=>window.freezeHarness(null,false));await page.waitForFunction(count=>window.pendingFrames.size===count&&!document.querySelector('.tl-canvas canvas'),baseline)
   assert.equal(await page.evaluate(()=>window.pendingFrames.size),baseline,'unmount cancels animation callback')
   assert.equal(await page.locator('canvas').count(),0);assert.deepEqual(errors,[])
  }finally{await browser?.close();if(server)await new Promise(r=>server.close(r));await rm(root,{recursive:true,force:true})}
