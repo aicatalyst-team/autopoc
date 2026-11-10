@@ -1669,8 +1669,8 @@ Shared CronJobs/settings and earlier application deployments remain untouched.
 | Containerize | ✅ 10.9.8 — completed |
 | Build | ✅ 10.9.9 — all three original images built and published |
 | Deploy manifests | ✅ 10.9.10 — generated, linted and committed |
-| Apply | In progress — workloads created; permitted readiness observations after Helm wait RBAC error |
-| Execute original validation | Pending |
+| Apply | ✅ 10.9.11 — bounded retry and direct workload readiness passed |
+| Execute original validation | In progress — first captured execution retained; outcome inspection underway |
 | Report and reviewed media inputs | Pending |
 | Eligible blog | Pending |
 | Offline renderer and local retrieval | Pending original execution/report |
@@ -1771,3 +1771,11 @@ created in the new namespace. Helm's wait failed because the bounded runner
 cannot list ReplicaSets; this original apply error is retained. The worker is
 using permitted direct workload observations for the bounded apply retry, with
 no privilege expansion. Apply acceptance and original tests remain pending.
+
+### 10.9.11 Fresh application rollout — ✅ 10 November 2026
+
+Worker state records apply completed after one retained Helm wait/RBAC error
+and a bounded retry using permitted direct rollout observations. Gateway and
+supervisor Pods are Ready; the gateway PVC is Bound on the selected application
+node. No extra privileges were granted. Original validation is in progress;
+readiness alone is not proof of its five scenario outcomes.
