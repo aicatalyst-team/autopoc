@@ -1670,9 +1670,9 @@ Shared CronJobs/settings and earlier application deployments remain untouched.
 | Build | ✅ 10.9.9 — all three original images built and published |
 | Deploy manifests | ✅ 10.9.10 — generated, linted and committed |
 | Apply | ✅ 10.9.11 — bounded retry and direct workload readiness passed |
-| Execute original validation | In progress — first captured execution retained; outcome inspection underway |
-| Report and reviewed media inputs | Pending |
-| Eligible blog | Pending |
+| Execute original validation | ✅ 10.9.12 — one pass, one error, three skips; lifecycle objective not achieved |
+| Report and reviewed media inputs | Report ✅ 10.9.13; reviewed media inputs in progress |
+| Eligible blog | ✅ 10.9.14 — eligibility assessed; skipped after unsuccessful validation |
 | Offline renderer and local retrieval | Pending original execution/report |
 
 
@@ -1779,3 +1779,29 @@ and a bounded retry using permitted direct rollout observations. Gateway and
 supervisor Pods are Ready; the gateway PVC is Bound on the selected application
 node. No extra privileges were granted. Original validation is in progress;
 readiness alone is not proof of its five scenario outcomes.
+
+### 10.9.12 Fresh original validation — ✅ 10 November 2026
+
+One captured execution `0329dd4aa56e464092de68f894abe83a` retained five terminal
+scenarios: **1 pass, 0 fail, 1 error, 3 skip, 0 incomplete**, process exit 1.
+Gateway readiness/positive-negative mTLS controls passed. Sandbox creation
+returned failed precondition because no shared supervisor was attached; the
+three dependent checks skipped. TLS/token diagnostic requests narrowed the
+issue but did not establish the Rust client's root cause or change test totals.
+No validation rerun, speculative rebuild or security/RBAC relaxation occurred.
+Execution is recorded as completed, not a successful sandbox lifecycle.
+
+### 10.9.13 Canonical blocked-run report and evidence — ✅ 10 November 2026
+
+Verified original evidence ZIP hash is
+`4bbfe024bdc4abc896cf417543e4bd561c666f2ca9596b8a51254b0273be2386`.
+Canonical report was published as an immutable artifact revision, commit
+`caef62b6f26ef8f4dd72c99da6e2317f55983c60`. The worker records report completed.
+Fresh media authoring/review/sealing and actual rendering remain pending.
+
+### 10.9.14 Blog eligibility — ✅ 10 November 2026
+
+The original cycle reached blog eligibility assessment and recorded blog and
+blog_post skipped: a majority of planned scenarios did not pass. No success
+blog was generated. Cloud publication remains blocked and unapproved; local
+report-based media preparation continues from the retained unsuccessful run.
