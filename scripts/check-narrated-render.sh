@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Offline acceptance of an already reviewed template-3 sealed input. Never replay PoC tests.
+# Offline acceptance of an already reviewed template-3/4 sealed input. Never replay PoC tests.
 set -euo pipefail
 if [[ $# != 3 ]]; then
   echo 'Usage: check-narrated-render.sh IMAGE SEALED_INPUT.zip NEW_OUTPUT_DIRECTORY' >&2

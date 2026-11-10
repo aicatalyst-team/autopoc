@@ -230,6 +230,18 @@ This changes synthesis only: reviewed sentences, transcript and captions retain
 AutoPoC exactly. A changed lexicon requires a new sealed review hash. Previous
 sealed inputs retain their original pronunciation identity and image pin.
 
-Generic template-4 acceptance and fresh images are in progress. A local image
-check does not establish fresh OpenShift deployment, Drive publication or human
-listening acceptance of a full video. Existing delivered media is preserved.
+Generic template-4 local image acceptance is recorded in
+`docs/validation/generic-poc-storytelling-2026-11-10.json`. Three independently
+reviewed synthetic GitHub-service, GitLab-CLI and Codeberg-library cases ran
+with actual Heart speech, offline, read-only, UID28128, 2 CPU and 4GiB memory.
+All five artifact kinds, exact embedded captions and PCM identities, frame
+counts, absence of the private slate, source ZIP rebuilds and visible layouts
+passed inspection. The source revision and published image digests are recorded
+separately for worker and renderer; no shared image configuration was activated.
+
+The renders took 352.903s, 239.793s and 195.768s; peak cgroup memory was
+3,352,420,352, 1,658,048,512 and 1,675,239,424 bytes respectively. These are
+synthetic local image measurements. Full-video human listening/final visual
+acceptance, the fresh isolated OpenShell cycle, Drive authorization/publication
+and explicit merge/live activation remain separate gates. Existing delivered
+media is preserved; these results do not establish a new OpenShift deployment.

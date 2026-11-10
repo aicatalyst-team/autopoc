@@ -1,0 +1,328 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-10",
+  "scope": "Synthetic local image acceptance of generic source-host/project-type storytelling; no original PoC checks rerun",
+  "status": "measured_local_image_acceptance_with_human_listening_and_live_gates_pending",
+  "worker": {
+    "source_commit": "c99729080950cd95c126a2a3f07ef7c6698a705b",
+    "image": "quay.io/aicatalyst/autopoc-opencode@sha256:b169dd89db35f0ac895b4e688ff567d7e6b4c53fa892be3c3df9c00e1b43aa55",
+    "tag": "story-c00040c2-c997290",
+    "actual_visuals_cli_help_passed": true,
+    "packaged_source_hashes_verified": true,
+    "local_image_id": "8dbb75a7b4c15683f1f21e3299d47b2f16dbcb92a539265b4f417993cee47759"
+  },
+  "renderer": {
+    "source_commit": "9746cbbd40f4476c63ebc29383b12f707b109040",
+    "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:1c1dc7b1510b25c113eb28a053d1e9f01fe449860171ba9397a62eab6964f215",
+    "tag": "story-c00040c2-9746cbb",
+    "model_manifest_sha256": "cc53829edc24d67ed317946d25867ec1236909f374f4a33c5a22355c69f00c24",
+    "lexicon_sha256": "32f4a336d574f1a517471a4df63722c38bf1ec180fc449ce1ea453357fc671a5",
+    "voice": "af_heart",
+    "speed": 0.95,
+    "local_image_id": "6cd7f08834c2f2ae39e594b6bb9b06e77085af7a9baa3ba3d67da53feaace807"
+  },
+  "environment": {
+    "network": "none",
+    "root_filesystem": "read-only",
+    "uid": 28128,
+    "cpu_limit": 2,
+    "memory_limit_bytes": 4294967296,
+    "local_container_not_openshift": true
+  },
+  "versions": {
+    "narrative_schema": 3,
+    "scene_plan_schema": 2,
+    "template": 4,
+    "input_policy": 2,
+    "retained_legacy_tuples": [
+      [
+        1,
+        1,
+        1
+      ],
+      [
+        1,
+        2,
+        1
+      ],
+      [
+        2,
+        3,
+        1
+      ]
+    ]
+  },
+  "pronunciation": {
+    "selected_by": "user after listening",
+    "selected_variant": "auto P-O-C",
+    "phonemes": "ˈɔTOpˈiˈOsˈi",
+    "default": "ˈɔTOpˈOsˌi",
+    "transcript_unchanged": true,
+    "standalone_PoC_unchanged": true,
+    "actual_model_flap_token_id": 36,
+    "actual_inline_g2p_verified": true,
+    "audition_manifest_sha256": "cc53829edc24d67ed317946d25867ec1236909f374f4a33c5a22355c69f00c24"
+  },
+  "checks": {
+    "python": {
+      "passed": 634,
+      "coverage_percent": 87.22
+    },
+    "ruff": {
+      "version": "0.15.11",
+      "passed": true
+    },
+    "pyright": {
+      "errors": 0,
+      "warnings": 0
+    },
+    "default_node": {
+      "passed": 122,
+      "explicit_integration_skips": 12
+    },
+    "actual_browser": {
+      "passed": 15,
+      "skipped": 0,
+      "elapsed_seconds": 138.784
+    },
+    "actual_ffmpeg": {
+      "passed": 16,
+      "skipped": 0
+    }
+  },
+  "cases": {
+    "github-service": {
+      "scope": "Synthetic fixture media; no production approval or PoC execution claim",
+      "status": "generated_unpublished",
+      "runtime": {
+        "elapsed_seconds": 352.903,
+        "peak_memory_bytes": 3352420352,
+        "scratch_usage_bytes": 67124368
+      },
+      "artifacts": {
+        "deck": {
+          "path": "static-site.zip",
+          "sha256": "f9199384fdb8e3764eee6a038b741442a1f9186ab3ace327f96e06697b0550ba",
+          "size": 894719,
+          "status": "generated_unpublished"
+        },
+        "pdf": {
+          "path": "executive-summary.pdf",
+          "sha256": "682bbae87d1bce783048a5f8b5d257e38909a673248a424f92e800cd7f28eae1",
+          "size": 65602,
+          "status": "generated_unpublished"
+        },
+        "source": {
+          "path": "executable-source.zip",
+          "sha256": "17d32567f0b9b1fc00289df7a53e6ff4bbc6e5bf443d39c4ee2ff4e9e03a8a79",
+          "size": 8237349,
+          "status": "generated_unpublished"
+        },
+        "summary": {
+          "path": "executive-summary.md",
+          "sha256": "59c502fa39e46f3749a9c9f289d103e6b980e400d07f773d845ac55ec393d9b8",
+          "size": 1898,
+          "status": "generated_unpublished"
+        },
+        "video": {
+          "path": "executive-summary.mp4",
+          "sha256": "16a88a597127fdb25b64c5b37adf2d3d72baf5cc79f3355245c0792573e8f229",
+          "size": 2081254,
+          "status": "generated_unpublished"
+        }
+      },
+      "frame_count": 3321,
+      "duration_seconds": 110.7,
+      "slate_frames": [],
+      "pdf_pages": 7,
+      "exact_caption_transcript_and_wav_hashes": true,
+      "scene_first_sentence_lead_seconds": 0.35,
+      "human_full_video_listening": "pending",
+      "embedded_MP4_captions_verified": true,
+      "agent_visual_inspection": {
+        "pdf_pages": 7,
+        "transition_mid_end_video_frames": 21,
+        "check_boundary_frames": 18,
+        "result": "passed; visible identity/context/source/attribution and all check outcomes, no clipping or misplaced highlights observed",
+        "human_release_acceptance": "pending"
+      },
+      "checked_boundary_frame_count": 18,
+      "source_rebuild": {
+        "status": "passed",
+        "offline": true,
+        "included_source_only": true,
+        "dependencies": "image-pinned npm dependencies",
+        "visual_assets_verified": 1
+      },
+      "semantic_review": {
+        "reviewer": "configured OpenCode with En-MaaS gpt-6.1-sol",
+        "genuine_model_review": true,
+        "approved": true,
+        "findings_count": 0,
+        "review_scope": "synthetic content text review; no model pixel/audio inspection",
+        "production_approval": false,
+        "verdict_sha256": "9e7c56d7e0e937d0dcab36cd3374c0bf9f7eaefe75549909562dd3141480cd2c"
+      },
+      "input_sha256": "8c8e3e40543740c080a1ba754c196fe4c47f501965bde3bc19b08c6194e6fbc7"
+    },
+    "gitlab-cli": {
+      "scope": "Synthetic fixture media; no production approval or PoC execution claim",
+      "status": "generated_unpublished",
+      "runtime": {
+        "elapsed_seconds": 239.793,
+        "peak_memory_bytes": 1658048512,
+        "scratch_usage_bytes": 51831861
+      },
+      "artifacts": {
+        "deck": {
+          "path": "static-site.zip",
+          "sha256": "f89b1c9be49808fc01e3465b46aaedc0d681d5c6e21499d11ff385b7856ef3b1",
+          "size": 875244,
+          "status": "generated_unpublished"
+        },
+        "pdf": {
+          "path": "executive-summary.pdf",
+          "sha256": "e1ac5c343185f67addc24fd2a4c10c1778aec39fa839ac273df34e80ba55faba",
+          "size": 44856,
+          "status": "generated_unpublished"
+        },
+        "source": {
+          "path": "executable-source.zip",
+          "sha256": "56f143a216dfc34d3105b270d224d99dc6e8fcf7f297aa0c3695bcb597feb360",
+          "size": 5271005,
+          "status": "generated_unpublished"
+        },
+        "summary": {
+          "path": "executive-summary.md",
+          "sha256": "ec2916a50ffc4d07aadbbb75889d6f9b1c8753b8532faf9666a866bc0d0f9063",
+          "size": 1535,
+          "status": "generated_unpublished"
+        },
+        "video": {
+          "path": "executive-summary.mp4",
+          "sha256": "5f215c59f3e7d9ff7dcc0de84d6db6e8d4b21df8617ab8b715aee7c53de4bad0",
+          "size": 1090096,
+          "status": "generated_unpublished"
+        }
+      },
+      "frame_count": 1972,
+      "duration_seconds": 65.73333333333333,
+      "slate_frames": [],
+      "pdf_pages": 6,
+      "exact_caption_transcript_and_wav_hashes": true,
+      "embedded_MP4_captions_verified": true,
+      "scene_first_sentence_lead_seconds": 0.35,
+      "human_full_video_listening": "pending",
+      "agent_visual_inspection": {
+        "pdf_pages": 6,
+        "transition_mid_end_video_frames": 18,
+        "check_boundary_frames": 6,
+        "result": "passed; readable text fallback identity and GitLab source, no inferred web UI/deployment, pass and incomplete statuses preserved, highlights correct",
+        "human_release_acceptance": "pending"
+      },
+      "checked_boundary_frame_count": 6,
+      "source_rebuild": {
+        "status": "passed",
+        "offline": true,
+        "included_source_only": true,
+        "dependencies": "image-pinned npm dependencies",
+        "visual_assets_verified": 0
+      },
+      "semantic_review": {
+        "reviewer": "configured OpenCode with En-MaaS gpt-6.1-sol",
+        "genuine_model_review": true,
+        "approved": true,
+        "findings_count": 0,
+        "review_scope": "synthetic content text review; no model pixel/audio inspection",
+        "production_approval": false,
+        "verdict_sha256": "f6a8848d08e7fdfce1cfb31b000e1f9263928b04aeee8d0cb98f2a5d5d539c63"
+      },
+      "input_sha256": "be4ff939b7dd4f9f60c3b00131a3f9152a9fdfeceb0d64bf9e9771d26f23634e"
+    },
+    "codeberg-library": {
+      "scope": "Synthetic fixture media; no production approval or PoC execution claim",
+      "status": "generated_unpublished",
+      "runtime": {
+        "elapsed_seconds": 195.768,
+        "peak_memory_bytes": 1675239424,
+        "scratch_usage_bytes": 47715671
+      },
+      "artifacts": {
+        "deck": {
+          "path": "static-site.zip",
+          "sha256": "bf071ac57abc93d4e0ae7680852f0fe4be5be773c1fe6f0b9b906f9c372116de",
+          "size": 874689,
+          "status": "generated_unpublished"
+        },
+        "pdf": {
+          "path": "executive-summary.pdf",
+          "sha256": "a3224f1bf540d1c9ddc6c4396ce153ebb0cfbd037c8c1a4e18f40de08105e41b",
+          "size": 39064,
+          "status": "generated_unpublished"
+        },
+        "source": {
+          "path": "executable-source.zip",
+          "sha256": "58760bb260d4464c8310e9e37883eb6ba5cf54685226b8009df93544cb524e9c",
+          "size": 4239666,
+          "status": "generated_unpublished"
+        },
+        "summary": {
+          "path": "executive-summary.md",
+          "sha256": "a16de1d2acf593d986446feddeeb49cf4ac6928290fb5315eb7568246e8c18b1",
+          "size": 1666,
+          "status": "generated_unpublished"
+        },
+        "video": {
+          "path": "executive-summary.mp4",
+          "sha256": "3664030c43e017c410c1d400476dfe2be0e0b7dfae6c66853f6217030bb05df6",
+          "size": 856427,
+          "status": "generated_unpublished"
+        }
+      },
+      "frame_count": 1570,
+      "duration_seconds": 52.333333333333336,
+      "slate_frames": [],
+      "pdf_pages": 6,
+      "exact_caption_transcript_and_wav_hashes": true,
+      "embedded_MP4_captions_verified": true,
+      "scene_first_sentence_lead_seconds": 0.35,
+      "human_full_video_listening": "pending",
+      "agent_visual_inspection": {
+        "pdf_pages": 6,
+        "transition_mid_end_video_frames": 18,
+        "check_boundary_frames": 0,
+        "result": "passed; readable library identity and Codeberg source, unavailable revision disclosed, explicit empty inventory and no inferred deployment/topology/validation success; missing records do not imply nonexecution",
+        "human_release_acceptance": "pending"
+      },
+      "checked_boundary_frame_count": 0,
+      "source_rebuild": {
+        "status": "passed",
+        "offline": true,
+        "included_source_only": true,
+        "dependencies": "image-pinned npm dependencies",
+        "visual_assets_verified": 0
+      },
+      "semantic_review": {
+        "reviewer": "configured OpenCode with En-MaaS gpt-6.1-sol",
+        "genuine_model_review": true,
+        "approved": true,
+        "findings_count": 0,
+        "review_scope": "synthetic content text review; no model pixel/audio inspection",
+        "production_approval": false,
+        "verdict_sha256": "71fcd6ed0aea8efa7f31aa864d7dbdeeac7f99dc0d29e16ee204f9a9f11c1357"
+      },
+      "input_sha256": "7a0f5769c7bf64e30152d47df1c83cf68b6aa4d3816baa33309206011297a80d"
+    }
+  },
+  "remaining_gates": [
+    "Human listening and final visual acceptance of full videos",
+    "Fresh isolated OpenShell eleven-phase run and media retrieval",
+    "Explicit Drive authorization and durable publication validation",
+    "Explicit merge/live-worker activation approval"
+  ],
+  "shared_settings_changed": false,
+  "drive_publication_claimed": false,
+  "earlier_delivered_media_changed": false,
+  "production_approval_claimed": false,
+  "separate_fresh_OpenShell_cycle": "In progress under controller; no application or media success inferred from local synthetic acceptance"
+}

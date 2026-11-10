@@ -1405,7 +1405,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Reusable identity/check layouts and timing (plan Task 4) | ✅ 10.5 — 109 actual-browser/Node checks, zero skips; 16 real FFmpeg checks; seven-page PDF and measured cue inspected |
 | 3D pose lifecycle and full label inspection (plan Task 5) | ✅ 10.6 — 15 actual-browser tests, zero skips; all 10 poses and 60 collision/containment samples; 122 Node tests passed |
 | Offline integration, packaging and recovery (plan Task 6) | ✅ 10.7 — 632 Python tests, 87.18% coverage; 134 offline actual-browser/Node/FFmpeg checks, zero skips; source ZIP rebuilt |
-| Pronunciation and measured generic acceptance (plan Task 7) | In progress — ✅ selected full-name pronunciation implemented; fresh-image/media acceptance pending |
+| Pronunciation and measured generic acceptance (plan Task 7) | ✅ 10.8 — selected pronunciation; three actual offline Heart renders, 19 PDF pages, 57 scene frames and 24 check-boundary frames; human/full live gates remain |
 | En-MaaS provider preflight for the fresh run | ✅ 10.9.1 — external settings/key found; actual worker text/tool calls and in-cluster authenticated connection verified |
 | Prepare isolated namespace, access, workspace and source branch | ✅ 10.9.2 — new run c00040c2 only; no application workload launched |
 | Fresh branch images and isolated OpenShell full cycle | In progress — new branch images built; isolated worker launched (10.9.3); original PoC phases pending |
@@ -1673,3 +1673,37 @@ Shared CronJobs/settings and earlier application deployments remain untouched.
 | Report and reviewed media inputs | Pending |
 | Eligible blog | Pending |
 | Offline renderer and local retrieval | Pending original execution/report |
+
+
+### 10.8 ✅ Pronunciation and measured generic image acceptance — 10 November 2026
+
+Completed plan Task 7 engineering/local-image acceptance. User-selected Heart
+full-name pronunciation preserves exact reviewed text; the fresh actual model
+retains its measured T flap. New images use unique tags and published push
+digests, with worker c997290 and renderer 9746cbb recorded separately. Actual
+worker CLI and copied source hashes passed. Corrected missing-record/incomplete
+example language, including the minimal library index caught by independent
+semantic review; browser lifecycle tests now await conditions/paint.
+
+All three honestly synthetic, independently reviewed source-host/project-type
+cases rendered offline with actual af_heart at 0.95, read-only root, UID28128,
+2 CPU/4GiB. Service/CLI/library: 352.903/239.793/195.768 seconds;
+3,352,420,352/1,658,048,512/1,675,239,424 peak bytes;
+110.7/65.733333/52.333333 seconds final media. Each produced all five artifacts.
+Every output hash, exact embedded captions/timings, reviewed transcript and
+sentence/scene PCM identity, full media decode/frame total and zero slate check
+passed. Source ZIPs rebuilt offline. Agent inspected all 19 PDF pages, 57 scene
+transition/mid/end frames and 24 check-boundary frames: readable identities,
+complete statuses/empty inventory, missing-revision disclosure, optional concept
+attribution, correct highlights and no invented deployment/topology.
+
+Required checks: 634 Python tests, 87.22% coverage; CI Ruff0.15.11 and Pyright
+clean; 122 default Node passes/12 explicit integration skips, plus 15 actual
+browser and 16 actual FFmpeg passes with zero skips. Measured record:
+`docs/validation/generic-poc-storytelling-2026-11-10.json`.
+
+Task 7 records honest pending human full-video listening/final visual acceptance.
+Fresh OpenShell eleven-phase execution has been launched separately by the
+controller; its results and retrieval remain in progress. Drive authorization/
+publication and explicit merge/live activation are separate gates. No shared configuration/default branch/Drive
+writes or changes to earlier delivered media. Phase 10 remains in progress.
