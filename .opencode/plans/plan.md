@@ -1077,3 +1077,23 @@ No PoC tests were rerun, and the original one-pass/one-error/three-skip outcome
 is unchanged. Both prior failed media attempts remain retained.
 Independent encoded-media, cue, final PDF and source-rebuild QA are in progress;
 human full listening and cloud publication remain separate pending gates.
+
+### 10.9.26 Independent actual-media and source acceptance — ✅ 10 November 2026
+
+All five delivered artifact hashes/sizes passed independent checks. Actual
+video is296.333333s/8890frames,1280x720H264/30fps, AAC24kHzmono, with embedded
+sentence-level mov_text captions. Full decode passed; no private full-frame
+slate detected. Exact reviewed transcript, all sentence/scene WAV identities,
+model/lexicon identities and embedded caption text/timestamps passed.
+
+All five encoded check-row highlight windows were measured from actual video
+pixels and match audio offsets within two frames. Inspected27scene transition/
+mid/end samples,15check-boundary samples and3actual3Dposes. All nine final PDF
+pages are pixel-identical to the fully inspected actual OCP PDF. The actual
+source ZIP rebuilt offline under non-rootUID28128 with pinned image deps; its
+included source-context PNG hash survived the browser build.
+
+Real render elapsed657.492s, peakmemory3503050752bytes, scratch134407077bytes
+within2CPU/4Gi/8Gibudgets. No original PoC validation replay. Human full-video
+listening, Drive authorization/publication and shared rollout remain pending;
+the PoC lifecycle itself remains blocked with1pass/1error/3skips.

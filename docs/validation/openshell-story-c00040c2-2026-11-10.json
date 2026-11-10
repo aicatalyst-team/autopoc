@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "original_cycle_recorded_media_pending",
+  "status": "generated_local_review_ready_poc_lifecycle_blocked",
   "run_id": "c00040c2196d4919b3e5b0a7fd947faf",
   "source_repository": "https://github.com/NVIDIA/OpenShell",
   "source_revision": "f4a6137513b777c9b362be54baf388f7d45398aa",
@@ -76,7 +76,7 @@
   "report_publication_commit": "caef62b6f26ef8f4dd72c99da6e2317f55983c60",
   "blog": "ineligible_skipped",
   "cloud_publication": "not_authorized_blocked",
-  "media": "all_five_retrieved_independent_media_inspection_in_progress",
+  "media": "independently_verified_local_review_ready",
   "operator_assistance": [
     "Prepared isolated namespace, existing-pattern bounded RBAC, workspace PVC, fork branch and node placement.",
     "Supplied same-revision reference Dockerfiles and authentic pinned README context PNG.",
@@ -373,5 +373,42 @@
     "all_four_reviewed_inputs_unchanged_from_layout_r2": true,
     "same_genuine_content_approval": true,
     "purpose": "Corrected trusted recording runtime; no content/scene-policy/voice change or PoC replay."
-  }
+  },
+  "media_acceptance": {
+    "all_artifact_hashes": true,
+    "byte_exact_reviewed_transcript": true,
+    "sentence_and_scene_wav_hashes": true,
+    "embedded_captions_text_and_timestamps": true,
+    "full_media_decode": true,
+    "all_five_check_cues_within_frames": 2,
+    "scene_frames_inspected": 27,
+    "check_boundary_frames_inspected": 15,
+    "actual_3d_poses_inspected": 3,
+    "pdf_pages_inspected": 9,
+    "final_pdf_pixels_match_inspected_pages": true,
+    "offline_nonroot_source_rebuild": true
+  },
+  "video": {
+    "duration_seconds": 296.3333333333333,
+    "frames": 8890,
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "audio": "AAC24kHzmono",
+    "captions": "embedded_sentence_level_mov_text",
+    "slate_frames_detected": 0
+  },
+  "runtime": {
+    "elapsed_seconds": 657.492,
+    "peak_memory_bytes": 3503050752,
+    "scratch_usage_bytes": 134407077
+  },
+  "source_rebuild": {
+    "source_rebuild": "passed",
+    "offline": true,
+    "source_archive_sha256": "d114e73dd1f458df8c45fd96a4ab223aaf0b4468f3e76040efc86017f59860a1",
+    "included_assets_verified": 1,
+    "dependencies": "trusted image-pinned npm dependencies"
+  },
+  "artifact_manifest_sha256": "6f851deeaebc6a874bf2aa054e475b7ca5a7953552bfd582b597c781376856dd"
 }
