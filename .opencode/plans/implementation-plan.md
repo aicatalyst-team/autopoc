@@ -1898,3 +1898,14 @@ seal is `44ac15a1fc42f0cd2b763b2cbd4cf04e02f4439c2c52ccdbbe6c01cb0b0ee634`,
 on the fresh tested c493de2e renderer. Original evidence and scene policy are
 byte-identical, and no PoC test was rerun. A distinct immutable ConfigMap and
 regular-copy transfer prepare v2; actual rendering/retrieval remain pending.
+
+### 10.9.21 Actual OCP deck/PDF preparation — ✅ 10 November 2026
+
+Distinct renderer Job `autopoc-openshell-story-c00040c2-render-v2`, Pod UID
+`9b500324-a9b0-4445-b3c1-e10061ebb197`, runs the exact c493de2e image and
+44ac15a1 seal. Admitted restricted-v2, no API token, deny-all networking,
+2CPU/4Gi,3000-second process budget/3600-second Job deadline. The renderer's
+actual preparation stage reports deck and PDF validated; PDF is196777bytes,
+SHA-2567193329243eaad194de6b6725e34ddaf33b3358713bb8daaf9702000c287c487.
+Kokoro sentence generation is in progress after browser preparation exited.
+Final packaging, video recording, retrieval and media inspection remain pending.

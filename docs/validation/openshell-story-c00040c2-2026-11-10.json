@@ -76,7 +76,7 @@
   "report_publication_commit": "caef62b6f26ef8f4dd72c99da6e2317f55983c60",
   "blog": "ineligible_skipped",
   "cloud_publication": "not_authorized_blocked",
-  "media": "second_render_transfer_pending",
+  "media": "actual_deck_pdf_prepared_speech_in_progress",
   "operator_assistance": [
     "Prepared isolated namespace, existing-pattern bounded RBAC, workspace PVC, fork branch and node placement.",
     "Supplied same-revision reference Dockerfiles and authentic pinned README context PNG.",
@@ -153,6 +153,30 @@
         "video": "failed"
       },
       "retained": true
+    },
+    {
+      "job": "autopoc-openshell-story-c00040c2-render-v2",
+      "pod_uid": "9b500324-a9b0-4445-b3c1-e10061ebb197",
+      "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:c493de2e7ddc7fe5c42b6105c5e9a296b56099233a15ffba66e918e91ce401aa",
+      "input_sha256": "44ac15a1fc42f0cd2b763b2cbd4cf04e02f4439c2c52ccdbbe6c01cb0b0ee634",
+      "status": "running_speech",
+      "admission": "restricted-v2",
+      "api_token_mounted": false,
+      "network_policy": "deny_all_ingress_and_egress",
+      "resources": {
+        "cpu": 2,
+        "memory": "4Gi",
+        "scratch": "8Gi",
+        "ephemeral_storage": "10Gi",
+        "process_timeout_seconds": 3000,
+        "job_deadline_seconds": 3600
+      },
+      "prepare": {
+        "deck": "validated",
+        "pdf": "validated",
+        "pdf_sha256": "7193329243eaad194de6b6725e34ddaf33b3358713bb8daaf9702000c287c487",
+        "pdf_bytes": 196777
+      }
     }
   ],
   "renderer_source_commit": "e478620",
