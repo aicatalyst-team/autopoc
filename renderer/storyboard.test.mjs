@@ -103,3 +103,68 @@ test('result counters render in outcome order, not JSON key order', async () => 
   assert.match(vue, /v-for="status in resultOrder"/)
   assert.doesNotMatch(vue, /v-for="\(value, status\) in narrative\.results"/)
 })
+
+const genericCases = JSON.parse(await readFile(new URL('../tests/fixtures/executive-story/schema3-cases.json', import.meta.url)))
+const { validateStoryboard } = await import('./storyboard.mjs')
+for (const item of genericCases) test(`schema3 ${item.name} identity and complete paginated checks`, () => {
+  assert.equal(validateStoryboard(item.narrative, item.plan).length, item.narrative.slides.length)
+})
+for (const [name, mutate] of Object.entries({
+  missingContext: n => delete n.project_context,
+  missingOptional: n => delete n.project_context.homepage_url,
+  credentials: n => n.project_context.repository_url = 'https://user:secret@git.example/repo',
+  insecure: n => n.project_context.documentation_url = 'http://example.org/docs',
+  revision: n => n.project_context.revision = '',
+  definition: n => n.project_context.definition_claim_id = 'missing',
+  invisible: n => { n.slides[0].bullet_claim_ids = ['claim-1']; n.slides[0].title_claim_ids = ['claim-1'] },
+  opening: n => n.slides[0].layout = 'summary',
+  missingLayout: n => delete n.slides[1].layout,
+  unknownLayout: n => n.slides[1].layout = 'gallery',
+  missingVisual: n => delete n.slides[0].visual_id,
+  summaryVisual: n => n.slides.at(-1).visual_id = 'image-1',
+  checksVisual: n => n.slides[1].visual_id = 'image-1',
+  noGraph: n => n.slides.at(-1).layout = 'topology',
+  duplicate: n => n.slides[1].checks[1].scenario_id = 'check-0',
+  omitted: n => n.slides[1].checks.pop(),
+  sixRows: n => n.slides[1].checks.push(n.slides[2].checks.pop()),
+  wrongSection: n => n.slides.at(-1).layout = 'checks',
+  missingChecks: n => delete n.slides[1].checks,
+  label: n => n.slides[1].checks[0].label_claim_id = 'missing',
+  purpose: n => n.slides[1].checks[0].purpose_claim_id = 'missing',
+  emptyMapping: n => n.slides[1].checks[0].narration_sentence_indices = [],
+  duplicateMapping: n => n.slides[1].checks[0].narration_sentence_indices = [0,0],
+  reverseMapping: n => n.slides[1].checks[0].narration_sentence_indices = [1,0],
+  noncontiguousMapping: n => n.slides[1].checks[0].narration_sentence_indices = [0,2],
+  overlappingMapping: n => n.slides[1].checks[1].narration_sentence_indices = [0],
+  outsideMapping: n => n.slides[1].checks[0].narration_sentence_indices = [12],
+  booleanMapping: n => n.slides[1].checks[0].narration_sentence_indices = [true],
+  nonchecksRows: n => n.slides.at(-1).checks = [n.slides[1].checks[0]],
+  unknownVersion: n => n.schema_version = 4,
+})) test(`schema3 rejects ${name}`, () => {
+  const item = structuredClone(genericCases[4]); mutate(item.narrative)
+  assert.throws(() => validateStoryboard(item.narrative, item.plan))
+})
+test('empty inventory explicitly needs a testing checks layout', () => {
+  const item = structuredClone(genericCases[0]); item.narrative.slides[1].layout = 'summary'
+  assert.throws(() => validateStoryboard(item.narrative, item.plan))
+})
+
+test('schema3 reviewed imagery metadata and contiguous multi-sentence row', () => {
+  const item = structuredClone(genericCases[1]), n = item.narrative
+  Object.assign(n.project_context, { revision:'abc123', homepage_url:'https://example.org/', documentation_url:'https://docs.example.org/guide' })
+  n.slides[0].visual_id = 'project-image'
+  n.slides[1].narration.push({text:'The check also covers invalid input.',claim_ids:['claim-1']})
+  n.slides[1].checks[0].narration_sentence_indices = [0,1]
+  validateStoryboard(n, item.plan)
+})
+test('schema3 impossible long inventory fails before synthesis', () => {
+  const item = structuredClone(genericCases[4]), n = item.narrative
+  while (n.slides.length < 30) { const extra = structuredClone(n.slides.at(-1)); extra.id = `extra-${n.slides.length}`; n.slides.push(extra) }
+  for (const slide of n.slides) slide.narration = Array.from({length:12}, () => ({text:Array(15).fill('word').join(' '),claim_ids:['claim-0']}))
+  item.plan.slide_ids = n.slides.map(s => s.id)
+  assert.throws(() => validateStoryboard(n,item.plan), /estimated/)
+})
+for (const url of ['https:///example.org','https://@example.org','https://example.org:bad','https://example.org/\nsecret']) test(`schema3 rejects malformed URL ${JSON.stringify(url)}`, () => {
+  const item = structuredClone(genericCases[0]); item.narrative.project_context.repository_url = url
+  assert.throws(() => validateStoryboard(item.narrative,item.plan))
+})

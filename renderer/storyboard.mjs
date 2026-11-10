@@ -21,7 +21,7 @@ function refs(value, claims, minimum = 1, maximum = 512) {
 }
 
 export function validateStoryboard(narrative, plan) {
-  need(object(narrative) && narrative.schema_version === 2)
+  need(object(narrative) && [2,3].includes(narrative.schema_version))
   id(narrative.run_id); text(narrative.project_name, 100)
   const statuses = ['pass','fail','error','skip','incomplete']
   need(object(narrative.results) && Object.keys(narrative.results).sort().join() === [...statuses].sort().join())
@@ -68,6 +68,7 @@ export function validateStoryboard(narrative, plan) {
       refs(slide.graph_claim_ids, claims)
     } else { refs(slide.graph_claim_ids, claims, 0); need(slide.graph_claim_ids.length === 0) }
   }
+  if (narrative.schema_version === 3) validateGenericStory(narrative, claims)
   need(storySections.filter(s => s !== 'execution').every(s => chapters.has(s)))
   need(object(plan) && plan.schema_version === 2 && !('durations' in plan))
   need(Array.isArray(plan.slide_ids) && plan.slide_ids.length === narrative.slides.length && plan.slide_ids.every((s, i) => s === narrative.slides[i].id))
@@ -77,7 +78,60 @@ export function validateStoryboard(narrative, plan) {
   need(plan.narration.lexicon_sha256 == null || /^[0-9a-f]{64}$/.test(plan.narration.lexicon_sha256))
   need(object(plan.timing_policy) && Object.keys(plan.timing_policy).sort().join() === Object.keys(timingPolicy).sort().join())
   need(Object.entries(timingPolicy).every(([key, value]) => Number.isFinite(plan.timing_policy[key]) && plan.timing_policy[key] === value))
+  if (narrative.schema_version === 3) {
+    const total = narrative.slides.reduce((sum, slide) => {
+      const words = slide.narration.reduce((count, sentence) => count + trim(sentence.text).split(white).length, 0)
+      return sum + Math.max(timingPolicy.min_scene_seconds, words / 3
+        + Math.max(slide.narration.length - 1, 0) * timingPolicy.sentence_gap_seconds
+        + timingPolicy.lead_seconds + timingPolicy.tail_seconds)
+    }, 0)
+    need(total <= timingPolicy.max_total_seconds, `Narration cannot fit the 900s guard: estimated ${total.toFixed(1)}s. Revise scope or shorten the script before synthesis; measured audio remains authoritative.`)
+  }
   return narrative.slides
+}
+
+function httpsReference(value) {
+  text(value, 2048)
+  need(/^https:\/\/[^/?#]+(?:[/?#]|$)/i.test(value) && !/[\s\\\x00-\x1f\x7f]/u.test(value))
+  let parsed
+  try { parsed = new URL(value) } catch { throw new Error('Invalid project reference') }
+  need(parsed.protocol === 'https:' && !!parsed.hostname && !parsed.username && !parsed.password
+    && !/^https:\/\/[^/?#]*@/i.test(value), 'Project references must be credential-free HTTPS URLs')
+}
+
+function validateGenericStory(narrative, claims) {
+  const context = narrative.project_context
+  need(object(context) && Object.keys(context).sort().join() === ['repository_url','revision','definition_claim_id','homepage_url','documentation_url'].sort().join())
+  httpsReference(context.repository_url)
+  for (const key of ['homepage_url','documentation_url']) if (context[key] !== null) httpsReference(context[key])
+  if (context.revision !== null) text(context.revision, 280)
+  refs([context.definition_claim_id], claims)
+  const opening = narrative.slides[0]
+  need(opening.layout === 'identity' && [...opening.title_claim_ids, ...opening.bullet_claim_ids].includes(context.definition_claim_id), 'Project definition must be visible')
+  const scenarios = []; let checkSlides = 0
+  for (const slide of narrative.slides) {
+    need(['summary','identity','checks','topology'].includes(slide.layout))
+    need('visual_id' in slide)
+    if (slide.visual_id !== null) { id(slide.visual_id); need(slide.layout === 'identity') }
+    if (slide.layout === 'topology') need(slide.graph != null, 'Topology layout requires a graph')
+    need(Array.isArray(slide.checks))
+    if (slide.layout !== 'checks') { need(slide.checks.length === 0); continue }
+    checkSlides++
+    need(slide.section === 'testing' && slide.checks.length <= 5, 'Paginate testing checks in five-row slides')
+    let previous = -1
+    for (const row of slide.checks) {
+      need(object(row) && Object.keys(row).sort().join() === ['scenario_id','label_claim_id','purpose_claim_id','narration_sentence_indices'].sort().join())
+      scenarios.push(id(row.scenario_id)); refs([row.label_claim_id], claims); refs([row.purpose_claim_id], claims)
+      const indices = row.narration_sentence_indices
+      need(Array.isArray(indices) && indices.length > 0)
+      need(indices.every((v,i) => Number.isSafeInteger(v) && v >= 0 && v < slide.narration.length && (!i || v === indices[i-1] + 1)))
+      need(indices[0] > previous, 'Check sentence mappings must be contiguous, ordered and nonoverlapping')
+      previous = indices.at(-1)
+    }
+  }
+  // Exact IDs are bound against verified evidence by Python before offline rendering.
+  need(new Set(scenarios).size === scenarios.length && scenarios.length === Object.values(narrative.results).reduce((a,b) => a+b, 0), 'Every original scenario must appear exactly once')
+  need(checkSlides >= 1, 'Explicit testing checks content is required even for no checks')
 }
 
 export function speakerNotes(slide) {

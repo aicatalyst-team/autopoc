@@ -1399,7 +1399,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Task | Status |
 |---|---|
 | Verify isolated branch and baseline | ✅ 10.1 — 496 Python tests, 86.44% coverage; 40 renderer tests passed, 5 browser-gated skips |
-| Generic story roles and complete check coverage (plan Task 1) | In progress |
+| Generic story roles and complete check coverage (plan Task 1) | ✅ 10.2 — 540 Python tests, 86.69% coverage; 82 renderer tests passed, 5 browser-gated skips |
 | Reviewed optional visual assets (plan Task 2) | Pending |
 | Generic author/reviewer guidance and examples (plan Task 3) | Pending |
 | Reusable identity/check layouts and timing (plan Task 4) | Pending |
@@ -1418,3 +1418,20 @@ coverage plugin; the existing .venv provided the correct project environment.
 OCP authentication and prior run resources were inspected read-only; no fresh
 run launched before implementing the requested changes. Existing image caches
 and retained credentials/resources are available for later isolated execution.
+
+### 10.2 ✅ Generic story roles and complete check coverage — 10 November 2026
+
+Completed plan Task 1. Schema 3 validates source-host-independent project
+identity, a visible opening definition, explicit layouts and complete original
+scenario coverage with five-row pagination and contiguous, nonoverlapping speech
+mappings. Derived checks retain original scenario IDs/names/statuses from
+verified final_results.results. Empty inventory requires a testing/checks slide;
+the layout task will display the derived no-checks message. Schema-2 behavior
+and legacy fixtures remain unchanged. Optional asset manifest binding and actual
+layout/rendering remain subsequent tasks; no live run or publication occurred.
+
+TDD: initial RED had six expected Python and five expected Node failures;
+additional Node duration/URL boundary RED had two failures. GREEN: 84 focused
+Python tests, 61 storyboard tests; full suite 540 passed, 86.69% coverage; full
+renderer suite 82 passed with five explicit browser-gated skips. Scoped Ruff,
+format checking and Pyright passed. Phase 10 remains in progress.

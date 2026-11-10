@@ -44,16 +44,16 @@ Status: proposed implementation; no tasks below have been implemented. The user 
 - Existing Python/Node executive test modules plus new `tests/test_executive_visuals.py`: meaningful contract and browser tests. Extend synthetic fixtures under `tests/fixtures/executive-story/`; never rewrite archived evidence.
 - `docs/adr/0015-reviewed-executive-visual-assets.md`, configuration/renderer docs and validation record: architecture, operator recipe and measured acceptance.
 
-## Task 1: Define and validate generic story roles and check coverage
+## ✅ Task 1: Define and validate generic story roles and check coverage
 
 **Files:** modify `src/autopoc/executive_story.py`, `renderer/storyboard.mjs`, `tests/test_executive_story.py`, `renderer/storyboard.test.mjs`; add schema-3 cases to executive-story fixtures.
 
 **Interfaces:** keep `validate_story(narrative: dict, evidence_index: dict, members: dict) -> None` and `validate_scene_plan(plan: dict, narrative: dict) -> None`. Extend `validateStoryboard(narrative, plan)` to schemas 2 and 3 using exact version dispatch. Add `derive_checks(evidence_index: dict) -> dict`, returning `{schema_version: 1, run_id, results: [...]}` from `final_results.results` with original scenario ID/name/status; no authored replacement results. Schema-3 additions are exactly those in the spec.
 
-- [ ] Add failing Python/Node cases for source-host-independent identity, null optional metadata, two/one-component graphs, graphless CLI/library, first-slide visible definition, valid contiguous chapters and unchanged schema-2 stories.
-- [ ] Add inventory cases with 0, 1, 5, 6 and 11 scenarios, mixed statuses, duplicate/missing/unknown IDs, invalid sentence mappings, more than five rows, wrong sections and unknown layout/visual combinations. Six/eleven checks paginate; an empty set requires explicit no-checks content. Prevent overlapping row mappings.
-- [ ] Run `pytest tests/test_executive_story.py -q` and `node --test renderer/storyboard.test.mjs`; confirm new tests fail for missing behavior, then implement shared constraints and deterministic derivation. Evidence-backed identity definition and labels use existing selector validation.
-- [ ] Re-run those tests; include long inventories that violate the existing lower-bound duration estimate to prove impossible scripts fail before synthesis. Measured duration remains authoritative for scripts that pass the estimate. Document schema-3 fields in fixture README; update trackers and commit.
+- [x] Add failing Python/Node cases for source-host-independent identity, null optional metadata, two/one-component graphs, graphless CLI/library, first-slide visible definition, valid contiguous chapters and unchanged schema-2 stories.
+- [x] Add inventory cases with 0, 1, 5, 6 and 11 scenarios, mixed statuses, duplicate/missing/unknown IDs, invalid sentence mappings, more than five rows, wrong sections and unknown layout/visual combinations. Six/eleven checks paginate; an empty set requires explicit no-checks content. Prevent overlapping row mappings.
+- [x] Run `pytest tests/test_executive_story.py -q` and `node --test renderer/storyboard.test.mjs`; confirm new tests fail for missing behavior, then implement shared constraints and deterministic derivation. Evidence-backed identity definition and labels use existing selector validation.
+- [x] Re-run those tests; include long inventories that violate the existing lower-bound duration estimate to prove impossible scripts fail before synthesis. Measured duration remains authoritative for scripts that pass the estimate. Document schema-3 fields in fixture README; update trackers and commit.
 
 ## Task 2: Package optional visuals and bind them to review
 

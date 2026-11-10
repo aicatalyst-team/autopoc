@@ -175,6 +175,7 @@ def test_empty_json_selection_is_not_supporting_evidence(tmp_path):
 )
 def test_authoring_acceptance_examples_preserve_original_evidence(case, totals):
     from pathlib import Path
+
     from autopoc.evidence import verify_bundle
     from autopoc.executive_story import validate_scene_plan, validate_story
 
@@ -279,3 +280,224 @@ def test_story_accepts_real_topoloop_edge_pairs(tmp_path):
     docs[1].write_text(json.dumps(doc))
     refresh_review(*docs)
     assert verify_inputs(seal(docs, tmp_path))["run_id"] == "run-1"
+
+
+# Shared JSON exercises the same schema-3 contract in Python and JavaScript.
+def generic_cases():
+    from pathlib import Path
+
+    return json.loads(
+        (Path(__file__).parent / "fixtures/executive-story/schema3-cases.json").read_text()
+    )
+
+
+def validate_generic(case):
+    from autopoc.executive_story import validate_scene_plan, validate_story
+
+    validate_story(
+        case["narrative"],
+        case["evidence_index"],
+        {k: v.encode() for k, v in case["members"].items()},
+    )
+    validate_scene_plan(case["plan"], case["narrative"])
+
+
+@pytest.mark.parametrize("case", generic_cases(), ids=lambda c: c["name"])
+def test_schema3_generic_hosts_graphs_and_paginated_inventory(case):
+    validate_generic(case)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "missing_context",
+        "missing_optional",
+        "credentials",
+        "http",
+        "bad_revision",
+        "unknown_definition",
+        "invisible_definition",
+        "opening_layout",
+        "missing_layout",
+        "unknown_layout",
+        "missing_visual",
+        "summary_visual",
+        "checks_visual",
+        "topology_without_graph",
+        "duplicate_check",
+        "missing_check",
+        "unknown_check",
+        "too_many_rows",
+        "wrong_section",
+        "missing_checks",
+        "unknown_label",
+        "unknown_purpose",
+        "empty_mapping",
+        "duplicate_mapping",
+        "reverse_mapping",
+        "noncontiguous_mapping",
+        "overlapping_mapping",
+        "outside_mapping",
+        "boolean_mapping",
+        "nonchecks_rows",
+        "unknown_version",
+    ],
+)
+def test_schema3_rejects_invalid_identity_layout_and_check_mappings(change):
+    case = generic_cases()[4]
+    n = case["narrative"]
+    first = n["slides"][0]
+    slide = n["slides"][1]
+    row = slide["checks"][0]
+    if change == "missing_context":
+        del n["project_context"]
+    elif change == "missing_optional":
+        del n["project_context"]["homepage_url"]
+    elif change == "credentials":
+        n["project_context"]["repository_url"] = "https://user:secret@git.example/repo"
+    elif change == "http":
+        n["project_context"]["documentation_url"] = "http://example.org/docs"
+    elif change == "bad_revision":
+        n["project_context"]["revision"] = ""
+    elif change == "unknown_definition":
+        n["project_context"]["definition_claim_id"] = "missing"
+    elif change == "invisible_definition":
+        first["bullet_claim_ids"] = ["claim-1"]
+        first["title_claim_ids"] = ["claim-1"]
+    elif change == "opening_layout":
+        first["layout"] = "summary"
+    elif change == "missing_layout":
+        del first["layout"]
+    elif change == "unknown_layout":
+        slide["layout"] = "gallery"
+    elif change == "missing_visual":
+        del first["visual_id"]
+    elif change == "summary_visual":
+        n["slides"][-1]["visual_id"] = "image-1"
+    elif change == "checks_visual":
+        slide["visual_id"] = "image-1"
+    elif change == "topology_without_graph":
+        n["slides"][-1]["layout"] = "topology"
+    elif change == "duplicate_check":
+        slide["checks"][1]["scenario_id"] = row["scenario_id"]
+    elif change == "missing_check":
+        slide["checks"].pop()
+    elif change == "unknown_check":
+        row["scenario_id"] = "not-original"
+    elif change == "too_many_rows":
+        slide["checks"].append(n["slides"][2]["checks"].pop())
+    elif change == "wrong_section":
+        first["checks"] = slide["checks"]
+        slide["checks"] = []
+        first["layout"] = "checks"
+    elif change == "missing_checks":
+        del slide["checks"]
+    elif change == "unknown_label":
+        row["label_claim_id"] = "missing"
+    elif change == "unknown_purpose":
+        row["purpose_claim_id"] = "missing"
+    elif change == "empty_mapping":
+        row["narration_sentence_indices"] = []
+    elif change == "duplicate_mapping":
+        row["narration_sentence_indices"] = [0, 0]
+    elif change == "reverse_mapping":
+        row["narration_sentence_indices"] = [1, 0]
+    elif change == "noncontiguous_mapping":
+        row["narration_sentence_indices"] = [0, 2]
+    elif change == "overlapping_mapping":
+        slide["checks"][1]["narration_sentence_indices"] = [0]
+    elif change == "outside_mapping":
+        row["narration_sentence_indices"] = [12]
+    elif change == "boolean_mapping":
+        row["narration_sentence_indices"] = [True]
+    elif change == "nonchecks_rows":
+        n["slides"][-1]["checks"] = [row]
+    elif change == "unknown_version":
+        n["schema_version"] = 4
+    with pytest.raises(ValueError):
+        validate_generic(case)
+
+
+def test_schema3_empty_inventory_requires_testing_checks_layout():
+    case = generic_cases()[0]
+    case["narrative"]["slides"][1]["layout"] = "summary"
+    with pytest.raises(ValueError):
+        validate_generic(case)
+
+
+def test_derive_checks_preserves_verified_names_statuses_and_order():
+    from autopoc.executive_story import derive_checks
+
+    case = generic_cases()[2]
+    actual = derive_checks(case["evidence_index"])
+    assert actual == {
+        "schema_version": 1,
+        "run_id": "run-1",
+        "results": [
+            {"scenario_id": "check-0", "scenario_name": "Original scenario 0", "status": "pass"},
+            {"scenario_id": "check-1", "scenario_name": "Original scenario 1", "status": "fail"},
+            {"scenario_id": "check-2", "scenario_name": "Original scenario 2", "status": "error"},
+            {"scenario_id": "check-3", "scenario_name": "Original scenario 3", "status": "skip"},
+            {
+                "scenario_id": "check-4",
+                "scenario_name": "Original scenario 4",
+                "status": "incomplete",
+            },
+        ],
+    }
+    actual["results"][0]["scenario_name"] = "Changed"
+    assert (
+        case["evidence_index"]["final_results"]["results"][0]["scenario_name"]
+        == "Original scenario 0"
+    )
+
+
+def test_schema3_reviewed_metadata_and_multi_sentence_check_ranges():
+    case = generic_cases()[1]
+    n = case["narrative"]
+    n["project_context"].update(
+        revision="abc123",
+        homepage_url="https://example.org/",
+        documentation_url="https://docs.example.org/guide",
+    )
+    n["slides"][0]["visual_id"] = "project-image"
+    slide = n["slides"][1]
+    slide["narration"].append(
+        {"text": "The check also covers invalid input.", "claim_ids": ["claim-1"]}
+    )
+    slide["checks"][0]["narration_sentence_indices"] = [0, 1]
+    validate_generic(case)
+
+
+def test_schema3_long_inventory_fails_lower_bound_before_synthesis():
+    import copy
+
+    case = generic_cases()[4]
+    n = case["narrative"]
+    while len(n["slides"]) < 30:
+        extra = copy.deepcopy(n["slides"][-1])
+        extra["id"] = f"extra-{len(n['slides'])}"
+        n["slides"].append(extra)
+    for slide in n["slides"]:
+        slide["narration"] = [
+            {"text": " ".join(["word"] * 15), "claim_ids": ["claim-0"]} for _ in range(12)
+        ]
+    case["plan"]["slide_ids"] = [s["id"] for s in n["slides"]]
+    with pytest.raises(ValueError, match="estimated"):
+        validate_generic(case)
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https:///example.org",
+        "https://@example.org",
+        "https://example.org:bad",
+        "https://example.org/\nsecret",
+    ],
+)
+def test_schema3_rejects_malformed_https_authorities(url):
+    case = generic_cases()[0]
+    case["narrative"]["project_context"]["repository_url"] = url
+    with pytest.raises(ValueError):
+        validate_generic(case)

@@ -29,3 +29,32 @@ workspace state. Missing original workspace, UI recordings and traces remain
 explicit; no test was replayed and later observations do not become original
 results. Both received independent actual configured-model acceptance reviews
 for the exact final draft; receipts remain acceptance-only.
+
+`schema3-cases.json` contains synthetic validator-only service, CLI and library
+stories on GitHub, GitLab, Codeberg and a self-hosted Git service. Their inline
+source member is a declared synthetic source, not a real PoC or a sealed bundle.
+The unchanged directories above remain schema-2 legacy acceptance fixtures.
+
+Schema 3 adds required `project_context` keys `repository_url`, `revision`,
+`definition_claim_id`, `homepage_url` and `documentation_url`. The revision and
+optional URLs may be null; non-null URLs are credential-free HTTPS references.
+Each slide adds required `layout` (`summary`, `identity`, `checks`, `topology`),
+`visual_id` (null except optional identity imagery) and `checks` (empty outside
+checks layouts). The opening visibly references the definition claim. Topology
+requires a graph; one/two-component and graphless cases are included.
+
+Each testing/checks row references its original `scenario_id`, source-linked
+`label_claim_id` and `purpose_claim_id`, and nonempty zero-based contiguous
+`narration_sentence_indices`. Row ranges follow speech and never overlap. Cases
+cover 0, 1, 5, 6 and 11 scenarios and all five statuses; six/eleven paginate at
+five rows. Empty inventory still requires a testing/checks slide: the renderer
+must show its fixed no-checks message from the verified empty derived inventory.
+Source-linked context remains subject to semantic review, without phrase matching.
+
+`derive_checks` copies only scenario ID, original name and status, in verified
+`final_results.results` order, into `{schema_version: 1, run_id, results}`. Python
+binds exact row IDs against that verified inventory; the evidence-free browser
+validator checks uniqueness and cardinality against reviewed totals. Visual
+manifest existence/provenance and revision-unavailable display belong to the
+subsequent asset/layout tasks. Scene plans retain schema 2 and measured audio
+remains authoritative after the lower-bound duration guard.

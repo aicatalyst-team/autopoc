@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from typing import cast
+from urllib.parse import urlsplit
 
 from autopoc.evidence import _json
 
@@ -124,7 +125,7 @@ def validate_story(narrative: dict, evidence_index: dict, members: dict[str, byt
     _need(
         isinstance(narrative, dict)
         and type(narrative.get("schema_version")) is int
-        and narrative["schema_version"] == 2
+        and narrative["schema_version"] in (2, 3)
     )
     _need(narrative.get("run_id") == evidence_index["run_id"], "Story run identity mismatch")
     _text(narrative.get("project_name"), 100)
@@ -203,10 +204,123 @@ def validate_story(narrative: dict, evidence_index: dict, members: dict[str, byt
         _claim_refs(slide.get("graph_claim_ids"), claims, minimum=0 if graph is None else 1)
         if graph is None:
             _need(slide["graph_claim_ids"] == [])
+    if narrative["schema_version"] == 3:
+        _validate_generic_story(narrative, claims, evidence_index)
     _need(
         ranks == sorted(ranks) and set(REQUIRED_SECTIONS) <= chapters,
         "Required story chapters must appear in order",
     )
+
+
+def derive_checks(evidence_index: dict) -> dict:
+    """Copy original verified scenario identities and outcomes for offline display."""
+    return {
+        "schema_version": 1,
+        "run_id": evidence_index["run_id"],
+        "results": [
+            {key: row[key] for key in ("scenario_id", "scenario_name", "status")}
+            for row in evidence_index["final_results"]["results"]
+        ],
+    }
+
+
+def _https_reference(value) -> None:
+    reference = _text(value, 2048)
+    try:
+        parsed = urlsplit(reference)
+        _need(
+            parsed.scheme == "https"
+            and bool(parsed.hostname)
+            and parsed.username is None
+            and parsed.password is None
+            and not re.search(r"[\s\\\x00-\x1f\x7f]", reference),
+            "Project references must be credential-free HTTPS URLs",
+        )
+        # Accessing port also rejects malformed authorities.
+        _ = parsed.port
+    except ValueError as exc:
+        raise ValueError("Invalid project reference") from exc
+
+
+def _validate_generic_story(narrative: dict, claims: set[str], evidence_index: dict) -> None:
+    context = narrative.get("project_context")
+    _need(
+        isinstance(context, dict)
+        and set(context)
+        == {
+            "repository_url",
+            "revision",
+            "definition_claim_id",
+            "homepage_url",
+            "documentation_url",
+        },
+        "Missing project context",
+    )
+    context = cast(dict, context)
+    _https_reference(context["repository_url"])
+    for field in ("homepage_url", "documentation_url"):
+        if context[field] is not None:
+            _https_reference(context[field])
+    if context["revision"] is not None:
+        _text(context["revision"], 280)
+    _claim_refs([context["definition_claim_id"]], claims)
+    slides = narrative["slides"]
+    _need(slides[0].get("layout") == "identity", "Opening must identify the project")
+    _need(
+        context["definition_claim_id"]
+        in (slides[0]["title_claim_ids"] + slides[0]["bullet_claim_ids"]),
+        "Project definition must be visible",
+    )
+    scenario_ids, check_slides = [], 0
+    for slide in slides:
+        layout = slide.get("layout")
+        _need(isinstance(layout, str) and layout in {"summary", "identity", "checks", "topology"})
+        _need("visual_id" in slide)
+        visual = slide["visual_id"]
+        if visual is not None:
+            _id(visual)
+            _need(layout == "identity", "Only identity layout supports imagery")
+        if layout == "topology":
+            _need(slide.get("graph") is not None, "Topology layout requires a graph")
+        rows = slide.get("checks")
+        _need(isinstance(rows, list))
+        if layout != "checks":
+            _need(rows == [], "Check rows require checks layout")
+            continue
+        check_slides += 1
+        _need(
+            slide["section"] == "testing" and len(rows) <= 5,
+            "Paginate testing checks in five-row slides",
+        )
+        previous = -1
+        for row in rows:
+            _need(
+                isinstance(row, dict)
+                and set(row)
+                == {
+                    "scenario_id",
+                    "label_claim_id",
+                    "purpose_claim_id",
+                    "narration_sentence_indices",
+                }
+            )
+            scenario_ids.append(_id(row["scenario_id"]))
+            _claim_refs([row["label_claim_id"]], claims)
+            _claim_refs([row["purpose_claim_id"]], claims)
+            indices = row["narration_sentence_indices"]
+            _need(isinstance(indices, list) and bool(indices), "Check row needs spoken explanation")
+            _need(all(type(i) is int and 0 <= i < len(slide["narration"]) for i in indices))
+            _need(
+                indices == list(range(indices[0], indices[-1] + 1)) and indices[0] > previous,
+                "Check sentence mappings must be contiguous, ordered and nonoverlapping",
+            )
+            previous = indices[-1]
+    original = [r["scenario_id"] for r in derive_checks(evidence_index)["results"]]
+    _need(
+        len(scenario_ids) == len(set(scenario_ids)) and set(scenario_ids) == set(original),
+        "Every original scenario must appear exactly once",
+    )
+    _need(check_slides >= 1, "Explicit testing checks content is required even for no checks")
 
 
 def validate_scene_plan(plan: dict, narrative: dict) -> None:
