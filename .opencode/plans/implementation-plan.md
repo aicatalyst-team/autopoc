@@ -1406,6 +1406,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | 3D pose lifecycle and full label inspection (plan Task 5) | Pending |
 | Offline integration, packaging and recovery (plan Task 6) | Pending |
 | Pronunciation and measured generic acceptance (plan Task 7) | Pending |
+| En-MaaS provider preflight for the fresh run | ✅ 10.9.1 — external settings/key found; actual worker text/tool calls and in-cluster authenticated connection verified |
 | Fresh branch images and isolated OpenShell full cycle | Pending implementation |
 | Retrieve and inspect slides/video for user review | Pending fresh run |
 
@@ -1507,3 +1508,16 @@ passed 176/176; git diff --check passed. The concept PNG was inspected by the
 agent for readable labels and explicit synthetic/context limits, not declared
 human media acceptance. No model review, speech/browser render, cluster change,
 publication or activation occurred. Phase 10 remains in progress.
+
+
+### 10.9.1 Verify the externally configured En-MaaS provider — ✅ 10 November 2026
+
+The user identified the current configuration outside the repository. The
+previous Qwen namespace no longer exists; current En-MaaS configuration selects
+https://api.enmaas.devshift.net/v1 with gpt-6.1-sol via Responses. Authenticated
+model listing and actual OpenCode text/function-tool calls succeeded. A small
+restricted OCP provider-check Job also completed with ENMAAS_READY. Credentials
+were read from the external key file into a new run-specific Secret only;
+no key material was written to repository files or logs, and no shared Secret,
+CronJob or provider configuration was changed. The probe used a prior trusted
+worker image; fresh branch-image and PoC/media acceptance remain pending.
