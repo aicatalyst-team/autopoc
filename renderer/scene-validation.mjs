@@ -2,17 +2,23 @@
 export function sceneProblems(snapshot) {
   return [...snapshot.errors,
     ...snapshot.missingFonts.map(name => `Required font unavailable: ${name}`),
-    ...snapshot.missingImages.map(name => `Required brand image unavailable: ${name}`),
+    ...snapshot.missingImages.map(name => `Required image unavailable: ${name}`),
     ...snapshot.overflow.map(name => `Layout overflow in ${name}; shorten the reviewed text before rendering`)]
 }
 
-export async function loadSceneAssets(section) {
+export async function loadSceneAssets(section, assets = []) {
   for (const family of ['Display', 'Text', 'Mono']) for (const weight of [400, 500, 700]) {
     const descriptor = `${weight} 16px "Red Hat ${family}"`
     const faces = await document.fonts.load(descriptor)
     if (!faces.length || !document.fonts.check(descriptor)) throw new Error(`Required font unavailable: Red Hat ${family} ${weight}`)
   }
   await Promise.all([...section.querySelectorAll('img')].map(img => img.decode()))
+  // Decode the entire verified manifest, including assets on other slides.
+  await Promise.all(assets.map(async asset => {
+    const image = new Image(); image.src = `/visuals/${asset.id}.png`
+    await image.decode()
+    if (image.naturalWidth !== asset.width || image.naturalHeight !== asset.height) throw new Error('Reviewed image dimensions differ after decode')
+  }))
   await document.fonts.ready
 }
 
@@ -44,6 +50,7 @@ export function inspectScene() {
     const box = region.getBoundingClientRect()
     let over = region.scrollHeight > region.clientHeight + 2 || region.scrollWidth > region.clientWidth + 2
       || box.bottom > bounds.bottom + tolerance || box.right > bounds.right + tolerance
+      || box.top < bounds.top - tolerance || box.left < bounds.left - tolerance
     const walker = document.createTreeWalker(region, NodeFilter.SHOW_TEXT)
     let node
     while ((node = walker.nextNode())) {

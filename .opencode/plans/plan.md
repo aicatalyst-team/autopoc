@@ -490,7 +490,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Generic story roles and complete check coverage (plan Task 1) | ✅ 10.2 — 566 Python tests, 86.71% coverage; 108 renderer tests passed, 5 browser-gated skips |
 | Reviewed optional visual assets (plan Task 2) | ✅ 10.3 — 621 Python tests, 87.11% coverage; 108 renderer tests passed, 5 browser-gated skips |
 | Generic author/reviewer guidance and examples (plan Task 3) | ✅ 10.4 — three source-linked schema-3 worked stories and asset manifests validated; 176 targeted tests passed |
-| Reusable identity/check layouts and timing (plan Task 4) | Pending |
+| Reusable identity/check layouts and timing (plan Task 4) | ✅ 10.5 — 109 actual-browser/Node checks, zero skips; 16 real FFmpeg checks; seven-page PDF and measured cue inspected |
 | 3D pose lifecycle and full label inspection (plan Task 5) | Pending |
 | Offline integration, packaging and recovery (plan Task 6) | Pending |
 | Pronunciation and measured generic acceptance (plan Task 7) | Pending |
@@ -597,6 +597,40 @@ agent for readable labels and explicit synthetic/context limits, not declared
 human media acceptance. No model review, speech/browser render, cluster change,
 publication or activation occurred. Phase 10 remains in progress.
 
+
+### 10.5 ✅ Reusable identity/check layouts and measured timing — 10 November 2026
+
+Completed plan Task 4. Template 4 explicitly consumes schema 3, verified staged
+checks/visual manifests and exact local PNG bytes. Identity defines the project,
+retains reviewed context and source/revision disclosure; image captions,
+attribution and conceptual/contextual labels remain visible. Trusted summary,
+checks and topology layouts work without project/host-specific selectors.
+Checks retain separate reviewed context, readable labels/purposes, all exact
+outcomes and an explicit empty state. Five rows are an upper bound; oversized
+context fails bounds with instructions to shorten/paginate, without hiding text
+or shrinking fonts. All manifest images fully decode during preparation before
+speech; bad referenced images fail preparation. Legacy template 2/3 paths and
+empty import defaults are preserved; CURRENT_TEMPLATE_VERSION remains 3 for
+Task 6 integration.
+
+Measured row windows include the 0.35s speech lead and half-open sentence
+boundaries, reset on seek/slide/print and use an explicit browser clock. A private
+pre-roll slate anchors schema-3 capture to actual media-frame PTS; it is removed
+from every final video frame. Legacy media-end capture remains unchanged.
+The final 181-frame browser/FFmpeg clip showed the cue at frames 11–25
+(0.3667–0.8333s), versus measured 0.35–0.85s, within one frame. Repeated capture
+measurements stayed within the two-frame browser tolerance.
+
+Verification: required offline actual-browser command passed 109/109 with zero
+skips (101.84s), including three worked stories, 6/11-check pagination, generic
+topology, visible context/overflow failure, image decode failure, legacy graphs,
+print reset, encoded cue/slate exclusion and production seven-page PDF export.
+Existing real FFmpeg audio/caption/delayed/fractional-frame regressions passed
+16/16 with zero skips. Host full renderer tests passed 122 with 11 explicit
+integration skips; those integrations ran separately above. Browser/print poses
+and native PDF pages were inspected at 1280×720 / 960×540pt. git diff --check
+passed. Full sealed integration, TopoLoop lifecycle correction, listening and
+live activation/publication remain later tasks; Phase 10 remains in progress.
 
 ### 10.9.1 Verify the externally configured En-MaaS provider — ✅ 10 November 2026
 

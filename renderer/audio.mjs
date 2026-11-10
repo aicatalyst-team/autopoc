@@ -1,5 +1,5 @@
 /** Measured, hash-bound PCM input and one final AAC encode. No model runs here. */
-import { readFile, writeFile, lstat } from 'node:fs/promises'
+import { readFile, writeFile, lstat, rm } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { createHash } from 'node:crypto'
 import { validateStoryboard } from './storyboard.mjs'
@@ -99,13 +99,35 @@ export async function muxPresentation(segments,timeline,output,run) {
   return {status:'validated',path:'executive-summary.mp4',duration_seconds:Number(probe.format.duration),width:1280,height:720,fps:video.avg_frame_rate,audio_codec:audio.codec_name,subtitle_codec:text.codec_name}
 }
 
-/** Playwright's first recorded frame can arrive after context creation. Crop
- * against the measured media end; wall-clock preroll can truncate whole scenes. */
-export async function encodeCapture(raw,scene,output,cwd,run) {
+/** Playwright has variable startup and final-frame padding. Legacy callers crop
+ * by measured media end; template 4 binds capture to a private slate's exit. */
+export async function encodeCapture(raw,scene,output,cwd,run,{anchor_slate=false}={}) {
   const probe=JSON.parse(await run('ffprobe',['-v','error','-show_format','-of','json',raw],cwd))
   const duration=Number(probe.format.duration)
   need(finite(duration) && duration>=scene.duration_seconds)
-  const offset=duration-scene.duration_seconds
+  // Template 4 has a trusted private pre-roll slate. Bind its visible exit to
+  // actual frame PTS; browser startup and final-frame padding are variable.
+  // Legacy callers retain the original measured-media-end crop unchanged.
+  const offset=anchor_slate ? await slateCaptureOffset(raw,output,cwd,run) : duration-scene.duration_seconds
+  need(finite(offset) && offset>=0 && offset+scene.duration_seconds<=duration+.04)
   await run('ffmpeg',['-v','error','-y','-ss',String(offset),'-i',raw,'-an','-vf','fps=30,tpad=stop_mode=clone:stop_duration=0.1','-frames:v',String(scene.frame_count),'-c:v','libx264','-pix_fmt','yuv420p',output],cwd)
   return offset
+}
+
+async function slateCaptureOffset(raw,output,cwd,run) {
+  const timestamps=resolve(cwd,`${output}.anchor-frames.json`), colors=resolve(cwd,`${output}.anchor-rgb`)
+  try {
+    await run('ffprobe',['-v','error','-select_streams','v:0','-show_entries','frame=best_effort_timestamp_time','-of','json','-o',timestamps,raw],cwd)
+    await run('ffmpeg',['-v','error','-y','-i',raw,'-vf','crop=2:2:2:2,scale=1:1','-fps_mode','passthrough','-f','rawvideo','-pix_fmt','rgb24',colors],cwd)
+    const frames=JSON.parse(await readFile(timestamps)).frames, pixels=await readFile(colors)
+    need(pixels.length===frames.length*3)
+    let slateFrames=0
+    for(let i=0;i<frames.length;i++) {
+      const magenta=pixels[i*3]>180 && pixels[i*3+1]<80 && pixels[i*3+2]>180
+      if(magenta) { slateFrames++; continue }
+      if(slateFrames>=3) return Number(frames[i].best_effort_timestamp_time)
+      slateFrames=0
+    }
+    throw new Error('Trusted capture slate transition is missing')
+  } finally { await rm(timestamps,{force:true});await rm(colors,{force:true}) }
 }

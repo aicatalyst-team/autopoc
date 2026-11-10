@@ -34,3 +34,210 @@ for (const allGraphs of [false,true]) test(`structured totals remain visible wit
     if(process.env.AUTOPOC_BROWSER_QA_DIR)await page.screenshot({path:join(process.env.AUTOPOC_BROWSER_QA_DIR,`results-${allGraphs?'all':'first'}-graph.png`)})
   }finally {await browser?.close();if(server)await new Promise(accept=>server.close(accept));await rm(root,{recursive:true,force:true})}
 })
+
+import { cp, mkdir, symlink } from 'node:fs/promises'
+import { spawn } from 'node:child_process'
+import { prepareDeck } from './render.mjs'
+import { inspectScene, sceneProblems } from './scene-validation.mjs'
+const examples=new URL('../.opencode/skills/run-poc/references/executive-story-examples/',import.meta.url)
+async function stageExample(root,name){
+ const path=new URL(`${name}/`,examples)
+ const narrative=JSON.parse(await readFile(new URL('narrative.json',path)))
+ const scenes=JSON.parse(await readFile(new URL('scenes.json',path)))
+ const visuals=JSON.parse(await readFile(new URL('manifest.json',path)))
+ if(name==='github-service')visuals.assets[0].caption += ' This explanatory drawing describes intended components only. It does not establish observed forwarding, health, error handling or completion of any recorded check.'
+ const evidence=JSON.parse(await readFile(new URL('evidence-index.json',path)))
+ const checks={schema_version:1,run_id:narrative.run_id,results:evidence.final_results.results.map(({scenario_id,scenario_name,status})=>({scenario_id,scenario_name,status}))}
+ await mkdir(root,{recursive:true})
+ for(const [file,value] of Object.entries({narrative,scenes,visuals,checks,versions:{template:4}}))await writeFile(join(root,`${file}.json`),JSON.stringify(value))
+ if(visuals.assets.length)await cp(new URL('assets/',path),join(root,'visuals/assets'),{recursive:true})
+ return {narrative,scenes,visuals,checks}
+}
+async function buildDeck(root){
+ const deck=join(root,'deck');await prepareDeck(root,deck)
+ const modules=resolve(process.env.AUTOPOC_RENDER_NODE_MODULES || new URL('./node_modules',import.meta.url).pathname)
+ await symlink(modules,join(deck,'node_modules'),'dir')
+ await new Promise((accept,reject)=>{const child=spawn(process.execPath,[join(modules,'@slidev/cli/bin/slidev.mjs'),'build','slides.md','--out','dist'],{cwd:deck});let log='';child.stdout.on('data',d=>log+=d);child.stderr.on('data',d=>log+=d);child.on('exit',code=>code?reject(new Error(log)):accept())})
+ return deck
+}
+test('generic layouts define projects, show provenance and all checks in browser and print',{skip:!process.env.AUTOPOC_BROWSER_INTEGRATION},async()=>{
+ const root=await mkdtemp(join(tmpdir(),'autopoc-generic-'));let browser
+ try{
+ const modules=resolve(process.env.AUTOPOC_RENDER_NODE_MODULES || new URL('./node_modules',import.meta.url).pathname)
+ const {chromium}=await import(join(modules,'playwright-chromium/index.mjs'))
+ browser=await chromium.launch({headless:true,executablePath:process.env.AUTOPOC_CHROMIUM_EXECUTABLE || undefined,args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']})
+ for(const name of ['github-service','gitlab-cli','codeberg-library']){
+  const input=join(root,name),data=await stageExample(input,name),deck=await buildDeck(input),hosted=await serve(join(deck,'dist'))
+  try{
+   const page=await browser.newPage({viewport:{width:1280,height:720}})
+   for(const [i,slide] of data.narrative.slides.entries()){
+    await page.goto(`${hosted.url}/${i+1}?embedded`,{waitUntil:'networkidle'})
+    const current=page.locator('.executive[data-executive-ready="true"]');await current.waitFor()
+    assert.deepEqual(sceneProblems(await page.evaluate(inspectScene)),[],`${name} ${slide.id}`)
+    if(i===0){
+     const definition=data.narrative.claims.find(c=>c.id===data.narrative.project_context.definition_claim_id).text
+     assert.ok((await current.innerText()).includes(definition))
+     assert.ok((await current.innerText()).includes(data.narrative.project_context.repository_url))
+     if(!data.narrative.project_context.revision)assert.match(await current.innerText(),/Revision unavailable/)
+     if(slide.visual_id){const asset=data.visuals.assets[0];assert.equal(await current.locator('.project-visual img').evaluate(img=>img.complete&&img.naturalWidth>0),true);for(const text of [asset.caption,asset.attribution])assert.ok((await current.innerText()).includes(text))}
+     else assert.equal(await current.locator('.source-card').count(),1)
+    }
+    if(slide.layout==='checks'){
+     for(const id of slide.bullet_claim_ids)assert.ok((await current.innerText()).includes(data.narrative.claims.find(claim=>claim.id===id).text),'Separate reviewed context must stay visible with check rows')
+     assert.deepEqual(await current.locator('[data-check-id]').evaluateAll(rows=>rows.map(row=>row.dataset.checkId)),slide.checks.map(row=>row.scenario_id))
+     for(const row of slide.checks){const verified=data.checks.results.find(result=>result.scenario_id===row.scenario_id),element=current.locator(`[data-check-id="${row.scenario_id}"]`);assert.equal(await element.getAttribute('title'),verified.scenario_name);assert.equal(await element.locator('.check-status').innerText(),verified.status)}
+     if(!slide.checks.length)assert.match(await current.innerText(),/No checks recorded/)
+     else {
+      const timeline={id:slide.id,start_seconds:10,duration_seconds:30,sentence_offsets:slide.narration.map((_,j)=>({start_seconds:j*2,end_seconds:j*2+1}))}
+      await page.evaluate(timeline=>window.dispatchEvent(new CustomEvent('executive-clock',{detail:{scene:timeline,elapsed_seconds:10.35}})),timeline)
+      assert.equal(await current.locator('.check-active').count(),1)
+      await page.emulateMedia({media:'print'})
+      await page.waitForFunction(()=>!document.querySelector('.check-active'))
+      await page.emulateMedia({media:'screen'})
+      await page.evaluate(()=>window.dispatchEvent(new CustomEvent('executive-clock',{detail:{elapsed_seconds:0}})))
+      assert.equal(await current.locator('.check-active').count(),0)
+      await page.evaluate(()=>window.dispatchEvent(new CustomEvent('executive-reset')))
+      assert.equal(await current.locator('.check-active').count(),0)
+     }
+    }
+    if(slide.section==='results')for(const status of ['pass','fail','error','skip','incomplete'])assert.ok((await current.innerText()).includes(status))
+    if(process.env.AUTOPOC_BROWSER_QA_DIR)await page.screenshot({path:join(process.env.AUTOPOC_BROWSER_QA_DIR,`${name}-${slide.id}.png`)})
+    await page.emulateMedia({media:'print'});await page.evaluate(async()=>{for(const family of ['Display','Text','Mono'])for(const weight of [400,500,700])await document.fonts.load(`${weight} 16px \"Red Hat ${family}\"`);await document.fonts.ready});assert.equal(await current.locator('.check-active').filter({visible:true}).count(),0)
+    assert.deepEqual(sceneProblems(await page.evaluate(inspectScene)),[])
+    if(process.env.AUTOPOC_BROWSER_QA_DIR)await page.pdf({path:join(process.env.AUTOPOC_BROWSER_QA_DIR,`${name}-${slide.id}.pdf`),width:'1280px',height:'720px',printBackground:true})
+    await page.emulateMedia({media:'screen'})
+   }
+   await page.goto(`${hosted.url}/print?print=true`,{waitUntil:'networkidle'})
+   await page.locator('.executive[data-executive-ready="true"]').first().waitFor()
+   assert.equal(await page.locator('.executive[data-executive-ready="true"]').count(),data.narrative.slides.length)
+   assert.equal(await page.locator('.check-active').count(),0)
+   await page.pdf({path:join(process.env.AUTOPOC_BROWSER_QA_DIR || root,`${name}.pdf`),width:'1280px',height:'720px',printBackground:true})
+   await page.close()
+  }finally{await new Promise(r=>hosted.server.close(r))}
+ }
+ }finally{await browser?.close();await rm(root,{recursive:true,force:true})}
+})
+
+test('eleven checks retain five-row pagination and readable long project names',{skip:!process.env.AUTOPOC_BROWSER_INTEGRATION},async()=>{
+ const root=await mkdtemp(join(tmpdir(),'autopoc-eleven-'));let browser,server
+ try{
+  // Structural layout fixture only; semantic/source agreement uses the worked stories above.
+  const cases=JSON.parse(await readFile(new URL('../tests/fixtures/executive-story/schema3-cases.json',import.meta.url)))
+  const item=cases.find(item=>item.narrative.slides.flatMap(s=>s.checks).length===11),n=item.narrative
+  const checks={schema_version:1,run_id:n.run_id,results:n.slides.flatMap(s=>s.checks).map((row,i)=>({scenario_id:row.scenario_id,scenario_name:`Synthetic layout scenario ${i+1}`,status:['pass','fail','error','skip','incomplete'][i%5]}))}
+  const totals=Object.fromEntries(['pass','fail','error','skip','incomplete'].map(status=>[status,checks.results.filter(r=>r.status===status).length]));n.results=totals
+  n.project_name='A long project name for a reusable command line data validation library'
+  const setup=n.slides.find(slide=>slide.section==='setup')
+  setup.layout='topology';setup.graph=JSON.parse(await readFile(new URL('../tests/fixtures/executive-story/graph.json',import.meta.url)));setup.graph_claim_ids=setup.bullet_claim_ids
+  // This synthetic topology tests generic layout dispatch only, not project evidence.
+  for(const [file,value] of Object.entries({narrative:n,scenes:item.plan,checks,visuals:{schema_version:1,run_id:n.run_id,assets:[],gaps:[]},versions:{template:4}}))await writeFile(join(root,`${file}.json`),JSON.stringify(value))
+  const deck=await buildDeck(root),hosted=await serve(join(deck,'dist'));server=hosted.server
+  const modules=resolve(process.env.AUTOPOC_RENDER_NODE_MODULES || new URL('./node_modules',import.meta.url).pathname),{chromium}=await import(join(modules,'playwright-chromium/index.mjs'))
+  browser=await chromium.launch({headless:true,executablePath:process.env.AUTOPOC_CHROMIUM_EXECUTABLE || undefined})
+  const page=await browser.newPage({viewport:{width:1280,height:720}}),seen=[]
+  for(const [i,slide] of n.slides.entries()){
+   await page.goto(`${hosted.url}/${i+1}?embedded`,{waitUntil:'networkidle'});const current=page.locator('.executive[data-executive-ready="true"]');await current.waitFor()
+   assert.deepEqual(sceneProblems(await page.evaluate(inspectScene)),[])
+   if(slide.layout==='topology')assert.equal(await current.locator('.topology-stage .tl-root').count() || await current.locator('.topology-stage .tl-canvas').count(),1)
+   seen.push(...await current.locator('[data-check-id]').evaluateAll(rows=>rows.map(row=>row.dataset.checkId)))
+   for(const size of await current.locator('.check-row h2').evaluateAll(rows=>rows.map(row=>parseFloat(getComputedStyle(row).fontSize))))assert.ok(size>=22)
+   if(process.env.AUTOPOC_BROWSER_QA_DIR)await page.screenshot({path:join(process.env.AUTOPOC_BROWSER_QA_DIR,`eleven-${slide.id}.png`)})
+  }
+  assert.equal(seen.length,11);assert.equal(new Set(seen).size,11)
+ }finally{await browser?.close();if(server)await new Promise(r=>server.close(r));await rm(root,{recursive:true,force:true})}
+})
+
+test('referenced PNG that fails full browser decode invalidates preparation before speech',{skip:!process.env.AUTOPOC_BROWSER_INTEGRATION},async()=>{
+ const root=await mkdtemp(join(tmpdir(),'autopoc-bad-image-'))
+ try{
+  const {createHash}=await import('node:crypto'),data=await stageExample(root,'github-service')
+  // Valid trusted signature/dimensions/hash, but deliberately truncated image payload.
+  const path=join(root,'visuals/assets/context.png'),bytes=(await readFile(path)).subarray(0,33)
+  await writeFile(path,bytes);data.visuals.assets[0].sha256=createHash('sha256').update(bytes).digest('hex')
+  await writeFile(join(root,'visuals.json'),JSON.stringify(data.visuals))
+  const manifest=await preparePresentation(root,join(root,'output'))
+  assert.equal(manifest.artifacts.deck.status,'failed')
+  assert.equal(manifest.artifacts.pdf,undefined)
+  assert.equal(manifest.status,'partial')
+ }finally{await rm(root,{recursive:true,force:true})}
+})
+
+for(const mutation of ['missing-checks','missing-visuals','wrong-id','wrong-status','wrong-hash','symlink'])test(`template4 rejects staged ${mutation} before creating browser input`,async()=>{
+ const root=await mkdtemp(join(tmpdir(),'autopoc-staged-'))
+ try{
+  const data=await stageExample(root,'github-service')
+  if(mutation==='missing-checks')await rm(join(root,'checks.json'))
+  if(mutation==='missing-visuals')await rm(join(root,'visuals.json'))
+  if(mutation==='wrong-id')data.checks.results[0].scenario_id='unknown'
+  if(mutation==='wrong-status')data.checks.results[0].status='fail'
+  if(['wrong-id','wrong-status'].includes(mutation))await writeFile(join(root,'checks.json'),JSON.stringify(data.checks))
+  if(mutation==='wrong-hash')await writeFile(join(root,'visuals/assets/context.png'),'changed')
+  if(mutation==='symlink'){const path=join(root,'visuals/assets/context.png');await rm(path);await symlink('/etc/passwd',path)}
+  await assert.rejects(prepareDeck(root,join(root,'deck')))
+ }finally{await rm(root,{recursive:true,force:true})}
+})
+
+test('actual narrated check cue aligns to measured offsets after variable-frame capture',{skip:!process.env.AUTOPOC_BROWSER_INTEGRATION},async()=>{
+ const root=await mkdtemp(join(tmpdir(),'autopoc-check-capture-'));let browser,server,context
+ try{
+  const {playMeasuredScene}=await import('./render.mjs'),{encodeCapture}=await import('./audio.mjs'),{execFileSync}=await import('node:child_process')
+  const run=async(command,args,cwd)=>execFileSync(command,args,{cwd,maxBuffer:20*1024*1024}).toString()
+  const data=await stageExample(root,'github-service'),deck=await buildDeck(root),hosted=await serve(join(deck,'dist'));server=hosted.server
+  const modules=resolve(process.env.AUTOPOC_RENDER_NODE_MODULES || new URL('./node_modules',import.meta.url).pathname),{chromium}=await import(join(modules,'playwright-chromium/index.mjs'))
+  browser=await chromium.launch({headless:true,executablePath:process.env.AUTOPOC_CHROMIUM_EXECUTABLE || undefined})
+  context=await browser.newContext({viewport:{width:1280,height:720},recordVideo:{dir:join(root,'capture'),size:{width:1280,height:720}}})
+  const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(`${hosted.url}/2?embedded`,{waitUntil:'networkidle'})
+  await page.locator('.executive[data-executive-ready="true"]').waitFor()
+  const row=await page.locator('.executive[data-executive-ready="true"] .check-row').first().boundingBox()
+  const slide=data.narrative.slides[1],scene={id:slide.id,start_seconds:0,duration_seconds:181/30,frame_count:181,sentence_offsets:slide.narration.map((_,i)=>({start_seconds:i*.3,end_seconds:i*.3+.2}))}
+  await playMeasuredScene(page,scene,3)
+  assert.deepEqual(errors,[])
+  const raw=await page.video().path();await context.close();context=null
+  if(process.env.AUTOPOC_BROWSER_QA_DIR)await cp(raw,join(process.env.AUTOPOC_BROWSER_QA_DIR,'measured-check-raw.webm'))
+  const output=join(root,'cue.mp4');await encodeCapture(raw,scene,output,root,run,{anchor_slate:true})
+  const probe=JSON.parse(await run('ffprobe',['-v','error','-show_streams','-of','json',output],root));assert.equal(Number(probe.streams[0].nb_frames),181)
+  // Sample the actual rendered row border from every encoded frame, not DOM time.
+  const pixels=execFileSync('ffmpeg',['-v','error','-i',output,'-vf',`crop=2:2:${Math.round(row.x+2)}:${Math.round(row.y+10)},scale=1:1`,'-f','rawvideo','-pix_fmt','rgb24','pipe:1'],{maxBuffer:1024*1024})
+  const highlighted=[];for(let i=0;i<pixels.length/3;i++)if(pixels[i*3]>150 && pixels[i*3+1]<100 && pixels[i*3+2]<100)highlighted.push(i)
+  const corners=execFileSync('ffmpeg',['-v','error','-i',output,'-vf','crop=2:2:2:2,scale=1:1','-f','rawvideo','-pix_fmt','rgb24','pipe:1'],{maxBuffer:1024*1024})
+  for(let i=0;i<corners.length;i+=3)assert.ok(!(corners[i]>180 && corners[i+1]<80 && corners[i+2]>180),'Private pre-roll slate must never appear in the encoded scene')
+  assert.ok(highlighted.length>0,'Encoded video must contain the rendered row cue')
+  assert.ok(Math.abs(highlighted[0]/30-.35)<=2/30,`cue starts ${highlighted[0]/30}s; measured .35s`)
+  assert.ok(Math.abs((highlighted.at(-1)+1)/30-.85)<=2/30,`cue ends ${(highlighted.at(-1)+1)/30}s; measured .85s`)
+  if(process.env.AUTOPOC_BROWSER_QA_DIR){await cp(output,join(process.env.AUTOPOC_BROWSER_QA_DIR,'measured-check-cue.mp4'));await writeFile(join(process.env.AUTOPOC_BROWSER_QA_DIR,'measured-check-cue.json'),JSON.stringify({frame_count:181,first_frame:highlighted[0],end_frame:highlighted.at(-1)+1,expected_start_seconds:.35,expected_end_seconds:.85}))}
+ }finally{await context?.close();await browser?.close();if(server)await new Promise(r=>server.close(r));await rm(root,{recursive:true,force:true})}
+})
+
+test('production template4 preparation exports every reviewed slide to PDF',{skip:!process.env.AUTOPOC_BROWSER_INTEGRATION},async()=>{
+ const root=await mkdtemp(join(tmpdir(),'autopoc-generic-pdf-'))
+ try{
+  const data=await stageExample(root,'github-service'),output=join(root,'output')
+  const manifest=await preparePresentation(root,output)
+  assert.equal(manifest.artifacts.deck.status,'validated')
+  assert.equal(manifest.artifacts.pdf.status,'validated')
+  const path=join(output,'executive-summary.pdf'),bytes=await readFile(path)
+  const modules=resolve(process.env.AUTOPOC_RENDER_NODE_MODULES || new URL('./node_modules',import.meta.url).pathname)
+  const {PDFDocument}=await import(join(modules,'pdf-lib/cjs/index.js'))
+  assert.equal((await PDFDocument.load(bytes)).getPageCount(),data.narrative.slides.length)
+  if(process.env.AUTOPOC_BROWSER_QA_DIR)await cp(path,join(process.env.AUTOPOC_BROWSER_QA_DIR,'github-service-full.pdf'))
+ }finally{await rm(root,{recursive:true,force:true})}
+})
+
+test('excess check context fails actionable bounds without shrinking or omitting reviewed text',{skip:!process.env.AUTOPOC_BROWSER_INTEGRATION},async()=>{
+ const root=await mkdtemp(join(tmpdir(),'autopoc-check-overflow-'));let browser,server
+ try{
+  const data=await stageExample(root,'github-service'),slide=data.narrative.slides[1]
+  slide.bullet_claim_ids=Array.from({length:4},(_,i)=>`overflow-${i}`)
+  for(const id of slide.bullet_claim_ids)data.narrative.claims.push({id,text:'This deliberately verbose context describes the synthetic layout bounds and retains all reviewed words. '.repeat(2),kind:'observed',sources:['source.md#L1-L1']})
+  await writeFile(join(root,'narrative.json'),JSON.stringify(data.narrative))
+  const deck=await buildDeck(root),hosted=await serve(join(deck,'dist'));server=hosted.server
+  const modules=resolve(process.env.AUTOPOC_RENDER_NODE_MODULES || new URL('./node_modules',import.meta.url).pathname),{chromium}=await import(join(modules,'playwright-chromium/index.mjs'))
+  browser=await chromium.launch({headless:true,executablePath:process.env.AUTOPOC_CHROMIUM_EXECUTABLE || undefined})
+  const page=await browser.newPage({viewport:{width:1280,height:720}});await page.goto(`${hosted.url}/2?embedded`,{waitUntil:'networkidle'})
+  const current=page.locator('.executive[data-executive-ready="true"]');await current.waitFor()
+  const problems=sceneProblems(await page.evaluate(inspectScene));assert.match(problems.join(),/Layout overflow.*shorten the reviewed text/)
+  assert.equal(await current.locator('.check-context li').count(),4);assert.equal(await current.locator('.check-row').count(),5)
+  assert.equal(await current.locator('.check-context li').first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize)),18)
+  assert.equal(await current.locator('.check-row h2').first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize)),22)
+ }finally{await browser?.close();if(server)await new Promise(r=>server.close(r));await rm(root,{recursive:true,force:true})}
+})
