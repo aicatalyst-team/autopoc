@@ -76,7 +76,7 @@
   "report_publication_commit": "caef62b6f26ef8f4dd72c99da6e2317f55983c60",
   "blog": "ineligible_skipped",
   "cloud_publication": "not_authorized_blocked",
-  "media": "speech_complete_video_recording_in_progress",
+  "media": "capture_duration_investigation_in_progress",
   "operator_assistance": [
     "Prepared isolated namespace, existing-pattern bounded RBAC, workspace PVC, fork branch and node placement.",
     "Supplied same-revision reference Dockerfiles and authentic pinned README context PNG.",
@@ -159,7 +159,7 @@
       "pod_uid": "9b500324-a9b0-4445-b3c1-e10061ebb197",
       "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:c493de2e7ddc7fe5c42b6105c5e9a296b56099233a15ffba66e918e91ce401aa",
       "input_sha256": "44ac15a1fc42f0cd2b763b2cbd4cf04e02f4439c2c52ccdbbe6c01cb0b0ee634",
-      "status": "recording_video",
+      "status": "partial_video_capture_failed",
       "admission": "restricted-v2",
       "api_token_mounted": false,
       "network_policy": "deny_all_ingress_and_egress",
@@ -184,7 +184,22 @@
         "scene_count": 9,
         "sentence_count": 55,
         "human_full_listening": "pending"
-      }
+      },
+      "error": "Fourth scene failed strict capture coverage check in audio.mjs112; source, deck, PDF, summary and full speech retained.",
+      "runtime": {
+        "elapsed_seconds": 395.256,
+        "peak_memory_bytes": 2903126016,
+        "scratch_usage_bytes": 91881585
+      },
+      "artifacts": {
+        "deck": "generated_unpublished",
+        "pdf": "generated_unpublished",
+        "source": "generated_unpublished",
+        "summary": "generated_unpublished",
+        "video": "failed"
+      },
+      "encoded_scenes_before_failure": 3,
+      "failure_retained": true
     }
   ],
   "renderer_source_commit": "e478620",
@@ -241,5 +256,39 @@
     "method": "Assistant inspected every rendered page PNG from the actual OCP-exported PDF.",
     "layout": "readable_no_clipping_observed",
     "human_acceptance": "pending"
+  },
+  "capture_duration_fix": {
+    "commit": "4b5a221",
+    "independent_code_review": "clean",
+    "red": {
+      "raw_seconds": 39.84,
+      "slate_exit_seconds": 5.08,
+      "captured_scene_seconds": 34.76,
+      "required_scene_seconds": 35.4,
+      "shortage_seconds": 0.64
+    },
+    "fix": "Schema3-only1500ms final recorder hold; slate anchor, strict coverage tolerance, exact frame count and legacy150ms timing retained.",
+    "exact_actual_scene_green": {
+      "raw_seconds": 41.12,
+      "slate_exit_seconds": 4.84,
+      "captured_scene_seconds": 36.28,
+      "required_scene_seconds": 35.4,
+      "headroom_seconds": 0.88,
+      "encoded_frames": 1062,
+      "encoded_seconds": 35.4,
+      "slate_frames": 0
+    },
+    "targeted_actual_browser": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    "trusted_renderer_ffmpeg_suite": {
+      "passed": 126,
+      "failed": 0,
+      "explicit_browser_skips": 11
+    },
+    "host_ffmpeg_limitation": "Initial host runs could not execute3H264tests because libx264 is absent; these tests passed in the trusted renderer runtime.",
+    "fresh_image_acceptance": "in_progress"
   }
 }

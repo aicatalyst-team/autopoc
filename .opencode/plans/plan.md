@@ -496,7 +496,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Pronunciation and measured generic acceptance (plan Task 7) | ✅ 10.8 — selected pronunciation; three actual offline Heart renders, 19 PDF pages, 57 scene frames and 24 check-boundary frames; human/full live gates remain |
 | En-MaaS provider preflight for the fresh run | ✅ 10.9.1 — external settings/key found; actual worker text/tool calls and in-cluster authenticated connection verified |
 | Prepare isolated namespace, access, workspace and source branch | ✅ 10.9.2 — new run c00040c2 only; no application workload launched |
-| Fresh branch images and isolated OpenShell full cycle | In progress — new branch images built; isolated worker launched (10.9.3); original PoC phases pending |
+| Fresh branch images and isolated OpenShell full cycle | In progress — original cycle/report recorded with blocked lifecycle; actual media capture fix under verification |
 | Repair strict narrated 3D capture coverage | ✅ 10.9.23 — exact short-tail reproduction; bounded schema-3 tail; strict encoded duration/frame/cue checks pass |
 | Retrieve and inspect slides/video for user review | Pending fresh run |
 | Final code-review/provenance correction | ✅ 10.10 — TopoLoop provenance now identifies the local lifecycle patch; Phase 10 remains in progress |
@@ -762,7 +762,7 @@ Shared CronJobs/settings and earlier application deployments remain untouched.
 | Execute original validation | ✅ 10.9.12 — one pass, one error, three skips; lifecycle objective not achieved |
 | Report and reviewed media inputs | ✅ 10.9.13/10.9.16; original approved seal retained, audience revision under review |
 | Eligible blog | ✅ 10.9.14 — eligibility assessed; skipped after unsuccessful validation |
-| Offline renderer and local retrieval | In progress — final reviewed layout seal; second actual render pending |
+| Offline renderer and local retrieval | In progress — deck/PDF/speech retained; strict 3D capture coverage fix validated, fresh image acceptance pending |
 
 
 ### 10.8 ✅ Pronunciation and measured generic image acceptance — 10 November 2026
