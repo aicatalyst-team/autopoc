@@ -474,3 +474,35 @@ need offline, reviewed asset support. Existing delivered media is unchanged.
   not template requirements. Schema/versioning and local asset staging are
   proposed engineering choices pending review. Implementation, pronunciation
   selection, new media and rollout remain unstarted.
+
+
+## Phase 10: Generic storytelling implementation and fresh OpenShell cycle — In progress, 10 November 2026
+
+User explicitly requested implementation of the agreed generic storyboard first,
+then a fresh full OpenShell cycle using this AutoPoC branch. This authorizes a
+new isolated run and media revision; earlier outputs remain preserved. Technical
+design: docs/superpowers/specs/2026-11-10-generic-poc-storytelling-design.md.
+Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.md.
+
+| Task | Status |
+|---|---|
+| Verify isolated branch and baseline | ✅ 10.1 — 496 Python tests, 86.44% coverage; 40 renderer tests passed, 5 browser-gated skips |
+| Generic story roles and complete check coverage (plan Task 1) | In progress |
+| Reviewed optional visual assets (plan Task 2) | Pending |
+| Generic author/reviewer guidance and examples (plan Task 3) | Pending |
+| Reusable identity/check layouts and timing (plan Task 4) | Pending |
+| 3D pose lifecycle and full label inspection (plan Task 5) | Pending |
+| Offline integration, packaging and recovery (plan Task 6) | Pending |
+| Pronunciation and measured generic acceptance (plan Task 7) | Pending |
+| Fresh branch images and isolated OpenShell full cycle | Pending implementation |
+| Retrieve and inspect slides/video for user review | Pending fresh run |
+
+### 10.1 Verify isolated branch and clean baseline — ✅ 10 November 2026
+
+Existing linked worktree uses codex/kokoro-narration, starting at 637893d.
+Baseline Python suite passed 496 tests with 86.44% coverage; Node suite passed
+40 tests with five explicit browser-integration skips. System Python lacked the
+coverage plugin; the existing .venv provided the correct project environment.
+OCP authentication and prior run resources were inspected read-only; no fresh
+run launched before implementing the requested changes. Existing image caches
+and retained credentials/resources are available for later isolated execution.
