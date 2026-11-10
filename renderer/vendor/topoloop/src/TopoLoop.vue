@@ -13,7 +13,7 @@
  *
  * The component holds no project content. Everything is in the spec.
  */
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import * as THREE from 'three'
 import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
 import { buildTopology } from './topology'
@@ -89,6 +89,11 @@ const annShow = ref(false)
 const logColor = (b: LogLine): Record<string, string> => ({ color: `var(--tl-log-${b.kind})` })
 
 let raf = 0
+let disposed = false
+let scheduleFrame = () => {}
+// A frozen renderer has no running loop to notice prop changes. Paint after
+// Vue flushes, cancelling any queued callback before scheduling its replacement.
+watch(() => [props.freezeAt, props.rate], () => scheduleFrame(), { flush: 'post' })
 let renderer: THREE.WebGLRenderer | null = null
 let labelRenderer: CSS2DRenderer | null = null
 let ro: ResizeObserver | null = null
@@ -112,7 +117,9 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  disposed = true
   cancelAnimationFrame(raf)
+  scheduleFrame = () => {}
   ro?.disconnect()
   renderer?.dispose()
   renderer?.forceContextLoss?.()
@@ -334,6 +341,8 @@ function boot() {
   applyLayout()
 
   function frame() {
+    raf = 0
+    if (disposed) return
     const t = props.freezeAt != null
       ? props.freezeAt
       : ((performance.now() - start) / 1000) * props.rate
@@ -447,15 +456,18 @@ function boot() {
     if (props.freezeAt == null) raf = requestAnimationFrame(frame)
   }
 
-  ro = new ResizeObserver(() => { applyLayout() })
+  scheduleFrame = () => {
+    if (disposed) return
+    cancelAnimationFrame(raf)
+    raf = requestAnimationFrame(() => { applyLayout(); frame() })
+  }
+  ro = new ResizeObserver(scheduleFrame)
   ro.observe(el)
 
   frame()
   // second pass after layout settles, so an export never captures a zero-size
   // canvas or a pre-resize viewport
-  if (props.freezeAt != null) {
-    requestAnimationFrame(() => { applyLayout(); frame() })
-  }
+  scheduleFrame()
 }
 </script>
 

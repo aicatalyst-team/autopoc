@@ -491,7 +491,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Reviewed optional visual assets (plan Task 2) | ✅ 10.3 — 621 Python tests, 87.11% coverage; 108 renderer tests passed, 5 browser-gated skips |
 | Generic author/reviewer guidance and examples (plan Task 3) | ✅ 10.4 — three source-linked schema-3 worked stories and asset manifests validated; 176 targeted tests passed |
 | Reusable identity/check layouts and timing (plan Task 4) | ✅ 10.5 — 109 actual-browser/Node checks, zero skips; 16 real FFmpeg checks; seven-page PDF and measured cue inspected |
-| 3D pose lifecycle and full label inspection (plan Task 5) | Pending |
+| 3D pose lifecycle and full label inspection (plan Task 5) | ✅ 10.6 — 15 actual-browser tests, zero skips; all 10 poses and 60 collision/containment samples; 122 Node tests passed |
 | Offline integration, packaging and recovery (plan Task 6) | Pending |
 | Pronunciation and measured generic acceptance (plan Task 7) | Pending |
 | En-MaaS provider preflight for the fresh run | ✅ 10.9.1 — external settings/key found; actual worker text/tool calls and in-cluster authenticated connection verified |
@@ -643,3 +643,25 @@ were read from the external key file into a new run-specific Secret only;
 no key material was written to repository files or logs, and no shared Secret,
 CronJob or provider configuration was changed. The probe used a prior trusted
 worker image; fresh branch-image and PoC/media acceptance remain pending.
+
+
+### 10.6 ✅ 3D pose lifecycle and full label inspection — 10 November 2026
+
+Completed plan Task 5. Successive freeze timestamps repaint the same mounted
+TopoLoop canvas. One tracked animation callback handles mount, resize, freeze
+and release; unmount cancels it. Full visible text ranges include node subtitles,
+group captions, headings and footer, with clipping and cross-caption checks.
+Intentional graph geometry containment remains permitted. Existing fonts,
+tolerances, graphless dispatch, illustrative timing caveat and Task 4 measured
+clock/slate path are unchanged.
+
+Meaningful actual-browser RED reproduced stale act 1 at 4.01s and missed subtitle
+collision. Final offline Chromium acceptance passed 15 tests with zero skips
+(133.12s), including all 10 inspection timestamps on one canvas, 60 synthetic
+collision/containment checks, repeated freeze/release, resumed visible movement,
+active unmount, legacy/generic slides, real measured capture and PDF export.
+Host Node suite passed 122 tests with 12 explicit integration-gated skips; those
+browser checks executed separately above. Three act frames and negative caption
+collision diagnostics were visually inspected. Expected damaged-PNG diagnostics
+are captured/asserted only within that negative test. No live activation,
+publication or human listening acceptance claimed. Phase 10 remains in progress.

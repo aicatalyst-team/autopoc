@@ -1,0 +1,137 @@
+[
+  {
+    "name": "subtitle to subtitle",
+    "labels": [
+      [
+        "tl-node-s",
+        "Subtitle one",
+        200,
+        200,
+        160,
+        24
+      ],
+      [
+        "tl-node-s",
+        "Subtitle two",
+        220,
+        200,
+        160,
+        24
+      ]
+    ],
+    "error": "overlap"
+  },
+  {
+    "name": "group caption to node",
+    "labels": [
+      [
+        "tl-ns",
+        "Group caption",
+        200,
+        200,
+        180,
+        24
+      ],
+      [
+        "tl-node-t",
+        "Node label",
+        220,
+        200,
+        160,
+        24
+      ]
+    ],
+    "error": "overlap"
+  },
+  {
+    "name": "heading to label",
+    "labels": [
+      [
+        "tl-hud-top",
+        "Heading",
+        200,
+        200,
+        180,
+        24
+      ],
+      [
+        "tl-node-s",
+        "Node subtitle",
+        220,
+        200,
+        160,
+        24
+      ]
+    ],
+    "error": "overlap"
+  },
+  {
+    "name": "footer to group caption",
+    "labels": [
+      [
+        "tl-ns",
+        "Group caption",
+        200,
+        200,
+        180,
+        24
+      ],
+      [
+        "brand-footer",
+        "Footer text",
+        220,
+        200,
+        160,
+        24
+      ]
+    ],
+    "outside": [
+      "brand-footer"
+    ],
+    "error": "overlap"
+  },
+  {
+    "name": "caption clipping",
+    "labels": [
+      [
+        "tl-ns",
+        "Clipped group caption",
+        1270,
+        200,
+        200,
+        24
+      ]
+    ],
+    "error": "text"
+  },
+  {
+    "name": "intentional graph containment",
+    "labels": [
+      [
+        "tl-node",
+        "",
+        100,
+        100,
+        400,
+        300
+      ],
+      [
+        "tl-node-t",
+        "Node",
+        120,
+        120,
+        120,
+        24
+      ],
+      [
+        "graph-link",
+        "",
+        120,
+        120,
+        120,
+        24
+      ]
+    ],
+    "error": null
+  }
+]

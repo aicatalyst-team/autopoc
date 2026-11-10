@@ -95,16 +95,16 @@ full 566 Python / 108 renderer passed, five browser skips).
 - [x] Implement schema-3 trusted layouts and check component while preserving template-3/default legacy behavior. Copy only verified assets into local public paths; no arbitrary HTML, remote image URLs or user code. Fully decode images and run browser/layout preparation before speech. A referenced asset failing decode is a hard failure, not a late silent fallback.
 - [x] In the browser-capable renderer environment run `AUTOPOC_BROWSER_INTEGRATION=1 node --test renderer/storyboard.test.mjs renderer/check-timing.test.mjs renderer/browser.test.mjs` from the repository root. Browser tests must execute, not skip. Inspect all new layouts at 1280×720 and PDF size, including long names/captions; assert readable bounds and image load failures stop before speech. Update trackers and commit.
 
-## Task 5: Make 3D inspection repaint and catch complete label collisions
+## Task 5: ✅ Make 3D inspection repaint and catch complete label collisions
 
 **Files:** modify `renderer/vendor/topoloop/src/TopoLoop.vue`, `renderer/scene-validation.mjs`, `renderer/browser.test.mjs`; add a synthetic collision fixture.
 
 **Interfaces:** retain `freezeAt` prop, `executive-still` event and `sceneCheckTimes(graph)`. Extend `inspectScene()` diagnostics without weakening existing checks. Updating freeze time must paint the requested state while paused; releasing freeze resumes one animation loop; unmount cancels it.
 
-- [ ] Add a failing browser test that sets three different freeze times on the same mounted graph and checks distinct visible act/pose state, then releases freeze/re-enters/tears down without duplicate animation loops. Remounting between every sample must not conceal the regression.
-- [ ] Add fixtures where subtitle-to-subtitle, group-caption-to-node and heading-to-label collisions fail, while intentional node body/graph links remain permitted. Exercise every timestamp returned by `sceneCheckTimes`, not just the first pose.
-- [ ] Fix the Vue lifecycle/watch scheduling and complete text/caption bounds/intersection checks. Preserve real 3D TopoLoop for evidence-supported setups; graphless projects remain graphless. Leave documented illustrative timing caveats intact.
-- [ ] In the browser-capable renderer environment run `AUTOPOC_BROWSER_INTEGRATION=1 node --test renderer/browser.test.mjs` from the repository root; inspect passing multi-act frames plus failing diagnostics. Do not blanket-shrink text or expand tolerances to pass. Update trackers and commit.
+- [x] Add a failing browser test that sets three different freeze times on the same mounted graph and checks distinct visible act/pose state, then releases freeze/re-enters/tears down without duplicate animation loops. Remounting between every sample must not conceal the regression.
+- [x] Add fixtures where subtitle-to-subtitle, group-caption-to-node and heading-to-label collisions fail, while intentional node body/graph links remain permitted. Exercise every timestamp returned by `sceneCheckTimes`, not just the first pose.
+- [x] Fix the Vue lifecycle/watch scheduling and complete text/caption bounds/intersection checks. Preserve real 3D TopoLoop for evidence-supported setups; graphless projects remain graphless. Leave documented illustrative timing caveats intact.
+- [x] In the browser-capable renderer environment run `AUTOPOC_BROWSER_INTEGRATION=1 node --test renderer/browser.test.mjs` from the repository root; inspect passing multi-act frames plus failing diagnostics. Do not blanket-shrink text or expand tolerances to pass. Update trackers and commit.
 
 ## Task 6: Integrate template 4 with offline speech, packaging and recovery
 

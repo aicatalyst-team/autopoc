@@ -65,45 +65,49 @@ export function inspectScene() {
     const line = parseFloat(getComputedStyle(title).lineHeight)
     if (title.getBoundingClientRect().height > line * Number(title.dataset.maxLines) * bounds.width / 1280 + tolerance) result.overflow.push('slide title')
   }
-  for (const stage of root.querySelectorAll('.topology-stage')) {
-    const stageBox = stage.getBoundingClientRect()
-    const visible = element => {
-      for (let parent = element; parent && parent !== stage; parent = parent.parentElement) {
-        const style = getComputedStyle(parent)
-        if (style.visibility === 'hidden' || style.display === 'none' || Number(style.opacity) === 0) return false
+  const visible = element => {
+    for (let parent = element; parent; parent = parent.parentElement) {
+      const style = getComputedStyle(parent)
+      if (style.visibility === 'hidden' || style.display === 'none' || Number(style.opacity) === 0) return false
+    }
+    return true
+  }
+  // Measure painted text, not container boxes. A label may intentionally sit
+  // inside the graph canvas; its words must not intersect another caption.
+  // Include surrounding headings/footer so cross-region collisions fail too.
+  const texts = []
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let text
+  while ((text = walker.nextNode())) {
+    const element = text.parentElement
+    if (!text.textContent.trim() || !visible(element) || element.closest('style, script')) continue
+    const stage = element.closest('.topology-stage')
+    const range = document.createRange(); range.selectNodeContents(text)
+    const name = element.classList[0] || element.tagName.toLowerCase()
+    for (const rect of range.getClientRects()) {
+      if (!rect.width || !rect.height) continue
+      texts.push({ rect, stage, name })
+      if (!stage) continue
+      let clipped = false
+      // Stage and every clipping ancestor matter, including the CSS2D viewport.
+      for (let parent = element; parent && root.contains(parent); parent = parent.parentElement) {
+        const box = parent.getBoundingClientRect(), style = getComputedStyle(parent)
+        const ownRegion = parent.matches('.tl-board, .tl-term, .tl-ann')
+        const clipX = ownRegion || parent === stage || ['hidden','clip','auto','scroll'].includes(style.overflowX)
+        const clipY = ownRegion || parent === stage || ['hidden','clip','auto','scroll'].includes(style.overflowY)
+        if ((clipX && (rect.left < box.left - tolerance || rect.right > box.right + tolerance))
+          || (clipY && (rect.top < box.top - tolerance || rect.bottom > box.bottom + tolerance))) clipped = true
       }
-      return true
-    }
-    for (const element of stage.querySelectorAll('.tl-node.on, .tl-hud-top, .tl-status, .tl-board, .tl-term, .tl-ann')) {
-      if (!visible(element)) continue
-      const ownRegion = element.matches('.tl-board, .tl-term, .tl-ann')
-      const box = ownRegion ? element.getBoundingClientRect() : stageBox
-      let clipped = ownRegion && (element.scrollHeight > element.clientHeight + 2 || element.scrollWidth > element.clientWidth + 2)
-      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
-      let text
-      while ((text = walker.nextNode())) {
-        if (!text.textContent.trim()) continue
-        const range = document.createRange(); range.selectNodeContents(text)
-        for (const rect of range.getClientRects())
-          if (rect.left < box.left - tolerance || rect.right > box.right + tolerance
-              || rect.top < box.top - tolerance || rect.bottom > box.bottom + tolerance) clipped = true
-      }
-      if (clipped) result.overflow.push(`diagram ${element.classList[0]} text`)
-    }
-    const labels = [...stage.querySelectorAll('.tl-node.on .tl-node-t')].filter(visible).map(el => el.getBoundingClientRect())
-    for (let i = 0; i < labels.length; i++) for (let j = i+1; j < labels.length; j++) {
-      const a = labels[i], b = labels[j]
-      if (a.left < b.right - tolerance && a.right > b.left + tolerance && a.top < b.bottom - tolerance && a.bottom > b.top + tolerance)
-        result.overflow.push('diagram node labels overlap')
-    }
-    const heading = stage.querySelector('.tl-hud-top')?.getBoundingClientRect()
-    if (!heading) continue
-    for (const node of stage.querySelectorAll('.tl-node.on')) {
-      const box = node.getBoundingClientRect()
-      if (box.left < heading.right && box.right > heading.left
-          && box.top < heading.bottom && box.bottom > heading.top)
-        result.overflow.push('diagram heading overlaps a node label')
+      if (clipped) result.overflow.push(`diagram ${name} text`)
     }
   }
+  for (let i = 0; i < texts.length; i++) for (let j = i+1; j < texts.length; j++) {
+    const a = texts[i], b = texts[j]
+    if (!a.stage && !b.stage) continue
+    if (a.rect.left < b.rect.right - tolerance && a.rect.right > b.rect.left + tolerance
+      && a.rect.top < b.rect.bottom - tolerance && a.rect.bottom > b.rect.top + tolerance)
+      result.overflow.push(`diagram ${a.name} overlaps ${b.name}`)
+  }
+  result.overflow = [...new Set(result.overflow)]
   return result
 }

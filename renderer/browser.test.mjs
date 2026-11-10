@@ -38,7 +38,7 @@ for (const allGraphs of [false,true]) test(`structured totals remain visible wit
 import { cp, mkdir, symlink } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { prepareDeck } from './render.mjs'
-import { inspectScene, sceneProblems } from './scene-validation.mjs'
+import { inspectScene, sceneProblems, sceneCheckTimes } from './scene-validation.mjs'
 const examples=new URL('../.opencode/skills/run-poc/references/executive-story-examples/',import.meta.url)
 async function stageExample(root,name){
  const path=new URL(`${name}/`,examples)
@@ -53,8 +53,9 @@ async function stageExample(root,name){
  if(visuals.assets.length)await cp(new URL('assets/',path),join(root,'visuals/assets'),{recursive:true})
  return {narrative,scenes,visuals,checks}
 }
-async function buildDeck(root){
+async function buildDeck(root, customize){
  const deck=join(root,'deck');await prepareDeck(root,deck)
+ if(customize)await customize(deck)
  const modules=resolve(process.env.AUTOPOC_RENDER_NODE_MODULES || new URL('./node_modules',import.meta.url).pathname)
  await symlink(modules,join(deck,'node_modules'),'dir')
  await new Promise((accept,reject)=>{const child=spawn(process.execPath,[join(modules,'@slidev/cli/bin/slidev.mjs'),'build','slides.md','--out','dist'],{cwd:deck});let log='';child.stdout.on('data',d=>log+=d);child.stderr.on('data',d=>log+=d);child.on('exit',code=>code?reject(new Error(log)):accept())})
@@ -155,7 +156,10 @@ test('referenced PNG that fails full browser decode invalidates preparation befo
   const path=join(root,'visuals/assets/context.png'),bytes=(await readFile(path)).subarray(0,33)
   await writeFile(path,bytes);data.visuals.assets[0].sha256=createHash('sha256').update(bytes).digest('hex')
   await writeFile(join(root,'visuals.json'),JSON.stringify(data.visuals))
-  const manifest=await preparePresentation(root,join(root,'output'))
+  const diagnostics=[],original=console.error
+  let manifest
+  try{console.error=(...args)=>diagnostics.push(args.join(' '));manifest=await preparePresentation(root,join(root,'output'))}finally{console.error=original}
+  assert.equal(diagnostics.length,1);assert.match(diagnostics[0],/image|decode|EncodingError/i)
   assert.equal(manifest.artifacts.deck.status,'failed')
   assert.equal(manifest.artifacts.pdf,undefined)
   assert.equal(manifest.status,'partial')
@@ -239,5 +243,77 @@ test('excess check context fails actionable bounds without shrinking or omitting
   assert.equal(await current.locator('.check-context li').count(),4);assert.equal(await current.locator('.check-row').count(),5)
   assert.equal(await current.locator('.check-context li').first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize)),18)
   assert.equal(await current.locator('.check-row h2').first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize)),22)
+ }finally{await browser?.close();if(server)await new Promise(r=>server.close(r));await rm(root,{recursive:true,force:true})}
+})
+
+
+test('TopoLoop repaints every inspection pose on one mount and owns one cancellable loop',{skip:!process.env.AUTOPOC_BROWSER_INTEGRATION},async()=>{
+ const root=await mkdtemp(join(tmpdir(),'autopoc-freeze-'));let browser,server
+ try{
+  await stageExample(root,'github-service')
+  const graph=JSON.parse(await readFile(new URL('../tests/fixtures/executive-story/graph.json',import.meta.url)))
+  graph.nodes.forEach((n,i)=>{n.sub=`Component ${i+1}`;n.anchor=i?'down':'up';n.group='recorded'})
+  graph.groups=[{id:'recorded',label:'Recorded components'}]
+  graph.acts=[0,1,2].map(i=>({id:i,t0:i*4,t1:(i+1)*4,title:`Inspection act ${i+1}`,path:'request',tone:['neutral','positive','negative'][i]}))
+  const deck=await buildDeck(root,async deck=>{
+   await writeFile(join(deck,'components/FreezeHarness.vue'),`<script setup>
+import {ref,nextTick,onMounted} from 'vue'
+import TopoLoop from '../vendor/topoloop/src/TopoLoop.vue'
+import {redhatTheme} from './redhat-theme.ts'
+const graph=${JSON.stringify(graph)}, freeze=ref(0), mounted=ref(true)
+onMounted(()=>{window.freezeHarness=async(value,show=true)=>{freeze.value=value;mounted.value=show;await nextTick()}})
+</script><template><div class="executive" data-executive-ready="true" style="position:absolute;inset:0"><div class="topology-stage" style="position:absolute;inset:0"><TopoLoop v-if="mounted" :spec="graph" :freeze-at="freeze" :seed="1" :theme="redhatTheme"/></div></div></template>`)
+   await writeFile(join(deck,'slides.md'),'---\nlayout: none\n---\n<FreezeHarness/>\n')
+  })
+  const hosted=await serve(join(deck,'dist'));server=hosted.server
+  const modules=resolve(process.env.AUTOPOC_RENDER_NODE_MODULES || new URL('./node_modules',import.meta.url).pathname),{chromium}=await import(join(modules,'playwright-chromium/index.mjs'))
+  browser=await chromium.launch({headless:true,executablePath:process.env.AUTOPOC_CHROMIUM_EXECUTABLE || undefined,args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']})
+  const page=await browser.newPage({viewport:{width:1280,height:720}})
+  await page.addInitScript(()=>{const request=window.requestAnimationFrame.bind(window),cancel=window.cancelAnimationFrame.bind(window),pending=new Set();window.requestAnimationFrame=callback=>{const id=request(t=>{pending.delete(id);callback(t)});pending.add(id);return id};window.cancelAnimationFrame=id=>{pending.delete(id);cancel(id)};window.pendingFrames=pending})
+  await page.goto(`${hosted.url}/1?embedded`,{waitUntil:'networkidle'});await page.waitForFunction(()=>window.freezeHarness)
+  await page.evaluate(async()=>{for(const family of ['Display','Text','Mono'])for(const weight of [400,500,700])await document.fonts.load(`${weight} 16px "Red Hat ${family}"`);await document.fonts.ready})
+  const errors=[];page.on('pageerror',error=>errors.push(error.message))
+  await page.evaluate(()=>{window.originalCanvas=document.querySelector('.tl-canvas canvas')})
+  const poses=new Map()
+  for(const t of sceneCheckTimes(graph)){
+   await page.evaluate(t=>window.freezeHarness(t),t);await page.waitForTimeout(60)
+   assert.equal(await page.locator('.tl-title').innerText(),graph.acts.find(a=>t>=a.t0&&t<a.t1).title,`act at ${t}`)
+   assert.equal(await page.evaluate(()=>document.querySelector('.tl-canvas canvas')===window.originalCanvas),true,'inspection must retain one mounted canvas')
+   assert.deepEqual(sceneProblems(await page.evaluate(inspectScene)),[],`pose ${t}`)
+   poses.set(t,await page.locator('.tl-canvas canvas').evaluate(canvas=>canvas.toDataURL()))
+   if(process.env.AUTOPOC_BROWSER_QA_DIR)await page.screenshot({path:join(process.env.AUTOPOC_BROWSER_QA_DIR,`freeze-${t}.png`)})
+  }
+  assert.equal(new Set(poses.values()).size,poses.size,'all requested poses repaint visible geometry')
+  // Use deterministic text geometry for negative collisions without relying on a lucky camera pose.
+  const fixture=JSON.parse(await readFile(new URL('../tests/fixtures/executive-story/label-collisions.json',import.meta.url)))
+  const diagnostics=[]
+  for(const t of sceneCheckTimes(graph)){
+   await page.evaluate(t=>window.freezeHarness(t),t);await page.waitForTimeout(60)
+   for(const item of fixture){
+   await page.evaluate(item=>{const root=document.querySelector('.executive'),stage=document.createElement('div');stage.className='topology-stage collision-fixture';stage.style.cssText='position:absolute;inset:0';root.append(stage);for(const [className,text,x,y,w,h] of item.labels){const el=document.createElement('div');el.className=className;el.textContent=text;el.style.cssText=`position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;font:20px/24px sans-serif`;if(item.outside?.includes(className)){el.classList.add('external-collision-fixture');root.append(el)}else stage.append(el)}},item)
+   const problems=sceneProblems(await page.evaluate(inspectScene))
+   if(item.error)assert.match(problems.join(),new RegExp(item.error),item.name)
+   else assert.deepEqual(problems,[],item.name)
+   diagnostics.push({time:t,fixture:item.name,problems})
+   if(t===3 && item.error && process.env.AUTOPOC_BROWSER_QA_DIR)await page.screenshot({path:join(process.env.AUTOPOC_BROWSER_QA_DIR,`collision-${fixture.indexOf(item)}.png`)})
+   await page.locator('.collision-fixture, .external-collision-fixture').evaluateAll(elements=>elements.forEach(el=>el.remove()))
+   }
+  }
+  if(process.env.AUTOPOC_BROWSER_QA_DIR)await writeFile(join(process.env.AUTOPOC_BROWSER_QA_DIR,'collision-diagnostics.json'),JSON.stringify(diagnostics,null,2))
+
+  const baseline=await page.evaluate(()=>window.pendingFrames.size)
+  for(let i=0;i<3;i++){
+   await page.evaluate(()=>window.freezeHarness(null));await page.waitForTimeout(100)
+   assert.equal(await page.evaluate(()=>window.pendingFrames.size),baseline+1,'release owns one animation callback')
+   const released=await page.locator('.tl-canvas canvas').evaluate(canvas=>canvas.toDataURL())
+   await page.waitForTimeout(80)
+   assert.notEqual(await page.locator('.tl-canvas canvas').evaluate(canvas=>canvas.toDataURL()),released,'release resumes visible animation')
+   await page.evaluate(()=>window.freezeHarness(5));await page.waitForTimeout(60)
+   assert.equal(await page.evaluate(()=>window.pendingFrames.size),baseline,'freeze cancels animation callback')
+  }
+  await page.evaluate(()=>window.freezeHarness(null));await page.waitForTimeout(60)
+  await page.evaluate(()=>window.freezeHarness(null,false));await page.waitForTimeout(100)
+  assert.equal(await page.evaluate(()=>window.pendingFrames.size),baseline,'unmount cancels animation callback')
+  assert.equal(await page.locator('canvas').count(),0);assert.deepEqual(errors,[])
  }finally{await browser?.close();if(server)await new Promise(r=>server.close(r));await rm(root,{recursive:true,force:true})}
 })
