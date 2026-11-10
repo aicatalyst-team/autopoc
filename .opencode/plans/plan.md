@@ -916,3 +916,21 @@ genuine review and the final documentation-corrected renderer pin; no PoC test
 replay, original-seal mutation or inherited/fabricated approval is permitted.
 The fresh cycle recorded unsuccessful lifecycle results; media output remains
 pending and no cloud publication or full human acceptance is claimed.
+
+### 10.9.17 Audience revision, genuine review and final seal — ✅ 10 November 2026
+
+Revised nine-slide narration has 596 spoken words and at most 17 words per
+sentence. The genuine first review rejected one planned-versus-observed SDK
+link and omission of the material Helm readiness permission constraint. Both
+were corrected; original rejection/events/bytes are retained. A second genuine
+same-provider/model review approved all 101 selectors and five check mappings.
+Media/cloud/Git process noise is absent, while the meaningful deployment
+constraint, assistance limits, missing trace, exact outcomes and next actions
+remain. No test replay occurred.
+
+Final seal SHA-256 is
+`f76785e10f01d7fbb50c4a01bccf12ddf3dac7ae0ce6b8dc50a5744bc53d3d70`,
+bound to final renderer `259d5a19…`. Original evidence/scenes/visuals bytes match
+the preserved worker seal exactly; narrative/review/image identities are new.
+This operator content revision is disclosed assistance, not mutation of an old
+approval. Actual OCP rendering/media acceptance remains pending.

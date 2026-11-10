@@ -76,7 +76,7 @@
   "report_publication_commit": "caef62b6f26ef8f4dd72c99da6e2317f55983c60",
   "blog": "ineligible_skipped",
   "cloud_publication": "not_authorized_blocked",
-  "media": "pending_review_seal_and_actual_render",
+  "media": "approved_and_sealed_actual_render_pending",
   "operator_assistance": [
     "Prepared isolated namespace, existing-pattern bounded RBAC, workspace PVC, fork branch and node placement.",
     "Supplied same-revision reference Dockerfiles and authentic pinned README context PNG.",
@@ -102,9 +102,33 @@
     "reason": "Keep narration focused on PoC outcomes; remove media/publication/Git procedure and use explicit untested-scope wording.",
     "guidance_commit": "7fbba6d",
     "slides": 9,
-    "words": 566,
+    "words": 596,
     "max_sentence_words": 17,
     "same_evidence_scenes_visuals": true,
-    "genuine_independent_review": "in_progress"
+    "genuine_independent_review": "approved_after_two_reviews",
+    "initial_rejection_preserved": true,
+    "resolved_findings": [
+      "Linked actual pinned SDK use to retained observation, not planned objective.",
+      "Added material Helm readiness permission constraint, direct rollout retry and no RBAC expansion."
+    ],
+    "final_seal": {
+      "run_id": "c00040c2196d4919b3e5b0a7fd947faf",
+      "input_sha256": "f76785e10f01d7fbb50c4a01bccf12ddf3dac7ae0ce6b8dc50a5744bc53d3d70",
+      "review": {
+        "schema_version": 3,
+        "reviewer": "configured-opencode",
+        "approved": true,
+        "findings": [],
+        "narrative_sha256": "715f0a5b7838998c7639995a5e342f7ea7c4a3d0d439560858ada7b944726bab",
+        "evidence_sha256": "4bbfe024bdc4abc896cf417543e4bd561c666f2ca9596b8a51254b0273be2386",
+        "scenes_sha256": "992b9abc70768cdeb2d0fde94c6264dbb95c38ee7985039fdcfd4f4b46f7f8b9",
+        "visuals_sha256": "2924896aad0f8c9a40c558a03712cfe180ce4f30b2f94f04b45720341ee79158"
+      },
+      "renderer_image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:259d5a19c48ea94311263f9b416cd6dfd3b1e73b9e1e2d411d4aaa502f9877cc",
+      "evidence_scenes_visuals_unchanged": true,
+      "editorial_review_attempts": 2,
+      "original_seal_preserved": true,
+      "words": 596
+    }
   }
 }
