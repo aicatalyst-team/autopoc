@@ -1665,9 +1665,9 @@ Shared CronJobs/settings and earlier application deployments remain untouched.
 | Intake | ✅ 10.9.4 — completed |
 | Evaluate | ✅ 10.9.5 — completed |
 | Fork/adopt prepared source branch | ✅ 10.9.6 — completed |
-| Plan | Pending |
-| Containerize | Pending |
-| Build | Pending |
+| Plan | ✅ 10.9.7 — completed |
+| Containerize | ✅ 10.9.8 — completed |
+| Build | In progress — actual compiler builds running |
 | Deploy manifests | Pending |
 | Apply | Pending |
 | Execute original validation | Pending |
@@ -1736,3 +1736,17 @@ Updated `renderer/vendor/topoloop/UPSTREAM.md` to preserve upstream commit
 identifying the local lifecycle patch in `src/TopoLoop.vue` from `002873d`.
 Phase 10 remains in progress; fresh OpenShell execution and its delivery gates
 are ongoing.
+
+
+### 10.9.7 Fresh PoC plan — ✅ 10 November 2026
+
+The actual worker recorded a new completed PoC plan for this run. Its execution
+and conclusions must come from new captured attempts, not earlier outcomes.
+
+### 10.9.8 Fresh containerization — ✅ 10 November 2026
+
+Worker state marks source Dockerfile/containerization work completed and the
+build phase in progress. Cluster compiler builds are running; successful images,
+deployment and validation are not yet claimed. Source SDK dependencies are
+being installed in an isolated workspace environment, preserving the harness.
+State still records zero errors and no build/deploy/container-fix retries.
