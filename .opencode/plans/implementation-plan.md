@@ -487,7 +487,7 @@ recommendations are not execution instructions.
 | Fresh OpenShell end-to-end branch run | ✅ Done | 9 November: deployed, original 5/5 pass, corrected report persisted, final 3m28s Kokoro video and five artifacts retrieved/verified; Drive/listening gates remain |
 | Regenerate OpenShell with 3D views | ✅ Done | Two TopoLoop scenes; reviewed 3m28s video, animated browser deck/PDF/source retrieved and verified, original tests unchanged |
 | Simplify future voice-over English | ✅ Done | Author/reviewer guidance and synthetic example updated; STE principles without a restricted vocabulary; existing media retained |
-| Presentation feedback and revised storytelling | In progress | 10 November: existing slides/timing/lexicon inspected; audience and storyboard preferences open; no implementation |
+| Presentation feedback and revised storytelling | In progress | 10 November: audience confirmed, interactive eight-scene storyboard delivered; design feedback pending, no production changes |
 | Controlled production rollout | Pending | Drive invalid_grant, human listening and explicit merge/live configuration approval |
 
 ### 9.1 Generate and verify a local Kokoro audition — ✅ 8 November 2026
@@ -1280,7 +1280,8 @@ product-code change has been authorized by this brainstorming request.
 | Task | Status |
 |------|--------|
 | Inspect actual slides, sentence timing, terminology and renderer capabilities | ✅ 9.10.1 |
-| Agree audience, revised story and visual treatment | In progress |
+| Confirm audience and show a visual storyboard | ✅ 9.10.2 |
+| Agree revised story and visual treatment | In progress |
 | Save an agreed design and implementation plan | Pending agreement |
 | Implement and regenerate media | Not started |
 
@@ -1312,3 +1313,33 @@ product-code change has been authorized by this brainstorming request.
   do not already provide arbitrary screenshot/image authoring.
 - Audience and optional visual-storyboard preference have been asked. These are
   investigation findings and proposals, not an agreed design or implemented fix.
+
+#### 9.10.2 Confirm the audience and deliver a visual storyboard — ✅ 10 November 2026
+
+- User confirmed technical managers/customer engineers as the audience and asked
+  to see a storyboard. Assume an engineering background, without prior knowledge
+  of OpenShell. Do not assume the viewer understands the project from its name.
+- Built a discussion-only interactive eight-scene mockup: project identity,
+  PoC goal, five explicit checks, setup topology, results, coverage, takeaway,
+  and next tests. Visuals and proposed narration are paired; the last scene's
+  first spoken sentence introduces the next actions immediately.
+- Opening compares an authentic browser capture of the pinned NVIDIA/OpenShell
+  README with a labeled explanatory concept diagram. Source image/hash/provenance
+  are retained. No generated artwork or product UI has been fabricated.
+- Retained setup specificity (source-built UBI core/bootstrap images, separate
+  Ubuntu workload, single SQLite gateway, restricted-v2 and mutual TLS). Coverage
+  explicitly names OpenID Connect rather than implying that no authentication
+  was exercised. Original five results remain the evidence for observed outcomes.
+- Preview includes whole-story navigation, narration/design/evidence views and
+  feedback mapping. Checked all eight desktop layouts, opening alternatives,
+  loaded source assets and text bounds; narration entries have at most 17 words.
+  Fixed preview scaling on scene changes and provided readable narrow-panel
+  layouts. Opened the local preview in the in-app browser and kept it available.
+- Saved a standalone HTML/asset ZIP and source records under
+  `/home/aavraham/.codex/visualizations/2026/11/10/openshell-storyboard/`.
+  Live companion content/state stay private and ignored under `.superpowers/`;
+  the session access key is absent from tracked files and the standalone export.
+- Rechecked all ten existing media artifact hashes: unchanged. This is a visual
+  proposal, not an implemented renderer feature or a newly sealed/reviewed script.
+  Pronunciation audition/full-name override, actual image support, final storyboard
+  agreement and any production regeneration remain future work.

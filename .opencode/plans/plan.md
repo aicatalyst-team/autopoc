@@ -443,9 +443,20 @@ allowed; no formal STE compliance is claimed. No live rollout occurred.
 | Task | Status |
 |------|--------|
 | Inspect actual presentation, narration timing and pronunciation support | ✅ 9.10.1 — definition missing from cover; five checks not named in speech; next-step speech begins about 20s into its slide; AutoPoC has no full-name override |
-| Agree audience, revised story and visuals | In progress — audience/storyboard questions open |
+| Confirm audience and provide a visual storyboard | ✅ 9.10.2 — technical managers/customer engineers; interactive eight-scene mockup delivered |
+| Agree revised story and visuals | In progress — awaiting feedback on the mockup |
 | Design, implementation and any new media revision | Pending agreement; not started |
 
 Potential directions are recorded in implementation-plan.md 9.10.1. Scope
 wording must distinguish coverage gaps from product failures. New source images
 need offline, reviewed asset support. Existing delivered media is unchanged.
+
+- ✅ Audience/storyboard exploration (9.10.2): interactive eight-scene visual
+  proposal with paired simple-English narration, authentic source-page capture,
+  optional concept-diagram opening, explicit five-check inventory, accurate
+  coverage language and a separate takeaway before next tests. Eight desktop
+  layouts inspected; native narrow-panel preview readable. Standalone backup:
+  /home/aavraham/.codex/visualizations/2026/11/10/openshell-storyboard/.
+  Existing ten media artifact hashes unchanged. Product implementation and new
+  audio/video remain unstarted; final design agreement and pronunciation audition
+  are still pending. Preview session credentials are not committed/exported.
