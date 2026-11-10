@@ -496,7 +496,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Pronunciation and measured generic acceptance (plan Task 7) | In progress — ✅ selected full-name pronunciation implemented; fresh-image/media acceptance pending |
 | En-MaaS provider preflight for the fresh run | ✅ 10.9.1 — external settings/key found; actual worker text/tool calls and in-cluster authenticated connection verified |
 | Prepare isolated namespace, access, workspace and source branch | ✅ 10.9.2 — new run c00040c2 only; no application workload launched |
-| Fresh branch images and isolated OpenShell full cycle | Pending implementation |
+| Fresh branch images and isolated OpenShell full cycle | In progress — new branch images built; isolated worker launched (10.9.3); original PoC phases pending |
 | Retrieve and inspect slides/video for user review | Pending fresh run |
 
 ### 10.1 Verify isolated branch and clean baseline — ✅ 10 November 2026
@@ -732,3 +732,32 @@ Independent synthetic review caught the library minimal evidence-index coverage
 gap still using the older nonexecution inference. ✅ Corrected that remaining
 source field to the same record-not-established wording; fresh worker packaging
 and repeat library semantic review are required before media acceptance.
+
+
+### 10.9.3 Launch the fresh branch-based OpenShell worker — ✅ 10 November 2026
+
+Created one-off worker Job autopoc-openshell-story-c00040c2, run
+c00040c2196d4919b3e5b0a7fd947faf, using worker source c997290 and published image
+sha256:b169dd89db35f0ac895b4e688ff567d7e6b4c53fa892be3c3df9c00e1b43aa55.
+The configured renderer is source9746cbb/image
+sha256:1c1dc7b1510b25c113eb28a053d1e9f01fe449860171ba9397a62eab6964f215.
+The Pod was admitted under restricted-v2. Initial scheduling/init is pending;
+no deployment/test/report success is inferred from Job creation. Core code and
+fresh image checks passed; the long source workflow overlaps the final library
+synthetic media QA/read-only reviews, with output acceptance still gated.
+Shared CronJobs/settings and earlier application deployments remain untouched.
+
+| Fresh original PoC phase | Status |
+|---|---|
+| Intake | Pending |
+| Evaluate | Pending |
+| Fork/adopt prepared source branch | Pending |
+| Plan | Pending |
+| Containerize | Pending |
+| Build | Pending |
+| Deploy manifests | Pending |
+| Apply | Pending |
+| Execute original validation | Pending |
+| Report and reviewed media inputs | Pending |
+| Eligible blog | Pending |
+| Offline renderer and local retrieval | Pending original execution/report |
