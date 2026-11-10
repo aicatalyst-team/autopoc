@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from typing import cast
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 from autopoc.evidence import _json
 
@@ -235,6 +235,15 @@ def _https_reference(value) -> None:
             and parsed.password is None
             and not re.search(r"[\s\\\x00-\x1f\x7f]", reference),
             "Project references must be credential-free HTTPS URLs",
+        )
+        # urllib preserves percent escapes in hosts; the offline URL parser
+        # decodes them and rejects malformed escapes or forbidden host bytes.
+        host = parsed.hostname or ""
+        decoded_host = unquote(host, errors="strict")
+        _need(
+            not re.search(r"%(?![0-9A-Fa-f]{2})", host)
+            and not re.search(r"[%#/<>?@\[\]\\^|\s\x00-\x1f\x7f]", decoded_host),
+            "Invalid project hostname",
         )
         # Accessing port also rejects malformed authorities.
         _ = parsed.port

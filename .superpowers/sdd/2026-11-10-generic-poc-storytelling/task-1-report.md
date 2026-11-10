@@ -35,3 +35,22 @@ Parent clarified the empty-inventory contract: require testing/checks content st
 Task 2 must bind visual IDs to manifest assets and provenance; Task 4 must visibly disclose null revision metadata. This task validates their structural fields only. Exact browser IDs/statuses rely on upstream verified evidence/derived metadata integration in subsequent tasks. Measured audio remains authoritative for scripts passing the estimate. No production rendering, live activation, new media, cloud publication or test reruns for evidence occurred.
 
 No known implementation blockers. The existing dirty `.coverage` output was not staged. Full browser integration remains gated as at baseline.
+
+## Review fix round 1 — malformed hostname parity
+
+Confirmed the review finding against the shared empty-inventory fixture. Python's
+`urlsplit` preserved malformed percent bytes while Node's URL parser rejected
+them. Added both-suite regressions for `https://exa%mple.org/repo`, encoded
+percent `%25`, and encoded slash `%2F`; added positive encoded-hostname and IPv6
+regressions so host independence and accepted valid URL forms remain intact.
+
+RED: three new Python failures / 86 passed; Node already rejected malformed
+hostnames and passed all 66 tests. Python now validates hostname percent escapes
+and rejects forbidden decoded host bytes, without changing the rendered URL or
+introducing host-specific rules. No Node implementation change was necessary.
+
+GREEN: 89 focused Python tests and 66 storyboard tests passed. Scoped Ruff,
+format checking and Pyright passed. Full renderer suite: 87 passed, five explicit
+browser-gated skips. No new blockers or rollout claims.
+
+Full Python verification after the fix: 545 passed in 27.84s; 86.71% coverage.

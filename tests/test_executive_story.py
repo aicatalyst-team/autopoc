@@ -490,6 +490,9 @@ def test_schema3_long_inventory_fails_lower_bound_before_synthesis():
 @pytest.mark.parametrize(
     "url",
     [
+        "https://exa%mple.org/repo",
+        "https://exa%25mple.org/repo",
+        "https://exa%2Fmple.org/repo",
         "https:///example.org",
         "https://@example.org",
         "https://example.org:bad",
@@ -501,3 +504,10 @@ def test_schema3_rejects_malformed_https_authorities(url):
     case["narrative"]["project_context"]["repository_url"] = url
     with pytest.raises(ValueError):
         validate_generic(case)
+
+
+@pytest.mark.parametrize("url", ["https://ex%61mple.org/repo", "https://[2001:db8::1]/repo"])
+def test_schema3_preserves_valid_encoded_and_ipv6_hosts(url):
+    case = generic_cases()[0]
+    case["narrative"]["project_context"]["repository_url"] = url
+    validate_generic(case)

@@ -164,7 +164,12 @@ test('schema3 impossible long inventory fails before synthesis', () => {
   item.plan.slide_ids = n.slides.map(s => s.id)
   assert.throws(() => validateStoryboard(n,item.plan), /estimated/)
 })
-for (const url of ['https:///example.org','https://@example.org','https://example.org:bad','https://example.org/\nsecret']) test(`schema3 rejects malformed URL ${JSON.stringify(url)}`, () => {
+for (const url of ['https://exa%mple.org/repo','https://exa%25mple.org/repo','https://exa%2Fmple.org/repo','https:///example.org','https://@example.org','https://example.org:bad','https://example.org/\nsecret']) test(`schema3 rejects malformed URL ${JSON.stringify(url)}`, () => {
   const item = structuredClone(genericCases[0]); item.narrative.project_context.repository_url = url
   assert.throws(() => validateStoryboard(item.narrative,item.plan))
+})
+
+for (const url of ['https://ex%61mple.org/repo','https://[2001:db8::1]/repo']) test(`schema3 preserves valid URL ${url}`, () => {
+  const item = structuredClone(genericCases[0]); item.narrative.project_context.repository_url = url
+  validateStoryboard(item.narrative,item.plan)
 })

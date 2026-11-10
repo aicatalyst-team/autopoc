@@ -55,6 +55,9 @@ Status: proposed implementation; no tasks below have been implemented. The user 
 - [x] Run `pytest tests/test_executive_story.py -q` and `node --test renderer/storyboard.test.mjs`; confirm new tests fail for missing behavior, then implement shared constraints and deterministic derivation. Evidence-backed identity definition and labels use existing selector validation.
 - [x] Re-run those tests; include long inventories that violate the existing lower-bound duration estimate to prove impossible scripts fail before synthesis. Measured duration remains authoritative for scripts that pass the estimate. Document schema-3 fields in fixture README; update trackers and commit.
 
+Task 1 review fix round 1: malformed hostname parity verified (89 focused Python,
+66 storyboard; full 545 Python / 87 renderer passed, five browser skips).
+
 ## Task 2: Package optional visuals and bind them to review
 
 **Files:** create `src/autopoc/executive_visuals.py`, `tests/test_executive_visuals.py`; modify `src/autopoc/executive_inputs.py`, `src/autopoc/executive_cluster.py`, `tests/test_executive_inputs.py`, `tests/test_executive_cluster.py`; create ADR 0015.
