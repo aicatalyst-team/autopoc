@@ -487,6 +487,7 @@ recommendations are not execution instructions.
 | Fresh OpenShell end-to-end branch run | ✅ Done | 9 November: deployed, original 5/5 pass, corrected report persisted, final 3m28s Kokoro video and five artifacts retrieved/verified; Drive/listening gates remain |
 | Regenerate OpenShell with 3D views | ✅ Done | Two TopoLoop scenes; reviewed 3m28s video, animated browser deck/PDF/source retrieved and verified, original tests unchanged |
 | Simplify future voice-over English | ✅ Done | Author/reviewer guidance and synthetic example updated; STE principles without a restricted vocabulary; existing media retained |
+| Presentation feedback and revised storytelling | In progress | 10 November: existing slides/timing/lexicon inspected; audience and storyboard preferences open; no implementation |
 | Controlled production rollout | Pending | Drive invalid_grant, human listening and explicit merge/live configuration approval |
 
 ### 9.1 Generate and verify a local Kokoro audition — ✅ 8 November 2026
@@ -1268,3 +1269,46 @@ new render, deployment or existing sealed-script change was requested.
 - Rules are committed source guidance. Dockerfile copies them into the worker
   image, so the next worker build must include this revision before future runs
   use it. No deployed image/shared settings or production rollout was changed.
+
+### 9.10 Brainstorm presentation-feedback improvements — In progress, 10 November 2026
+
+User requested brainstorming on opening context, authentic project imagery,
+less text, explicit test names, AutoPoC pronunciation, fair test-scope wording,
+and the late verbal introduction of the recommendation slide. No new render or
+product-code change has been authorized by this brainstorming request.
+
+| Task | Status |
+|------|--------|
+| Inspect actual slides, sentence timing, terminology and renderer capabilities | ✅ 9.10.1 |
+| Agree audience, revised story and visual treatment | In progress |
+| Save an agreed design and implementation plan | Pending agreement |
+| Implement and regenerate media | Not started |
+
+#### 9.10.1 Ground the feedback in the existing deliverable — ✅ 10 November 2026
+
+- Opening visible copy states the PoC objective but does not define the project;
+  its spoken opening includes the definition. Pinned upstream README includes
+  official project branding and a product description suitable as source context.
+- Testing speech describes the mechanism and capture instead of naming all five
+  checks. Existing TopoLoop board has terse labels; explicit names/actions should
+  remain visible and be spoken in the same order. A dedicated checklist treatment
+  must respect or deliberately extend the current four-bullet contract.
+- Actual final 3D timeline: recommendation scene begins at 177.567s; its first
+  sentence starts at 177.917s, then an HA-example sentence at 187.867s. Specific
+  next steps start at 198.167s. The approximately 20s mismatch is within the
+  authored chapter: recap/context precede the action-oriented narration.
+- Current source lexicon overrides standalone PoC but not AutoPoC; verified the
+  actual apply() behavior. Delivered video used the earlier renderer without
+  the newer pronunciation policy. A future full-name audition/override needs
+  measured listening, not only capitalization changes.
+- Proposal under discussion: plain project definition; authentic source-page
+  screenshot/logo; visuals with a clear explanatory job; explicit five-check
+  overview; full-name pronunciation samples; coverage-oriented wording that
+  distinguishes untested, partially tested and failed; narration-aligned recap
+  and next-steps beats. Generated art would illustrate concepts, while project
+  identity and recorded setup remain grounded in authentic assets/evidence.
+- Screenshots/illustrations need reviewed asset support in sealed inputs and
+  the offline renderer; current fixed input payloads and graph/text template
+  do not already provide arbitrary screenshot/image authoring.
+- Audience and optional visual-storyboard preference have been asked. These are
+  investigation findings and proposals, not an agreed design or implemented fix.

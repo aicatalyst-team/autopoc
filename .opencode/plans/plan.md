@@ -437,3 +437,15 @@ The user explicitly chose future videos only. Existing OpenShell scripts/videos
 remain unchanged. Targets of 10–20 words per sentence, normally within 25, guide
 writing rather than introduce a schema gate. Necessary technical vocabulary is
 allowed; no formal STE compliance is claimed. No live rollout occurred.
+
+### Presentation feedback discussion — In progress, 10 November 2026
+
+| Task | Status |
+|------|--------|
+| Inspect actual presentation, narration timing and pronunciation support | ✅ 9.10.1 — definition missing from cover; five checks not named in speech; next-step speech begins about 20s into its slide; AutoPoC has no full-name override |
+| Agree audience, revised story and visuals | In progress — audience/storyboard questions open |
+| Design, implementation and any new media revision | Pending agreement; not started |
+
+Potential directions are recorded in implementation-plan.md 9.10.1. Scope
+wording must distinguish coverage gaps from product failures. New source images
+need offline, reviewed asset support. Existing delivered media is unchanged.
