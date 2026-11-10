@@ -173,3 +173,9 @@ for (const url of ['https://ex%61mple.org/repo','https://[2001:db8::1]/repo']) t
   const item = structuredClone(genericCases[0]); item.narrative.project_context.repository_url = url
   validateStoryboard(item.narrative,item.plan)
 })
+
+for (const escape of ['00','01','09','0a','0d','1f','20','23','25','2f','3a','3c','3e','3f','40','5b','5c','5d','5e','7c','7f']) test(`schema3 rejects percent-decoded forbidden domain character ${escape}`, () => {
+  const item = structuredClone(genericCases[0])
+  item.narrative.project_context.repository_url = `https://exa%${escape}mple.org/repo`
+  assert.throws(() => validateStoryboard(item.narrative,item.plan))
+})

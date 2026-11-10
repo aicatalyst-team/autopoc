@@ -487,7 +487,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Task | Status |
 |---|---|
 | Verify isolated branch and baseline | ✅ 10.1 — 496 Python tests, 86.44% coverage; 40 renderer tests passed, 5 browser-gated skips |
-| Generic story roles and complete check coverage (plan Task 1) | ✅ 10.2 — 545 Python tests, 86.71% coverage; 87 renderer tests passed, 5 browser-gated skips |
+| Generic story roles and complete check coverage (plan Task 1) | ✅ 10.2 — 566 Python tests, 86.71% coverage; 108 renderer tests passed, 5 browser-gated skips |
 | Reviewed optional visual assets (plan Task 2) | Pending |
 | Generic author/reviewer guidance and examples (plan Task 3) | Pending |
 | Reusable identity/check layouts and timing (plan Task 4) | Pending |
@@ -529,3 +529,10 @@ with the offline browser, preserving valid encoded and IPv6 hosts. RED: three
 Python malformed-host failures; GREEN: 89 focused Python / 66 storyboard tests.
 Full checks: 545 Python passed, 86.71% coverage; 87 renderer passed, five browser
 skips; scoped lint, formatting and typecheck passed. Task 1 remains complete.
+
+Task 1 review fix round 2: completed percent-decoded forbidden-domain character
+validation, preserving colons only for validated bracketed IPv6. Both suites
+cover 21 encoded forbidden/control bytes. RED: encoded colon failed in Python;
+GREEN: 110 focused Python / 87 storyboard tests. Full verification: 566 Python
+passed, 86.71% coverage; 108 renderer passed, five browser skips; scoped lint,
+formatting and typecheck passed. Task 1 remains complete.

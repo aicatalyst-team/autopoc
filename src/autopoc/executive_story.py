@@ -240,9 +240,16 @@ def _https_reference(value) -> None:
         # decodes them and rejects malformed escapes or forbidden host bytes.
         host = parsed.hostname or ""
         decoded_host = unquote(host, errors="strict")
+        # A bracketed IPv6 literal has already been parsed/validated by
+        # urlsplit. Colons are legal only there, never in a decoded domain.
+        # Keep all other forbidden-domain characters (including zone-id '%')
+        # subject to the same check in either authority form.
+        checked_host = (
+            decoded_host.replace(":", "") if parsed.netloc.startswith("[") else decoded_host
+        )
         _need(
             not re.search(r"%(?![0-9A-Fa-f]{2})", host)
-            and not re.search(r"[%#/<>?@\[\]\\^|\s\x00-\x1f\x7f]", decoded_host),
+            and not re.search(r"[%#/:<>?@\[\]\\^|\s\x00-\x1f\x7f]", checked_host),
             "Invalid project hostname",
         )
         # Accessing port also rejects malformed authorities.

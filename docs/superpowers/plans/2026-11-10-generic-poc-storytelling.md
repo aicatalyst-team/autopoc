@@ -58,6 +58,10 @@ Status: proposed implementation; no tasks below have been implemented. The user 
 Task 1 review fix round 1: malformed hostname parity verified (89 focused Python,
 66 storyboard; full 545 Python / 87 renderer passed, five browser skips).
 
+Task 1 review fix round 2: complete decoded forbidden-domain character set
+covered in both languages; valid IPv6 retained (110 focused Python / 87 storyboard;
+full 566 Python / 108 renderer passed, five browser skips).
+
 ## Task 2: Package optional visuals and bind them to review
 
 **Files:** create `src/autopoc/executive_visuals.py`, `tests/test_executive_visuals.py`; modify `src/autopoc/executive_inputs.py`, `src/autopoc/executive_cluster.py`, `tests/test_executive_inputs.py`, `tests/test_executive_cluster.py`; create ADR 0015.

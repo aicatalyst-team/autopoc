@@ -511,3 +511,36 @@ def test_schema3_preserves_valid_encoded_and_ipv6_hosts(url):
     case = generic_cases()[0]
     case["narrative"]["project_context"]["repository_url"] = url
     validate_generic(case)
+
+
+@pytest.mark.parametrize(
+    "escape",
+    [
+        "00",
+        "01",
+        "09",
+        "0a",
+        "0d",
+        "1f",
+        "20",
+        "23",
+        "25",
+        "2f",
+        "3a",
+        "3c",
+        "3e",
+        "3f",
+        "40",
+        "5b",
+        "5c",
+        "5d",
+        "5e",
+        "7c",
+        "7f",
+    ],
+)
+def test_schema3_rejects_percent_decoded_forbidden_domain_characters(escape):
+    case = generic_cases()[0]
+    case["narrative"]["project_context"]["repository_url"] = f"https://exa%{escape}mple.org/repo"
+    with pytest.raises(ValueError):
+        validate_generic(case)
