@@ -354,3 +354,36 @@ onMounted(()=>{window.freezeHarness=async(value,show=true)=>{freeze.value=value;
   assert.equal(await page.locator('canvas').count(),0);assert.deepEqual(errors,[])
  }finally{await browser?.close();if(server)await new Promise(r=>server.close(r));await rm(root,{recursive:true,force:true})}
 })
+
+// Removing the schema-3 recorder tail must fail strict measured coverage on a
+// CPU-limited software-rendered topology, while all published frames stay clean.
+test('busy 3D capture retains the complete measured scene after the private slate',{skip:!process.env.AUTOPOC_BROWSER_INTEGRATION},async()=>{
+ const root=await mkdtemp(join(tmpdir(),'autopoc-3d-capture-'));let browser,server,context
+ try{
+  const {playMeasuredScene}=await import('./render.mjs'),{encodeCapture}=await import('./audio.mjs'),{execFileSync}=await import('node:child_process')
+  const run=async(command,args,cwd)=>execFileSync(command,args,{cwd,maxBuffer:20*1024*1024}).toString()
+  const data=await stageExample(root,'github-service'),slide=data.narrative.slides[3]
+  slide.layout='topology';slide.graph={"title":"Synthetic busy capture","loop":18,"nodes":[{"id":"worker","label":"Worker","sub":"Pinned SDK","kind":"external","anchor":"left","pos":[-10,0,8]},{"id":"gateway","label":"Gateway","sub":"Ready","kind":"pod","anchor":"up","pos":[0,0,0]},{"id":"supervisor","label":"Supervisor","sub":"Not attached","kind":"pod","anchor":"right","pos":[10,0,-8]},{"id":"data","label":"Data PVC","sub":"10Gi / Bound","kind":"store","anchor":"up","pos":[0,-5,0]}],"edges":[["worker","gateway"],["gateway","data"],["gateway","supervisor"]],"paths":{"api":{"via":["worker","gateway"]},"assignment-missing":{"via":["gateway","supervisor"]},"gateway-storage":{"via":["gateway","data"]}},"acts":[{"id":0,"t0":0,"t1":6,"title":"Synthetic request","path":"api","tone":"positive","status":{"label":"API check","value":"PASS"}},{"id":1,"t0":6,"t1":12,"title":"Synthetic dependency","path":"assignment-missing","stopAt":0.45,"tone":"negative","status":{"label":"Assignment","value":"MISSING"}},{"id":2,"t0":12,"t1":18,"title":"Synthetic storage","path":"gateway-storage","tone":"neutral","status":{"label":"Data volume","value":"BOUND"}}]};slide.graph_claim_ids=[...slide.bullet_claim_ids]
+  await writeFile(join(root,'narrative.json'),JSON.stringify(data.narrative))
+  const deck=await buildDeck(root),hosted=await serve(join(deck,'dist'));server=hosted.server
+  const modules=resolve(process.env.AUTOPOC_RENDER_NODE_MODULES || new URL('./node_modules',import.meta.url).pathname),{chromium}=await import(join(modules,'playwright-chromium/index.mjs'))
+  browser=await chromium.launch({headless:true,executablePath:process.env.AUTOPOC_CHROMIUM_EXECUTABLE || undefined,args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']})
+  context=await browser.newContext({viewport:{width:1280,height:720},recordVideo:{dir:join(root,'capture'),size:{width:1280,height:720}}})
+  const page=await context.newPage();await page.goto(`${hosted.url}/4?embedded`,{waitUntil:'networkidle'})
+  await page.locator('.executive[data-executive-ready="true"]').waitFor()
+  const scene={id:slide.id,start_seconds:105.4,duration_seconds:35.4,frame_count:1062}
+  await page.evaluate(duration=>window.dispatchEvent(new CustomEvent('executive-duration',{detail:duration})),scene.duration_seconds)
+  await page.evaluate(()=>window.dispatchEvent(new CustomEvent('executive-reset')));await page.locator('[data-executive-ready="true"]').waitFor()
+  await playMeasuredScene(page,scene,3)
+  const raw=await page.video().path();await context.close();context=null
+  if(process.env.AUTOPOC_BROWSER_QA_DIR)await cp(raw,join(process.env.AUTOPOC_BROWSER_QA_DIR,'busy-3d-raw.webm'))
+  const output=join(root,'scene.mp4'),offset=await encodeCapture(raw,scene,output,root,run,{anchor_slate:true})
+  const probe=JSON.parse(await run('ffprobe',['-v','error','-show_format','-show_streams','-of','json',output],root))
+  assert.equal(Number(probe.streams[0].nb_frames),1062)
+  assert.ok(Math.abs(Number(probe.format.duration)-35.4)<1/30)
+  const corners=execFileSync('ffmpeg',['-v','error','-i',output,'-vf','crop=2:2:2:2,scale=1:1','-f','rawvideo','-pix_fmt','rgb24','pipe:1'],{maxBuffer:1024*1024})
+  assert.equal(corners.length,1062*3)
+  for(let i=0;i<corners.length;i+=3)assert.ok(!(corners[i]>180&&corners[i+1]<80&&corners[i+2]>180),'Private slate must never appear in a published scene')
+  if(process.env.AUTOPOC_BROWSER_QA_DIR){await cp(output,join(process.env.AUTOPOC_BROWSER_QA_DIR,'busy-3d-scene.mp4'));await writeFile(join(process.env.AUTOPOC_BROWSER_QA_DIR,'busy-3d.json'),JSON.stringify({offset,frame_count:1062,duration_seconds:35.4}))}
+ }finally{await context?.close();await browser?.close();if(server)await new Promise(r=>server.close(r));await rm(root,{recursive:true,force:true})}
+})

@@ -109,7 +109,12 @@ export async function encodeCapture(raw,scene,output,cwd,run,{anchor_slate=false
   // actual frame PTS; browser startup and final-frame padding are variable.
   // Legacy callers retain the original measured-media-end crop unchanged.
   const offset=anchor_slate ? await slateCaptureOffset(raw,output,cwd,run) : duration-scene.duration_seconds
-  need(finite(offset) && offset>=0 && offset+scene.duration_seconds<=duration+.04)
+  need(finite(offset) && offset>=0)
+  if (!(offset+scene.duration_seconds<=duration+.04)) {
+    // Numeric capture diagnostics are safe to retain in the manifest/log. Do
+    // not include raw paths, browser content or private pre-roll artifacts.
+    throw new Error(`Insufficient captured scene coverage: raw_seconds=${duration}, anchor_seconds=${offset}, required_seconds=${scene.duration_seconds}, available_seconds=${Number((duration-offset).toFixed(6))}`)
+  }
   await run('ffmpeg',['-v','error','-y','-ss',String(offset),'-i',raw,'-an','-vf','fps=30,tpad=stop_mode=clone:stop_duration=0.1','-frames:v',String(scene.frame_count),'-c:v','libx264','-pix_fmt','yuv420p',output],cwd)
   return offset
 }

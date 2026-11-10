@@ -497,6 +497,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | En-MaaS provider preflight for the fresh run | ✅ 10.9.1 — external settings/key found; actual worker text/tool calls and in-cluster authenticated connection verified |
 | Prepare isolated namespace, access, workspace and source branch | ✅ 10.9.2 — new run c00040c2 only; no application workload launched |
 | Fresh branch images and isolated OpenShell full cycle | In progress — new branch images built; isolated worker launched (10.9.3); original PoC phases pending |
+| Repair strict narrated 3D capture coverage | ✅ 10.9.23 — exact short-tail reproduction; bounded schema-3 tail; strict encoded duration/frame/cue checks pass |
 | Retrieve and inspect slides/video for user review | Pending fresh run |
 | Final code-review/provenance correction | ✅ 10.10 — TopoLoop provenance now identifies the local lifecycle patch; Phase 10 remains in progress |
 
@@ -1008,3 +1009,43 @@ identity/provenance, all five named check rows, 3D setup still, exact totals,
 untested-scope wording and immediate next actions. No clipping observed.
 Video encoding, final artifact verification/retrieval and human full listening
 remain pending. PDF/media inspection is not PoC functional success.
+
+### 10.9.23 Strict narrated 3D capture coverage repair — ✅ 10 November 2026
+
+| Task | Status |
+|------|--------|
+| Reproduce the exact setup scene and retain private raw/PTS/color measurements | ✅ Complete |
+| Add bounded schema-3 recorder tail and safe numeric coverage diagnostics | ✅ Complete |
+| Prove busy 3D RED/GREEN, exact actual-scene capture and encoded cue alignment | ✅ Complete |
+| Run the full renderer suite with trusted FFmpeg | ✅ Complete |
+
+The original actual scene reproduced locally in the pinned c493de2e runtime,
+offline/read-only as UID28128/group0 with2CPU/4Gi. Raw duration39.840s minus
+slate-exit PTS5.080s left34.760s for the required35.400s: a640ms capture-tail
+shortage, correctly refused by the strict coverage guard. Software3D compositor
+swap timestamps can trail the completed browser-clock wait. Private raw,
+frame PTS, corner colors and measurements are retained outside temporary scratch
+under `/tmp/autopoc-openshell-layout-c00040c2`; none are published artifacts.
+
+Schema3 now allows a bounded1500ms recorder tail instead of150ms before close.
+The private-slate start anchor, strict coverage/frame guards, check clocks,
+reviewed scene/audio lengths and process/resource limits are unchanged. Schema2
+retains its original duration+150ms behavior. Incomplete anchored capture now
+reports numeric raw/anchor/required/available seconds without media paths.
+
+The new actual four-node/three-act TopoLoop regression failed before the repair
+(35.160s available), then passed after it (36.520s available), encoding exactly
+1062frames/35.4s with no private-slate frames. The separately repeated exact
+actual setup input passed with raw41.120s, anchor4.840s and36.280s available;
+its encoded output has1062frames/35.4s and no slate. Existing encoded check-cue
+regression passed: frames11–24 at30fps versus measured0.35–0.85s, within its
+unchanged two-frame tolerance. Both actual-browser tests passed together with
+zero skips (79.746s). Diagnostic regression also followed RED/GREEN.
+
+Full renderer `npm test` with FFmpeg integration enabled in the trusted pinned
+runtime passed126tests, zero failures,11explicit browser-integration skips
+(18.443s). An initial host attempt had three FFmpeg tests fail because its
+FFmpeg lacks libx264; the trusted-runtime rerun passed all three. No PoC checks
+were replayed. Fresh image rebuild, full image/browser acceptance, actual OCP
+rerender, publication and full human listening remain pending; Phase10 remains
+in progress. This is a local capture repair, not PoC functional success.

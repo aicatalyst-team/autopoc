@@ -129,3 +129,19 @@ test('real variable-frame browser recording retains every fractional scene frame
     assert.equal(Number(p.streams[0].nb_frames),181)
   }finally {await rm(root,{recursive:true,force:true})}
 })
+
+test('incomplete anchored capture reports safe measured coverage without media paths',{skip:!process.env.AUTOPOC_FFMPEG_INTEGRATION},async()=>{
+  const root=await mkdtemp(join(tmpdir(),'autopoc-short-capture-'))
+  const run=async(command,args,cwd)=>execFileSync(command,args,{cwd,maxBuffer:20*1024*1024}).toString()
+  try{
+    const raw=join(root,'private-raw.webm')
+    await run('ffmpeg',['-v','error','-y','-f','lavfi','-i','color=c=magenta:s=1280x720:r=25:d=0.24','-f','lavfi','-i','color=c=blue:s=1280x720:r=25:d=1','-filter_complex','[0:v][1:v]concat=n=2:v=1:a=0','-c:v','libvpx','-deadline','realtime',raw],root)
+    await assert.rejects(encodeCapture(raw,{duration_seconds:1.2,frame_count:36},'scene.mp4',root,run,{anchor_slate:true}),error=>{
+      assert.match(error.message,/Insufficient captured scene coverage/)
+      assert.match(error.message,/raw_seconds=1\.24/);assert.match(error.message,/anchor_seconds=0\.24/)
+      assert.match(error.message,/required_seconds=1\.2/);assert.match(error.message,/available_seconds=1/)
+      assert.ok(!error.message.includes(root));assert.ok(!error.message.includes('private-raw'))
+      return true
+    })
+  }finally{await rm(root,{recursive:true,force:true})}
+})

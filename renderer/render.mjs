@@ -294,7 +294,12 @@ export async function playMeasuredScene(page, scene, schemaVersion) {
       if (elapsed < scene.duration_seconds) requestAnimationFrame(tick)
     }; requestAnimationFrame(tick); resolve()
   })), scene)
-  await page.waitForTimeout(scene.duration_seconds*1000+150)
+  // Software 3D compositing can trail the browser clock by more than the
+  // legacy 150ms tail (measured at 640ms short with 2 CPUs). Give the recorder
+  // a bounded tail before closing the page. The slate anchors the start, so
+  // this extra capture is discarded without moving cues or extending audio;
+  // encodeCapture still rejects insufficient measured media coverage.
+  await page.waitForTimeout(scene.duration_seconds*1000+1500)
 }
 
 export async function recordPresentation(input, output, timelinePath) {
