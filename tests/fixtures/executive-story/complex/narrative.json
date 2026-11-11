@@ -1,0 +1,252 @@
+{
+  "schema_version": 2,
+  "run_id": "run-1",
+  "project_name": "Demo",
+  "claims": [
+    {
+      "id": "claim-0",
+      "text": "Evaluate the synthetic server deployment on OpenShift.",
+      "kind": "planned",
+      "sources": [
+        "report.md#L2-L2"
+      ]
+    },
+    {
+      "id": "claim-1",
+      "text": "Use HTTP checks to validate the deployed components.",
+      "kind": "planned",
+      "sources": [
+        "report.md#L3-L3"
+      ]
+    },
+    {
+      "id": "claim-2",
+      "text": "The reported architecture includes a frontend, API, worker and storage.",
+      "kind": "planned",
+      "sources": [
+        "report.md#L4-L4"
+      ]
+    },
+    {
+      "id": "claim-3",
+      "text": "The report describes frontend-to-API and API-to-worker connections.",
+      "kind": "planned",
+      "sources": [
+        "report.md#L5-L5"
+      ]
+    },
+    {
+      "id": "claim-4",
+      "text": "The report describes worker-to-storage connectivity.",
+      "kind": "planned",
+      "sources": [
+        "report.md#L6-L6"
+      ]
+    },
+    {
+      "id": "claim-5",
+      "text": "Health, worker and storage HTTP checks passed.",
+      "kind": "observed",
+      "sources": [
+        "report.md#L7-L7",
+        "test-results.json",
+        "attempt-index.json"
+      ]
+    },
+    {
+      "id": "claim-6",
+      "text": "Authenticated workflows and production reliability remain unproven.",
+      "kind": "observed",
+      "sources": [
+        "report.md#L8-L8"
+      ]
+    },
+    {
+      "id": "claim-7",
+      "text": "Validate authenticated workflows before considering production use.",
+      "kind": "recommendation",
+      "sources": [
+        "report.md#L9-L9"
+      ]
+    }
+  ],
+  "slides": [
+    {
+      "id": "slide-0",
+      "section": "objective",
+      "title": "Evaluate the synthetic server deployment on OpenShift.",
+      "title_claim_ids": [
+        "claim-0"
+      ],
+      "bullet_claim_ids": [
+        "claim-0"
+      ],
+      "narration": [
+        {
+          "text": "Evaluate the synthetic server deployment on OpenShift.",
+          "claim_ids": [
+            "claim-0"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-1",
+      "section": "testing",
+      "title": "Use HTTP checks to validate the deployed components.",
+      "title_claim_ids": [
+        "claim-1"
+      ],
+      "bullet_claim_ids": [
+        "claim-1"
+      ],
+      "narration": [
+        {
+          "text": "Use HTTP checks to validate the deployed components.",
+          "claim_ids": [
+            "claim-1"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-2",
+      "section": "setup",
+      "title": "The reported architecture includes a frontend, API, worker and storage.",
+      "title_claim_ids": [
+        "claim-2"
+      ],
+      "bullet_claim_ids": [
+        "claim-2"
+      ],
+      "narration": [
+        {
+          "text": "The reported architecture includes a frontend, API, worker and storage.",
+          "claim_ids": [
+            "claim-2"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-3",
+      "section": "setup",
+      "title": "The report describes frontend-to-API and API-to-worker connections.",
+      "title_claim_ids": [
+        "claim-3"
+      ],
+      "bullet_claim_ids": [
+        "claim-3"
+      ],
+      "narration": [
+        {
+          "text": "The report describes frontend-to-API and API-to-worker connections.",
+          "claim_ids": [
+            "claim-3"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-4",
+      "section": "setup",
+      "title": "The report describes worker-to-storage connectivity.",
+      "title_claim_ids": [
+        "claim-4"
+      ],
+      "bullet_claim_ids": [
+        "claim-4"
+      ],
+      "narration": [
+        {
+          "text": "The report describes worker-to-storage connectivity.",
+          "claim_ids": [
+            "claim-4"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-5",
+      "section": "results",
+      "title": "Health, worker and storage HTTP checks passed.",
+      "title_claim_ids": [
+        "claim-5"
+      ],
+      "bullet_claim_ids": [
+        "claim-5"
+      ],
+      "narration": [
+        {
+          "text": "Health, worker and storage HTTP checks passed.",
+          "claim_ids": [
+            "claim-5"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-6",
+      "section": "limitations",
+      "title": "Authenticated workflows and production reliability remain unproven.",
+      "title_claim_ids": [
+        "claim-6"
+      ],
+      "bullet_claim_ids": [
+        "claim-6"
+      ],
+      "narration": [
+        {
+          "text": "Authenticated workflows and production reliability remain unproven.",
+          "claim_ids": [
+            "claim-6"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-7",
+      "section": "recommendation",
+      "title": "Validate authenticated workflows before considering production use.",
+      "title_claim_ids": [
+        "claim-7"
+      ],
+      "bullet_claim_ids": [
+        "claim-7"
+      ],
+      "narration": [
+        {
+          "text": "Validate authenticated workflows before considering production use.",
+          "claim_ids": [
+            "claim-7"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    }
+  ],
+  "conflicts": [],
+  "coverage_gaps": [],
+  "results": {
+    "error": 0,
+    "fail": 0,
+    "incomplete": 0,
+    "pass": 3,
+    "skip": 0
+  }
+}

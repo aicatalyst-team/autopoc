@@ -1,0 +1,16 @@
+{
+  "findings": [],
+  "observations": [
+    "The narrative correctly distinguishes between the original five passing HTTP smoke checks and later cluster observations (such as SCC and fsGroup), avoiding the conflation of post-run state with original validation results.",
+    "The classification of 'Authenticated agent workflows remain unproven' as an inference is appropriate, as the source evidence confirms the checks were 'pre-auth' but does not explicitly state that authenticated workflows were tested and failed."
+  ],
+  "approved": true,
+  "schema_version": 2,
+  "reviewer": "configured-opencode",
+  "acceptance_only": true,
+  "model": "vllm/qwen3.8-27b-abliterated",
+  "method": "Independent configured-model API; existing worker credentials in memory only",
+  "narrative_sha256": "9f11d37dddec442d2261103779c33cbbef3574f50937c63249f3595aba5b0c2f",
+  "scenes_sha256": "4e7fbf8536643c19e2edf63b0023dbaa062ba3cba75f02386e79b787a0f0fb9f",
+  "evidence_sha256": "e4872650c85d364a1ad8516ec1fd092599d0439ea3ba6f4d05c2de3585a2cf04"
+}

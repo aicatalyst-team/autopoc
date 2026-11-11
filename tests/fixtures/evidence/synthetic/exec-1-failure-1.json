@@ -1,0 +1,6 @@
+{
+  "duration_seconds": 1,
+  "error": "synthetic failure",
+  "scenario_id": "failure",
+  "status": "fail"
+}

@@ -1,0 +1,1097 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-08",
+  "scope": "Engineering acceptance; not live worker activation or durable Drive publication",
+  "checks": {
+    "python_tests_passed": 482,
+    "coverage_percent": 86.24,
+    "lint": "passed",
+    "typecheck": "passed",
+    "node_default_passed": 35,
+    "node_default_optional_skipped": 5,
+    "actual_ffmpeg_tests_passed": 14,
+    "actual_browser_result_graph_tests_passed": 2,
+    "normalized_renderer_software_pins_audited": 94,
+    "renderer_hash_locked_packages": 95,
+    "advisories_found": 0,
+    "advisory_limitation": "Direct upstream English language-model wheel is hash-verified outside PyPI advisory coverage."
+  },
+  "speech": {
+    "model": "hexgrad/Kokoro-82M",
+    "revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+    "voice": "af_heart",
+    "speed": 0.95,
+    "manifest_sha256": "cc53829edc24d67ed317946d25867ec1236909f374f4a33c5a22355c69f00c24",
+    "downloads": "Build time only; runtime tests have no external network"
+  },
+  "images": {
+    "core_exact_frames": {
+      "reference": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:4d995d2a8e40bd01d898004c2d2689374d07cb0134f30e089a9a861e61a069a3",
+      "role": "Full three-case exact-frame timing acceptance"
+    },
+    "reviewed": {
+      "reference": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:2910f7cc410050017326bc79f4ac307c960d3003521e335f1468ccfeecd90fb3",
+      "role": "Post-review result-graph and PDF-failure corrections; actual browser/FFmpeg and full Omnigent local/OCP rerun"
+    }
+  },
+  "local_acceptance": [
+    {
+      "case": "failed",
+      "image_role": "core_exact_frames",
+      "input_sha256": "ff67e8cedaafe8587e65026af0ed1334682ca806d4123ea2959d4be42e32fd17",
+      "versions": {
+        "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:4d995d2a8e40bd01d898004c2d2689374d07cb0134f30e089a9a861e61a069a3",
+        "policy": 1,
+        "schema": 2,
+        "template": 3
+      },
+      "narration": {
+        "duration_seconds": 50.36666666666667,
+        "engine": "kokoro",
+        "model_manifest_sha256": "cc53829edc24d67ed317946d25867ec1236909f374f4a33c5a22355c69f00c24",
+        "model_revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+        "speed": 0.95,
+        "timeline_sha256": "aa07c741d8b79a06ce22aa995a7fb359b014406acf91048394b170d3f19ca61c",
+        "voice": "af_heart"
+      },
+      "scenes": [
+        {
+          "capture_offset": 1.1600000000000001,
+          "duration_seconds": 6,
+          "frame_count": 180,
+          "graph": false,
+          "id": "slide-0",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.92,
+          "duration_seconds": 6,
+          "frame_count": 180,
+          "graph": false,
+          "id": "slide-1",
+          "ready": true
+        },
+        {
+          "capture_offset": 2.1999999999999993,
+          "duration_seconds": 6,
+          "frame_count": 180,
+          "graph": false,
+          "id": "slide-2",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.3200000000000003,
+          "duration_seconds": 6,
+          "frame_count": 180,
+          "graph": false,
+          "id": "slide-3",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.12,
+          "duration_seconds": 6.8,
+          "frame_count": 204,
+          "graph": false,
+          "id": "slide-4",
+          "ready": true
+        },
+        {
+          "capture_offset": 2.1866666666666665,
+          "duration_seconds": 6.133333333333334,
+          "frame_count": 184,
+          "graph": false,
+          "id": "slide-5",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.8066666666666666,
+          "duration_seconds": 7.433333333333334,
+          "frame_count": 223,
+          "graph": false,
+          "id": "conflict",
+          "ready": true
+        },
+        {
+          "capture_offset": 1,
+          "duration_seconds": 6,
+          "frame_count": 180,
+          "graph": false,
+          "id": "slide-6",
+          "ready": true
+        }
+      ],
+      "artifacts": {
+        "deck": {
+          "path": "static-site.zip",
+          "sha256": "f228cfc49b6b2b493992c816ac8d8f99536f1909393586f455e48d6c95549559",
+          "size": 872763,
+          "status": "generated_unpublished"
+        },
+        "pdf": {
+          "path": "executive-summary.pdf",
+          "sha256": "9acca9a6f84c52f39a8aa072de84b26fdea595640726d64f0fc85d783cc4cd78",
+          "size": 39290,
+          "status": "generated_unpublished"
+        },
+        "source": {
+          "path": "executable-source.zip",
+          "sha256": "e2da5c2ee7dabf3d66ce455abb59f2fa795c18fad3984a4208446f5a7441fb2f",
+          "size": 3855774,
+          "status": "generated_unpublished"
+        },
+        "summary": {
+          "path": "executive-summary.md",
+          "sha256": "b2ffa7dbc5f70e3856adc788c11cd0f2b9dd42de44a4658941b1abb237bd298d",
+          "size": 1948,
+          "status": "generated_unpublished"
+        },
+        "video": {
+          "path": "executive-summary.mp4",
+          "sha256": "4fba64ec264331ac0c0592e7a73291a4c84a5460c28e8db6a483cd5dc7cb8f7d",
+          "size": 741202,
+          "status": "generated_unpublished"
+        }
+      },
+      "runtime": {
+        "elapsed_seconds": 214.286,
+        "peak_memory_bytes": 1883443200,
+        "scratch_usage_bytes": 45449683
+      },
+      "duration_seconds": 50.367,
+      "video": {
+        "codec_name": "h264",
+        "width": 1280,
+        "height": 720,
+        "pix_fmt": "yuv420p",
+        "avg_frame_rate": "30/1"
+      },
+      "audio_codec": "aac",
+      "full_decode": true,
+      "recovered_timeline_verified": true
+    },
+    {
+      "case": "omnigent",
+      "image_role": "core_exact_frames",
+      "input_sha256": "9bf18bb474ee7ddd4f1c78f18ca5bdee701c6463858ebbb3979d0d724d3f60af",
+      "versions": {
+        "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:4d995d2a8e40bd01d898004c2d2689374d07cb0134f30e089a9a861e61a069a3",
+        "policy": 1,
+        "schema": 2,
+        "template": 3
+      },
+      "narration": {
+        "duration_seconds": 159.36666666666667,
+        "engine": "kokoro",
+        "model_manifest_sha256": "cc53829edc24d67ed317946d25867ec1236909f374f4a33c5a22355c69f00c24",
+        "model_revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+        "speed": 0.95,
+        "timeline_sha256": "34493b232188712e5c7de7281575117d7a1cb0744bece14013d99ce520e0fc01",
+        "voice": "af_heart"
+      },
+      "scenes": [
+        {
+          "capture_offset": 1.0599999999999987,
+          "duration_seconds": 20.1,
+          "frame_count": 603,
+          "graph": false,
+          "id": "slide-0",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.4399999999999977,
+          "duration_seconds": 21.6,
+          "frame_count": 648,
+          "graph": false,
+          "id": "slide-1",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.7866666666666653,
+          "duration_seconds": 19.533333333333335,
+          "frame_count": 586,
+          "graph": false,
+          "id": "slide-2",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.6933333333333316,
+          "duration_seconds": 19.866666666666667,
+          "frame_count": 596,
+          "graph": false,
+          "id": "slide-3",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.2133333333333347,
+          "duration_seconds": 13.666666666666666,
+          "frame_count": 410,
+          "graph": false,
+          "id": "slide-4",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.9600000000000009,
+          "duration_seconds": 21.8,
+          "frame_count": 654,
+          "graph": false,
+          "id": "slide-5",
+          "ready": true
+        },
+        {
+          "capture_offset": 2.2600000000000016,
+          "duration_seconds": 23.7,
+          "frame_count": 711,
+          "graph": false,
+          "id": "slide-6",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.379999999999999,
+          "duration_seconds": 19.1,
+          "frame_count": 573,
+          "graph": false,
+          "id": "slide-7",
+          "ready": true
+        }
+      ],
+      "artifacts": {
+        "deck": {
+          "path": "static-site.zip",
+          "sha256": "1ff709e8b7590ced42a70031346d3c4b04299e8107f6b1a12663fd1948707f78",
+          "size": 875178,
+          "status": "generated_unpublished"
+        },
+        "pdf": {
+          "path": "executive-summary.pdf",
+          "sha256": "762f5e2ba201f34463d6a66f5825c88f65d8ae520084fcbe3e40bb69fd119bd5",
+          "size": 40519,
+          "status": "generated_unpublished"
+        },
+        "source": {
+          "path": "executable-source.zip",
+          "sha256": "70f47766e00c14ba8547405e04bba4e3a25dc3206c398812e2556b5be920839e",
+          "size": 11661647,
+          "status": "generated_unpublished"
+        },
+        "summary": {
+          "path": "executive-summary.md",
+          "sha256": "a061b00b07b7b0e98f7b25204ac5a1bc24b6909d14e41ab10907526cfb587f94",
+          "size": 1882,
+          "status": "generated_unpublished"
+        },
+        "video": {
+          "path": "executive-summary.mp4",
+          "sha256": "cc29457c3aaa30fd8cd319fb95c9e704ce89f20a4b9dbe3e68c01301688580e8",
+          "size": 2711469,
+          "status": "generated_unpublished"
+        }
+      },
+      "runtime": {
+        "elapsed_seconds": 511.414,
+        "peak_memory_bytes": 3379359744,
+        "scratch_usage_bytes": 77072947
+      },
+      "duration_seconds": 159.367,
+      "video": {
+        "codec_name": "h264",
+        "width": 1280,
+        "height": 720,
+        "pix_fmt": "yuv420p",
+        "avg_frame_rate": "30/1"
+      },
+      "audio_codec": "aac",
+      "full_decode": true,
+      "recovered_timeline_verified": true
+    },
+    {
+      "case": "long",
+      "image_role": "core_exact_frames",
+      "input_sha256": "06f4736ad988821fd5a37af0c06b2926b6af147f07f194ccca55d282159b4232",
+      "versions": {
+        "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:4d995d2a8e40bd01d898004c2d2689374d07cb0134f30e089a9a861e61a069a3",
+        "policy": 1,
+        "schema": 2,
+        "template": 3
+      },
+      "narration": {
+        "duration_seconds": 327.2,
+        "engine": "kokoro",
+        "model_manifest_sha256": "cc53829edc24d67ed317946d25867ec1236909f374f4a33c5a22355c69f00c24",
+        "model_revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+        "speed": 0.95,
+        "timeline_sha256": "9869897e80521da20f073f71c57ee01c36d68812c52a7ef53028fd38ac69f1b9",
+        "voice": "af_heart"
+      },
+      "scenes": [
+        {
+          "capture_offset": 0.9000000000000021,
+          "duration_seconds": 23.9,
+          "frame_count": 717,
+          "graph": false,
+          "id": "slide-0",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.9199999999999982,
+          "duration_seconds": 25.6,
+          "frame_count": 768,
+          "graph": false,
+          "id": "slide-1",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.5,
+          "duration_seconds": 27.1,
+          "frame_count": 813,
+          "graph": false,
+          "id": "slide-2",
+          "ready": true
+        },
+        {
+          "capture_offset": 2.573333333333334,
+          "duration_seconds": 26.866666666666667,
+          "frame_count": 806,
+          "graph": true,
+          "id": "slide-3",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.7266666666666666,
+          "duration_seconds": 27.633333333333333,
+          "frame_count": 829,
+          "graph": false,
+          "id": "slide-4",
+          "ready": true
+        },
+        {
+          "capture_offset": 2.2133333333333347,
+          "duration_seconds": 27.266666666666666,
+          "frame_count": 818,
+          "graph": false,
+          "id": "slide-5",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.4933333333333358,
+          "duration_seconds": 27.266666666666666,
+          "frame_count": 818,
+          "graph": false,
+          "id": "slide-6",
+          "ready": true
+        },
+        {
+          "capture_offset": 2.039999999999999,
+          "duration_seconds": 29.2,
+          "frame_count": 876,
+          "graph": false,
+          "id": "slide-7",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.946666666666669,
+          "duration_seconds": 28.333333333333332,
+          "frame_count": 850,
+          "graph": false,
+          "id": "slide-8",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.533333333333335,
+          "duration_seconds": 29.266666666666666,
+          "frame_count": 878,
+          "graph": false,
+          "id": "slide-9",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.293333333333333,
+          "duration_seconds": 28.266666666666666,
+          "frame_count": 848,
+          "graph": false,
+          "id": "slide-10",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.2199999999999989,
+          "duration_seconds": 26.5,
+          "frame_count": 795,
+          "graph": false,
+          "id": "slide-11",
+          "ready": true
+        }
+      ],
+      "artifacts": {
+        "deck": {
+          "path": "static-site.zip",
+          "sha256": "4a85d6980683fb75ae052aea1642c095280c7ccfc77cf2634e37ad6203dcea60",
+          "size": 880522,
+          "status": "generated_unpublished"
+        },
+        "pdf": {
+          "path": "executive-summary.pdf",
+          "sha256": "82133f907240b1bc1ea0e544c06e5b711321db9b72b6f523a68198fa570d69fc",
+          "size": 81518,
+          "status": "generated_unpublished"
+        },
+        "source": {
+          "path": "executable-source.zip",
+          "sha256": "e1fe6a8152c9a93fbb643792f2c46a3e4fa24a0db18db4217f1029c6c5806646",
+          "size": 23105537,
+          "status": "generated_unpublished"
+        },
+        "summary": {
+          "path": "executive-summary.md",
+          "sha256": "2d6f25a4ab1fb4f0aa478a4a9135730ec153d9505d02320044f713b63003c50d",
+          "size": 2335,
+          "status": "generated_unpublished"
+        },
+        "video": {
+          "path": "executive-summary.mp4",
+          "sha256": "f0fc4b30bdb00966890fad352e608cb2f480b42da74f5b2b9385a728ca71e9ca",
+          "size": 5740060,
+          "status": "generated_unpublished"
+        }
+      },
+      "runtime": {
+        "elapsed_seconds": 853.337,
+        "peak_memory_bytes": 4095840256,
+        "scratch_usage_bytes": 124863213
+      },
+      "duration_seconds": 327.2,
+      "video": {
+        "codec_name": "h264",
+        "width": 1280,
+        "height": 720,
+        "pix_fmt": "yuv420p",
+        "avg_frame_rate": "30/1"
+      },
+      "audio_codec": "aac",
+      "full_decode": true,
+      "recovered_timeline_verified": true
+    },
+    {
+      "case": "omnigent-post-review",
+      "image_role": "reviewed",
+      "input_sha256": "2250afa0e270c72cbddfca7f4fa3724d118a0311ff407e20ed7a7c3b9962681e",
+      "versions": {
+        "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:2910f7cc410050017326bc79f4ac307c960d3003521e335f1468ccfeecd90fb3",
+        "policy": 1,
+        "schema": 2,
+        "template": 3
+      },
+      "narration": {
+        "duration_seconds": 159.36666666666667,
+        "engine": "kokoro",
+        "model_manifest_sha256": "cc53829edc24d67ed317946d25867ec1236909f374f4a33c5a22355c69f00c24",
+        "model_revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+        "speed": 0.95,
+        "timeline_sha256": "8c6776c5eedb53d42efbe249938bd89239fde2c1e4c9e99fbd03e3bef261ac3f",
+        "voice": "af_heart"
+      },
+      "scenes": [
+        {
+          "capture_offset": 0.7399999999999984,
+          "duration_seconds": 20.1,
+          "frame_count": 603,
+          "graph": false,
+          "id": "slide-0",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.3999999999999986,
+          "duration_seconds": 21.6,
+          "frame_count": 648,
+          "graph": false,
+          "id": "slide-1",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.3866666666666667,
+          "duration_seconds": 19.533333333333335,
+          "frame_count": 586,
+          "graph": false,
+          "id": "slide-2",
+          "ready": true
+        },
+        {
+          "capture_offset": 2.0533333333333346,
+          "duration_seconds": 19.866666666666667,
+          "frame_count": 596,
+          "graph": false,
+          "id": "slide-3",
+          "ready": true
+        },
+        {
+          "capture_offset": 2.0533333333333346,
+          "duration_seconds": 13.666666666666666,
+          "frame_count": 410,
+          "graph": false,
+          "id": "slide-4",
+          "ready": true
+        },
+        {
+          "capture_offset": 2.120000000000001,
+          "duration_seconds": 21.8,
+          "frame_count": 654,
+          "graph": false,
+          "id": "slide-5",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.9800000000000004,
+          "duration_seconds": 23.7,
+          "frame_count": 711,
+          "graph": false,
+          "id": "slide-6",
+          "ready": true
+        },
+        {
+          "capture_offset": 2.1799999999999997,
+          "duration_seconds": 19.1,
+          "frame_count": 573,
+          "graph": false,
+          "id": "slide-7",
+          "ready": true
+        }
+      ],
+      "artifacts": {
+        "deck": {
+          "path": "static-site.zip",
+          "sha256": "b28c41c1bceb5a0f96b9716ea8b9fb336a4365cd3807c38731491515aa1abd97",
+          "size": 875294,
+          "status": "generated_unpublished"
+        },
+        "pdf": {
+          "path": "executive-summary.pdf",
+          "sha256": "387f5ca1007082003003fa5cd428a9926fe06d7b0cc789be7e13c2c4725c0a9f",
+          "size": 40519,
+          "status": "generated_unpublished"
+        },
+        "source": {
+          "path": "executable-source.zip",
+          "sha256": "9987b2f9424fb0df93726c35abbfb5877d24f18891c564d8617a27f8cff6ef91",
+          "size": 11662070,
+          "status": "generated_unpublished"
+        },
+        "summary": {
+          "path": "executive-summary.md",
+          "sha256": "a061b00b07b7b0e98f7b25204ac5a1bc24b6909d14e41ab10907526cfb587f94",
+          "size": 1882,
+          "status": "generated_unpublished"
+        },
+        "video": {
+          "path": "executive-summary.mp4",
+          "sha256": "486feddd33cedab73f96f8cf741f8d18afc172b7d58c6c93a0c10d7eb6d8db77",
+          "size": 2714773,
+          "status": "generated_unpublished"
+        }
+      },
+      "runtime": {
+        "elapsed_seconds": 373.815,
+        "peak_memory_bytes": 3417628672,
+        "scratch_usage_bytes": 77214499
+      },
+      "duration_seconds": 159.367,
+      "video": {
+        "codec_name": "h264",
+        "width": 1280,
+        "height": 720,
+        "pix_fmt": "yuv420p",
+        "avg_frame_rate": "30/1"
+      },
+      "audio_codec": "aac",
+      "full_decode": true,
+      "recovered_timeline_verified": true
+    }
+  ],
+  "cluster_acceptance": [
+    {
+      "case": "omnigent",
+      "image_role": "core_exact_frames",
+      "security_context_constraint": "restricted-v2",
+      "nonroot": true,
+      "read_only_root": true,
+      "api_token_mounted": false,
+      "external_network": "Deny-all-egress policy; connection probe blocked",
+      "resources": {
+        "limits": {
+          "cpu": "2",
+          "ephemeral-storage": "10Gi",
+          "memory": "4Gi"
+        },
+        "requests": {
+          "cpu": "2",
+          "ephemeral-storage": "1Gi",
+          "memory": "4Gi"
+        }
+      },
+      "scratch_limit": "8Gi",
+      "input_sha256": "9bf18bb474ee7ddd4f1c78f18ca5bdee701c6463858ebbb3979d0d724d3f60af",
+      "versions": {
+        "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:4d995d2a8e40bd01d898004c2d2689374d07cb0134f30e089a9a861e61a069a3",
+        "policy": 1,
+        "schema": 2,
+        "template": 3
+      },
+      "narration": {
+        "duration_seconds": 159.36666666666667,
+        "engine": "kokoro",
+        "model_manifest_sha256": "cc53829edc24d67ed317946d25867ec1236909f374f4a33c5a22355c69f00c24",
+        "model_revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+        "speed": 0.95,
+        "timeline_sha256": "cd7834d6bd02859f79cecec38643b9a2b0815d4d207aae990d70580de1305d1c",
+        "voice": "af_heart"
+      },
+      "scenes": [
+        {
+          "capture_offset": 0.8200000000000003,
+          "duration_seconds": 20.1,
+          "frame_count": 603,
+          "graph": false,
+          "id": "slide-0",
+          "ready": true
+        },
+        {
+          "capture_offset": 0.9199999999999982,
+          "duration_seconds": 21.6,
+          "frame_count": 648,
+          "graph": false,
+          "id": "slide-1",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.1466666666666647,
+          "duration_seconds": 19.533333333333335,
+          "frame_count": 586,
+          "graph": false,
+          "id": "slide-2",
+          "ready": true
+        },
+        {
+          "capture_offset": 0.9333333333333336,
+          "duration_seconds": 19.866666666666667,
+          "frame_count": 596,
+          "graph": false,
+          "id": "slide-3",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.2933333333333348,
+          "duration_seconds": 13.666666666666666,
+          "frame_count": 410,
+          "graph": false,
+          "id": "slide-4",
+          "ready": true
+        },
+        {
+          "capture_offset": 0.879999999999999,
+          "duration_seconds": 21.8,
+          "frame_count": 654,
+          "graph": false,
+          "id": "slide-5",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.1400000000000006,
+          "duration_seconds": 23.7,
+          "frame_count": 711,
+          "graph": false,
+          "id": "slide-6",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.0999999999999979,
+          "duration_seconds": 19.1,
+          "frame_count": 573,
+          "graph": false,
+          "id": "slide-7",
+          "ready": true
+        }
+      ],
+      "artifacts": {
+        "deck": {
+          "path": "static-site.zip",
+          "sha256": "1ff709e8b7590ced42a70031346d3c4b04299e8107f6b1a12663fd1948707f78",
+          "size": 875178,
+          "status": "generated_unpublished"
+        },
+        "pdf": {
+          "path": "executive-summary.pdf",
+          "sha256": "11a5446bac6e28c1d8969ff1bd0535ce64ade1166a3adc1f2ef532eb161f99de",
+          "size": 40519,
+          "status": "generated_unpublished"
+        },
+        "source": {
+          "path": "executable-source.zip",
+          "sha256": "c04f52fbb99012939ef6d3ba044149a55343fbba2d3a70873df143d65af4c506",
+          "size": 11661182,
+          "status": "generated_unpublished"
+        },
+        "summary": {
+          "path": "executive-summary.md",
+          "sha256": "a061b00b07b7b0e98f7b25204ac5a1bc24b6909d14e41ab10907526cfb587f94",
+          "size": 1882,
+          "status": "generated_unpublished"
+        },
+        "video": {
+          "path": "executive-summary.mp4",
+          "sha256": "42842354cf0272e33112293abda504069c48c37ba6f4fd287727d43c55eb27ce",
+          "size": 2720212,
+          "status": "generated_unpublished"
+        }
+      },
+      "runtime": {
+        "elapsed_seconds": 346.69,
+        "peak_memory_bytes": 1955246080,
+        "scratch_usage_bytes": 76966616
+      },
+      "duration_seconds": 159.367,
+      "video": {
+        "codec_name": "h264",
+        "width": 1280,
+        "height": 720,
+        "pix_fmt": "yuv420p",
+        "avg_frame_rate": "30/1"
+      },
+      "audio_codec": "aac",
+      "full_decode": true,
+      "recovered_timeline_verified": true,
+      "job_complete_observed": true,
+      "job_uid": "f4b526e4-a2bd-4e82-9882-51c34ab6ba7a"
+    },
+    {
+      "case": "omnigent",
+      "image_role": "reviewed",
+      "security_context_constraint": "restricted-v2",
+      "nonroot": true,
+      "read_only_root": true,
+      "api_token_mounted": false,
+      "external_network": "Deny-all-egress policy; connection probe blocked",
+      "resources": {
+        "limits": {
+          "cpu": "2",
+          "ephemeral-storage": "10Gi",
+          "memory": "4Gi"
+        },
+        "requests": {
+          "cpu": "2",
+          "ephemeral-storage": "1Gi",
+          "memory": "4Gi"
+        }
+      },
+      "scratch_limit": "8Gi",
+      "input_sha256": "2250afa0e270c72cbddfca7f4fa3724d118a0311ff407e20ed7a7c3b9962681e",
+      "versions": {
+        "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:2910f7cc410050017326bc79f4ac307c960d3003521e335f1468ccfeecd90fb3",
+        "policy": 1,
+        "schema": 2,
+        "template": 3
+      },
+      "narration": {
+        "duration_seconds": 159.36666666666667,
+        "engine": "kokoro",
+        "model_manifest_sha256": "cc53829edc24d67ed317946d25867ec1236909f374f4a33c5a22355c69f00c24",
+        "model_revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+        "speed": 0.95,
+        "timeline_sha256": "a0845387f11f06ff5ae28dd73b03e96e7ca4ce12150456775a43e550c4805b7b",
+        "voice": "af_heart"
+      },
+      "scenes": [
+        {
+          "capture_offset": 0.9799999999999969,
+          "duration_seconds": 20.1,
+          "frame_count": 603,
+          "graph": false,
+          "id": "slide-0",
+          "ready": true
+        },
+        {
+          "capture_offset": 0.8399999999999999,
+          "duration_seconds": 21.6,
+          "frame_count": 648,
+          "graph": false,
+          "id": "slide-1",
+          "ready": true
+        },
+        {
+          "capture_offset": 0.7866666666666653,
+          "duration_seconds": 19.533333333333335,
+          "frame_count": 586,
+          "graph": false,
+          "id": "slide-2",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.0533333333333346,
+          "duration_seconds": 19.866666666666667,
+          "frame_count": 596,
+          "graph": false,
+          "id": "slide-3",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.0133333333333336,
+          "duration_seconds": 13.666666666666666,
+          "frame_count": 410,
+          "graph": false,
+          "id": "slide-4",
+          "ready": true
+        },
+        {
+          "capture_offset": 0.9199999999999982,
+          "duration_seconds": 21.8,
+          "frame_count": 654,
+          "graph": false,
+          "id": "slide-5",
+          "ready": true
+        },
+        {
+          "capture_offset": 1.1000000000000014,
+          "duration_seconds": 23.7,
+          "frame_count": 711,
+          "graph": false,
+          "id": "slide-6",
+          "ready": true
+        },
+        {
+          "capture_offset": 0.7399999999999984,
+          "duration_seconds": 19.1,
+          "frame_count": 573,
+          "graph": false,
+          "id": "slide-7",
+          "ready": true
+        }
+      ],
+      "artifacts": {
+        "deck": {
+          "path": "static-site.zip",
+          "sha256": "b28c41c1bceb5a0f96b9716ea8b9fb336a4365cd3807c38731491515aa1abd97",
+          "size": 875294,
+          "status": "generated_unpublished"
+        },
+        "pdf": {
+          "path": "executive-summary.pdf",
+          "sha256": "387f5ca1007082003003fa5cd428a9926fe06d7b0cc789be7e13c2c4725c0a9f",
+          "size": 40519,
+          "status": "generated_unpublished"
+        },
+        "source": {
+          "path": "executable-source.zip",
+          "sha256": "29b6054e9f95bc1bfd5aa24b3d9ea2a9489a02ccfcd3f6591907e93d7a0ac010",
+          "size": 11662588,
+          "status": "generated_unpublished"
+        },
+        "summary": {
+          "path": "executive-summary.md",
+          "sha256": "a061b00b07b7b0e98f7b25204ac5a1bc24b6909d14e41ab10907526cfb587f94",
+          "size": 1882,
+          "status": "generated_unpublished"
+        },
+        "video": {
+          "path": "executive-summary.mp4",
+          "sha256": "1f7447c9b9d4da71c5f3ac258a06e2b55bb61408a2bfa6d7414c3009c26e41ea",
+          "size": 2715734,
+          "status": "generated_unpublished"
+        }
+      },
+      "runtime": {
+        "elapsed_seconds": 352.369,
+        "peak_memory_bytes": 2103570432,
+        "scratch_usage_bytes": 76952871
+      },
+      "duration_seconds": 159.367,
+      "video": {
+        "codec_name": "h264",
+        "width": 1280,
+        "height": 720,
+        "pix_fmt": "yuv420p",
+        "avg_frame_rate": "30/1"
+      },
+      "audio_codec": "aac",
+      "full_decode": true,
+      "recovered_timeline_verified": true,
+      "job_complete_observed": true,
+      "job_uid": "8de01e00-3b69-4b29-923c-a6cc867a5928"
+    }
+  ],
+  "failure_acceptance": [
+    {
+      "case": "disk",
+      "input_sha256": "07460708f2f496c5cd711c315be38ceb2afdf5f77dd43daa00f8c5eee9b66b89",
+      "versions": {
+        "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:426be89b01434297e720726fa4cb62ca8161189268f02fb7c28edebfe3074ef6",
+        "policy": 1,
+        "schema": 2,
+        "template": 3
+      },
+      "runtime": {
+        "elapsed_seconds": 31.597,
+        "peak_memory_bytes": 1774891008,
+        "scratch_usage_bytes": 33220892
+      },
+      "artifacts": {
+        "deck": "generated_unpublished",
+        "pdf": "generated_unpublished",
+        "source": "generated_unpublished",
+        "summary": "generated_unpublished",
+        "video": "failed"
+      },
+      "scope": "Speech-stage injection after actual deck/PDF preparation; disk case uses a dedicated full16MiB temporary filesystem."
+    },
+    {
+      "case": "oom",
+      "input_sha256": "07460708f2f496c5cd711c315be38ceb2afdf5f77dd43daa00f8c5eee9b66b89",
+      "versions": {
+        "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:426be89b01434297e720726fa4cb62ca8161189268f02fb7c28edebfe3074ef6",
+        "policy": 1,
+        "schema": 2,
+        "template": 3
+      },
+      "runtime": {
+        "elapsed_seconds": 34.516,
+        "peak_memory_bytes": 4294967296,
+        "scratch_usage_bytes": 33220667
+      },
+      "artifacts": {
+        "deck": "generated_unpublished",
+        "pdf": "generated_unpublished",
+        "source": "generated_unpublished",
+        "summary": "generated_unpublished",
+        "video": "failed"
+      },
+      "scope": "Actual constrained offline process failure after deck/PDF preparation."
+    },
+    {
+      "case": "terminated",
+      "input_sha256": "07460708f2f496c5cd711c315be38ceb2afdf5f77dd43daa00f8c5eee9b66b89",
+      "versions": {
+        "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:426be89b01434297e720726fa4cb62ca8161189268f02fb7c28edebfe3074ef6",
+        "policy": 1,
+        "schema": 2,
+        "template": 3
+      },
+      "runtime": {
+        "elapsed_seconds": 27.534,
+        "peak_memory_bytes": 1634463744,
+        "scratch_usage_bytes": 33220667
+      },
+      "artifacts": {
+        "deck": "generated_unpublished",
+        "pdf": "generated_unpublished",
+        "source": "generated_unpublished",
+        "summary": "generated_unpublished",
+        "video": "failed"
+      },
+      "scope": "Actual constrained offline process failure after deck/PDF preparation."
+    },
+    {
+      "case": "missing",
+      "input_sha256": "ff67e8cedaafe8587e65026af0ed1334682ca806d4123ea2959d4be42e32fd17",
+      "versions": {
+        "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:4d995d2a8e40bd01d898004c2d2689374d07cb0134f30e089a9a861e61a069a3",
+        "policy": 1,
+        "schema": 2,
+        "template": 3
+      },
+      "runtime": {
+        "elapsed_seconds": 45.973,
+        "peak_memory_bytes": 1653448704,
+        "scratch_usage_bytes": 32820047
+      },
+      "artifacts": {
+        "deck": "generated_unpublished",
+        "pdf": "generated_unpublished",
+        "source": "generated_unpublished",
+        "summary": "generated_unpublished",
+        "video": "failed"
+      },
+      "scope": "Actual constrained offline process failure after deck/PDF preparation."
+    },
+    {
+      "case": "timeout",
+      "input_sha256": "ff67e8cedaafe8587e65026af0ed1334682ca806d4123ea2959d4be42e32fd17",
+      "versions": {
+        "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:4d995d2a8e40bd01d898004c2d2689374d07cb0134f30e089a9a861e61a069a3",
+        "policy": 1,
+        "schema": 2,
+        "template": 3
+      },
+      "runtime": {
+        "elapsed_seconds": 75.389,
+        "peak_memory_bytes": 1663799296,
+        "scratch_usage_bytes": 33220734
+      },
+      "artifacts": {
+        "deck": "generated_unpublished",
+        "pdf": "generated_unpublished",
+        "source": "generated_unpublished",
+        "summary": "generated_unpublished",
+        "video": "failed"
+      },
+      "scope": "Actual constrained offline process failure after deck/PDF preparation."
+    },
+    {
+      "case": "script/audio hash, admission failure, immutable upload retry, deleted worker, changed environment and late completion",
+      "scope": "Deterministic regression tests, not claimed as live Drive publication."
+    }
+  ],
+  "visual_checks": {
+    "pdf_pages_inspected": 28,
+    "cut_and_midpoint_frames_inspected": 84,
+    "all_scene_content_preflight": "passed including diagram states",
+    "source_recovery": "Exact transcript, sentence/scene WAV hashes, model identity and timeline re-extracted and verified",
+    "audio_listening": "Human listening/pronunciation review pending; not claimed"
+  },
+  "independent_review": {
+    "model": "gpt-6-astra",
+    "read_only": true,
+    "base": "ef16d9c631c205f41d930cf42586df2cf3ffcba1",
+    "reviewed_head": "040d8bb6182a51c1c00824a9d0d0a50592d6db18",
+    "critical": 0,
+    "important": 2,
+    "minor": 0,
+    "fixed": [
+      "Structured result counters survive first/all-results diagrams; actual browser RED 0/2 to GREEN 2/2",
+      "PDF-only failure retains validated deck and proceeds through speech/record; content failure still stops"
+    ],
+    "fix_commit": "84f992a",
+    "re_review": "No second reviewer; one regression-driven fix pass"
+  },
+  "rollout_gates": {
+    "drive_publication": "Blocked: existing service-account token refresh returns invalid_grant",
+    "listening": "Pending human review of delivered complete narration",
+    "live_worker_configuration": "Requires explicit user approval",
+    "merge": "Requires explicit user approval"
+  },
+  "pull_request": "https://github.com/aviavraham/autopoc/pull/4",
+  "cleanup": "Temporary acceptance Jobs, ConfigMaps and egress policies removed after verified retrieval; model port-forward closed. Existing worker/Secrets/ServiceAccounts unchanged.",
+  "rulings": [
+    "Ruling: create a managed isolated worktree under implementation authorization \u2014 prevents changing the original checkout \u2014 cost if wrong: changes are on a separate feature branch to integrate.",
+    "Ruling: initial operational bounds/resources remain the approved builder defaults, not a GPU requirement \u2014 CPU audition proves feasibility \u2014 cost if wrong: acceptance may require resizing before rollout.",
+    "Task 2: Ruling: keep revision-2 rendering accepted alongside latest revision 3 \u2014 preserving silent rendering is required by spec \u2014 cost if wrong: extra compatibility path must stay tested.",
+    "Task 3: Ruling: validate source-backed examples and actual configured-model behavior rather than grep new prose \u2014 exact-text assertions would mirror guidance, contrary to writing-good-tests \u2014 cost if wrong: semantic behavior remains a measured model acceptance check, not deterministic CI proof.",
+    "Task 3: Ruling: configured model is cluster-internal; use a local port-forward and existing worker model credentials in memory for bounded same-model API acceptance \u2014 no new provider or persisted secret \u2014 cost if wrong: CLI-specific behavior is separately retained as operational validation. OpenCode CLI emitted no completion within the bounded smoke; direct same-model baseline succeeded.",
+    "Task 3: Ruling: use CI-pinned Ruff 0.15.11, not newly installed 0.17.4 \u2014 newer rules flagged 69 unrelated existing findings \u2014 cost if wrong: newer lint migration remains separate work. Pinned full lint passes.",
+    "Task 4: Ruling: round measured scene intervals upward to the next 30fps frame and retain exact frame counts \u2014 avoids cumulative fractional-frame drift and never truncates speech \u2014 cost if wrong: at most 1/30s extra pause per scene. Spec clarified accordingly.",
+    "Task 4: Ruling: generate the separate renderer hash lock with uv pip compile instead of pip-tools \u2014 pip-tools spent minutes and gigabytes rediscovering distribution metadata/hashes, while uv resolved the working audited set promptly \u2014 cost if wrong: requires the already-used uv tool for renderer-lock regeneration. Root dependency declarations/lock workflow remain unchanged; renderer install is fully hash-checked.",
+    "Task 4: Ruling: upgrade renderer CPU Torch from audition 2.8.0 to 2.15.0 \u2014 normal pip-audit skipped local +cpu versions, so audited normalized versions; 2.8.0 had nine reported advisories, 2.15.0 has none \u2014 cost if wrong: validate Kokoro compatibility/performance again offline. English model is a direct upstream hash-verified wheel outside PyPI advisory coverage; retain that explicit audit limitation.",
+    "Task 4: Ruling: replace the unavailable/mismatching John Van Sickle archive with public digest-pinned mwader/static-ffmpeg 7.0.2, retaining GPL/source/version notices and exact executable hash checks \u2014 the fixed URL also returned HTML and private historical image cannot be pulled anonymously by CI \u2014 cost if wrong: validate codec/timing parity with this different static build before acceptance. No checksum bypass or blind hash update.",
+    "Task 5: Ruling: correct schema-2 graph edges to actual TopoLoop string pairs in both validators \u2014 real graph acceptance exposed Task 2 incorrectly requiring objects \u2014 cost if wrong: browser graph validation remains the final check. Added shared real graph fixture and watched Python/Node fail then pass.",
+    "Task 5: Ruling: copy renderer runtime sources after dependency/model layers and include new helper in image \u2014 necessary packaging and avoids repeated dependency/model downloads on renderer edits \u2014 cost if wrong: image build validates all copies.",
+    "Task 6: Ruling: concatenate padded PCM and encode AAC only once, rather than AAC per scene \u2014 avoids per-segment encoder priming and drift while satisfying measured scene intervals \u2014 cost if wrong: actual tone/cut/full-decode acceptance checks synchronization.",
+    "Task 6: Ruling: propagate subprocess nonzero/timeout errors from the existing process-group helper, while wrapper preserves valid partial output \u2014 otherwise a failed speech process could enter record \u2014 cost if wrong: legacy timeout internal test now expects the error while still verifies descendants die.",
+    "Task 7: Ruling: add a small shared policy module and wire narration opt-in through worker Job/CronJob/launcher \u2014 the plan's listed files omitted the actual environment forwarding path \u2014 cost if wrong: YAML behavior test and launcher syntax check cover wiring; no live configuration is changed.",
+    "Task 7: Ruling: image capability remains a tested-operator precondition, not inferred from digest text \u2014 no registry capability metadata contract exists \u2014 cost if wrong: incompatible images fail explicit format/asset checks rather than producing narrated success; rollout requires actual pinned-image acceptance.",
+    "Task 8: Ruling: crop browser captures using probed recorded-media duration, not context wall-clock preroll \u2014 constrained real render produced a 5.733s scene for a 6s timeline because Playwright's first frame arrived late; the 6.96s raw capture contained enough footage \u2014 cost if wrong: capture tail shifts illustrative animation by roughly 0.15s; measured scene/audio boundaries stay exact. Added delayed-capture FFmpeg RED\u2192GREEN regression; retain <=0.25s gate.",
+    "Task 8: Ruling: remove redundant recursive image-wide chmod \u2014 image history showed a 2.94GB copy-up layer; dependencies are already world-readable and asset preparer explicitly sets 0644 \u2014 cost if wrong: constrained arbitrary-UID acceptance catches unreadable assets. This reduces delivery size without relaxing runtime isolation.",
+    "Task 8: Ruling: use selected source excerpts for configured-model semantic acceptance \u2014 whole report/log context produced self-contradictory false positives despite matching facts; compact exact selected excerpts received substantive review \u2014 cost if wrong: code still resolves selectors against the complete hashed bundle; no approval is fabricated. Real reviews corrected classifications and an implied cross-platform claim first.",
+    "Task 8: Ruling: retain human listening as an explicit rollout gate \u2014 this environment can verify exact scripts, PCM, audio timing and full decoding but does not provide a trustworthy human listening judgment \u2014 cost if wrong: pronunciation defects must be caught using the delivered videos/audio before live activation; do not claim listened acceptance.",
+    "Task 8: Ruling: enforce exact segment/final frame counts and pad at most0.1s of terminal video before trimming to reviewed frame count \u2014 real Omnigent capture lost5/4781 frames through 25fps\u219230fps rounding; within0.25s but cumulative longer decks could fail \u2014 cost if wrong: final held visual frame may repeat up to0.1s; audio timing/text stay unchanged. A genuine retained WebM reproduces181expected/180actual RED\u2192GREEN; fabricated CFR fixture did not reproduce, so did not count it as proof. Rebuilding/re-running all full cases on acceptance2 image before final claims.",
+    "Final review scheduling Ruling: perform the one fresh whole-branch code review while final pinned-image runtime acceptance finishes \u2014 source behavior is frozen and independent of minutes-long media capture; only acceptance records/docs follow unless the reviewer finds a defect \u2014 cost if wrong: any resulting code fix needs regression tests and affected runtime revalidation before final completion. No extra implementer or per-task reviewer is dispatched.",
+    "Final: Ruling: live Drive publication is blocked by invalid_grant \u2014 retain tested journal/recovery implementation and explicitly withhold publication success \u2014 cost if wrong: real upload/reconcile must be tested after credential repair before rollout.",
+    "Final: Ruling: human listening/pronunciation remains a rollout gate \u2014 exact script/PCM/timing/decoding are machine-verified, no trustworthy human listening claim is available here \u2014 cost if wrong: listen to delivered full narration before activation.",
+    "Final: Ruling: concurrent final long/OCP acceptance must finish before final claims \u2014 collect exact image/input/output metrics and rerun affected paths after fixes \u2014 cost if wrong: an unfinished run cannot establish readiness and remains visibly pending.",
+    "Final: Ruling: arbitrary image digest compatibility is not inferred \u2014 use tested capability/model identity as the operator precondition \u2014 cost if wrong: incompatible images fail closed; upgrade worker/renderer together only after pinned-image acceptance.",
+    "Task 8: Ruling: remove the acceptance harness's forced hostUsers=false after container runtime setgroups failure \u2014 the standard tokenless profile runs under required restricted-v2 with assigned nonroot UID \u2014 cost if wrong: user-namespace-specific clusters need their own acceptance; no live security policy was weakened."
+  ]
+}

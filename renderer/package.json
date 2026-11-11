@@ -1,0 +1,26 @@
+{
+  "name": "autopoc-executive-renderer",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "test": "node --test *.test.mjs",
+    "dev": "slidev slides.md --port 3030",
+    "build": "slidev build slides.md --out dist",
+    "preview": "vite preview --host localhost --port 4173 --strictPort",
+    "export": "slidev export slides.md --output executive-summary.pdf"
+  },
+  "devDependencies": {
+    "@slidev/cli": "53.0.0",
+    "@slidev/theme-default": "0.25.0",
+    "playwright-chromium": "1.64.1"
+  },
+  "dependencies": {
+    "@vueuse/core": "14.4.0",
+    "three": "0.171.0",
+    "vue": "3.5.43"
+  }
+}

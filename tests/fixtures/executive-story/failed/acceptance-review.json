@@ -1,0 +1,18 @@
+{
+  "schema_version": 2,
+  "reviewer": "configured-opencode",
+  "approved": true,
+  "findings": [],
+  "observations": [
+    "The 'setup' section is used for two consecutive slides (slide-2, slide-3), which is permitted under the contiguous repeated sections rule.",
+    "The narration model hash is a placeholder/test value as expected for this fixture.",
+    "The 'incomplete_validation' coverage gap is explicitly carried over from the source index."
+  ],
+  "model": "vllm/qwen3.8-27b-abliterated",
+  "method": "Existing configured model API through a local port-forward; worker credentials used only in memory.",
+  "acceptance_only": true,
+  "date": "2026-11-08",
+  "evidence_sha256": "22acf224fc73353f717e36670d853267fb6c7d3edddfac5b361643d54e8caabf",
+  "narrative_sha256": "0b9887edd2d7fa49cc2a0d76ea21eafe2b2931ac06535f8c5fb04d64b953693c",
+  "scenes_sha256": "d1b34adeb6a12bef12170d3780d34da530a90f41bb1121fcdb05f52fa5e46fa6"
+}

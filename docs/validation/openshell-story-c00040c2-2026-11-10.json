@@ -1,0 +1,456 @@
+{
+  "schema_version": 1,
+  "status": "generated_local_review_ready_poc_lifecycle_blocked",
+  "run_id": "c00040c2196d4919b3e5b0a7fd947faf",
+  "source_repository": "https://github.com/NVIDIA/OpenShell",
+  "source_revision": "f4a6137513b777c9b362be54baf388f7d45398aa",
+  "source_branch": "codex/openshell-story-20261110-c00040c2",
+  "engine_branch": "codex/kokoro-narration",
+  "worker_source_commit": "c99729080950cd95c126a2a3f07ef7c6698a705b",
+  "worker_image": "quay.io/aicatalyst/autopoc-opencode@sha256:b169dd89db35f0ac895b4e688ff567d7e6b4c53fa892be3c3df9c00e1b43aa55",
+  "renderer_image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:51de7478b7b67667cf1ecc165f4b585ee96ee7947b9c126a7ca694544f987711",
+  "provider": {
+    "name": "enmaas",
+    "model": "gpt-6.1-sol",
+    "external_configuration_verified": true,
+    "key_committed": false
+  },
+  "namespace": "poc-openshell-story-c00040c2",
+  "worker_namespace": "autopoc-test",
+  "builds": [
+    {
+      "name": "openshell-story-c00040c2-gateway-1",
+      "uid": "165802fb-da9d-48b7-97c3-a3f32b75b47b",
+      "phase": "Complete",
+      "image": "quay.io/aicatalyst/openshell-gateway:story-c00040c2",
+      "digest": "sha256:dcda18953431340ab766bc71ad3bed03ec53752cf7ab7167edc949b20575ce15",
+      "started_at": "2026-11-10T19:23:01Z",
+      "completed_at": "2026-11-10T20:03:24Z",
+      "duration_seconds": 2423.0
+    },
+    {
+      "name": "openshell-story-c00040c2-sandbox-1",
+      "uid": "24cec5cf-e1c2-4563-8841-a96c9a02909e",
+      "phase": "Complete",
+      "image": "quay.io/aicatalyst/openshell-sandbox:story-c00040c2",
+      "digest": "sha256:7a92fe2873dd0cb8a72b7e668c34aa55cc6e77057f731e2e56c98757b8cc6490",
+      "started_at": "2026-11-10T19:23:15Z",
+      "completed_at": "2026-11-10T19:38:36Z",
+      "duration_seconds": 921.0
+    },
+    {
+      "name": "openshell-story-c00040c2-supervisor-1",
+      "uid": "803a1fd5-d39f-421e-83e4-63e938a1be0f",
+      "phase": "Complete",
+      "image": "quay.io/aicatalyst/openshell-supervisor:story-c00040c2",
+      "digest": "sha256:eb2ae68363c52bf848f866d025826466eee91d019cafd371957fa362615e8199",
+      "started_at": "2026-11-10T19:23:06Z",
+      "completed_at": "2026-11-10T19:38:42Z",
+      "duration_seconds": 936.0
+    }
+  ],
+  "deployment": {
+    "gateway_ready": true,
+    "supervisor_ready": true,
+    "gateway_pvc_bound": true,
+    "scc": "restricted-v2",
+    "helm_wait_rbac_error_retained": true,
+    "deploy_retries": 1,
+    "rbac_expanded_for_wait": false
+  },
+  "original_execution": {
+    "execution_id": "0329dd4aa56e464092de68f894abe83a",
+    "totals": {
+      "pass": 1,
+      "fail": 0,
+      "error": 1,
+      "skip": 3,
+      "incomplete": 0
+    },
+    "exit_code": 1,
+    "validation_rerun": false,
+    "central_lifecycle_objective": "not_achieved",
+    "blocker": "No shared supervisor attached when CreateSandbox was attempted; underlying Rust supervisor attachment cause unresolved."
+  },
+  "evidence_sha256": "4bbfe024bdc4abc896cf417543e4bd561c666f2ca9596b8a51254b0273be2386",
+  "report_publication_commit": "caef62b6f26ef8f4dd72c99da6e2317f55983c60",
+  "blog": "ineligible_skipped",
+  "cloud_publication": "not_authorized_blocked",
+  "media": "independently_verified_local_review_ready",
+  "operator_assistance": [
+    "Prepared isolated namespace, existing-pattern bounded RBAC, workspace PVC, fork branch and node placement.",
+    "Supplied same-revision reference Dockerfiles and authentic pinned README context PNG.",
+    "Configured external En-MaaS provider for this run only.",
+    "Planned one-off sealed-input PVC transport and local retrieval; this does not validate production cloud dispatch."
+  ],
+  "human_full_listening_acceptance": "pending",
+  "shared_activation": false,
+  "default_branch_push": false,
+  "worker_job_status": "Complete",
+  "source_packaging_branch_head": "803fba14",
+  "evidence_members_independently_hashed": 47,
+  "original_worker_inputs": {
+    "sha256": "647ad00eed09ce632f279470b53dfb6ce5da6c724b7eaaa394ea35719ec5c882",
+    "narrative_sha256": "12b23a36b45696d908ec0e62efac72980a194595f7dc0cf70d9a998d4a2aefa0",
+    "scenes_sha256": "992b9abc70768cdeb2d0fde94c6264dbb95c38ee7985039fdcfd4f4b46f7f8b9",
+    "visuals_sha256": "2924896aad0f8c9a40c558a03712cfe180ce4f30b2f94f04b45720341ee79158",
+    "renderer_image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:1c1dc7b1510b25c113eb28a053d1e9f01fe449860171ba9397a62eab6964f215",
+    "genuine_independent_content_approval": true,
+    "preserved": true
+  },
+  "editorial_revision": {
+    "reason": "Keep narration focused on PoC outcomes; remove media/publication/Git procedure and use explicit untested-scope wording.",
+    "guidance_commit": "7fbba6d",
+    "slides": 9,
+    "words": 596,
+    "max_sentence_words": 17,
+    "same_evidence_scenes_visuals": true,
+    "genuine_independent_review": "approved_after_two_reviews",
+    "initial_rejection_preserved": true,
+    "resolved_findings": [
+      "Linked actual pinned SDK use to retained observation, not planned objective.",
+      "Added material Helm readiness permission constraint, direct rollout retry and no RBAC expansion."
+    ],
+    "initial_editorial_seal": {
+      "run_id": "c00040c2196d4919b3e5b0a7fd947faf",
+      "input_sha256": "f76785e10f01d7fbb50c4a01bccf12ddf3dac7ae0ce6b8dc50a5744bc53d3d70",
+      "review": {
+        "schema_version": 3,
+        "reviewer": "configured-opencode",
+        "approved": true,
+        "findings": [],
+        "narrative_sha256": "715f0a5b7838998c7639995a5e342f7ea7c4a3d0d439560858ada7b944726bab",
+        "evidence_sha256": "4bbfe024bdc4abc896cf417543e4bd561c666f2ca9596b8a51254b0273be2386",
+        "scenes_sha256": "992b9abc70768cdeb2d0fde94c6264dbb95c38ee7985039fdcfd4f4b46f7f8b9",
+        "visuals_sha256": "2924896aad0f8c9a40c558a03712cfe180ce4f30b2f94f04b45720341ee79158"
+      },
+      "renderer_image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:259d5a19c48ea94311263f9b416cd6dfd3b1e73b9e1e2d411d4aaa502f9877cc",
+      "evidence_scenes_visuals_unchanged": true,
+      "editorial_review_attempts": 2,
+      "original_seal_preserved": true,
+      "words": 596
+    }
+  },
+  "render_attempts": [
+    {
+      "job": "autopoc-openshell-story-c00040c2-render-v1",
+      "pod_uid": "b9e86ba1-0466-44ee-9d73-5156491db739",
+      "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:259d5a19c48ea94311263f9b416cd6dfd3b1e73b9e1e2d411d4aaa502f9877cc",
+      "input_sha256": "f76785e10f01d7fbb50c4a01bccf12ddf3dac7ae0ce6b8dc50a5744bc53d3d70",
+      "status": "partial",
+      "error": "Scene 1 content validation failed: Layout overflow in slide content; shorten the reviewed text before rendering; Layout overflow in project visual; shorten the reviewed text before rendering",
+      "runtime": {
+        "elapsed_seconds": 8.452,
+        "peak_memory_bytes": 870047744,
+        "scratch_usage_bytes": 5652085
+      },
+      "speech_generated": false,
+      "artifacts": {
+        "deck": "failed",
+        "pdf": "failed",
+        "source": "generated_unpublished",
+        "summary": "generated_unpublished",
+        "video": "failed"
+      },
+      "retained": true
+    },
+    {
+      "job": "autopoc-openshell-story-c00040c2-render-v2",
+      "pod_uid": "9b500324-a9b0-4445-b3c1-e10061ebb197",
+      "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:c493de2e7ddc7fe5c42b6105c5e9a296b56099233a15ffba66e918e91ce401aa",
+      "input_sha256": "44ac15a1fc42f0cd2b763b2cbd4cf04e02f4439c2c52ccdbbe6c01cb0b0ee634",
+      "status": "partial_video_capture_failed",
+      "admission": "restricted-v2",
+      "api_token_mounted": false,
+      "network_policy": "deny_all_ingress_and_egress",
+      "resources": {
+        "cpu": 2,
+        "memory": "4Gi",
+        "scratch": "8Gi",
+        "ephemeral_storage": "10Gi",
+        "process_timeout_seconds": 3000,
+        "job_deadline_seconds": 3600
+      },
+      "prepare": {
+        "deck": "validated",
+        "pdf": "validated",
+        "pdf_sha256": "7193329243eaad194de6b6725e34ddaf33b3358713bb8daaf9702000c287c487",
+        "pdf_bytes": 196777
+      },
+      "speech": {
+        "generated": true,
+        "duration_seconds": 296.3333333333333,
+        "frames": 8890,
+        "scene_count": 9,
+        "sentence_count": 55,
+        "human_full_listening": "pending"
+      },
+      "error": "Fourth scene failed strict capture coverage check in audio.mjs112; source, deck, PDF, summary and full speech retained.",
+      "runtime": {
+        "elapsed_seconds": 395.256,
+        "peak_memory_bytes": 2903126016,
+        "scratch_usage_bytes": 91881585
+      },
+      "artifacts": {
+        "deck": "generated_unpublished",
+        "pdf": "generated_unpublished",
+        "source": "generated_unpublished",
+        "summary": "generated_unpublished",
+        "video": "failed"
+      },
+      "encoded_scenes_before_failure": 3,
+      "failure_retained": true
+    },
+    {
+      "job": "autopoc-openshell-story-c00040c2-render-v3",
+      "job_uid": "df1dade2-ff3e-4328-ab7b-458c39ce4547",
+      "pod_uid": "135ce924-9a96-4fef-90df-27c0f1db790a",
+      "started_at": "2026-11-10T21:17:01Z",
+      "completed_at": "2026-11-10T21:28:06Z",
+      "status": "generated_unpublished",
+      "image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:51de7478b7b67667cf1ecc165f4b585ee96ee7947b9c126a7ca694544f987711",
+      "input_sha256": "13fd83db040ba122723f808b36ab8b2fcd277dc6a22362215d3905180d60ac85",
+      "runtime": {
+        "elapsed_seconds": 657.492,
+        "peak_memory_bytes": 3503050752,
+        "scratch_usage_bytes": 134407077
+      },
+      "artifacts": {
+        "deck": {
+          "path": "static-site.zip",
+          "sha256": "f4e08ef8d2a5719b7af2964f07fdfa735444b33262959f1252e8702eb074b746",
+          "size": 968874,
+          "status": "generated_unpublished"
+        },
+        "pdf": {
+          "path": "executive-summary.pdf",
+          "sha256": "f5c2ae1981f5cf560cfa4899bef8b1d06faa05add0af64dc429d08642cee285d",
+          "size": 196777,
+          "status": "generated_unpublished"
+        },
+        "source": {
+          "path": "executable-source.zip",
+          "sha256": "d114e73dd1f458df8c45fd96a4ab223aaf0b4468f3e76040efc86017f59860a1",
+          "size": 20385334,
+          "status": "generated_unpublished"
+        },
+        "summary": {
+          "path": "executive-summary.md",
+          "sha256": "4e77e7270794aa1cafed4e395ea01c7795e8b3470cc9a34dda7b63cfe9bb5195",
+          "size": 5783,
+          "status": "generated_unpublished"
+        },
+        "video": {
+          "path": "executive-summary.mp4",
+          "sha256": "c37c180b1c7a55a3d720137672f2f08d6103d7024a02981a9b5b687056c1c993",
+          "size": 6558992,
+          "status": "generated_unpublished"
+        }
+      },
+      "all_five_retrieved_hash_verified": true,
+      "admission": "restricted-v2",
+      "api_token_mounted": false
+    }
+  ],
+  "renderer_source_commit": "4b5a221",
+  "live_layout_fix": {
+    "commit": "e478620",
+    "scope": "Abbreviate only40/64hex figure revision labels; retain full title/source card/URL/manifest. Fonts, clipping and validators unchanged.",
+    "independent_code_review": "clean",
+    "regression_red_green": true,
+    "default_node": {
+      "passed": 122,
+      "integration_skipped": 13
+    },
+    "fresh_image_browser": {
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "duration_seconds": 198.789
+    },
+    "local_image_id": "0a21cda88243c1bc9d59ca6623a50cb25a26cb9fc93dbfec53dec779bf291b77"
+  },
+  "final_layout_inputs": {
+    "run_id": "c00040c2196d4919b3e5b0a7fd947faf",
+    "input_sha256": "44ac15a1fc42f0cd2b763b2cbd4cf04e02f4439c2c52ccdbbe6c01cb0b0ee634",
+    "review": {
+      "schema_version": 3,
+      "reviewer": "configured-opencode",
+      "approved": true,
+      "findings": [],
+      "narrative_sha256": "6c4e64feb1aef95b23a51f86869b0b3ec20e6d780eaf17f541d274f6576c1def",
+      "evidence_sha256": "4bbfe024bdc4abc896cf417543e4bd561c666f2ca9596b8a51254b0273be2386",
+      "scenes_sha256": "992b9abc70768cdeb2d0fde94c6264dbb95c38ee7985039fdcfd4f4b46f7f8b9",
+      "visuals_sha256": "1514fbe613f2896b332b6482b40a2ead400ce0c5b3d804bcd971cd181dff5dc0"
+    },
+    "renderer_image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:c493de2e7ddc7fe5c42b6105c5e9a296b56099233a15ffba66e918e91ce401aa",
+    "source_png_sha256": "420b14dcb4730c473fb90865e8a955815365b2d6b6eb40e7bdbc56fba70733f3",
+    "content_review_attempts": 2,
+    "source_evidence_and_scenes_unchanged": true,
+    "preflight": {
+      "slides": 9,
+      "sampled_graph_poses": 9,
+      "problems": 0
+    },
+    "words": 596
+  },
+  "layout_content_revision": {
+    "genuine_reviews": 2,
+    "initial_rejection_preserved": true,
+    "resolved_finding": "Restored exact restricted-v2 observation support after shortening a visible setup claim.",
+    "asset_change": "Shorter caption/attribution only; full source URL, full revision and PNG bytes retained.",
+    "graph_change": "One concise setup point, spaced abstract node positions, and a neutral observed storage-mount act; original scenario inventory unchanged."
+  },
+  "pdf_inspection": {
+    "pages": 9,
+    "method": "Assistant inspected every rendered page PNG from the actual OCP-exported PDF.",
+    "layout": "readable_no_clipping_observed",
+    "human_acceptance": "pending"
+  },
+  "capture_duration_fix": {
+    "commit": "4b5a221",
+    "independent_code_review": "clean",
+    "red": {
+      "raw_seconds": 39.84,
+      "slate_exit_seconds": 5.08,
+      "captured_scene_seconds": 34.76,
+      "required_scene_seconds": 35.4,
+      "shortage_seconds": 0.64
+    },
+    "fix": "Schema3-only1500ms final recorder hold; slate anchor, strict coverage tolerance, exact frame count and legacy150ms timing retained.",
+    "exact_actual_scene_green": {
+      "raw_seconds": 41.12,
+      "slate_exit_seconds": 4.84,
+      "captured_scene_seconds": 36.28,
+      "required_scene_seconds": 35.4,
+      "headroom_seconds": 0.88,
+      "encoded_frames": 1062,
+      "encoded_seconds": 35.4,
+      "slate_frames": 0
+    },
+    "targeted_actual_browser": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    "trusted_renderer_ffmpeg_suite": {
+      "passed": 126,
+      "failed": 0,
+      "explicit_browser_skips": 11
+    },
+    "host_ffmpeg_limitation": "Initial host runs could not execute3H264tests because libx264 is absent; these tests passed in the trusted renderer runtime.",
+    "fresh_image_acceptance": {
+      "local_image_id": "80cca9d7b15435acf8fc9602b6c66241cba8a1ec61a2a0a105396dae2c418271",
+      "browser": {
+        "passed": 17,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 257.937
+      },
+      "audio_ffmpeg": {
+        "passed": 17,
+        "failed": 0,
+        "skipped": 0,
+        "duration_seconds": 15.23
+      }
+    }
+  },
+  "final_inputs": {
+    "run_id": "c00040c2196d4919b3e5b0a7fd947faf",
+    "input_sha256": "13fd83db040ba122723f808b36ab8b2fcd277dc6a22362215d3905180d60ac85",
+    "renderer_image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:51de7478b7b67667cf1ecc165f4b585ee96ee7947b9c126a7ca694544f987711",
+    "renderer_source_commit": "4b5a221",
+    "review": {
+      "schema_version": 3,
+      "reviewer": "configured-opencode",
+      "approved": true,
+      "findings": [],
+      "narrative_sha256": "6c4e64feb1aef95b23a51f86869b0b3ec20e6d780eaf17f541d274f6576c1def",
+      "evidence_sha256": "4bbfe024bdc4abc896cf417543e4bd561c666f2ca9596b8a51254b0273be2386",
+      "scenes_sha256": "992b9abc70768cdeb2d0fde94c6264dbb95c38ee7985039fdcfd4f4b46f7f8b9",
+      "visuals_sha256": "1514fbe613f2896b332b6482b40a2ead400ce0c5b3d804bcd971cd181dff5dc0"
+    },
+    "all_four_reviewed_inputs_unchanged_from_layout_r2": true,
+    "same_genuine_content_approval": true,
+    "purpose": "Corrected trusted recording runtime; no content/scene-policy/voice change or PoC replay."
+  },
+  "media_acceptance": {
+    "all_artifact_hashes": true,
+    "byte_exact_reviewed_transcript": true,
+    "sentence_and_scene_wav_hashes": true,
+    "embedded_captions_text_and_timestamps": true,
+    "full_media_decode": true,
+    "all_five_check_cues_within_frames": 2,
+    "scene_frames_inspected": 27,
+    "check_boundary_frames_inspected": 15,
+    "actual_3d_poses_inspected": 3,
+    "pdf_pages_inspected": 9,
+    "final_pdf_pixels_match_inspected_pages": true,
+    "offline_nonroot_source_rebuild": true
+  },
+  "video": {
+    "duration_seconds": 296.3333333333333,
+    "frames": 8890,
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "audio": "AAC24kHzmono",
+    "captions": "embedded_sentence_level_mov_text",
+    "slate_frames_detected": 0
+  },
+  "runtime": {
+    "elapsed_seconds": 657.492,
+    "peak_memory_bytes": 3503050752,
+    "scratch_usage_bytes": 134407077
+  },
+  "source_rebuild": {
+    "source_rebuild": "passed",
+    "offline": true,
+    "source_archive_sha256": "d114e73dd1f458df8c45fd96a4ab223aaf0b4468f3e76040efc86017f59860a1",
+    "included_assets_verified": 1,
+    "dependencies": "trusted image-pinned npm dependencies"
+  },
+  "artifact_manifest_sha256": "6f851deeaebc6a874bf2aa054e475b7ca5a7953552bfd582b597c781376856dd",
+  "durable_review_handoff": {
+    "commit": "a78bcbc23b8777906015cadab3278f893e7f640c",
+    "head_paths": [
+      "runs/c00040c2196d4919b3e5b0a7fd947faf/heads/review-media-handoff.json"
+    ],
+    "kind": "review-media-handoff",
+    "path": "runs/c00040c2196d4919b3e5b0a7fd947faf/review-media-handoff/f0043bfb3fe1e441f3b93b11c1fe61afaa128c33f9a703b2ef7e7c9fca1f7734",
+    "revision": "f0043bfb3fe1e441f3b93b11c1fe61afaa128c33f9a703b2ef7e7c9fca1f7734",
+    "run_id": "c00040c2196d4919b3e5b0a7fd947faf",
+    "repository": "aicatalyst-team/openshell",
+    "branch": "autopoc-artifacts",
+    "payloads_independently_refetched_and_verified": 5,
+    "previous_artifact_history_preserved": true,
+    "official_drive_checkpoint_replaced": false
+  },
+  "temporary_resource_cleanup": {
+    "run_specific_enmaas_secret_removed": true,
+    "readonly_retrieval_job_removed": true,
+    "retrieval_network_policy_removed": true,
+    "temporary_registry_auth_copy_removed": true,
+    "external_enmaas_key_unchanged": true,
+    "shared_credentials_and_settings_unchanged": true,
+    "application_and_evidence_workspaces_retained_for_review": true
+  },
+  "decision_notes": [
+    {
+      "decision": "Use a structural empty-check slide and renderer-derived no-checks message, without English phrase matching.",
+      "cost_if_wrong": "Adjust empty-inventory validation and layout."
+    },
+    {
+      "decision": "Anchor capture timing only for new schema3/template4; preserve legacy timing.",
+      "cost_if_wrong": "Rework capture timing and frame validation. Real3Dtail shortage was reproduced and corrected while retaining the anchor/guards."
+    },
+    {
+      "decision": "Package a minimal worker command wrapper for the advertised missing CLI.",
+      "cost_if_wrong": "Revert the small wrapper/integration; no alternate dependencies were added."
+    },
+    {
+      "decision": "Overlap the isolated fresh PoC build with final synthetic media QA and code review, holding output acceptance.",
+      "cost_if_wrong": "Correct images/content and rerender isolated outputs; never accept the old image after a required fix."
+    }
+  ]
+}

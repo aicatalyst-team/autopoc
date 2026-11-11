@@ -1,0 +1,591 @@
+{
+  "schema_version": 2,
+  "run_id": "synthetic-long",
+  "project_name": "Synthetic multi-component acceptance",
+  "claims": [
+    {
+      "id": "claim-0",
+      "text": "Evaluate a synthetic service chain on OpenShift.",
+      "kind": "planned",
+      "sources": [
+        "report.md#L2-L2"
+      ]
+    },
+    {
+      "id": "claim-1",
+      "text": "Validate HTTP reachability without claiming authenticated workflows.",
+      "kind": "planned",
+      "sources": [
+        "report.md#L3-L3"
+      ]
+    },
+    {
+      "id": "claim-2",
+      "text": "Preserve original checks and identify incomplete validation.",
+      "kind": "planned",
+      "sources": [
+        "report.md#L4-L4"
+      ]
+    },
+    {
+      "id": "claim-3",
+      "text": "The planned frontend sends requests to an API service.",
+      "kind": "planned",
+      "sources": [
+        "report.md#L5-L5"
+      ]
+    },
+    {
+      "id": "claim-4",
+      "text": "The API queues work for a separate background worker.",
+      "kind": "planned",
+      "sources": [
+        "report.md#L6-L6"
+      ]
+    },
+    {
+      "id": "claim-5",
+      "text": "The worker writes synthetic records to a storage service.",
+      "kind": "planned",
+      "sources": [
+        "report.md#L7-L7"
+      ]
+    },
+    {
+      "id": "claim-6",
+      "text": "Quay holds the UBI images used by the Kubernetes deployment.",
+      "kind": "planned",
+      "sources": [
+        "report.md#L8-L8"
+      ]
+    },
+    {
+      "id": "claim-7",
+      "text": "The retained checks exercised health, worker and storage endpoints.",
+      "kind": "observed",
+      "sources": [
+        "report.md#L9-L9"
+      ]
+    },
+    {
+      "id": "claim-8",
+      "text": "Three original HTTP smoke checks passed.",
+      "kind": "observed",
+      "sources": [
+        "report.md#L10-L10"
+      ]
+    },
+    {
+      "id": "claim-9",
+      "text": "Passing checks establish a limited functional baseline.",
+      "kind": "observed",
+      "sources": [
+        "report.md#L11-L11"
+      ]
+    },
+    {
+      "id": "claim-10",
+      "text": "Authentication and production reliability remain unproven.",
+      "kind": "observed",
+      "sources": [
+        "report.md#L12-L12"
+      ]
+    },
+    {
+      "id": "claim-11",
+      "text": "Validate the remaining workflows before production adoption.",
+      "kind": "recommendation",
+      "sources": [
+        "report.md#L13-L13"
+      ]
+    }
+  ],
+  "slides": [
+    {
+      "id": "slide-0",
+      "section": "objective",
+      "title": "Evaluate a synthetic service chain on OpenShift.",
+      "title_claim_ids": [
+        "claim-0"
+      ],
+      "bullet_claim_ids": [
+        "claim-0"
+      ],
+      "narration": [
+        {
+          "text": "The purpose is to evaluate whether a small set of components can be deployed and connected in a controlled proof of concept.",
+          "claim_ids": [
+            "claim-0"
+          ]
+        },
+        {
+          "text": "The scope is deliberately limited to the recorded synthetic environment.",
+          "claim_ids": [
+            "claim-0"
+          ]
+        },
+        {
+          "text": "This exercise provides a deployment baseline for later decisions, with further validation required before any production claim is made.",
+          "claim_ids": [
+            "claim-0"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-1",
+      "section": "testing",
+      "title": "Validate HTTP reachability without claiming authenticated workflows.",
+      "title_claim_ids": [
+        "claim-1"
+      ],
+      "bullet_claim_ids": [
+        "claim-1"
+      ],
+      "narration": [
+        {
+          "text": "The test plan uses direct HTTP requests to selected endpoints and records the response outcome for each scenario.",
+          "claim_ids": [
+            "claim-1"
+          ]
+        },
+        {
+          "text": "It does not log in as an end user, submit a complete authenticated transaction, or exercise authorization boundaries.",
+          "claim_ids": [
+            "claim-1"
+          ]
+        },
+        {
+          "text": "These distinctions matter when interpreting a passing endpoint check alongside the broader project objective.",
+          "claim_ids": [
+            "claim-1"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-2",
+      "section": "testing",
+      "title": "Preserve original checks and identify incomplete validation.",
+      "title_claim_ids": [
+        "claim-2"
+      ],
+      "bullet_claim_ids": [
+        "claim-2"
+      ],
+      "narration": [
+        {
+          "text": "The execution record keeps the original scenario identities and observed statuses together.",
+          "claim_ids": [
+            "claim-2"
+          ]
+        },
+        {
+          "text": "A missing execution must be labeled incomplete instead of being counted as a pass.",
+          "claim_ids": [
+            "claim-2"
+          ]
+        },
+        {
+          "text": "This synthetic run contains three executed checks and no incomplete scenario, but the reporting rule still prevents future missing observations from becoming invented successful results.",
+          "claim_ids": [
+            "claim-2"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-3",
+      "section": "setup",
+      "title": "The planned frontend sends requests to an API service.",
+      "title_claim_ids": [
+        "claim-3"
+      ],
+      "bullet_claim_ids": [
+        "claim-3"
+      ],
+      "narration": [
+        {
+          "text": "The planned synthetic frontend sends requests to an API service across the documented service boundary.",
+          "claim_ids": [
+            "claim-3"
+          ]
+        },
+        {
+          "text": "The setup is a declared acceptance fixture rather than a discovered customer deployment.",
+          "claim_ids": [
+            "claim-3"
+          ]
+        },
+        {
+          "text": "Its purpose is to exercise an evidence-backed explanation of component relationships, with each relationship tied to this retained report and without inventing a distributed trace.",
+          "claim_ids": [
+            "claim-3"
+          ]
+        }
+      ],
+      "graph": {
+        "title": "Planned synthetic request path",
+        "loop": 12,
+        "nodes": [
+          {
+            "id": "frontend",
+            "label": "Frontend",
+            "kind": "pod",
+            "pos": [
+              -5,
+              0,
+              0
+            ]
+          },
+          {
+            "id": "api-service",
+            "label": "API Service",
+            "kind": "control",
+            "pos": [
+              5,
+              0,
+              0
+            ]
+          }
+        ],
+        "edges": [
+          [
+            "frontend",
+            "api-service"
+          ]
+        ],
+        "paths": {
+          "request": {
+            "via": [
+              "frontend",
+              "api-service"
+            ]
+          }
+        },
+        "acts": [
+          {
+            "id": 0,
+            "t0": 0,
+            "t1": 12,
+            "title": "Planned frontend to API Service",
+            "path": "request",
+            "tone": "neutral"
+          }
+        ]
+      },
+      "graph_claim_ids": [
+        "claim-3"
+      ]
+    },
+    {
+      "id": "slide-4",
+      "section": "setup",
+      "title": "The API queues work for a separate background worker.",
+      "title_claim_ids": [
+        "claim-4"
+      ],
+      "bullet_claim_ids": [
+        "claim-4"
+      ],
+      "narration": [
+        {
+          "text": "The API places work on a queue for a separate background worker.",
+          "claim_ids": [
+            "claim-4"
+          ]
+        },
+        {
+          "text": "This separation lets the synthetic design describe the request-facing component and the asynchronous processing component independently.",
+          "claim_ids": [
+            "claim-4"
+          ]
+        },
+        {
+          "text": "The queue relationship belongs to the declared setup evidence.",
+          "claim_ids": [
+            "claim-4"
+          ]
+        },
+        {
+          "text": "It should not be interpreted as a measured latency result, a throughput benchmark, or an authenticated transaction.",
+          "claim_ids": [
+            "claim-4"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-5",
+      "section": "setup",
+      "title": "The worker writes synthetic records to a storage service.",
+      "title_claim_ids": [
+        "claim-5"
+      ],
+      "bullet_claim_ids": [
+        "claim-5"
+      ],
+      "narration": [
+        {
+          "text": "The background worker writes synthetic records to a storage service after processing queued work.",
+          "claim_ids": [
+            "claim-5"
+          ]
+        },
+        {
+          "text": "The report records that relationship as part of the fixture setup.",
+          "claim_ids": [
+            "claim-5"
+          ]
+        },
+        {
+          "text": "A storage endpoint check can support reachability, while durability, backup behavior, restore procedures, and behavior after a component restart still require separate tests before the system can be treated as production ready.",
+          "claim_ids": [
+            "claim-5"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-6",
+      "section": "setup",
+      "title": "Quay holds the UBI images used by the Kubernetes deployment.",
+      "title_claim_ids": [
+        "claim-6"
+      ],
+      "bullet_claim_ids": [
+        "claim-6"
+      ],
+      "narration": [
+        {
+          "text": "Quay stores the UBI based container images referenced by the Kubernetes deployment on OpenShift.",
+          "claim_ids": [
+            "claim-6"
+          ]
+        },
+        {
+          "text": "This statement describes the synthetic setup and image distribution path.",
+          "claim_ids": [
+            "claim-6"
+          ]
+        },
+        {
+          "text": "It does not claim that image scanning, signature enforcement, or supply chain policy was tested.",
+          "claim_ids": [
+            "claim-6"
+          ]
+        },
+        {
+          "text": "Those controls would need their own retained evidence and an explicit place in the validation plan.",
+          "claim_ids": [
+            "claim-6"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-7",
+      "section": "execution",
+      "title": "The retained checks exercised health, worker and storage endpoints.",
+      "title_claim_ids": [
+        "claim-7"
+      ],
+      "bullet_claim_ids": [
+        "claim-7"
+      ],
+      "narration": [
+        {
+          "text": "The original validation exercised three HTTP endpoints: health, worker, and storage.",
+          "claim_ids": [
+            "claim-7"
+          ]
+        },
+        {
+          "text": "Each result belongs to its retained scenario identity and execution record.",
+          "claim_ids": [
+            "claim-7"
+          ]
+        },
+        {
+          "text": "The explanation follows those observations without replaying the checks.",
+          "claim_ids": [
+            "claim-7"
+          ]
+        },
+        {
+          "text": "An animation of the request path is illustrative, and its playback speed must not be confused with measured execution timing or a captured network trace.",
+          "claim_ids": [
+            "claim-7"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-8",
+      "section": "results",
+      "title": "Three original HTTP smoke checks passed.",
+      "title_claim_ids": [
+        "claim-8"
+      ],
+      "bullet_claim_ids": [
+        "claim-8"
+      ],
+      "narration": [
+        {
+          "text": "All three original HTTP smoke checks passed in this synthetic run.",
+          "claim_ids": [
+            "claim-8"
+          ]
+        },
+        {
+          "text": "There were zero recorded failures, zero errors, zero skips, and zero incomplete scenarios.",
+          "claim_ids": [
+            "claim-8"
+          ]
+        },
+        {
+          "text": "The presentation preserves those exact totals.",
+          "claim_ids": [
+            "claim-8"
+          ]
+        },
+        {
+          "text": "The passing outcomes support the narrow endpoint checks that were executed, while leaving broader authentication and reliability questions open for later validation.",
+          "claim_ids": [
+            "claim-8"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-9",
+      "section": "results",
+      "title": "Passing checks establish a limited functional baseline.",
+      "title_claim_ids": [
+        "claim-9"
+      ],
+      "bullet_claim_ids": [
+        "claim-9"
+      ],
+      "narration": [
+        {
+          "text": "The passing checks establish a limited functional baseline for this proof of concept.",
+          "claim_ids": [
+            "claim-9"
+          ]
+        },
+        {
+          "text": "They show that the selected endpoints responded according to the synthetic acceptance expectations.",
+          "claim_ids": [
+            "claim-9"
+          ]
+        },
+        {
+          "text": "They do not establish sustained performance, multi-user behavior, failover, or production readiness.",
+          "claim_ids": [
+            "claim-9"
+          ]
+        },
+        {
+          "text": "A decision about broader adoption needs those separate questions to be tested and documented with the same evidence discipline.",
+          "claim_ids": [
+            "claim-9"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-10",
+      "section": "limitations",
+      "title": "Authentication and production reliability remain unproven.",
+      "title_claim_ids": [
+        "claim-10"
+      ],
+      "bullet_claim_ids": [
+        "claim-10"
+      ],
+      "narration": [
+        {
+          "text": "Authenticated workflows and production reliability remain unproven by the available smoke checks.",
+          "claim_ids": [
+            "claim-10"
+          ]
+        },
+        {
+          "text": "The report does not contain a successful authenticated user journey or a sustained reliability experiment.",
+          "claim_ids": [
+            "claim-10"
+          ]
+        },
+        {
+          "text": "This is a material limitation of the outcome, because a service can respond to a health request while a user-facing workflow still needs additional setup, permissions, or integration work.",
+          "claim_ids": [
+            "claim-10"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-11",
+      "section": "recommendation",
+      "title": "Validate the remaining workflows before production adoption.",
+      "title_claim_ids": [
+        "claim-11"
+      ],
+      "bullet_claim_ids": [
+        "claim-11"
+      ],
+      "narration": [
+        {
+          "text": "The recommendation is to validate the remaining authenticated workflows before production adoption.",
+          "claim_ids": [
+            "claim-11"
+          ]
+        },
+        {
+          "text": "Keep the three passing endpoint checks as the current baseline and expand the test plan around the unresolved risks.",
+          "claim_ids": [
+            "claim-11"
+          ]
+        },
+        {
+          "text": "Preserve the new outcomes, including failed or incomplete attempts, so that later summaries can explain what changed and what evidence supports the next decision.",
+          "claim_ids": [
+            "claim-11"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    }
+  ],
+  "conflicts": [],
+  "coverage_gaps": [],
+  "results": {
+    "error": 0,
+    "fail": 0,
+    "incomplete": 0,
+    "pass": 3,
+    "skip": 0
+  }
+}

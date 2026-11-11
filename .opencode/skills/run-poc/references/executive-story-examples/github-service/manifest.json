@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "run_id": "synthetic-github-service",
+  "gaps": [
+    "No public capture was taken for this synthetic example."
+  ],
+  "assets": [
+    {
+      "id": "context",
+      "kind": "concept",
+      "source_url": null,
+      "source_revision": null,
+      "claim_ids": [
+        "definition"
+      ],
+      "caption": "Conceptual intended flow, not an observed runtime trace.",
+      "alt": "Synthetic concept: sender to relay service to queue.",
+      "sha256": "81be36190f76963fbc0fc573b769822e0bb9732c7050c4ec8538833e728a95f6",
+      "width": 960,
+      "height": 280,
+      "attribution": "AutoPoC synthetic worked example; locally authored conceptual diagram."
+    }
+  ]
+}

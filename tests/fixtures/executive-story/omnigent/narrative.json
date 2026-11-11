@@ -1,0 +1,345 @@
+{
+  "schema_version": 2,
+  "run_id": "autopoc-omnigent-8554",
+  "project_name": "Omnigent",
+  "claims": [
+    {
+      "id": "claim-0",
+      "text": "Evaluate a single-pod Omnigent deployment on OpenShift.",
+      "kind": "planned",
+      "sources": [
+        "report.md#L1-L22"
+      ]
+    },
+    {
+      "id": "claim-1",
+      "text": "Five HTTP checks covered the pre-authentication surface.",
+      "kind": "observed",
+      "sources": [
+        "report.md#L120-L126"
+      ]
+    },
+    {
+      "id": "claim-2",
+      "text": "UBI 9 hosted the server with SQLite on emptyDir storage.",
+      "kind": "observed",
+      "sources": [
+        "report.md#L128-L150"
+      ]
+    },
+    {
+      "id": "claim-3",
+      "text": "Trimming the build Dockerfile resolved an unavailable package.",
+      "kind": "observed",
+      "sources": [
+        "report.md#L104-L107"
+      ]
+    },
+    {
+      "id": "claim-4",
+      "text": "All five original validation checks passed.",
+      "kind": "observed",
+      "sources": [
+        "test-results.json"
+      ]
+    },
+    {
+      "id": "claim-5",
+      "text": "Authenticated agent workflows remain unproven.",
+      "kind": "inferred",
+      "sources": [
+        "report.md#L120-L126"
+      ]
+    },
+    {
+      "id": "claim-6",
+      "text": "Traces, original UI recordings and the worker workspace were not retained.",
+      "kind": "observed",
+      "sources": [
+        "supplemental/run-summary.txt"
+      ]
+    },
+    {
+      "id": "claim-7",
+      "text": "Validate authenticated workflows and durable storage before production.",
+      "kind": "recommendation",
+      "sources": [
+        "report.md#L152-L163"
+      ]
+    }
+  ],
+  "slides": [
+    {
+      "id": "slide-0",
+      "section": "objective",
+      "title": "Evaluate a single-pod Omnigent deployment on OpenShift.",
+      "title_claim_ids": [
+        "claim-0"
+      ],
+      "bullet_claim_ids": [
+        "claim-0"
+      ],
+      "narration": [
+        {
+          "text": "The objective was to containerize Omnigent on UBI 9 and deploy it as a single non-root pod on OpenShift.",
+          "claim_ids": [
+            "claim-0"
+          ]
+        },
+        {
+          "text": "This narration describes the archived October twentieth run.",
+          "claim_ids": [
+            "claim-0"
+          ]
+        },
+        {
+          "text": "It does not repeat the tests or turn later observations into original validation.",
+          "claim_ids": [
+            "claim-0"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-1",
+      "section": "testing",
+      "title": "Five HTTP checks covered the pre-authentication surface.",
+      "title_claim_ids": [
+        "claim-1"
+      ],
+      "bullet_claim_ids": [
+        "claim-1"
+      ],
+      "narration": [
+        {
+          "text": "The validation used five HTTP smoke checks: health, version information, server information, the web user interface, and the login page.",
+          "claim_ids": [
+            "claim-1"
+          ]
+        },
+        {
+          "text": "These checks covered reachability and the pre-authentication surface.",
+          "claim_ids": [
+            "claim-1"
+          ]
+        },
+        {
+          "text": "Loading a login page does not demonstrate a successful authenticated workflow.",
+          "claim_ids": [
+            "claim-1"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-2",
+      "section": "setup",
+      "title": "UBI 9 hosted the server with SQLite on emptyDir storage.",
+      "title_claim_ids": [
+        "claim-2"
+      ],
+      "bullet_claim_ids": [
+        "claim-2"
+      ],
+      "narration": [
+        {
+          "text": "The deployed server ran in a UBI 9 image, behind a Service and an HTTPS Route.",
+          "claim_ids": [
+            "claim-2"
+          ]
+        },
+        {
+          "text": "SQLite used emptyDir storage.",
+          "claim_ids": [
+            "claim-2"
+          ]
+        },
+        {
+          "text": "That makes the recorded setup useful for a proof of concept, while data durability still needs a separate decision before production use.",
+          "claim_ids": [
+            "claim-2"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-3",
+      "section": "setup",
+      "title": "Trimming the build Dockerfile resolved an unavailable package.",
+      "title_claim_ids": [
+        "claim-3"
+      ],
+      "bullet_claim_ids": [
+        "claim-3"
+      ],
+      "narration": [
+        {
+          "text": "The first image build failed because an unused Dockerfile stage requested a package unavailable in UBI 9.",
+          "claim_ids": [
+            "claim-3"
+          ]
+        },
+        {
+          "text": "A trimmed build Dockerfile allowed the next build to complete and publish to Quay.",
+          "claim_ids": [
+            "claim-3"
+          ]
+        },
+        {
+          "text": "This correction matters because it explains how the deployment became possible.",
+          "claim_ids": [
+            "claim-3"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-4",
+      "section": "results",
+      "title": "All five original validation checks passed.",
+      "title_claim_ids": [
+        "claim-4"
+      ],
+      "bullet_claim_ids": [
+        "claim-4"
+      ],
+      "narration": [
+        {
+          "text": "All five original HTTP validation scenarios passed.",
+          "claim_ids": [
+            "claim-4"
+          ]
+        },
+        {
+          "text": "These results describe individual smoke checks, not a performance benchmark or a production reliability guarantee.",
+          "claim_ids": [
+            "claim-4"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-5",
+      "section": "limitations",
+      "title": "Authenticated agent workflows remain unproven.",
+      "title_claim_ids": [
+        "claim-5"
+      ],
+      "bullet_claim_ids": [
+        "claim-5"
+      ],
+      "narration": [
+        {
+          "text": "The successful smoke checks do not establish authenticated agent execution or complete application behavior.",
+          "claim_ids": [
+            "claim-5"
+          ]
+        },
+        {
+          "text": "Authentication, external integrations, and production reliability require additional validation.",
+          "claim_ids": [
+            "claim-5"
+          ]
+        },
+        {
+          "text": "OpenShift deployment success should therefore be read within this limited test scope.",
+          "claim_ids": [
+            "claim-5"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-6",
+      "section": "limitations",
+      "title": "Traces, original UI recordings and the worker workspace were not retained.",
+      "title_claim_ids": [
+        "claim-6"
+      ],
+      "bullet_claim_ids": [
+        "claim-6"
+      ],
+      "narration": [
+        {
+          "text": "No distributed trace export, run-specific browser trace archive, or original user interface recording was retained in the archived evidence.",
+          "claim_ids": [
+            "claim-6"
+          ]
+        },
+        {
+          "text": "The presentation cannot reconstruct those missing observations.",
+          "claim_ids": [
+            "claim-6"
+          ]
+        },
+        {
+          "text": "The original worker workspace was also not archived; this presentation uses the committed evidence copies.",
+          "claim_ids": [
+            "claim-6"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-7",
+      "section": "recommendation",
+      "title": "Validate authenticated workflows and durable storage before production.",
+      "title_claim_ids": [
+        "claim-7"
+      ],
+      "bullet_claim_ids": [
+        "claim-7"
+      ],
+      "narration": [
+        {
+          "text": "The next decision should focus on authenticated end-to-end workflows and durable storage.",
+          "claim_ids": [
+            "claim-7"
+          ]
+        },
+        {
+          "text": "Keep the successful deployment and five passing smoke checks as the established baseline.",
+          "claim_ids": [
+            "claim-7"
+          ]
+        },
+        {
+          "text": "Broader production adoption requires evidence that goes beyond that baseline.",
+          "claim_ids": [
+            "claim-7"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    }
+  ],
+  "conflicts": [],
+  "coverage_gaps": [
+    "missing_original_workspace",
+    "missing_distributed_traces",
+    "missing_original_ui_recording",
+    "missing_trace"
+  ],
+  "results": {
+    "error": 0,
+    "fail": 0,
+    "incomplete": 0,
+    "pass": 5,
+    "skip": 0
+  }
+}

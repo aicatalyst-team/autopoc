@@ -1,0 +1,20 @@
+{
+  "schema_version": 2,
+  "reviewer": "configured-opencode",
+  "approved": true,
+  "findings": [],
+  "observations": [
+    "All six required sections (objective, testing, setup, results, limitations, recommendation) are present in the correct order.",
+    "The results totals (1 pass, 0 fail/error/skip/incomplete) match the evidence in index.json and test-results.json exactly.",
+    "Claim kinds are correctly distinguished: 'planned' for intent, 'observed' for deployment/check status, and 'recommendation' for next steps.",
+    "Source selectors (e.g., report.md#L2-L2) correctly map to the specific lines in the provided report.md evidence.",
+    "The model_manifest_sha256 is a placeholder/test value as expected for this synthetic acceptance review, and the timing policy matches the reference defaults."
+  ],
+  "model": "vllm/qwen3.8-27b-abliterated",
+  "method": "Existing configured model API through a local port-forward; worker credentials used only in memory.",
+  "acceptance_only": true,
+  "date": "2026-11-08",
+  "evidence_sha256": "86cdbaab6a3095a23a1b9fab86a457b45f2b8ef607d0240ad879acb3d2ca86b0",
+  "narrative_sha256": "d2a034436f8562bcba4e62b43f59adc8e7b3bbaeee9a8a39d1a250600cc005ce",
+  "scenes_sha256": "0eefaa9424b2dd239bbdcef893f2f6c17f5b7c113bc3f083b6a1f814d7827ba0"
+}

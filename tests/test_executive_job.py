@@ -1,0 +1,118 @@
+"""Renderer submission must isolate failures and keep credentials out of args."""
+
+import pytest
+
+from autopoc.executive_job import build_renderer_job
+
+
+def job(**overrides):
+    return build_renderer_job(
+        run_id="run-original",
+        revision="a" * 64,
+        image="quay.io/example/renderer@sha256:" + "b" * 64,
+        input_id="input-drive-id",
+        input_sha256="c" * 64,
+        recovery_id="recovery-drive-id",
+        recovery_sha256="d" * 64,
+        namespace="autopoc-test",
+        **overrides,
+    )
+
+
+def test_renderer_is_bounded_and_cannot_mutate_workloads():
+    manifest = job()
+    pod = manifest["spec"]["template"]["spec"]
+    container = pod["containers"][0]
+    assert pod["automountServiceAccountToken"] is False
+    assert pod["serviceAccountName"] == "autopoc-executive-renderer"
+    assert pod["restartPolicy"] == "Never"
+    assert manifest["spec"]["backoffLimit"] == 0
+    assert manifest["spec"]["activeDeadlineSeconds"] > 0
+    assert "memory" in container["resources"]["limits"]
+    assert "ephemeral-storage" in container["resources"]["limits"]
+    assert pod["volumes"][0]["emptyDir"]["sizeLimit"]
+    assert container["securityContext"]["allowPrivilegeEscalation"] is False
+    assert container["securityContext"]["readOnlyRootFilesystem"] is True
+    assert container["securityContext"]["capabilities"] == {"drop": ["ALL"]}
+    assert "credentials.json" not in " ".join(container["args"])
+    assert "runAsUser" not in pod["securityContext"]
+
+
+def test_resume_targets_same_job_without_recreating_work():
+    assert job()["metadata"]["name"] == job()["metadata"]["name"]
+    changed = build_renderer_job(
+        "another-run",
+        "a" * 64,
+        "quay.io/example/renderer@sha256:" + "b" * 64,
+        "input-drive-id",
+        "c" * 64,
+        "recovery-drive-id",
+        "autopoc-test",
+        recovery_sha256="d" * 64,
+    )
+    assert changed["metadata"]["name"] != job()["metadata"]["name"]
+
+
+@pytest.mark.parametrize("values", [{"deadline": 0}, {"deadline": 999999}])
+def test_invalid_resource_profile_is_rejected(values):
+    with pytest.raises(ValueError):
+        job(**values)
+
+
+def test_mutable_or_injected_image_cannot_be_submitted():
+    with pytest.raises(ValueError):
+        build_renderer_job(
+            "run",
+            "a" * 64,
+            "quay.io/org/renderer:latest",
+            "input",
+            "b" * 64,
+            "recovery",
+            "autopoc-test",
+            recovery_sha256="d" * 64,
+        )
+
+
+def test_narrated_profile_retains_isolation_with_long_budget():
+    manifest = job(profile="kokoro-v3")
+    pod = manifest["spec"]["template"]["spec"]
+    container = pod["containers"][0]
+    assert manifest["spec"]["activeDeadlineSeconds"] == 3600
+    assert container["args"][-2:] == ["--timeout-seconds", "3000"]
+    assert container["resources"]["limits"] == {
+        "cpu": "2",
+        "memory": "4Gi",
+        "ephemeral-storage": "10Gi",
+    }
+    assert pod["volumes"][0]["emptyDir"]["sizeLimit"] == "8Gi"
+    assert pod["automountServiceAccountToken"] is False
+    assert container["securityContext"]["readOnlyRootFilesystem"] is True
+    assert job()["spec"]["activeDeadlineSeconds"] == 600
+    assert "--timeout-seconds" not in job()["spec"]["template"]["spec"]["containers"][0]["args"]
+
+
+def test_narrated_deadline_leaves_startup_headroom_without_breaking_sealed_attempts():
+    """Pull/scheduling time erodes a Job deadline, so the default keeps 600s headroom.
+
+    Checkpoints sealed before 9 November 2026 persisted 3120s; dispatching those
+    must keep working rather than silently adopting the new default.
+    """
+    deadline = job(profile="kokoro-v3")["spec"]["activeDeadlineSeconds"]
+    assert deadline - 3000 >= 600
+    assert job(profile="kokoro-v3", deadline=3120)["spec"]["activeDeadlineSeconds"] == 3120
+    for invalid in (3119, 3601):
+        with pytest.raises(ValueError):
+            job(profile="kokoro-v3", deadline=invalid)
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        {"profile": "unknown"},
+        {"profile": "kokoro-v3", "deadline": 3601},
+        {"profile": "kokoro-v3", "deadline": 3000},
+    ],
+)
+def test_reject_unknown_or_too_short_narrated_job(options):
+    with pytest.raises(ValueError):
+        job(**options)

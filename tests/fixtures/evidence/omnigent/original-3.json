@@ -1,0 +1,12 @@
+{
+  "description": "Unauthenticated server capability/info endpoint",
+  "duration_seconds": 0.02,
+  "error_message": null,
+  "provenance": {
+    "kind": "original-run results",
+    "retry_history": "unavailable"
+  },
+  "scenario_id": "server-info",
+  "scenario_name": "server-info",
+  "status": "pass"
+}

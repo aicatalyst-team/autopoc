@@ -1,0 +1,12 @@
+{
+  "description": "Auth login page reachable (pre-auth surface)",
+  "duration_seconds": 0.02,
+  "error_message": null,
+  "provenance": {
+    "kind": "original-run results",
+    "retry_history": "unavailable"
+  },
+  "scenario_id": "login-page",
+  "scenario_name": "login-page",
+  "status": "pass"
+}

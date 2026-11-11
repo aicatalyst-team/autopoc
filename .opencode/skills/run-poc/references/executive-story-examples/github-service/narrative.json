@@ -1,0 +1,531 @@
+{
+  "schema_version": 3,
+  "run_id": "synthetic-github-service",
+  "project_name": "Parcel Relay",
+  "claims": [
+    {
+      "id": "definition",
+      "text": "Parcel Relay is a fictional service intended to accept delivery events and forward them to a queue.",
+      "kind": "planned",
+      "sources": [
+        "source.md#L1-L1"
+      ]
+    },
+    {
+      "id": "question",
+      "text": "Assess event delivery and rejection behavior in one isolated service setup.",
+      "kind": "planned",
+      "sources": [
+        "source.md#L2-L2"
+      ]
+    },
+    {
+      "id": "setup",
+      "text": "The synthetic record describes one service process and one local queue.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L3-L3"
+      ]
+    },
+    {
+      "id": "scope",
+      "text": "Load, resilience across restarts and production credentials were not tested.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L4-L4"
+      ]
+    },
+    {
+      "id": "next",
+      "text": "Fix the rejection response, then finish cancellation validation before expanding scope.",
+      "kind": "recommendation",
+      "sources": [
+        "source.md#L5-L5"
+      ]
+    },
+    {
+      "id": "docs",
+      "text": "The unversioned documentation describes intended behavior; it is contextual current documentation.",
+      "kind": "planned",
+      "sources": [
+        "source.md#L6-L6"
+      ]
+    },
+    {
+      "id": "check-0-label",
+      "text": "Health response",
+      "kind": "planned",
+      "sources": [
+        "source.md#L7-L7"
+      ]
+    },
+    {
+      "id": "check-0-purpose",
+      "text": "Check whether the service responds to a health request.",
+      "kind": "planned",
+      "sources": [
+        "source.md#L8-L8"
+      ]
+    },
+    {
+      "id": "check-0-outcome",
+      "text": "The health request returned the expected response.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L9-L9"
+      ]
+    },
+    {
+      "id": "check-1-label",
+      "text": "Valid event forwarding",
+      "kind": "planned",
+      "sources": [
+        "source.md#L10-L10"
+      ]
+    },
+    {
+      "id": "check-1-purpose",
+      "text": "Check whether a valid event reaches the local queue.",
+      "kind": "planned",
+      "sources": [
+        "source.md#L11-L11"
+      ]
+    },
+    {
+      "id": "check-1-outcome",
+      "text": "The queue received the valid event.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L12-L12"
+      ]
+    },
+    {
+      "id": "check-2-label",
+      "text": "Malformed event rejection",
+      "kind": "planned",
+      "sources": [
+        "source.md#L13-L13"
+      ]
+    },
+    {
+      "id": "check-2-purpose",
+      "text": "Check whether malformed events receive the documented error.",
+      "kind": "planned",
+      "sources": [
+        "source.md#L14-L14"
+      ]
+    },
+    {
+      "id": "check-2-outcome",
+      "text": "The malformed event received a success response, so this check failed.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L15-L15"
+      ]
+    },
+    {
+      "id": "check-3-label",
+      "text": "Queue timeout handling",
+      "kind": "planned",
+      "sources": [
+        "source.md#L16-L16"
+      ]
+    },
+    {
+      "id": "check-3-purpose",
+      "text": "Check whether a queue timeout produces a controlled response.",
+      "kind": "planned",
+      "sources": [
+        "source.md#L17-L17"
+      ]
+    },
+    {
+      "id": "check-3-outcome",
+      "text": "The harness stopped with an error before it could compare the timeout response.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L18-L18"
+      ]
+    },
+    {
+      "id": "check-4-label",
+      "text": "Optional external adapter",
+      "kind": "planned",
+      "sources": [
+        "source.md#L19-L19"
+      ]
+    },
+    {
+      "id": "check-4-purpose",
+      "text": "Check forwarding through an optional external adapter.",
+      "kind": "planned",
+      "sources": [
+        "source.md#L20-L20"
+      ]
+    },
+    {
+      "id": "check-4-outcome",
+      "text": "The adapter check was skipped because the fixture had no adapter configuration.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L21-L21"
+      ]
+    },
+    {
+      "id": "check-5-label",
+      "text": "Cancellation behavior",
+      "kind": "planned",
+      "sources": [
+        "source.md#L22-L22"
+      ]
+    },
+    {
+      "id": "check-5-purpose",
+      "text": "Check whether cancellation prevents further event delivery.",
+      "kind": "planned",
+      "sources": [
+        "source.md#L23-L23"
+      ]
+    },
+    {
+      "id": "check-5-outcome",
+      "text": "The retained attempt ended before cancellation validation completed.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L24-L24"
+      ]
+    },
+    {
+      "id": "outcome",
+      "text": "Two checks passed, one failed, one errored, one was skipped, and one remained incomplete.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L25-L25"
+      ]
+    }
+  ],
+  "slides": [
+    {
+      "id": "identity",
+      "section": "objective",
+      "title": "Parcel Relay: purpose and PoC question",
+      "title_claim_ids": [
+        "definition"
+      ],
+      "bullet_claim_ids": [
+        "definition",
+        "question"
+      ],
+      "narration": [
+        {
+          "text": "Parcel Relay is a fictional service intended to accept delivery events and forward them to a queue.",
+          "claim_ids": [
+            "definition"
+          ]
+        },
+        {
+          "text": "Assess event delivery and rejection behavior in one isolated service setup.",
+          "claim_ids": [
+            "question"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "identity",
+      "visual_id": "context",
+      "checks": []
+    },
+    {
+      "id": "checks-0",
+      "section": "testing",
+      "title": "Recorded checks and their purposes",
+      "title_claim_ids": [
+        "outcome"
+      ],
+      "bullet_claim_ids": [
+        "outcome"
+      ],
+      "narration": [
+        {
+          "text": "Health response: Check whether the service responds to a health request.",
+          "claim_ids": [
+            "check-0-label",
+            "check-0-purpose"
+          ]
+        },
+        {
+          "text": "The health request returned the expected response.",
+          "claim_ids": [
+            "check-0-outcome"
+          ]
+        },
+        {
+          "text": "Valid event forwarding: Check whether a valid event reaches the local queue.",
+          "claim_ids": [
+            "check-1-label",
+            "check-1-purpose"
+          ]
+        },
+        {
+          "text": "The queue received the valid event.",
+          "claim_ids": [
+            "check-1-outcome"
+          ]
+        },
+        {
+          "text": "Malformed event rejection: Check whether malformed events receive the documented error.",
+          "claim_ids": [
+            "check-2-label",
+            "check-2-purpose"
+          ]
+        },
+        {
+          "text": "The malformed event received a success response, so this check failed.",
+          "claim_ids": [
+            "check-2-outcome"
+          ]
+        },
+        {
+          "text": "Queue timeout handling: Check whether a queue timeout produces a controlled response.",
+          "claim_ids": [
+            "check-3-label",
+            "check-3-purpose"
+          ]
+        },
+        {
+          "text": "The harness stopped with an error before it could compare the timeout response.",
+          "claim_ids": [
+            "check-3-outcome"
+          ]
+        },
+        {
+          "text": "Optional external adapter: Check forwarding through an optional external adapter.",
+          "claim_ids": [
+            "check-4-label",
+            "check-4-purpose"
+          ]
+        },
+        {
+          "text": "The adapter check was skipped because the fixture had no adapter configuration.",
+          "claim_ids": [
+            "check-4-outcome"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "checks",
+      "visual_id": null,
+      "checks": [
+        {
+          "scenario_id": "check-0",
+          "label_claim_id": "check-0-label",
+          "purpose_claim_id": "check-0-purpose",
+          "narration_sentence_indices": [
+            0,
+            1
+          ]
+        },
+        {
+          "scenario_id": "check-1",
+          "label_claim_id": "check-1-label",
+          "purpose_claim_id": "check-1-purpose",
+          "narration_sentence_indices": [
+            2,
+            3
+          ]
+        },
+        {
+          "scenario_id": "check-2",
+          "label_claim_id": "check-2-label",
+          "purpose_claim_id": "check-2-purpose",
+          "narration_sentence_indices": [
+            4,
+            5
+          ]
+        },
+        {
+          "scenario_id": "check-3",
+          "label_claim_id": "check-3-label",
+          "purpose_claim_id": "check-3-purpose",
+          "narration_sentence_indices": [
+            6,
+            7
+          ]
+        },
+        {
+          "scenario_id": "check-4",
+          "label_claim_id": "check-4-label",
+          "purpose_claim_id": "check-4-purpose",
+          "narration_sentence_indices": [
+            8,
+            9
+          ]
+        }
+      ]
+    },
+    {
+      "id": "checks-1",
+      "section": "testing",
+      "title": "Recorded checks and their purposes",
+      "title_claim_ids": [
+        "outcome"
+      ],
+      "bullet_claim_ids": [
+        "outcome"
+      ],
+      "narration": [
+        {
+          "text": "Cancellation behavior: Check whether cancellation prevents further event delivery.",
+          "claim_ids": [
+            "check-5-label",
+            "check-5-purpose"
+          ]
+        },
+        {
+          "text": "The retained attempt ended before cancellation validation completed.",
+          "claim_ids": [
+            "check-5-outcome"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "checks",
+      "visual_id": null,
+      "checks": [
+        {
+          "scenario_id": "check-5",
+          "label_claim_id": "check-5-label",
+          "purpose_claim_id": "check-5-purpose",
+          "narration_sentence_indices": [
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "id": "setup",
+      "section": "setup",
+      "title": "Recorded setup",
+      "title_claim_ids": [
+        "setup"
+      ],
+      "bullet_claim_ids": [
+        "setup",
+        "docs"
+      ],
+      "narration": [
+        {
+          "text": "The synthetic record describes one service process and one local queue.",
+          "claim_ids": [
+            "setup"
+          ]
+        },
+        {
+          "text": "The unversioned documentation describes intended behavior; it is contextual current documentation.",
+          "claim_ids": [
+            "docs"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "summary",
+      "visual_id": null,
+      "checks": []
+    },
+    {
+      "id": "results",
+      "section": "results",
+      "title": "What the evidence records",
+      "title_claim_ids": [
+        "outcome"
+      ],
+      "bullet_claim_ids": [
+        "outcome"
+      ],
+      "narration": [
+        {
+          "text": "Two checks passed, one failed, one errored, one was skipped, and one remained incomplete.",
+          "claim_ids": [
+            "outcome"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "summary",
+      "visual_id": null,
+      "checks": []
+    },
+    {
+      "id": "limits",
+      "section": "limitations",
+      "title": "Coverage limits",
+      "title_claim_ids": [
+        "scope"
+      ],
+      "bullet_claim_ids": [
+        "scope"
+      ],
+      "narration": [
+        {
+          "text": "Load, resilience across restarts and production credentials were not tested.",
+          "claim_ids": [
+            "scope"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "summary",
+      "visual_id": null,
+      "checks": []
+    },
+    {
+      "id": "next",
+      "section": "recommendation",
+      "title": "Next actions",
+      "title_claim_ids": [
+        "next"
+      ],
+      "bullet_claim_ids": [
+        "next"
+      ],
+      "narration": [
+        {
+          "text": "Fix the rejection response, then finish cancellation validation before expanding scope.",
+          "claim_ids": [
+            "next"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "summary",
+      "visual_id": null,
+      "checks": []
+    }
+  ],
+  "results": {
+    "pass": 2,
+    "fail": 1,
+    "error": 1,
+    "skip": 1,
+    "incomplete": 1
+  },
+  "conflicts": [],
+  "coverage_gaps": [
+    "Load, resilience across restarts and production credentials were not tested."
+  ],
+  "project_context": {
+    "repository_url": "https://github.com/example/parcel-relay",
+    "revision": "fictional-revision-service-1",
+    "definition_claim_id": "definition",
+    "homepage_url": null,
+    "documentation_url": "https://docs.example.org/parcel-relay/"
+  }
+}

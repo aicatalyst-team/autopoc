@@ -1,0 +1,16 @@
+{
+  "run_id": "synthetic-codeberg-library",
+  "coverage_gaps": [
+    "No test attempts were retained, so this record cannot establish correctness or compatibility."
+  ],
+  "final_results": {
+    "results": [],
+    "totals": {
+      "pass": 0,
+      "fail": 0,
+      "error": 0,
+      "skip": 0,
+      "incomplete": 0
+    }
+  }
+}

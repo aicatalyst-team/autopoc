@@ -1,0 +1,53 @@
+{
+  "run_id": "synthetic-github-service",
+  "coverage_gaps": [
+    "Load, resilience across restarts and production credentials were not tested."
+  ],
+  "final_results": {
+    "results": [
+      {
+        "scenario_id": "check-0",
+        "scenario_name": "Health response",
+        "status": "pass",
+        "attempt_id": null
+      },
+      {
+        "scenario_id": "check-1",
+        "scenario_name": "Valid event forwarding",
+        "status": "pass",
+        "attempt_id": null
+      },
+      {
+        "scenario_id": "check-2",
+        "scenario_name": "Malformed event rejection",
+        "status": "fail",
+        "attempt_id": null
+      },
+      {
+        "scenario_id": "check-3",
+        "scenario_name": "Queue timeout handling",
+        "status": "error",
+        "attempt_id": null
+      },
+      {
+        "scenario_id": "check-4",
+        "scenario_name": "Optional external adapter",
+        "status": "skip",
+        "attempt_id": null
+      },
+      {
+        "scenario_id": "check-5",
+        "scenario_name": "Cancellation behavior",
+        "status": "incomplete",
+        "attempt_id": null
+      }
+    ],
+    "totals": {
+      "pass": 2,
+      "fail": 1,
+      "error": 1,
+      "skip": 1,
+      "incomplete": 1
+    }
+  }
+}

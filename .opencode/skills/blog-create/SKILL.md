@@ -186,18 +186,28 @@ Read `references/scoring.md` for full rules.
 3. Write `final.md` with clean draft
 4. Generate `seo.md` with meta title, description, keywords, slug
 5. Generate `blog-preview.html` using template from `assets/blog-template.html` -- read `references/html-preview-guide.md` for conversion rules (includes Mermaid rendering)
-6. Commit to the `autopoc-artifacts` branch:
+6. Stage sanitized, validated final artifacts outside the source checkout under
+   `$WORK_DIR/evidence/$RUN_ID/staging/blog/`. In PoC mode reuse the existing
+   `project.run_id` from `poc-state.yaml`. For a standalone blog initialize and
+   persist a UUID run ID once, then reuse it on resume.
+   Set `STAGING_DIR="$WORK_DIR/evidence/$RUN_ID/staging"` in both modes.
+   Create the staging directory with private permissions. Copy `final.md` as `blog-post.md` and
+   `seo.md` as `blog-seo.md` along with `blog-preview.html` before any branch
+   changes. Publish with the common append-only helper:
    ```bash
-   cd "$CLONE_PATH"
-   CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-   git stash --quiet 2>/dev/null || true
-   git checkout -B autopoc-artifacts
-   git add blog-post.md blog-seo.md blog-preview.html
-   git commit -m "Add blog post artifacts" --allow-empty
-   git push origin autopoc-artifacts --force
-   git checkout "$CURRENT_BRANCH"
-   git stash pop --quiet 2>/dev/null || true
+   python -m autopoc.cli_tools artifact-publish \
+     --repo "$CLONE_PATH" --run-id "$RUN_ID" --kind blog \
+     --file "blog-post.md=$STAGING_DIR/blog/blog-post.md" \
+     --file "blog-seo.md=$STAGING_DIR/blog/blog-seo.md" \
+     --file "blog-preview.html=$STAGING_DIR/blog/blog-preview.html"
    ```
+   Save the returned revision, path and commit in state. The helper uses a separate
+   temporary repository based on the current remote artifact head, creates an
+   orphan branch if absent, and appends under `runs/<run_id>/blog/<revision>/`.
+   It updates the blog head with an ordinary push and bounded conflict retries.
+   Never reset, stash, switch or force-push the source checkout for artifact
+   publication. Preserve plan, test, canonical report and executive link revisions;
+   a publication error must be recorded explicitly without replacing their history.
 
 ## Important Reminders
 

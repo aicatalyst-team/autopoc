@@ -64,9 +64,17 @@ install: ## Install in editable mode with dev extras
 lock: ## Regenerate requirements.lock from pyproject.toml
 	pip-compile --upgrade --generate-hashes --output-file=requirements.lock pyproject.toml
 
+.PHONY: renderer-lock
+renderer-lock: ## Regenerate renderer-only CPU speech lock with Python 3.12
+	uv pip compile renderer/pyproject.toml --python-version 3.12 --generate-hashes --emit-index-url --extra-index-url https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match --output-file=renderer/requirements.lock
+
 .PHONY: test
 test: ## Run unit and integration tests with coverage
 	$(PYTHON) -m pytest tests/ --ignore=tests/e2e -q --cov --cov-report=term-missing
+
+.PHONY: test-renderer
+test-renderer: ## Run renderer tests (Node only, no npm install needed)
+	cd renderer && node --test *.test.mjs
 
 .PHONY: test-e2e
 test-e2e: ## Run end-to-end tests (requires local infra)
@@ -99,3 +107,15 @@ clean: ## Remove build artifacts
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
+
+# ---------- standalone executive renderer ----------
+
+IMAGE_RENDERER = $(IMAGE_REGISTRY)/$(IMAGE_ORG)/autopoc-executive:$(IMAGE_TAG)
+
+.PHONY: renderer-image
+renderer-image: ## Build standalone Slidev/TopoLoop executive renderer
+	$(CONTAINER_CMD) build -f Dockerfile.executive -t $(IMAGE_RENDERER) .
+
+.PHONY: renderer-image-push
+renderer-image-push: ## Push the standalone executive renderer image
+	$(CONTAINER_CMD) push $(IMAGE_RENDERER)

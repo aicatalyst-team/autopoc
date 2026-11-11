@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-11-09T13:59:34.711216+00:00",
+  "run_id": "90b344e86812455caf110467384bbbea",
+  "purpose": "User-requested media-only regeneration restoring TopoLoop 3D setup and original-test walkthrough.",
+  "parent_validation": "docs/validation/openshell-kokoro-e2e-2026-11-09.json",
+  "engine_source_commit": "35f79ec",
+  "later_branch_refinements_included": false,
+  "renderer_image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:2910f7cc410050017326bc79f4ac307c960d3003521e335f1468ccfeecd90fb3",
+  "input_sha256": "670eef1c9bd7cb624287d11ad28f4da624938012d26a11382f06daf87ce270ef",
+  "evidence_sha256": "4e3f9119afff9faefb3e0af3e4bf67596f036804cdc3d854450fddf9e5ad433e",
+  "diagrams": {
+    "testing": "Five original recorded checks, including a stopped worker-to-sandbox TCP attempt.",
+    "setup": "Five recorded components and configured relationships, explicitly a topology tour rather than a packet trace.",
+    "graph_scenes": 2,
+    "final_candidate": "3d-v10",
+    "draft_history": "Retained v6-v9 while correcting labels and removing a clipped decorative namespace caption. No full-render retries were needed for this revision.",
+    "spoken_narration_identical_to_previous": true,
+    "execution_date_omitted_from_speech": true
+  },
+  "original_validation": {
+    "executions": 1,
+    "execution_id": "af1836af24fc49a38c665ed61bfa76da",
+    "totals": {
+      "pass": 5,
+      "fail": 0,
+      "error": 0,
+      "skip": 0,
+      "incomplete": 0
+    },
+    "payload_hashes_reverified": 5,
+    "test_script_unchanged": true,
+    "tests_replayed": false,
+    "deployment_changed": false
+  },
+  "content_review": {
+    "model": "vllm/qwen3.8-27b-abliterated",
+    "evidence_members": 12,
+    "additional_audit_material": "Original script and two exact pinned HA source examples.",
+    "approved": true,
+    "blocking_findings": 0,
+    "finish_reason": "stop",
+    "reviewed_input_hashes_unchanged": true,
+    "review_hashes": {
+      "narrative_sha256": "25998356450b81f209ff9d8b0bfdb1ff3239b3ad49b765df2867924a04130f14",
+      "scenes_sha256": "ee6a07d67a8eb728ba510070ba7393896831abc8fb4e7f5c7bce00ccef0e9ed3",
+      "evidence_sha256": "4e3f9119afff9faefb3e0af3e4bf67596f036804cdc3d854450fddf9e5ad433e"
+    }
+  },
+  "visual_preflight": {
+    "browser_pdf_preparation": "passed, six slides",
+    "graph_states_checked": 21,
+    "graph_act_titles_observed": [
+      "Gateway health: HTTP 200",
+      "Gateway metrics returned",
+      "Recorded components and links",
+      "Requested node observed",
+      "Sandbox TCP port unreachable",
+      "Sandbox exec: exit code 0"
+    ],
+    "whole_label_bounds": "passed",
+    "inspection_method": "Reset/remount at each frozen sample so the actual requested state is repainted; inspect full node-label boxes in addition to native guards.",
+    "known_product_followups": [
+      "Vendored freezeAt changes need repaint scheduling after the first freeze.",
+      "Native geometry guard should include full node subtitles and namespace captions."
+    ],
+    "product_code_changed": false
+  },
+  "render": {
+    "job": "autopoc-openshell-kokoro-90b344e8-3d-render-v10",
+    "status": "succeeded",
+    "network": "Existing run-scoped renderer deny-all ingress/egress policy.",
+    "input_transport": "Isolated PVC subdirectory, sealed ZIP copied to regular scratch file.",
+    "resources": {
+      "cpu": "2",
+      "memory": "4Gi",
+      "scratch": "8Gi",
+      "process_timeout_seconds": 3000,
+      "job_deadline_seconds": 3120
+    },
+    "runtime": {
+      "elapsed_seconds": 469.283,
+      "peak_memory_bytes": 3399409664,
+      "scratch_usage_bytes": 97810483
+    },
+    "narration": {
+      "duration_seconds": 208.26666666666668,
+      "engine": "kokoro",
+      "model_manifest_sha256": "cc53829edc24d67ed317946d25867ec1236909f374f4a33c5a22355c69f00c24",
+      "model_revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+      "speed": 0.95,
+      "timeline_sha256": "29ac7f860e7160337587474faf41e327f6cab25746122fd642bd8a125703caad",
+      "voice": "af_heart"
+    },
+    "artifacts": {
+      "deck": {
+        "path": "static-site.zip",
+        "sha256": "0e5ad5675973551308ed23580298dc4a4c325c72fc7fab5afc2c290c170e7bab",
+        "size": 876146,
+        "status": "generated_unpublished"
+      },
+      "pdf": {
+        "path": "executive-summary.pdf",
+        "sha256": "d3919f61abea46b147f46a4c263ba96ad98beb031626d28eba683f4bb817e282",
+        "size": 149506,
+        "status": "generated_unpublished"
+      },
+      "source": {
+        "path": "executable-source.zip",
+        "sha256": "b8fc67f5e895ea33763379be8ae0a12d7bc95efcd1c3ec185e2090603f7e018f",
+        "size": 15684657,
+        "status": "generated_unpublished"
+      },
+      "summary": {
+        "path": "executive-summary.md",
+        "sha256": "7927b53bdd3866e6ad3e917d5f61fb497704a1b90f9de6d523a3eadee56003ad",
+        "size": 1924,
+        "status": "generated_unpublished"
+      },
+      "video": {
+        "path": "executive-summary.mp4",
+        "sha256": "5c9b8ee745312bbac5892107d6fc9e01ec4316ca93bc39b64948270d36259f4f",
+        "size": 4234118,
+        "status": "generated_unpublished"
+      }
+    }
+  },
+  "output_verification": {
+    "artifact_hashes_verified": 5,
+    "sealed_input_verified": true,
+    "review_identities_verified": true,
+    "timeline_audio_hashes_verified": true,
+    "date_free_reviewed_narration": true,
+    "video_codec": "h264",
+    "audio_codec": "aac",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "frames": 6248,
+    "duration_seconds": 208.26666666666668,
+    "scenes": 6,
+    "full_media_decode": "passed",
+    "human_listening": "pending",
+    "captions": "not_in_baseline_renderer",
+    "topoloop_graph_scenes": [
+      "testing",
+      "setup"
+    ],
+    "spoken_sentences_identical_to_previous_video": true,
+    "final_pdf_pages_matching_inspected_preflight": 6,
+    "video_scene_midpoints_visually_inspected": 6,
+    "test_walkthrough_acts_visually_inspected": 5,
+    "setup_camera_samples_visually_inspected": 3
+  },
+  "delivery": {
+    "five_artifacts_retrieved": true,
+    "previous_video_preserved": true,
+    "google_upload": "Not attempted; prior Google authorization refresh failure remains unresolved. No cloud URLs or publication success claimed.",
+    "human_listening": "pending user acceptance",
+    "production_activation": "not performed"
+  },
+  "cleanup": {
+    "temporary_3d_helper": "deleted after receipt retention",
+    "application_and_workspace_pvc": "retained"
+  }
+}

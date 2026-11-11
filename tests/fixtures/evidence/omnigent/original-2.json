@@ -1,0 +1,12 @@
+{
+  "description": "Confirm omnigent package installed in the UBI image",
+  "duration_seconds": 0.02,
+  "error_message": null,
+  "provenance": {
+    "kind": "original-run results",
+    "retry_history": "unavailable"
+  },
+  "scenario_id": "version-info",
+  "scenario_name": "version-info",
+  "status": "pass"
+}

@@ -1,0 +1,249 @@
+{
+  "schema_version": 3,
+  "run_id": "synthetic-codeberg-library",
+  "project_name": "Record Fold",
+  "claims": [
+    {
+      "id": "definition",
+      "text": "Record Fold is a fictional library intended to combine immutable record collections inside a caller process.",
+      "kind": "planned",
+      "sources": [
+        "source.md#L1-L1"
+      ]
+    },
+    {
+      "id": "question",
+      "text": "Assess what the retained record can establish about the library.",
+      "kind": "planned",
+      "sources": [
+        "source.md#L2-L2"
+      ]
+    },
+    {
+      "id": "setup",
+      "text": "Only a source excerpt and a proposed evaluation plan were retained without a recorded deployment.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L3-L3"
+      ]
+    },
+    {
+      "id": "scope",
+      "text": "No test attempts were retained, so this record cannot establish correctness or compatibility.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L4-L4"
+      ]
+    },
+    {
+      "id": "next",
+      "text": "Define library-level checks for a future PoC and keep this record as an unevaluated proposal.",
+      "kind": "recommendation",
+      "sources": [
+        "source.md#L5-L5"
+      ]
+    },
+    {
+      "id": "revision",
+      "text": "The captured source revision is unavailable.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L6-L6"
+      ]
+    },
+    {
+      "id": "outcome",
+      "text": "No checks were recorded and no validation outcome can be claimed.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L7-L7"
+      ]
+    },
+    {
+      "id": "empty",
+      "text": "No checks were recorded.",
+      "kind": "observed",
+      "sources": [
+        "source.md#L8-L8"
+      ]
+    }
+  ],
+  "slides": [
+    {
+      "id": "identity",
+      "section": "objective",
+      "title": "Record Fold: purpose and PoC question",
+      "title_claim_ids": [
+        "definition"
+      ],
+      "bullet_claim_ids": [
+        "definition",
+        "question",
+        "revision"
+      ],
+      "narration": [
+        {
+          "text": "Record Fold is a fictional library intended to combine immutable record collections inside a caller process.",
+          "claim_ids": [
+            "definition"
+          ]
+        },
+        {
+          "text": "Assess what the retained record can establish about the library.",
+          "claim_ids": [
+            "question"
+          ]
+        },
+        {
+          "text": "The captured source revision is unavailable.",
+          "claim_ids": [
+            "revision"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "identity",
+      "visual_id": null,
+      "checks": []
+    },
+    {
+      "id": "checks",
+      "section": "testing",
+      "title": "No recorded check inventory",
+      "title_claim_ids": [
+        "empty"
+      ],
+      "bullet_claim_ids": [
+        "empty"
+      ],
+      "narration": [
+        {
+          "text": "No checks were recorded.",
+          "claim_ids": [
+            "empty"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "checks",
+      "visual_id": null,
+      "checks": []
+    },
+    {
+      "id": "setup",
+      "section": "setup",
+      "title": "Recorded setup",
+      "title_claim_ids": [
+        "setup"
+      ],
+      "bullet_claim_ids": [
+        "setup"
+      ],
+      "narration": [
+        {
+          "text": "Only a source excerpt and a proposed evaluation plan were retained without a recorded deployment.",
+          "claim_ids": [
+            "setup"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "summary",
+      "visual_id": null,
+      "checks": []
+    },
+    {
+      "id": "results",
+      "section": "results",
+      "title": "What the evidence records",
+      "title_claim_ids": [
+        "outcome"
+      ],
+      "bullet_claim_ids": [
+        "outcome"
+      ],
+      "narration": [
+        {
+          "text": "No checks were recorded and no validation outcome can be claimed.",
+          "claim_ids": [
+            "outcome"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "summary",
+      "visual_id": null,
+      "checks": []
+    },
+    {
+      "id": "limits",
+      "section": "limitations",
+      "title": "Coverage limits",
+      "title_claim_ids": [
+        "scope"
+      ],
+      "bullet_claim_ids": [
+        "scope"
+      ],
+      "narration": [
+        {
+          "text": "No test attempts were retained, so this record cannot establish correctness or compatibility.",
+          "claim_ids": [
+            "scope"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "summary",
+      "visual_id": null,
+      "checks": []
+    },
+    {
+      "id": "next",
+      "section": "recommendation",
+      "title": "Next actions",
+      "title_claim_ids": [
+        "next"
+      ],
+      "bullet_claim_ids": [
+        "next"
+      ],
+      "narration": [
+        {
+          "text": "Define library-level checks for a future PoC and keep this record as an unevaluated proposal.",
+          "claim_ids": [
+            "next"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": [],
+      "layout": "summary",
+      "visual_id": null,
+      "checks": []
+    }
+  ],
+  "results": {
+    "pass": 0,
+    "fail": 0,
+    "error": 0,
+    "skip": 0,
+    "incomplete": 0
+  },
+  "conflicts": [],
+  "coverage_gaps": [
+    "No test attempts were retained, so this record cannot establish correctness or compatibility."
+  ],
+  "project_context": {
+    "repository_url": "https://codeberg.org/example/record-fold",
+    "revision": null,
+    "definition_claim_id": "definition",
+    "homepage_url": null,
+    "documentation_url": null
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "attempts": [
+    {
+      "attempt_id": "exec-0-health-1",
+      "duration_seconds": 1,
+      "execution_id": "exec-0",
+      "finished_at": null,
+      "mechanism": "scenario",
+      "outcome": "error",
+      "payload_path": "exec-0-health-1.json",
+      "payload_sha256": "cd7448def463665e4acdcb7c32bb13f07115f7320d43d16c2a58951e6fa37fe2",
+      "run_id": "synthetic-retries",
+      "scenario_id": "health",
+      "sequence": 1,
+      "started_at": null
+    },
+    {
+      "attempt_id": "exec-0-health-2",
+      "duration_seconds": 1,
+      "execution_id": "exec-0",
+      "finished_at": null,
+      "mechanism": "http_retry",
+      "outcome": "fail",
+      "payload_path": "exec-0-health-2.json",
+      "payload_sha256": "6926ca4dd49f2cab2a8d6998bf950feacf521d5607af4a6108f0f82f2e14e39f",
+      "run_id": "synthetic-retries",
+      "scenario_id": "health",
+      "sequence": 2,
+      "started_at": null
+    },
+    {
+      "attempt_id": "exec-1-health-1",
+      "duration_seconds": 1,
+      "execution_id": "exec-1",
+      "finished_at": null,
+      "mechanism": "scenario",
+      "outcome": "pass",
+      "payload_path": "exec-1-health-1.json",
+      "payload_sha256": "61eb26d35fc51671f34ca467993f6308b43e39ca6653d98c35391e18d6ec9e24",
+      "run_id": "synthetic-retries",
+      "scenario_id": "health",
+      "sequence": 1,
+      "started_at": null
+    },
+    {
+      "attempt_id": "exec-1-failure-1",
+      "duration_seconds": 1,
+      "execution_id": "exec-1",
+      "finished_at": null,
+      "mechanism": "scenario",
+      "outcome": "fail",
+      "payload_path": "exec-1-failure-1.json",
+      "payload_sha256": "16b5dff52a2943e0786cfccd7e6e8e8fbf77f3a1a590c67a825c63c22e93a33a",
+      "run_id": "synthetic-retries",
+      "scenario_id": "failure",
+      "sequence": 1,
+      "started_at": null
+    }
+  ],
+  "coverage_gaps": [],
+  "executions": [
+    {
+      "execution_id": "exec-0",
+      "order": 0,
+      "plan_revision": "revision-0",
+      "run_id": "synthetic-retries"
+    },
+    {
+      "execution_id": "exec-1",
+      "order": 1,
+      "plan_revision": "revision-1",
+      "run_id": "synthetic-retries"
+    }
+  ],
+  "final_execution_id": "exec-1",
+  "run_id": "synthetic-retries",
+  "scenarios": [
+    {
+      "name": "Health",
+      "scenario_id": "health"
+    },
+    {
+      "name": "Failure",
+      "scenario_id": "failure"
+    }
+  ],
+  "schema_version": 1
+}

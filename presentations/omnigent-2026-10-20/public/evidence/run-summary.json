@@ -1,0 +1,52 @@
+{
+  "run": "autopoc-omnigent-8554",
+  "namespace": "autopoc-test",
+  "start_utc": "2026-10-20T06:42:35Z",
+  "completion_utc": "2026-10-20T08:17:06Z",
+  "duration_seconds": 5671,
+  "succeeded": 1,
+  "builds": [
+    {
+      "name": "omnigent-server-1",
+      "phase": "Failed",
+      "start_utc": "2026-10-20T07:05:29Z",
+      "completion_utc": "2026-10-20T07:13:37Z",
+      "reason": "DockerBuildFailed",
+      "image_digest": null
+    },
+    {
+      "name": "omnigent-server-2",
+      "phase": "Complete",
+      "start_utc": "2026-10-20T07:15:57Z",
+      "completion_utc": "2026-10-20T07:24:54Z",
+      "reason": null,
+      "image_digest": "sha256:764ed0937f7ed8670cebfbb6f7730da4e1b564f1d2da36ece19e3eb6ec135b16"
+    }
+  ],
+  "later_observation": {
+    "observed_utc": "2026-10-20T09:47:04.801078+00:00",
+    "ready_replicas": 1,
+    "available_replicas": 1,
+    "live_pod_securityContext": {
+      "fsGroup": 1001480000
+    },
+    "live_pod_hostUsers": null,
+    "pod_scc": "restricted-v2",
+    "pod_scc_provenance": "Read-only oc get pod omnigent-6cfdcbdd64-xsf4m -n poc-omnigent; metadata.annotations.openshift.io/scc",
+    "note": "Later cluster observation, not an additional original-run test"
+  },
+  "evidence_gaps": {
+    "playwright_traces": "No run-specific archive found in preserved artifacts or runner log",
+    "distributed_traces": "No trace export or trace identifier found",
+    "original_ui_screenshots_video": "Not captured by the five HTTP smoke checks",
+    "runner_workspace_state": "Not archived in GitHub; runner workspace was emptyDir and container has completed"
+  },
+  "redaction": {
+    "policy": "Sensitive lines and opaque strings removed. Raw logs are excluded from delivery.",
+    "counts": {
+      "runner": 1495,
+      "build-1": 564,
+      "build-2": 576
+    }
+  }
+}

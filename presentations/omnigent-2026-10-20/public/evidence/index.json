@@ -1,0 +1,109 @@
+{
+  "run": "autopoc-omnigent-8554",
+  "github_commit": "f2d3c4d8183de4d67f5a2cb3135c3b653211f6e6",
+  "sources": [
+    {
+      "file": "report.md",
+      "source_url": "https://github.com/aicatalyst-team/omnigent/blob/f2d3c4d8183de4d67f5a2cb3135c3b653211f6e6/poc-report.md",
+      "sha256": "3a8b9cc984624d997e304c983ea8288e15ea4523e75504ccf59a356de7eb6303"
+    },
+    {
+      "file": "plan.md",
+      "source_url": "https://github.com/aicatalyst-team/omnigent/blob/f2d3c4d8183de4d67f5a2cb3135c3b653211f6e6/poc-plan.md",
+      "sha256": "004b88d1c7b606b08658d9b88070b1072309532511e7f4eef0e87172069258cc"
+    },
+    {
+      "file": "poc_test.py.txt",
+      "source_url": "https://github.com/aicatalyst-team/omnigent/blob/f2d3c4d8183de4d67f5a2cb3135c3b653211f6e6/poc_test.py",
+      "sha256": "ba7fe86dea6cdf4446ef003981cdda6971b0267d03d609f65b3bce65e62aa4e2"
+    },
+    {
+      "file": "intake.md",
+      "source_url": "https://github.com/aicatalyst-team/omnigent/blob/f2d3c4d8183de4d67f5a2cb3135c3b653211f6e6/.autopoc/intake-digest.md",
+      "sha256": "ffd1848cb60d989f439a44e847296d40dfc6140ec6ff446f23a4745c6d2655f7"
+    },
+    {
+      "file": "evaluation.md",
+      "source_url": "https://github.com/aicatalyst-team/omnigent/blob/f2d3c4d8183de4d67f5a2cb3135c3b653211f6e6/.autopoc/rhoai-evaluation.md",
+      "sha256": "2f30cb65fa482d15ec71d60f2f3ac1c437e058c5b562f72e39a66682521fd0a1"
+    },
+    {
+      "file": "blog.md",
+      "source_url": "https://github.com/aicatalyst-team/omnigent/blob/f2d3c4d8183de4d67f5a2cb3135c3b653211f6e6/.autopoc/blog/final.md",
+      "sha256": "323e6078282bff94efc0238e61819c2c1ab402363cdec8d6145d05e32506337c"
+    },
+    {
+      "file": "deployment.yaml",
+      "source_url": "https://github.com/aicatalyst-team/omnigent/blob/f2d3c4d8183de4d67f5a2cb3135c3b653211f6e6/kubernetes/deployment.yaml",
+      "sha256": "0518dbcd22eb88d212aa2fef27a72e64caeeb117c3f1f9b13c8bf42c1e43f0f6"
+    }
+  ],
+  "claims": {
+    "slides_1_5": [
+      "run-summary.json",
+      "runner.sanitized.log.gz",
+      "report.md",
+      "evaluation.md"
+    ],
+    "slide_6_architecture": [
+      "deployment.yaml",
+      "report.md"
+    ],
+    "slide_9_recovery": [
+      "build-1.sanitized.log.gz",
+      "build-2.sanitized.log.gz",
+      "runner.sanitized.log.gz",
+      "report.md"
+    ],
+    "slide_10_tests": [
+      "test-results.json",
+      "poc_test.py.txt"
+    ],
+    "slide_11_deliverables": [
+      "report.md",
+      "plan.md",
+      "blog.md"
+    ],
+    "slides_12_14": [
+      "report.md",
+      "plan.md",
+      "deployment.yaml",
+      "run-summary.json"
+    ],
+    "slide_7_setup_topology": [
+      "deployment.yaml",
+      "report.md",
+      "run-summary.json",
+      "build-1.sanitized.log.gz",
+      "build-2.sanitized.log.gz",
+      "runner.sanitized.log.gz"
+    ],
+    "slide_8_scenario_flow": [
+      "test-results.json",
+      "poc_test.py.txt",
+      "report.md"
+    ]
+  },
+  "later_ui_capture": {
+    "metadata": "../assets/capture.json",
+    "image": "../assets/omnigent-login.png",
+    "note": "Later browser observation; not an original validation result"
+  },
+  "external_reference": "https://kubernetes.io/docs/concepts/workloads/pods/user-namespaces/",
+  "animation": {
+    "renderer": "TopoLoop",
+    "upstream": "https://github.com/r-bit-rry/topoloop",
+    "commit": "8631cf7955ebf40a579aab4ce3d0cca50d215c21",
+    "kind": "Animated reconstruction, not original trace capture",
+    "setup_loop_seconds": 30,
+    "scenario_loop_seconds": 50,
+    "pdf_poster_seconds": {
+      "setup": 7,
+      "scenarios": 47
+    },
+    "specs": [
+      "specs/omnigent-setup.ts",
+      "specs/omnigent-scenarios.ts"
+    ]
+  }
+}

@@ -58,3 +58,6 @@ quay_setup.py
 .DS_Store
 Thumbs.db
 nohup.out
+
+# Renderer dependencies
+renderer/node_modules/

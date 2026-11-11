@@ -1,0 +1,199 @@
+{
+  "schema_version": 2,
+  "run_id": "run-1",
+  "project_name": "Demo",
+  "claims": [
+    {
+      "id": "claim-0",
+      "text": "Evaluate the synthetic server deployment on OpenShift.",
+      "kind": "planned",
+      "sources": [
+        "report.md#L2-L2"
+      ]
+    },
+    {
+      "id": "claim-1",
+      "text": "Use HTTP checks to validate the deployed components.",
+      "kind": "planned",
+      "sources": [
+        "report.md#L3-L3"
+      ]
+    },
+    {
+      "id": "claim-2",
+      "text": "One synthetic server was deployed.",
+      "kind": "observed",
+      "sources": [
+        "report.md#L4-L4"
+      ]
+    },
+    {
+      "id": "claim-3",
+      "text": "One health check passed.",
+      "kind": "observed",
+      "sources": [
+        "report.md#L5-L5",
+        "test-results.json"
+      ]
+    },
+    {
+      "id": "claim-4",
+      "text": "Authenticated workflows and production reliability remain unproven.",
+      "kind": "observed",
+      "sources": [
+        "report.md#L6-L6"
+      ]
+    },
+    {
+      "id": "claim-5",
+      "text": "Validate authenticated workflows before considering production use.",
+      "kind": "recommendation",
+      "sources": [
+        "report.md#L7-L7"
+      ]
+    }
+  ],
+  "slides": [
+    {
+      "id": "slide-0",
+      "section": "objective",
+      "title": "Evaluate the synthetic server deployment on OpenShift.",
+      "title_claim_ids": [
+        "claim-0"
+      ],
+      "bullet_claim_ids": [
+        "claim-0"
+      ],
+      "narration": [
+        {
+          "text": "The goal is to test the server on OpenShift.",
+          "claim_ids": [
+            "claim-0"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-1",
+      "section": "testing",
+      "title": "Use HTTP checks to validate the deployed components.",
+      "title_claim_ids": [
+        "claim-1"
+      ],
+      "bullet_claim_ids": [
+        "claim-1"
+      ],
+      "narration": [
+        {
+          "text": "The test plan uses HTTP checks for the deployed components.",
+          "claim_ids": [
+            "claim-1"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-2",
+      "section": "setup",
+      "title": "One synthetic server was deployed.",
+      "title_claim_ids": [
+        "claim-2"
+      ],
+      "bullet_claim_ids": [
+        "claim-2"
+      ],
+      "narration": [
+        {
+          "text": "The setup included one server.",
+          "claim_ids": [
+            "claim-2"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-3",
+      "section": "results",
+      "title": "One health check passed.",
+      "title_claim_ids": [
+        "claim-3"
+      ],
+      "bullet_claim_ids": [
+        "claim-3"
+      ],
+      "narration": [
+        {
+          "text": "One health check passed.",
+          "claim_ids": [
+            "claim-3"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-4",
+      "section": "limitations",
+      "title": "Authenticated workflows and production reliability remain unproven.",
+      "title_claim_ids": [
+        "claim-4"
+      ],
+      "bullet_claim_ids": [
+        "claim-4"
+      ],
+      "narration": [
+        {
+          "text": "The results do not prove that workflows with authentication work.",
+          "claim_ids": [
+            "claim-4"
+          ]
+        },
+        {
+          "text": "They also do not prove reliability in production.",
+          "claim_ids": [
+            "claim-4"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    },
+    {
+      "id": "slide-5",
+      "section": "recommendation",
+      "title": "Validate authenticated workflows before considering production use.",
+      "title_claim_ids": [
+        "claim-5"
+      ],
+      "bullet_claim_ids": [
+        "claim-5"
+      ],
+      "narration": [
+        {
+          "text": "Test workflows that require authentication before considering production use.",
+          "claim_ids": [
+            "claim-5"
+          ]
+        }
+      ],
+      "graph": null,
+      "graph_claim_ids": []
+    }
+  ],
+  "conflicts": [],
+  "coverage_gaps": [],
+  "results": {
+    "error": 0,
+    "fail": 0,
+    "incomplete": 0,
+    "pass": 1,
+    "skip": 0
+  }
+}

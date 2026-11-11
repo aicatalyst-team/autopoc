@@ -15,6 +15,7 @@ Default: `/workspace/poc-state.yaml` (in pods) or `/tmp/autopoc/poc-state.yaml` 
 ```yaml
 # Core project identity
 project:
+  run_id: ""                  # Stable UUID hex generated once; retain on resume
   name: ""                    # Project name (from input)
   source_repo_url: ""         # Original GitHub URL
   started_at: ""              # ISO 8601 timestamp
@@ -128,6 +129,12 @@ apply:
 # Phase 9: PoC Execute
 poc_execute:
   status: "pending"
+  attempt_index_path: ""       # $WORK_DIR/attempt-index.json, all original executions/retries
+  execution_id: ""             # Current test-script invocation
+  capture_status: "pending"    # pending | in_progress | completed | incomplete
+  test_exit_code: null         # Original test process code (124 = wrapper timeout)
+  stdout_path: ""              # Private original structured stdout; not public evidence
+  stderr_path: ""              # Private diagnostics; never merge into stdout
   test_script_path: ""        # Path to poc_test.py
   results:                    # Test results
     - scenario_name: ""
@@ -140,6 +147,32 @@ poc_execute:
 poc_report:
   status: "pending"
   report_path: ""             # Path to poc-report.md
+  canonical_report_path: ""    # Staged pre-link copy outside Git checkout
+  canonical_report_sha256: ""  # Hash before any generated executive links
+
+# Evidence extension: independent of PoC phase cursor and test outcomes
+evidence:
+  status: "pending"            # pending | collected | incomplete | failed
+  bundle_path: ""              # Local archive, not durable publication
+  archive_sha256: ""
+  eligible_for_render: false
+  coverage_gaps: []
+
+# Executive extension, reconciled independently on every resume
+executive_summary:
+  schema_version: 1
+  status: "pending"            # pending | input_upload_pending | inputs_published | render_submitted | outputs_published | partial | complete | failed
+  run_id: ""
+  revision: ""
+  input_sha256: ""
+  input_id: ""                 # Reserved/verified Drive object identity
+  recovery_id: ""
+  recovery_sha256: ""
+  git_inputs: {}               # Immutable sealed ZIP backup commit/path
+  launch: {}                   # Namespace and credentials-Secret name, saved before dispatch
+  job: {}                      # Deterministic name, UID and independent status
+  artifacts: {}                # Per-artifact SHA-256, size, Drive ID and actual link
+  report_links: "not_available" # pending | persisted | not_available
 
 # Phase 11: Blog Post (conditional)
 blog_post:
@@ -180,6 +213,12 @@ errors: []
 ## Resume Logic
 
 When resuming from a state file:
+0. Reuse `project.run_id`; inspect independent evidence/extension status before
+   advancing the phase cursor. If a canonical report and attempt index exist,
+   collect any missing evidence bundle even if report/blog phases already
+   completed. Do not rerun PoC tests to fill evidence gaps. A local bundle is
+   not durable storage; presentation publication/reconciliation is a separate
+   extension and must not be reported complete merely because collection passed.
 1. Find the last phase with `status: "completed"`.
 2. Start execution from the next phase.
 3. If a phase has `status: "in_progress"`, re-run it from the beginning.

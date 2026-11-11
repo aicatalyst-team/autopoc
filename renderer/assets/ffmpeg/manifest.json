@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "image": "docker.io/mwader/static-ffmpeg@sha256:d9b22f65c2049d73bf8ae556bb4c5c7d45e9fb85939d87951ed98f22b0f19105",
+  "version": "7.0.2",
+  "source": "https://github.com/wader/static-ffmpeg",
+  "files": {
+    "ffmpeg": {
+      "sha256": "babb8d45fab2016595558852d2935f69086bb1143a6a2a898390940ecca8bcd2",
+      "size": 129281632
+    },
+    "ffprobe": {
+      "sha256": "66b8cb3851ac3ae77bb47b479315c62e1fc183fedab1fc7d4f33f941acde076f",
+      "size": 129117024
+    }
+  }
+}

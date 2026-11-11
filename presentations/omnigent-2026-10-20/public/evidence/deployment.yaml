@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: omnigent
+  namespace: poc-omnigent
+  labels:
+    app: omnigent
+    autopoc.io/project: omnigent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: omnigent
+  template:
+    metadata:
+      labels:
+        app: omnigent
+    spec:
+      # fsGroup = namespace GID-range start (1001480000/10000) makes the /data
+      # emptyDir group-writable so the random-UID container can create the
+      # SQLite DB and artifact files. hostUsers:false is required by restricted-v3.
+      securityContext:
+        fsGroup: 1001480000
+        hostUsers: false
+      imagePullSecrets:
+        - name: quay-pull
+      containers:
+        - name: omnigent
+          image: quay.io/aicatalyst/omnigent-server:autopoc-20261020
+          imagePullPolicy: IfNotPresent
+          # Pre-import omnigent.db.utils, then run the entrypoint (matches the
+          # proven working launch; avoids an import-order issue in the entrypoint).
+          command:
+            - python
+            - -c
+            - import omnigent.db.utils; import runpy; runpy.run_path('/app/entrypoint.py', run_name='__main__')
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: omnigent-config
+            - secretRef:
+                name: omnigent-secrets
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+      volumes:
+        - name: data
+          emptyDir: {}

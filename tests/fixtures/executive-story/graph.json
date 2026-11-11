@@ -1,0 +1,50 @@
+{
+  "title": "Reported request path",
+  "loop": 12,
+  "nodes": [
+    {
+      "id": "frontend",
+      "label": "Frontend",
+      "kind": "pod",
+      "pos": [
+        -5,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "api",
+      "label": "API",
+      "kind": "pod",
+      "pos": [
+        5,
+        0,
+        0
+      ]
+    }
+  ],
+  "edges": [
+    [
+      "frontend",
+      "api"
+    ]
+  ],
+  "paths": {
+    "request": {
+      "via": [
+        "frontend",
+        "api"
+      ]
+    }
+  },
+  "acts": [
+    {
+      "id": 0,
+      "t0": 0,
+      "t1": 12,
+      "title": "Reported frontend to API connection",
+      "path": "request",
+      "tone": "neutral"
+    }
+  ]
+}

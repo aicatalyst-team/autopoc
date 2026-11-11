@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-11-09T12:58:19.700500+00:00",
+  "run_id": "90b344e86812455caf110467384bbbea",
+  "project": "NVIDIA OpenShell",
+  "scope": "Fresh one-off deployment, original captured validation, reviewed report and offline Kokoro media generation; direct local retrieval. Production cloud dispatch/reconcile and rollout are not accepted by this run.",
+  "engine": {
+    "source_commit": "35f79ec",
+    "worker_image": "quay.io/aicatalyst/autopoc-opencode@sha256:220d1bceb1a37e642830d76efbeb50327eb9b872d9e5f27079852c5de9589326",
+    "source_files_verified": 78,
+    "source_file_mismatches": 0,
+    "later_branch_refinements_included": false
+  },
+  "upstream": {
+    "repository": "https://github.com/NVIDIA/OpenShell",
+    "source_commit": "f4a6137513b777c9b362be54baf388f7d45398aa",
+    "fork": "https://github.com/aicatalyst-team/openshell",
+    "source_branch": "codex/openshell-kokoro-20261109-90b344e8",
+    "default_branch_modified": false
+  },
+  "deployment": {
+    "namespace": "poc-openshell-kokoro-20261109",
+    "release": "openshell",
+    "gateway": "one SQLite-backed StatefulSet replica with block PVC",
+    "supervisor": "one Deployment replica",
+    "scc": "restricted-v2",
+    "privileged_scc_used": false,
+    "cluster_admin_granted": false,
+    "operator_assistance": [
+      "Preselected storage class and node placement from prior storage lessons.",
+      "Provided bounded service-account/RBAC prerequisites and known source-build Dockerfile references before execution.",
+      "Corrected publication identity after a pre-init registry digest mismatch.",
+      "Paused content workers and narrowed overbroad claims before finalization.",
+      "Used a one-off PVC transport and direct output retrieval because Google authorization failed."
+    ],
+    "source_built_images": {
+      "gateway": "quay.io/aicatalyst/openshell-gateway@sha256:c0aa13f90df5342b1ba4545b4591fee3ad48239699c1b9d7df042ddf91c7610d",
+      "supervisor": "quay.io/aicatalyst/openshell-supervisor@sha256:9bdf4d608b924091aec0942343fcb7556900714e662ff723efc1383c56160d99",
+      "sandbox_bootstrap": "quay.io/aicatalyst/openshell-sandbox@sha256:8df9f3bc653c48c4433bc62adf12f5560b0142ee2e94e99a9145be10e9760363"
+    },
+    "external_workload_base_image": "nvcr.io/nvidia/base/ubuntu:24.04"
+  },
+  "original_validation": {
+    "executions": 1,
+    "execution_id": "af1836af24fc49a38c665ed61bfa76da",
+    "scenarios": [
+      "gateway-health",
+      "gateway-metrics",
+      "sandbox-exec",
+      "sandbox-node-placement",
+      "network-denial"
+    ],
+    "totals": {
+      "pass": 5,
+      "fail": 0,
+      "error": 0,
+      "skip": 0,
+      "incomplete": 0
+    },
+    "original_payload_hashes_verified": 5,
+    "original_script_unchanged": true,
+    "tests_replayed_for_media": false,
+    "network_scope": "From the worker outside the application namespace: gateway Pod TCP 9090 reachable; sandbox Pod TCP 2222 unreachable. SDK exec tested separately. Does not establish NetworkPolicy causation, egress/filesystem isolation or production security."
+  },
+  "content_review": {
+    "model": "vllm/qwen3.8-27b-abliterated",
+    "evidence_members_reviewed": 12,
+    "additional_primary_source_files": [
+      "deploy/helm/openshell/ci/values-high-availability.yaml",
+      "deploy/helm/openshell/ci/values-supervisor-ha.yaml"
+    ],
+    "original_script_audited": true,
+    "verdict": "approved",
+    "blocking_findings": 0,
+    "finish_reason": "stop",
+    "reviewed_input_hashes_unchanged": true,
+    "execution_date_omitted_from_narration": true,
+    "ha_scope": "Pinned source includes CI/dev/E2E HA example configurations; this run did not exercise them.",
+    "review_budget_failure": "One final-source review response was truncated without a verdict; rejected and retained before a fresh complete review."
+  },
+  "canonical_report_publication": {
+    "run_id": "90b344e86812455caf110467384bbbea",
+    "kind": "report",
+    "revision": "401750953d4f8fd860d9e147956cf4726d663013f9d189b122ca1645fd7671dc",
+    "path": "runs/90b344e86812455caf110467384bbbea/report/401750953d4f8fd860d9e147956cf4726d663013f9d189b122ca1645fd7671dc",
+    "commit": "5023e376c603fa49916dcaef90ee114767c4eff1",
+    "head_paths": [
+      "runs/90b344e86812455caf110467384bbbea/heads/report.json"
+    ]
+  },
+  "render": {
+    "job": "autopoc-openshell-kokoro-90b344e8-render-v5",
+    "renderer_image": "quay.io/aicatalyst/autopoc-executive-renderer@sha256:2910f7cc410050017326bc79f4ac307c960d3003521e335f1468ccfeecd90fb3",
+    "input_sha256": "15bd7f8c9ac217fa5e9cf682fab1c1b122eb61ad9056ef956608bcba03cdc7da",
+    "evidence_sha256": "4e3f9119afff9faefb3e0af3e4bf67596f036804cdc3d854450fddf9e5ad433e",
+    "narration": {
+      "duration_seconds": 208.26666666666668,
+      "engine": "kokoro",
+      "model_manifest_sha256": "cc53829edc24d67ed317946d25867ec1236909f374f4a33c5a22355c69f00c24",
+      "model_revision": "f3ff3571791e39611d31c381e3a41a3af07b4987",
+      "speed": 0.95,
+      "timeline_sha256": "2e3e0750b84292911a0f87428118c426790fa7fe2d67a9504ee96627a050f281",
+      "voice": "af_heart"
+    },
+    "runtime": {
+      "elapsed_seconds": 450.941,
+      "peak_memory_bytes": 2757124096,
+      "scratch_usage_bytes": 95337178
+    },
+    "cpu_limit": "2",
+    "memory_limit": "4Gi",
+    "process_timeout_seconds": 3000,
+    "job_deadline_seconds": 3120,
+    "image_cache": "warm; cold-pull slack not tested",
+    "network": "run-scoped renderer deny-all ingress/egress policy",
+    "prior_attempts": [
+      {
+        "revision": "v3",
+        "result": "failed closed for scene-1 layout overflow before speech"
+      },
+      {
+        "revision": "v4",
+        "result": "technical success, superseded after correcting source HA availability in report evidence"
+      }
+    ],
+    "artifacts": {
+      "deck": {
+        "path": "static-site.zip",
+        "sha256": "ddcfdb18d80feb9315a371f7c2a229b0730bff84cd2048d0166d7d528229bf64",
+        "size": 875584,
+        "status": "generated_unpublished"
+      },
+      "pdf": {
+        "path": "executive-summary.pdf",
+        "sha256": "48ade28893f611cd1639ddd23199ff86f64f8b9d7df4d3d67e25e4ac201b3c94",
+        "size": 38371,
+        "status": "generated_unpublished"
+      },
+      "source": {
+        "path": "executable-source.zip",
+        "sha256": "c186660bee4a4932103eb251023872d5ac126f933c92ce71c01ce085a5f6d136",
+        "size": 15684635,
+        "status": "generated_unpublished"
+      },
+      "summary": {
+        "path": "executive-summary.md",
+        "sha256": "09902ee68d8a054bb91c880531d460d736878a2c630976efc13863ebaaafa0d6",
+        "size": 2441,
+        "status": "generated_unpublished"
+      },
+      "video": {
+        "path": "executive-summary.mp4",
+        "sha256": "ccb06b00019257afec30e297bfeb62d71ed4655d207ba08f263ca0d8ef19b1f5",
+        "size": 3995049,
+        "status": "generated_unpublished"
+      }
+    }
+  },
+  "media_verification": {
+    "artifact_hashes_verified": 5,
+    "sealed_input_verified": true,
+    "review_identities_verified": true,
+    "timeline_audio_hashes_verified": true,
+    "date_free_reviewed_narration": true,
+    "video_codec": "h264",
+    "audio_codec": "aac",
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "frames": 6248,
+    "duration_seconds": 208.26666666666668,
+    "scenes": 6,
+    "full_media_decode": "passed",
+    "human_listening": "pending",
+    "captions": "not_in_baseline_renderer",
+    "final_pdf_pages_matching_inspected_preflight": 6,
+    "video_scene_midpoints_visually_inspected": 6
+  },
+  "delivery": {
+    "status": "generated_verified_and_retrieved",
+    "five_artifacts_retrieved": true,
+    "google_drive": "blocked: Google credential refresh failed; no cloud artifact URLs or upload success claimed",
+    "human_listening_and_pronunciation": "pending user acceptance",
+    "production_rollout": "not activated"
+  },
+  "optional_blog": {
+    "generation": "completed with four genuine final role reviews",
+    "overall_score": 9.146060606060605,
+    "lint": "blocked: Vale E100 missing .vale.ini",
+    "google_docs": "blocked: existing Google authorization failure",
+    "pipeline_phase_status": "generated_validation_blocked",
+    "artifact_publication": {
+      "run_id": "90b344e86812455caf110467384bbbea",
+      "kind": "blog",
+      "revision": "357bac0f948f21535df18183ac76d4bdecdb96822b7a6d9459e9ce2cef7f8aa2",
+      "path": "runs/90b344e86812455caf110467384bbbea/blog/357bac0f948f21535df18183ac76d4bdecdb96822b7a6d9459e9ce2cef7f8aa2",
+      "commit": "3d5fb93cd4930ba30366e6ab44393a068f257164",
+      "head_paths": [
+        "runs/90b344e86812455caf110467384bbbea/heads/blog.json"
+      ]
+    }
+  },
+  "cleanup": {
+    "temporary_artifact_helper_job": "deleted",
+    "temporary_publisher_job": "deleted",
+    "application": "retained",
+    "workspace_pvc": "retained_bound",
+    "completed_renderer_jobs": "retained with seven-day TTL and private receipts"
+  }
+}

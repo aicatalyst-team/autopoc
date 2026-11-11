@@ -1,0 +1,29 @@
+{
+  "run_id": "synthetic-gitlab-cli",
+  "coverage_gaps": [
+    "Large-file completion and integration with other tools were not tested."
+  ],
+  "final_results": {
+    "results": [
+      {
+        "scenario_id": "check-0",
+        "scenario_name": "Scan a consistent ledger",
+        "status": "pass",
+        "attempt_id": null
+      },
+      {
+        "scenario_id": "check-1",
+        "scenario_name": "Scan a large ledger with duplicate references",
+        "status": "incomplete",
+        "attempt_id": null
+      }
+    ],
+    "totals": {
+      "pass": 1,
+      "fail": 0,
+      "error": 0,
+      "skip": 0,
+      "incomplete": 1
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 2,
+  "reviewer": "configured-opencode",
+  "approved": true,
+  "findings": [],
+  "observations": [
+    "All titles, visible claims, and spoken narration are supported by the provided evidence in report.md, test-results.json, and attempt-index.json.",
+    "The distinction between 'planned' (architecture description) and 'observed' (HTTP check results) is correctly maintained in the claims ledger.",
+    "The results totals (3 pass, 0 fail/error/skip/incomplete) exactly match the final_results in index.json and test-results.json.",
+    "The limitations and recommendation slides correctly preserve the caveat that authenticated workflows and production reliability are unproven, preventing the smoke-tested system from being implied as production-ready.",
+    "Source selectors (e.g., report.md#L2-L2) correctly map to the specific lines in the provided report.md content.",
+    "The scene plan correctly lists the 8 slide IDs in order and uses the specified Kokoro/Heart configuration."
+  ],
+  "model": "vllm/qwen3.8-27b-abliterated",
+  "method": "Existing configured model API through a local port-forward; worker credentials used only in memory.",
+  "acceptance_only": true,
+  "date": "2026-11-08",
+  "evidence_sha256": "58d536121ba707d957980aaf3df3a2923588802cd257941a6c5cf53dfa359b1d",
+  "narrative_sha256": "44e59c20a211e992e1b34e6d85cdfe714a2fe984be2763792588aaf7d1b8d442",
+  "scenes_sha256": "c15dd7a5c60d98d05eae33188e28a1a6682edce139f433f918349f6f2c0784a5"
+}

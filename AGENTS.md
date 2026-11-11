@@ -22,7 +22,7 @@ AutoPoC is an OpenCode agent-based system that automates Proof-of-Concept (PoC) 
 
 1. Analyze GitHub repositories to identify components
 2. Fork repositories to GitLab/GitHub for tracking
-3. Generate strategic PoC plans with test scenarios  
+3. Generate strategic PoC plans with test scenarios
 4. Containerize applications with UBI-based Dockerfiles
 5. Build and push images to Quay.io registry
 6. Deploy to OpenShift/Kubernetes with proper manifests
@@ -121,7 +121,7 @@ intake → evaluate → fork → poc_plan → containerize → build → deploy 
 
 Key features:
 - **Single Agent**: OpenCode is the sole intelligent agent
-- **Skill-driven**: Complex logic encoded in markdown skill instructions  
+- **Skill-driven**: Complex logic encoded in markdown skill instructions
 - **Progressive state**: YAML state file tracks progress through phases
 - **Built-in retry**: Each phase includes error handling and retry logic
 - **Containerized**: Runs in Kubernetes pods for scalability
@@ -151,6 +151,40 @@ Key features:
 - Uploads to Google Drive
 - Launched via `scripts/record-demo.sh <project-name>`
 
+### Executive presentation and video extension
+
+The `run-poc` workflow can generate a report-based Slidev/TopoLoop presentation,
+PDF, source/browser ZIPs, executive Markdown and video. Unset/`none` keeps
+silent template 2; `AUTOPOC_EXECUTIVE_NARRATION=kokoro` selects reviewed
+variable template-3 chapters with offline Heart narration. Kokoro model/voice
+assets are pinned and packaged in the separate renderer image at build time.
+Use a compatible tested image digest; no Google TTS permission or per-video
+model download is required. Drive publishing still requires Drive authorization. Follow `.opencode/skills/run-poc/references/executive-summary.md` for
+content review, configuration, dispatch and independent recovery.
+
+- `autopoc-tools artifact-publish` preserves immutable run-specific artifact revisions without switching the source checkout.
+- `capture-execution`, `evidence-create` and `evidence-verify` retain original attempts and sanitized, hashed evidence. Never rerun PoC tests just to generate presentation evidence.
+- `executive-seal` binds reviewed narrative, evidence, scenes and a digest-pinned renderer image.
+- `executive-render` runs offline; `executive-dispatch`, `executive-status`, `executive-recover` and `executive-reconcile` handle durable publication and recovery independently of the eleven-phase cursor.
+- `Dockerfile.executive` / `renderer/` define the separate trusted renderer; `deploy/executive/rbac.yaml` scopes cluster access. The main worker and renderer have separate images and resource limits.
+- Narrated render policy is saved before dispatch: 3000s process budget, 3600s Job
+  deadline (600s of headroom for scheduling and image pull; sealed 3120s
+  descriptors stay valid), 2 CPU/4Gi memory/8Gi scratch/10Gi ephemeral storage.
+  Worker wait is independently bounded and narrated renders normally outlast it;
+  reconcile late outputs without rerunning PoC tests.
+- `src/autopoc/kokoro_lexicon.json` changes pronunciation only, never the reviewed
+  text, and its hash is bound into `scenes.json`; editing it requires a new review.
+  Narration text must never contain Misaki's `[word](/ips/)` override syntax.
+- Keep private diagnostics and credentials out of published artifacts. Input symlinks are rejected; a ConfigMap-based acceptance harness must copy its sealed input to a regular scratch file first. Production retrieves inputs through verified downloads.
+
+Narrated validation records are in `docs/validation/kokoro-narration-2026-11-08.json`.
+Retain explicit Drive authorization, human listening and live-activation gates.
+
+See `docs/configuration.md`, `renderer/README.md` and
+`docs/report-presentation-plan.md` for setup, measured validation and remaining
+rollout work. Opt in with a configured `AUTOPOC_EXECUTIVE_IMAGE`; do not report
+successful deployment or publication from local-only results.
+
 ### State Management
 
 OpenCode maintains progressive state in YAML files instead of shared memory:
@@ -164,7 +198,7 @@ State includes:
 - **Repo analysis**: Repository digest, components, technology stack
 - **PoC plan**: Project type, infrastructure requirements, test scenarios
 - **Build artifacts**: Image names, registry URLs, build logs
-- **Deploy resources**: Kubernetes manifests, routes, service endpoints  
+- **Deploy resources**: Kubernetes manifests, routes, service endpoints
 - **Test results**: Validation outputs, performance metrics, accessibility reports
 
 ### Error Handling and Retry Logic

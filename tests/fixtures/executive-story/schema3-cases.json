@@ -1,0 +1,2243 @@
+[
+  {
+    "name": "library-0",
+    "narrative": {
+      "schema_version": 3,
+      "run_id": "run-1",
+      "project_name": "Synthetic library",
+      "claims": [
+        {
+          "id": "claim-0",
+          "text": "A synthetic library for processing records.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-1",
+          "text": "No checks were recorded.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-2",
+          "text": "One synthetic server was deployed.",
+          "kind": "observed",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-3",
+          "text": "One health check passed.",
+          "kind": "observed",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-4",
+          "text": "Authenticated workflows and production reliability remain unproven.",
+          "kind": "observed",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-5",
+          "text": "Validate authenticated workflows before considering production use.",
+          "kind": "recommendation",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        }
+      ],
+      "slides": [
+        {
+          "id": "slide-0",
+          "section": "objective",
+          "title": "Evaluate the synthetic server deployment on OpenShift.",
+          "title_claim_ids": [
+            "claim-0"
+          ],
+          "bullet_claim_ids": [
+            "claim-0"
+          ],
+          "narration": [
+            {
+              "text": "Evaluate the synthetic server deployment on OpenShift.",
+              "claim_ids": [
+                "claim-0"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "identity",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "testing-0",
+          "section": "testing",
+          "title": "Use HTTP checks to validate the deployed components.",
+          "title_claim_ids": [
+            "claim-1"
+          ],
+          "bullet_claim_ids": [
+            "claim-1"
+          ],
+          "narration": [
+            {
+              "text": "No checks were recorded.",
+              "claim_ids": [
+                "claim-1"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "checks",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "slide-2",
+          "section": "setup",
+          "title": "One synthetic server was deployed.",
+          "title_claim_ids": [
+            "claim-2"
+          ],
+          "bullet_claim_ids": [
+            "claim-2"
+          ],
+          "narration": [
+            {
+              "text": "One synthetic server was deployed.",
+              "claim_ids": [
+                "claim-2"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "slide-3",
+          "section": "results",
+          "title": "One health check passed.",
+          "title_claim_ids": [
+            "claim-3"
+          ],
+          "bullet_claim_ids": [
+            "claim-3"
+          ],
+          "narration": [
+            {
+              "text": "One health check passed.",
+              "claim_ids": [
+                "claim-3"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "slide-4",
+          "section": "limitations",
+          "title": "Authenticated workflows and production reliability remain unproven.",
+          "title_claim_ids": [
+            "claim-4"
+          ],
+          "bullet_claim_ids": [
+            "claim-4"
+          ],
+          "narration": [
+            {
+              "text": "Authenticated workflows and production reliability remain unproven.",
+              "claim_ids": [
+                "claim-4"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "slide-5",
+          "section": "recommendation",
+          "title": "Validate authenticated workflows before considering production use.",
+          "title_claim_ids": [
+            "claim-5"
+          ],
+          "bullet_claim_ids": [
+            "claim-5"
+          ],
+          "narration": [
+            {
+              "text": "Validate authenticated workflows before considering production use.",
+              "claim_ids": [
+                "claim-5"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        }
+      ],
+      "conflicts": [],
+      "coverage_gaps": [],
+      "results": {
+        "pass": 0,
+        "fail": 0,
+        "error": 0,
+        "skip": 0,
+        "incomplete": 0
+      },
+      "project_context": {
+        "repository_url": "https://codeberg.org/demo/project",
+        "revision": null,
+        "definition_claim_id": "claim-0",
+        "homepage_url": null,
+        "documentation_url": null
+      }
+    },
+    "plan": {
+      "schema_version": 2,
+      "slide_ids": [
+        "slide-0",
+        "testing-0",
+        "slide-2",
+        "slide-3",
+        "slide-4",
+        "slide-5"
+      ],
+      "narration": {
+        "engine": "kokoro",
+        "voice": "af_heart",
+        "speed": 0.95,
+        "model_manifest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "timing_policy": {
+        "lead_seconds": 0.35,
+        "tail_seconds": 0.65,
+        "min_scene_seconds": 6,
+        "sentence_gap_seconds": 0.2,
+        "max_scene_seconds": 120,
+        "max_total_seconds": 900,
+        "max_scenes": 30
+      }
+    },
+    "evidence_index": {
+      "run_id": "run-1",
+      "coverage_gaps": [],
+      "final_results": {
+        "results": [],
+        "totals": {
+          "pass": 0,
+          "fail": 0,
+          "error": 0,
+          "skip": 0,
+          "incomplete": 0
+        }
+      }
+    },
+    "members": {
+      "source.md": "Synthetic source definition, scenario names and purposes.\n"
+    }
+  },
+  {
+    "name": "CLI-1",
+    "narrative": {
+      "schema_version": 3,
+      "run_id": "run-1",
+      "project_name": "Synthetic CLI",
+      "claims": [
+        {
+          "id": "claim-0",
+          "text": "A synthetic CLI for processing records.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-1",
+          "text": "Use HTTP checks to validate the deployed components.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-2",
+          "text": "One synthetic server was deployed.",
+          "kind": "observed",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-3",
+          "text": "One health check passed.",
+          "kind": "observed",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-4",
+          "text": "Authenticated workflows and production reliability remain unproven.",
+          "kind": "observed",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-5",
+          "text": "Validate authenticated workflows before considering production use.",
+          "kind": "recommendation",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-0",
+          "text": "Original scenario 0",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-0",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        }
+      ],
+      "slides": [
+        {
+          "id": "slide-0",
+          "section": "objective",
+          "title": "Evaluate the synthetic server deployment on OpenShift.",
+          "title_claim_ids": [
+            "claim-0"
+          ],
+          "bullet_claim_ids": [
+            "claim-0"
+          ],
+          "narration": [
+            {
+              "text": "Evaluate the synthetic server deployment on OpenShift.",
+              "claim_ids": [
+                "claim-0"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "identity",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "testing-0",
+          "section": "testing",
+          "title": "Use HTTP checks to validate the deployed components.",
+          "title_claim_ids": [
+            "claim-1"
+          ],
+          "bullet_claim_ids": [
+            "claim-1"
+          ],
+          "narration": [
+            {
+              "text": "Original scenario 0 checks record processing.",
+              "claim_ids": [
+                "label-check-0",
+                "purpose-check-0"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "checks",
+          "visual_id": null,
+          "checks": [
+            {
+              "scenario_id": "check-0",
+              "label_claim_id": "label-check-0",
+              "purpose_claim_id": "purpose-check-0",
+              "narration_sentence_indices": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "slide-2",
+          "section": "setup",
+          "title": "One synthetic server was deployed.",
+          "title_claim_ids": [
+            "claim-2"
+          ],
+          "bullet_claim_ids": [
+            "claim-2"
+          ],
+          "narration": [
+            {
+              "text": "One synthetic server was deployed.",
+              "claim_ids": [
+                "claim-2"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "slide-3",
+          "section": "results",
+          "title": "One health check passed.",
+          "title_claim_ids": [
+            "claim-3"
+          ],
+          "bullet_claim_ids": [
+            "claim-3"
+          ],
+          "narration": [
+            {
+              "text": "One health check passed.",
+              "claim_ids": [
+                "claim-3"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "slide-4",
+          "section": "limitations",
+          "title": "Authenticated workflows and production reliability remain unproven.",
+          "title_claim_ids": [
+            "claim-4"
+          ],
+          "bullet_claim_ids": [
+            "claim-4"
+          ],
+          "narration": [
+            {
+              "text": "Authenticated workflows and production reliability remain unproven.",
+              "claim_ids": [
+                "claim-4"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "slide-5",
+          "section": "recommendation",
+          "title": "Validate authenticated workflows before considering production use.",
+          "title_claim_ids": [
+            "claim-5"
+          ],
+          "bullet_claim_ids": [
+            "claim-5"
+          ],
+          "narration": [
+            {
+              "text": "Validate authenticated workflows before considering production use.",
+              "claim_ids": [
+                "claim-5"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        }
+      ],
+      "conflicts": [],
+      "coverage_gaps": [],
+      "results": {
+        "pass": 1,
+        "fail": 0,
+        "error": 0,
+        "skip": 0,
+        "incomplete": 0
+      },
+      "project_context": {
+        "repository_url": "https://gitlab.example.org/demo/project",
+        "revision": null,
+        "definition_claim_id": "claim-0",
+        "homepage_url": null,
+        "documentation_url": null
+      }
+    },
+    "plan": {
+      "schema_version": 2,
+      "slide_ids": [
+        "slide-0",
+        "testing-0",
+        "slide-2",
+        "slide-3",
+        "slide-4",
+        "slide-5"
+      ],
+      "narration": {
+        "engine": "kokoro",
+        "voice": "af_heart",
+        "speed": 0.95,
+        "model_manifest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "timing_policy": {
+        "lead_seconds": 0.35,
+        "tail_seconds": 0.65,
+        "min_scene_seconds": 6,
+        "sentence_gap_seconds": 0.2,
+        "max_scene_seconds": 120,
+        "max_total_seconds": 900,
+        "max_scenes": 30
+      }
+    },
+    "evidence_index": {
+      "run_id": "run-1",
+      "coverage_gaps": [],
+      "final_results": {
+        "results": [
+          {
+            "scenario_id": "check-0",
+            "scenario_name": "Original scenario 0",
+            "status": "pass",
+            "attempt_id": null
+          }
+        ],
+        "totals": {
+          "pass": 1,
+          "fail": 0,
+          "error": 0,
+          "skip": 0,
+          "incomplete": 0
+        }
+      }
+    },
+    "members": {
+      "source.md": "Synthetic source definition, scenario names and purposes.\n"
+    }
+  },
+  {
+    "name": "service-5",
+    "narrative": {
+      "schema_version": 3,
+      "run_id": "run-1",
+      "project_name": "Synthetic service",
+      "claims": [
+        {
+          "id": "claim-0",
+          "text": "A synthetic service for processing records.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-1",
+          "text": "Use HTTP checks to validate the deployed components.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-2",
+          "text": "One synthetic server was deployed.",
+          "kind": "observed",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-3",
+          "text": "One health check passed.",
+          "kind": "observed",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-4",
+          "text": "Authenticated workflows and production reliability remain unproven.",
+          "kind": "observed",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-5",
+          "text": "Validate authenticated workflows before considering production use.",
+          "kind": "recommendation",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-0",
+          "text": "Original scenario 0",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-0",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-1",
+          "text": "Original scenario 1",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-1",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-2",
+          "text": "Original scenario 2",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-2",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-3",
+          "text": "Original scenario 3",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-3",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-4",
+          "text": "Original scenario 4",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-4",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        }
+      ],
+      "slides": [
+        {
+          "id": "slide-0",
+          "section": "objective",
+          "title": "Evaluate the synthetic server deployment on OpenShift.",
+          "title_claim_ids": [
+            "claim-0"
+          ],
+          "bullet_claim_ids": [
+            "claim-0"
+          ],
+          "narration": [
+            {
+              "text": "Evaluate the synthetic server deployment on OpenShift.",
+              "claim_ids": [
+                "claim-0"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "identity",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "testing-0",
+          "section": "testing",
+          "title": "Use HTTP checks to validate the deployed components.",
+          "title_claim_ids": [
+            "claim-1"
+          ],
+          "bullet_claim_ids": [
+            "claim-1"
+          ],
+          "narration": [
+            {
+              "text": "Original scenario 0 checks record processing.",
+              "claim_ids": [
+                "label-check-0",
+                "purpose-check-0"
+              ]
+            },
+            {
+              "text": "Original scenario 1 checks record processing.",
+              "claim_ids": [
+                "label-check-1",
+                "purpose-check-1"
+              ]
+            },
+            {
+              "text": "Original scenario 2 checks record processing.",
+              "claim_ids": [
+                "label-check-2",
+                "purpose-check-2"
+              ]
+            },
+            {
+              "text": "Original scenario 3 checks record processing.",
+              "claim_ids": [
+                "label-check-3",
+                "purpose-check-3"
+              ]
+            },
+            {
+              "text": "Original scenario 4 checks record processing.",
+              "claim_ids": [
+                "label-check-4",
+                "purpose-check-4"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "checks",
+          "visual_id": null,
+          "checks": [
+            {
+              "scenario_id": "check-0",
+              "label_claim_id": "label-check-0",
+              "purpose_claim_id": "purpose-check-0",
+              "narration_sentence_indices": [
+                0
+              ]
+            },
+            {
+              "scenario_id": "check-1",
+              "label_claim_id": "label-check-1",
+              "purpose_claim_id": "purpose-check-1",
+              "narration_sentence_indices": [
+                1
+              ]
+            },
+            {
+              "scenario_id": "check-2",
+              "label_claim_id": "label-check-2",
+              "purpose_claim_id": "purpose-check-2",
+              "narration_sentence_indices": [
+                2
+              ]
+            },
+            {
+              "scenario_id": "check-3",
+              "label_claim_id": "label-check-3",
+              "purpose_claim_id": "purpose-check-3",
+              "narration_sentence_indices": [
+                3
+              ]
+            },
+            {
+              "scenario_id": "check-4",
+              "label_claim_id": "label-check-4",
+              "purpose_claim_id": "purpose-check-4",
+              "narration_sentence_indices": [
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "slide-2",
+          "section": "setup",
+          "title": "One synthetic server was deployed.",
+          "title_claim_ids": [
+            "claim-2"
+          ],
+          "bullet_claim_ids": [
+            "claim-2"
+          ],
+          "narration": [
+            {
+              "text": "One synthetic server was deployed.",
+              "claim_ids": [
+                "claim-2"
+              ]
+            }
+          ],
+          "graph": {
+            "nodes": [
+              {
+                "id": "node-0",
+                "label": "Component 0"
+              },
+              {
+                "id": "node-1",
+                "label": "Component 1"
+              }
+            ],
+            "edges": [
+              [
+                "node-0",
+                "node-1"
+              ]
+            ],
+            "acts": []
+          },
+          "graph_claim_ids": [
+            "claim-2"
+          ],
+          "layout": "topology",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "slide-3",
+          "section": "results",
+          "title": "One health check passed.",
+          "title_claim_ids": [
+            "claim-3"
+          ],
+          "bullet_claim_ids": [
+            "claim-3"
+          ],
+          "narration": [
+            {
+              "text": "One health check passed.",
+              "claim_ids": [
+                "claim-3"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "slide-4",
+          "section": "limitations",
+          "title": "Authenticated workflows and production reliability remain unproven.",
+          "title_claim_ids": [
+            "claim-4"
+          ],
+          "bullet_claim_ids": [
+            "claim-4"
+          ],
+          "narration": [
+            {
+              "text": "Authenticated workflows and production reliability remain unproven.",
+              "claim_ids": [
+                "claim-4"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "slide-5",
+          "section": "recommendation",
+          "title": "Validate authenticated workflows before considering production use.",
+          "title_claim_ids": [
+            "claim-5"
+          ],
+          "bullet_claim_ids": [
+            "claim-5"
+          ],
+          "narration": [
+            {
+              "text": "Validate authenticated workflows before considering production use.",
+              "claim_ids": [
+                "claim-5"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        }
+      ],
+      "conflicts": [],
+      "coverage_gaps": [],
+      "results": {
+        "pass": 1,
+        "fail": 1,
+        "error": 1,
+        "skip": 1,
+        "incomplete": 1
+      },
+      "project_context": {
+        "repository_url": "https://github.com/demo/project",
+        "revision": null,
+        "definition_claim_id": "claim-0",
+        "homepage_url": null,
+        "documentation_url": null
+      }
+    },
+    "plan": {
+      "schema_version": 2,
+      "slide_ids": [
+        "slide-0",
+        "testing-0",
+        "slide-2",
+        "slide-3",
+        "slide-4",
+        "slide-5"
+      ],
+      "narration": {
+        "engine": "kokoro",
+        "voice": "af_heart",
+        "speed": 0.95,
+        "model_manifest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "timing_policy": {
+        "lead_seconds": 0.35,
+        "tail_seconds": 0.65,
+        "min_scene_seconds": 6,
+        "sentence_gap_seconds": 0.2,
+        "max_scene_seconds": 120,
+        "max_total_seconds": 900,
+        "max_scenes": 30
+      }
+    },
+    "evidence_index": {
+      "run_id": "run-1",
+      "coverage_gaps": [],
+      "final_results": {
+        "results": [
+          {
+            "scenario_id": "check-0",
+            "scenario_name": "Original scenario 0",
+            "status": "pass",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-1",
+            "scenario_name": "Original scenario 1",
+            "status": "fail",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-2",
+            "scenario_name": "Original scenario 2",
+            "status": "error",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-3",
+            "scenario_name": "Original scenario 3",
+            "status": "skip",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-4",
+            "scenario_name": "Original scenario 4",
+            "status": "incomplete",
+            "attempt_id": null
+          }
+        ],
+        "totals": {
+          "pass": 1,
+          "fail": 1,
+          "error": 1,
+          "skip": 1,
+          "incomplete": 1
+        }
+      }
+    },
+    "members": {
+      "source.md": "Synthetic source definition, scenario names and purposes.\n"
+    }
+  },
+  {
+    "name": "library-6",
+    "narrative": {
+      "schema_version": 3,
+      "run_id": "run-1",
+      "project_name": "Synthetic library",
+      "claims": [
+        {
+          "id": "claim-0",
+          "text": "A synthetic library for processing records.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-1",
+          "text": "Use HTTP checks to validate the deployed components.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-2",
+          "text": "One synthetic server was deployed.",
+          "kind": "observed",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-3",
+          "text": "One health check passed.",
+          "kind": "observed",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-4",
+          "text": "Authenticated workflows and production reliability remain unproven.",
+          "kind": "observed",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-5",
+          "text": "Validate authenticated workflows before considering production use.",
+          "kind": "recommendation",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-0",
+          "text": "Original scenario 0",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-0",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-1",
+          "text": "Original scenario 1",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-1",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-2",
+          "text": "Original scenario 2",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-2",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-3",
+          "text": "Original scenario 3",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-3",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-4",
+          "text": "Original scenario 4",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-4",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-5",
+          "text": "Original scenario 5",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-5",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        }
+      ],
+      "slides": [
+        {
+          "id": "slide-0",
+          "section": "objective",
+          "title": "Evaluate the synthetic server deployment on OpenShift.",
+          "title_claim_ids": [
+            "claim-0"
+          ],
+          "bullet_claim_ids": [
+            "claim-0"
+          ],
+          "narration": [
+            {
+              "text": "Evaluate the synthetic server deployment on OpenShift.",
+              "claim_ids": [
+                "claim-0"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "identity",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "testing-0",
+          "section": "testing",
+          "title": "Use HTTP checks to validate the deployed components.",
+          "title_claim_ids": [
+            "claim-1"
+          ],
+          "bullet_claim_ids": [
+            "claim-1"
+          ],
+          "narration": [
+            {
+              "text": "Original scenario 0 checks record processing.",
+              "claim_ids": [
+                "label-check-0",
+                "purpose-check-0"
+              ]
+            },
+            {
+              "text": "Original scenario 1 checks record processing.",
+              "claim_ids": [
+                "label-check-1",
+                "purpose-check-1"
+              ]
+            },
+            {
+              "text": "Original scenario 2 checks record processing.",
+              "claim_ids": [
+                "label-check-2",
+                "purpose-check-2"
+              ]
+            },
+            {
+              "text": "Original scenario 3 checks record processing.",
+              "claim_ids": [
+                "label-check-3",
+                "purpose-check-3"
+              ]
+            },
+            {
+              "text": "Original scenario 4 checks record processing.",
+              "claim_ids": [
+                "label-check-4",
+                "purpose-check-4"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "checks",
+          "visual_id": null,
+          "checks": [
+            {
+              "scenario_id": "check-0",
+              "label_claim_id": "label-check-0",
+              "purpose_claim_id": "purpose-check-0",
+              "narration_sentence_indices": [
+                0
+              ]
+            },
+            {
+              "scenario_id": "check-1",
+              "label_claim_id": "label-check-1",
+              "purpose_claim_id": "purpose-check-1",
+              "narration_sentence_indices": [
+                1
+              ]
+            },
+            {
+              "scenario_id": "check-2",
+              "label_claim_id": "label-check-2",
+              "purpose_claim_id": "purpose-check-2",
+              "narration_sentence_indices": [
+                2
+              ]
+            },
+            {
+              "scenario_id": "check-3",
+              "label_claim_id": "label-check-3",
+              "purpose_claim_id": "purpose-check-3",
+              "narration_sentence_indices": [
+                3
+              ]
+            },
+            {
+              "scenario_id": "check-4",
+              "label_claim_id": "label-check-4",
+              "purpose_claim_id": "purpose-check-4",
+              "narration_sentence_indices": [
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "testing-1",
+          "section": "testing",
+          "title": "Use HTTP checks to validate the deployed components.",
+          "title_claim_ids": [
+            "claim-1"
+          ],
+          "bullet_claim_ids": [
+            "claim-1"
+          ],
+          "narration": [
+            {
+              "text": "Original scenario 5 checks record processing.",
+              "claim_ids": [
+                "label-check-5",
+                "purpose-check-5"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "checks",
+          "visual_id": null,
+          "checks": [
+            {
+              "scenario_id": "check-5",
+              "label_claim_id": "label-check-5",
+              "purpose_claim_id": "purpose-check-5",
+              "narration_sentence_indices": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "slide-2",
+          "section": "setup",
+          "title": "One synthetic server was deployed.",
+          "title_claim_ids": [
+            "claim-2"
+          ],
+          "bullet_claim_ids": [
+            "claim-2"
+          ],
+          "narration": [
+            {
+              "text": "One synthetic server was deployed.",
+              "claim_ids": [
+                "claim-2"
+              ]
+            }
+          ],
+          "graph": {
+            "nodes": [
+              {
+                "id": "node-0",
+                "label": "Component 0"
+              }
+            ],
+            "edges": [],
+            "acts": []
+          },
+          "graph_claim_ids": [
+            "claim-2"
+          ],
+          "layout": "topology",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "slide-3",
+          "section": "results",
+          "title": "One health check passed.",
+          "title_claim_ids": [
+            "claim-3"
+          ],
+          "bullet_claim_ids": [
+            "claim-3"
+          ],
+          "narration": [
+            {
+              "text": "One health check passed.",
+              "claim_ids": [
+                "claim-3"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "slide-4",
+          "section": "limitations",
+          "title": "Authenticated workflows and production reliability remain unproven.",
+          "title_claim_ids": [
+            "claim-4"
+          ],
+          "bullet_claim_ids": [
+            "claim-4"
+          ],
+          "narration": [
+            {
+              "text": "Authenticated workflows and production reliability remain unproven.",
+              "claim_ids": [
+                "claim-4"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "slide-5",
+          "section": "recommendation",
+          "title": "Validate authenticated workflows before considering production use.",
+          "title_claim_ids": [
+            "claim-5"
+          ],
+          "bullet_claim_ids": [
+            "claim-5"
+          ],
+          "narration": [
+            {
+              "text": "Validate authenticated workflows before considering production use.",
+              "claim_ids": [
+                "claim-5"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        }
+      ],
+      "conflicts": [],
+      "coverage_gaps": [],
+      "results": {
+        "pass": 2,
+        "fail": 1,
+        "error": 1,
+        "skip": 1,
+        "incomplete": 1
+      },
+      "project_context": {
+        "repository_url": "https://codeberg.org/demo/project",
+        "revision": null,
+        "definition_claim_id": "claim-0",
+        "homepage_url": null,
+        "documentation_url": null
+      }
+    },
+    "plan": {
+      "schema_version": 2,
+      "slide_ids": [
+        "slide-0",
+        "testing-0",
+        "testing-1",
+        "slide-2",
+        "slide-3",
+        "slide-4",
+        "slide-5"
+      ],
+      "narration": {
+        "engine": "kokoro",
+        "voice": "af_heart",
+        "speed": 0.95,
+        "model_manifest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "timing_policy": {
+        "lead_seconds": 0.35,
+        "tail_seconds": 0.65,
+        "min_scene_seconds": 6,
+        "sentence_gap_seconds": 0.2,
+        "max_scene_seconds": 120,
+        "max_total_seconds": 900,
+        "max_scenes": 30
+      }
+    },
+    "evidence_index": {
+      "run_id": "run-1",
+      "coverage_gaps": [],
+      "final_results": {
+        "results": [
+          {
+            "scenario_id": "check-0",
+            "scenario_name": "Original scenario 0",
+            "status": "pass",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-1",
+            "scenario_name": "Original scenario 1",
+            "status": "fail",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-2",
+            "scenario_name": "Original scenario 2",
+            "status": "error",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-3",
+            "scenario_name": "Original scenario 3",
+            "status": "skip",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-4",
+            "scenario_name": "Original scenario 4",
+            "status": "incomplete",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-5",
+            "scenario_name": "Original scenario 5",
+            "status": "pass",
+            "attempt_id": null
+          }
+        ],
+        "totals": {
+          "pass": 2,
+          "fail": 1,
+          "error": 1,
+          "skip": 1,
+          "incomplete": 1
+        }
+      }
+    },
+    "members": {
+      "source.md": "Synthetic source definition, scenario names and purposes.\n"
+    }
+  },
+  {
+    "name": "CLI-11",
+    "narrative": {
+      "schema_version": 3,
+      "run_id": "run-1",
+      "project_name": "Synthetic CLI",
+      "claims": [
+        {
+          "id": "claim-0",
+          "text": "A synthetic CLI for processing records.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-1",
+          "text": "Use HTTP checks to validate the deployed components.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-2",
+          "text": "One synthetic server was deployed.",
+          "kind": "observed",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-3",
+          "text": "One health check passed.",
+          "kind": "observed",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-4",
+          "text": "Authenticated workflows and production reliability remain unproven.",
+          "kind": "observed",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "claim-5",
+          "text": "Validate authenticated workflows before considering production use.",
+          "kind": "recommendation",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-0",
+          "text": "Original scenario 0",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-0",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-1",
+          "text": "Original scenario 1",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-1",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-2",
+          "text": "Original scenario 2",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-2",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-3",
+          "text": "Original scenario 3",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-3",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-4",
+          "text": "Original scenario 4",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-4",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-5",
+          "text": "Original scenario 5",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-5",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-6",
+          "text": "Original scenario 6",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-6",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-7",
+          "text": "Original scenario 7",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-7",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-8",
+          "text": "Original scenario 8",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-8",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-9",
+          "text": "Original scenario 9",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-9",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "label-check-10",
+          "text": "Original scenario 10",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        },
+        {
+          "id": "purpose-check-10",
+          "text": "Checks record processing.",
+          "kind": "planned",
+          "sources": [
+            "source.md#L1-L1"
+          ]
+        }
+      ],
+      "slides": [
+        {
+          "id": "slide-0",
+          "section": "objective",
+          "title": "Evaluate the synthetic server deployment on OpenShift.",
+          "title_claim_ids": [
+            "claim-0"
+          ],
+          "bullet_claim_ids": [
+            "claim-0"
+          ],
+          "narration": [
+            {
+              "text": "Evaluate the synthetic server deployment on OpenShift.",
+              "claim_ids": [
+                "claim-0"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "identity",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "testing-0",
+          "section": "testing",
+          "title": "Use HTTP checks to validate the deployed components.",
+          "title_claim_ids": [
+            "claim-1"
+          ],
+          "bullet_claim_ids": [
+            "claim-1"
+          ],
+          "narration": [
+            {
+              "text": "Original scenario 0 checks record processing.",
+              "claim_ids": [
+                "label-check-0",
+                "purpose-check-0"
+              ]
+            },
+            {
+              "text": "Original scenario 1 checks record processing.",
+              "claim_ids": [
+                "label-check-1",
+                "purpose-check-1"
+              ]
+            },
+            {
+              "text": "Original scenario 2 checks record processing.",
+              "claim_ids": [
+                "label-check-2",
+                "purpose-check-2"
+              ]
+            },
+            {
+              "text": "Original scenario 3 checks record processing.",
+              "claim_ids": [
+                "label-check-3",
+                "purpose-check-3"
+              ]
+            },
+            {
+              "text": "Original scenario 4 checks record processing.",
+              "claim_ids": [
+                "label-check-4",
+                "purpose-check-4"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "checks",
+          "visual_id": null,
+          "checks": [
+            {
+              "scenario_id": "check-0",
+              "label_claim_id": "label-check-0",
+              "purpose_claim_id": "purpose-check-0",
+              "narration_sentence_indices": [
+                0
+              ]
+            },
+            {
+              "scenario_id": "check-1",
+              "label_claim_id": "label-check-1",
+              "purpose_claim_id": "purpose-check-1",
+              "narration_sentence_indices": [
+                1
+              ]
+            },
+            {
+              "scenario_id": "check-2",
+              "label_claim_id": "label-check-2",
+              "purpose_claim_id": "purpose-check-2",
+              "narration_sentence_indices": [
+                2
+              ]
+            },
+            {
+              "scenario_id": "check-3",
+              "label_claim_id": "label-check-3",
+              "purpose_claim_id": "purpose-check-3",
+              "narration_sentence_indices": [
+                3
+              ]
+            },
+            {
+              "scenario_id": "check-4",
+              "label_claim_id": "label-check-4",
+              "purpose_claim_id": "purpose-check-4",
+              "narration_sentence_indices": [
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "testing-1",
+          "section": "testing",
+          "title": "Use HTTP checks to validate the deployed components.",
+          "title_claim_ids": [
+            "claim-1"
+          ],
+          "bullet_claim_ids": [
+            "claim-1"
+          ],
+          "narration": [
+            {
+              "text": "Original scenario 5 checks record processing.",
+              "claim_ids": [
+                "label-check-5",
+                "purpose-check-5"
+              ]
+            },
+            {
+              "text": "Original scenario 6 checks record processing.",
+              "claim_ids": [
+                "label-check-6",
+                "purpose-check-6"
+              ]
+            },
+            {
+              "text": "Original scenario 7 checks record processing.",
+              "claim_ids": [
+                "label-check-7",
+                "purpose-check-7"
+              ]
+            },
+            {
+              "text": "Original scenario 8 checks record processing.",
+              "claim_ids": [
+                "label-check-8",
+                "purpose-check-8"
+              ]
+            },
+            {
+              "text": "Original scenario 9 checks record processing.",
+              "claim_ids": [
+                "label-check-9",
+                "purpose-check-9"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "checks",
+          "visual_id": null,
+          "checks": [
+            {
+              "scenario_id": "check-5",
+              "label_claim_id": "label-check-5",
+              "purpose_claim_id": "purpose-check-5",
+              "narration_sentence_indices": [
+                0
+              ]
+            },
+            {
+              "scenario_id": "check-6",
+              "label_claim_id": "label-check-6",
+              "purpose_claim_id": "purpose-check-6",
+              "narration_sentence_indices": [
+                1
+              ]
+            },
+            {
+              "scenario_id": "check-7",
+              "label_claim_id": "label-check-7",
+              "purpose_claim_id": "purpose-check-7",
+              "narration_sentence_indices": [
+                2
+              ]
+            },
+            {
+              "scenario_id": "check-8",
+              "label_claim_id": "label-check-8",
+              "purpose_claim_id": "purpose-check-8",
+              "narration_sentence_indices": [
+                3
+              ]
+            },
+            {
+              "scenario_id": "check-9",
+              "label_claim_id": "label-check-9",
+              "purpose_claim_id": "purpose-check-9",
+              "narration_sentence_indices": [
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "id": "testing-2",
+          "section": "testing",
+          "title": "Use HTTP checks to validate the deployed components.",
+          "title_claim_ids": [
+            "claim-1"
+          ],
+          "bullet_claim_ids": [
+            "claim-1"
+          ],
+          "narration": [
+            {
+              "text": "Original scenario 10 checks record processing.",
+              "claim_ids": [
+                "label-check-10",
+                "purpose-check-10"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "checks",
+          "visual_id": null,
+          "checks": [
+            {
+              "scenario_id": "check-10",
+              "label_claim_id": "label-check-10",
+              "purpose_claim_id": "purpose-check-10",
+              "narration_sentence_indices": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "id": "slide-2",
+          "section": "setup",
+          "title": "One synthetic server was deployed.",
+          "title_claim_ids": [
+            "claim-2"
+          ],
+          "bullet_claim_ids": [
+            "claim-2"
+          ],
+          "narration": [
+            {
+              "text": "One synthetic server was deployed.",
+              "claim_ids": [
+                "claim-2"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "slide-3",
+          "section": "results",
+          "title": "One health check passed.",
+          "title_claim_ids": [
+            "claim-3"
+          ],
+          "bullet_claim_ids": [
+            "claim-3"
+          ],
+          "narration": [
+            {
+              "text": "One health check passed.",
+              "claim_ids": [
+                "claim-3"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "slide-4",
+          "section": "limitations",
+          "title": "Authenticated workflows and production reliability remain unproven.",
+          "title_claim_ids": [
+            "claim-4"
+          ],
+          "bullet_claim_ids": [
+            "claim-4"
+          ],
+          "narration": [
+            {
+              "text": "Authenticated workflows and production reliability remain unproven.",
+              "claim_ids": [
+                "claim-4"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        },
+        {
+          "id": "slide-5",
+          "section": "recommendation",
+          "title": "Validate authenticated workflows before considering production use.",
+          "title_claim_ids": [
+            "claim-5"
+          ],
+          "bullet_claim_ids": [
+            "claim-5"
+          ],
+          "narration": [
+            {
+              "text": "Validate authenticated workflows before considering production use.",
+              "claim_ids": [
+                "claim-5"
+              ]
+            }
+          ],
+          "graph": null,
+          "graph_claim_ids": [],
+          "layout": "summary",
+          "visual_id": null,
+          "checks": []
+        }
+      ],
+      "conflicts": [],
+      "coverage_gaps": [],
+      "results": {
+        "pass": 3,
+        "fail": 2,
+        "error": 2,
+        "skip": 2,
+        "incomplete": 2
+      },
+      "project_context": {
+        "repository_url": "https://git.example.org/demo/project",
+        "revision": null,
+        "definition_claim_id": "claim-0",
+        "homepage_url": null,
+        "documentation_url": null
+      }
+    },
+    "plan": {
+      "schema_version": 2,
+      "slide_ids": [
+        "slide-0",
+        "testing-0",
+        "testing-1",
+        "testing-2",
+        "slide-2",
+        "slide-3",
+        "slide-4",
+        "slide-5"
+      ],
+      "narration": {
+        "engine": "kokoro",
+        "voice": "af_heart",
+        "speed": 0.95,
+        "model_manifest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "timing_policy": {
+        "lead_seconds": 0.35,
+        "tail_seconds": 0.65,
+        "min_scene_seconds": 6,
+        "sentence_gap_seconds": 0.2,
+        "max_scene_seconds": 120,
+        "max_total_seconds": 900,
+        "max_scenes": 30
+      }
+    },
+    "evidence_index": {
+      "run_id": "run-1",
+      "coverage_gaps": [],
+      "final_results": {
+        "results": [
+          {
+            "scenario_id": "check-0",
+            "scenario_name": "Original scenario 0",
+            "status": "pass",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-1",
+            "scenario_name": "Original scenario 1",
+            "status": "fail",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-2",
+            "scenario_name": "Original scenario 2",
+            "status": "error",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-3",
+            "scenario_name": "Original scenario 3",
+            "status": "skip",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-4",
+            "scenario_name": "Original scenario 4",
+            "status": "incomplete",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-5",
+            "scenario_name": "Original scenario 5",
+            "status": "pass",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-6",
+            "scenario_name": "Original scenario 6",
+            "status": "fail",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-7",
+            "scenario_name": "Original scenario 7",
+            "status": "error",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-8",
+            "scenario_name": "Original scenario 8",
+            "status": "skip",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-9",
+            "scenario_name": "Original scenario 9",
+            "status": "incomplete",
+            "attempt_id": null
+          },
+          {
+            "scenario_id": "check-10",
+            "scenario_name": "Original scenario 10",
+            "status": "pass",
+            "attempt_id": null
+          }
+        ],
+        "totals": {
+          "pass": 3,
+          "fail": 2,
+          "error": 2,
+          "skip": 2,
+          "incomplete": 2
+        }
+      }
+    },
+    "members": {
+      "source.md": "Synthetic source definition, scenario names and purposes.\n"
+    }
+  }
+]
