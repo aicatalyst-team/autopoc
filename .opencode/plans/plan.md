@@ -501,6 +501,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Retrieve and inspect slides/video for user review | ✅ 10.9.26 — all five artifacts/hash checks, nine PDF pages, encoded cue/media/source checks passed |
 | Final code-review/provenance correction | ✅ 10.10 — provenance corrected; whole-branch and both scoped live-fix reviews clean |
 | Review and commit recovery/layout follow-up | ✅ 10.9.28 — regression gaps closed; 640 Python tests, 87.23% coverage; actual nine-slide browser acceptance passed; local commit only |
+| Push complete feature branch and open upstream PR | ✅ 10.9.29 — user authorized publication; aviavraham:codex/kokoro-narration pushed; upstream PR #68 open against master |
 
 ### 10.1 Verify isolated branch and clean baseline — ✅ 10 November 2026
 
@@ -1137,3 +1138,16 @@ Final checks: 640 Python tests, 87.23% coverage; 122 Node tests passed with 15
 explicit host integration skips; Ruff 0.15.11 lint/format and Pyright passed.
 Independent review has no outstanding findings. Commit locally; user pushes
 manually. No PoC test rerun, output replacement, publication or shared rollout.
+
+### 10.9.29 Push complete feature branch and open upstream PR — ✅ 11 November 2026
+
+Following the user's new explicit push/PR instruction, pushed the complete
+codex/kokoro-narration branch to aviavraham/autopoc (remote aavraham) and opened
+https://github.com/aicatalyst-team/autopoc/pull/68 against upstream master.
+PR #68 describes the whole presentation/3D/Kokoro/evidence/recovery change,
+tests and remaining activation gates. Existing PRs #66 and #67 are unchanged.
+
+Fresh checks passed before publication: 640 Python tests, 87.23% coverage;
+122 Node tests with 15 explicit host integration skips; CI-pinned Ruff
+lint/format; Pyright with zero errors or warnings. Commit and push this
+tracking update on the same branch. No merge or production activation.

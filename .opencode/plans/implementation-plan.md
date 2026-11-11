@@ -1413,6 +1413,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Retrieve and inspect slides/video for user review | ✅ 10.9.26 — all five artifacts/hash checks, nine PDF pages, encoded cue/media/source checks passed |
 | Final code-review/provenance correction | ✅ 10.10 — provenance corrected; whole-branch and both scoped live-fix reviews clean |
 | Review and commit recovery/layout follow-up | ✅ 10.9.28 — regression gaps closed; 640 Python tests, 87.23% coverage; actual nine-slide browser acceptance passed; local commit only |
+| Push complete feature branch and open upstream PR | ✅ 10.9.29 — user authorized publication; aviavraham:codex/kokoro-narration pushed; upstream PR #68 open against master |
 
 ### 10.1 Verify isolated branch and clean baseline — ✅ 10 November 2026
 
@@ -2062,3 +2063,21 @@ was separately exercised in the trusted renderer image, so its actual browser
 path was verified. Independent review has no outstanding findings. Commit
 locally as requested; the user will push manually. Existing human listening,
 Drive publication and shared activation gates remain unchanged.
+
+### 10.9.29 Push complete feature branch and open upstream PR — ✅ 11 November 2026
+
+User explicitly requested committing and pushing all branch changes to their
+fork and opening an upstream merge request. Confirmed the aavraham remote is
+aviavraham/autopoc and the upstream default branch is master. Fetched both
+remotes, verified the push is a fast-forward, and pushed the complete
+codex/kokoro-narration branch including f0282fc. Opened
+https://github.com/aicatalyst-team/autopoc/pull/68 against upstream master with
+the full presentation, 3D, narration, evidence/recovery scope and validation
+limits documented. Earlier overlapping PRs #66 and #67 remain unchanged.
+
+Fresh pre-publication verification: 640 Python tests passed with 87.23%
+coverage, 122 Node tests passed with 15 explicit host integration skips,
+CI-pinned Ruff 0.15.11 lint/format passed and Pyright reported zero errors or
+warnings. Restored the generated coverage database before committing. Publish
+this tracking update on the same feature branch; no default-branch push,
+merge, Drive publication or shared production activation is authorized here.
