@@ -356,7 +356,11 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int | None
                 path = speech / name
                 _safe_path(path)
                 if path.is_file():
-                    source_files[name] = path.read_bytes()
+                    # The spoken transcript is a different format from the deck's
+                    # own source/transcript.txt collected above. Keeping the bare
+                    # name would drop the one the deck actually shipped.
+                    key = "narration/transcript.txt" if name == "transcript.txt" else name
+                    source_files[key] = path.read_bytes()
             source_files.update(
                 {f"narration/{k}": v for k, v in _tree(speech / "narration").items()}
             )
@@ -373,11 +377,17 @@ def render_executive(inputs_path: Path, output_dir: Path, *, timeout: int | None
                 }
             )
             # The lexicon changed what was spoken, so recovery must be able to
-            # show which pronunciations the timeline identity refers to.
-            from autopoc.executive_speech import LEXICON_PATH
-
-            if LEXICON_PATH.is_file():
-                source_files["speech-assets/kokoro_lexicon.json"] = LEXICON_PATH.read_bytes()
+            # show which pronunciations the timeline identity refers to. Importing
+            # the speech module validates the lexicon at import time; speech itself
+            # runs out of process precisely so a bad lexicon cannot discard the
+            # deck and PDF, so this import must not either.
+            try:
+                from autopoc.executive_speech import LEXICON_PATH
+            except ValueError:
+                pass  # Recovery omits a lexicon the narration subprocess also rejected.
+            else:
+                if LEXICON_PATH.is_file():
+                    source_files["speech-assets/kokoro_lexicon.json"] = LEXICON_PATH.read_bytes()
         (output_dir / "render-inputs.zip").write_bytes(raw)
         _json(output_dir / "recovery.json", recovery)
         _zip(output_dir / "executable-source.zip", source_files)

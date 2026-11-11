@@ -1,6 +1,7 @@
 """The offline wrapper publishes packages only from verified reviewed inputs."""
 
 import argparse
+import builtins
 import hashlib
 import json
 import subprocess
@@ -323,7 +324,7 @@ def test_runtime_metrics_count_scratch_without_following_symlinks(tmp_path):
     )
 
 
-@pytest.mark.parametrize("failure", [None, "speech", "record", "pdf", "content"])
+@pytest.mark.parametrize("failure", [None, "speech", "lexicon", "record", "pdf", "content"])
 @pytest.mark.parametrize("template", [3, 4])
 def test_narration_stages_preserve_deck_and_reviewed_source(
     tmp_path, monkeypatch, failure, template
@@ -353,6 +354,19 @@ def test_narration_stages_preserve_deck_and_reviewed_source(
     monkeypatch.setenv("AUTOPOC_SPEECH_PYTHON", "/trusted/speech-python")
     monkeypatch.setenv("AUTOPOC_SPEECH_ASSETS", str(tmp_path / "assets"))
     calls = []
+    if failure == "lexicon":
+        from autopoc.executive_speech import load_lexicon
+
+        broken = tmp_path / "broken-lexicon.json"
+        broken.write_text('{"schema_version": 0}')
+        original_import = builtins.__import__
+
+        def import_with_broken_lexicon(name, *args, **kwargs):
+            if name == "autopoc.executive_speech":
+                load_lexicon(broken)
+            return original_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", import_with_broken_lexicon)
 
     def fake(command, **kwargs):
         assert 0 < kwargs["timeout"] <= 3000
@@ -416,7 +430,7 @@ def test_narration_stages_preserve_deck_and_reviewed_source(
             assert json.loads(narrative.read_text()) == verified["narrative"]
             calls.append("speech")
             assert command[:3] == ["/trusted/speech-python", "-m", "autopoc.executive_speech"]
-            if failure == "speech":
+            if failure in {"speech", "lexicon"}:
                 raise subprocess.TimeoutExpired(command, kwargs["timeout"])
             speech = Path(command[command.index("--output-dir") + 1])
             speech.mkdir()
@@ -425,7 +439,7 @@ def test_narration_stages_preserve_deck_and_reviewed_source(
             (speech / "timeline.json").write_text(
                 json.dumps({"duration_seconds": 248, "scenes": []})
             )
-            (speech / "transcript.txt").write_text("Exact reviewed sentences")
+            (speech / "transcript.txt").write_text("Exact spoken sentences")
             (speech / "captions.vtt").write_text(
                 "WEBVTT\n\n00:00:00.350 --> 00:00:01.350\nExact reviewed sentences\n"
             )
@@ -436,7 +450,7 @@ def test_narration_stages_preserve_deck_and_reviewed_source(
         ["prepare"]
         if failure == "content"
         else ["prepare", "speech"]
-        if failure == "speech"
+        if failure in {"speech", "lexicon"}
         else ["prepare", "speech", "record"]
     )
     assert result["status"] == ("partial" if failure else "generated_unpublished")
@@ -450,7 +464,9 @@ def test_narration_stages_preserve_deck_and_reviewed_source(
         "failed" if failure in {"pdf", "content"} else "generated_unpublished"
     )
     assert result["artifacts"]["video"]["status"] == (
-        "failed" if failure in {"speech", "record", "content"} else "generated_unpublished"
+        "failed"
+        if failure in {"speech", "lexicon", "record", "content"}
+        else "generated_unpublished"
     )
     summary = (tmp_path / "output/executive-summary.md").read_text()
     assert "Silent video" not in summary
@@ -462,6 +478,13 @@ def test_narration_stages_preserve_deck_and_reviewed_source(
             "requirements.lock",
             "transcript.txt",
         } <= set(source.namelist())
+        # The deck's own transcript and the spoken one are different formats and
+        # must both survive; keying both as transcript.txt silently dropped one.
+        assert source.read("transcript.txt") == b"Exact reviewed sentences"
+        if failure not in {"content", "speech", "lexicon"}:  # speech did not finish
+            assert source.read("narration/transcript.txt") == b"Exact spoken sentences"
+        if failure == "lexicon":
+            assert "speech-assets/kokoro_lexicon.json" not in source.namelist()
         if template == 4:
             from autopoc.executive_story import derive_checks
 
@@ -480,7 +503,7 @@ def test_narration_stages_preserve_deck_and_reviewed_source(
                 )
                 assert json.loads(site.read("visuals.json")) == verified["visuals"]
                 assert site.read("visuals/image0.png") == source.read("public/visuals/image0.png")
-        if failure not in {"speech", "content"}:
+        if failure not in {"speech", "lexicon", "content"}:
             # Captions and the lexicon travel with recovery: a recovered render
             # must show the exact cues and pronunciations the timeline names.
             assert {

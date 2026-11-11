@@ -62,7 +62,7 @@ try {
     await page.close()
   }
   const page = await open(context)
-  await page.locator('.executive[data-executive-ready="true"] .claims li').first().evaluate(el => { el.firstChild.textContent = 'Oversized claim '.repeat(600) })
+  await page.locator('.executive[data-executive-ready="true"]').locator('.claims li, .project-definition').first().evaluate(el => { el.firstChild.textContent = 'Oversized claim '.repeat(600) })
   assert.ok(sceneProblems(await page.evaluate(inspectScene)).some(p => p.includes('shorten')))
   results.checks.push('oversized claim refused')
   await page.reload({ waitUntil: 'networkidle' }); await page.locator('[data-executive-ready="true"]').waitFor()
@@ -81,10 +81,26 @@ try {
     assert.ok(sceneProblems(await diagram.evaluate(inspectScene)).some(p => p.includes('diagram')))
     results.checks.push('oversized diagram label refused')
     await diagram.reload({ waitUntil:'networkidle' }); await diagram.locator('[data-executive-ready="true"]').waitFor()
-    await diagram.locator('.executive[data-executive-ready="true"] .tl-node.on').evaluateAll(nodes => {
-      if (nodes.length >= 2) for (const node of nodes.slice(0,2)) node.style.setProperty('transform', 'translate(400px, 200px)', 'important')
+    // Lay a plain element exactly over a lit label rather than moving the nodes:
+    // CSS2DRenderer rewrites the transform of the nodes it owns every frame, and a
+    // slide with a single lit node has nothing to move onto anything else.
+    const overlaid = await diagram.evaluate(() => {
+      const label = document.querySelector('.executive[data-executive-ready="true"] .tl-node.on .tl-node-t')
+      const stage = label?.closest('.topology-stage')
+      if (!stage) return false
+      const clone = document.createElement('div')
+      clone.className = 'tl-node-t'
+      clone.textContent = label.textContent.trim() || 'overlapping label'
+      clone.style.cssText = 'position:absolute;left:0;top:0;opacity:1;visibility:visible;pointer-events:none'
+      stage.appendChild(clone)
+      // Translate by the measured delta so placement does not depend on which
+      // ancestor turns out to be the containing block.
+      const target = label.getBoundingClientRect(), placed = clone.getBoundingClientRect()
+      clone.style.transform = `translate(${target.left - placed.left}px, ${target.top - placed.top}px)`
+      return true
     })
-    assert.ok(sceneProblems(await diagram.evaluate(inspectScene)).some(p => p.includes('node labels overlap')))
+    assert.ok(overlaid, 'No lit topology label was available to overlap')
+    assert.ok(sceneProblems(await diagram.evaluate(inspectScene)).some(p => p.includes('overlaps')))
     results.checks.push('overlapping node labels refused')
   }
   await context.close()

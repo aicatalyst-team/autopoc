@@ -56,6 +56,9 @@ def verify_speech_assets(asset_root: Path) -> dict:
             or manifest.get("language_model")
             != {"distribution": "en-core-web-sm", "version": "3.8.0"}
             or set(manifest["files"]) != MODEL_FILES
+            # _HeartEngine reads manifest["packages"] outside the except that
+            # converts asset problems into this ValueError; require it here.
+            or not isinstance(manifest.get("packages"), dict)
         ):
             raise ValueError("Unsupported offline speech assets")
         for name, metadata in manifest["files"].items():

@@ -1388,7 +1388,7 @@ product-code change has been authorized by this brainstorming request.
   deployment/render or production activation. No cluster workloads changed.
 
 
-## Phase 10: Generic storytelling implementation and fresh OpenShell cycle — ✅ Complete for local review delivery, 10 November 2026
+## Phase 10: Generic storytelling implementation and fresh OpenShell cycle — ✅ Complete for local review delivery and code review, 11 November 2026
 
 User explicitly requested implementation of the agreed generic storyboard first,
 then a fresh full OpenShell cycle using this AutoPoC branch. This authorizes a
@@ -1411,7 +1411,8 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Fresh branch images and isolated OpenShell full cycle | ✅ 10.9.25/10.9.26 — actual cycle and media complete; lifecycle outcome1pass/1error/3skips remains blocked |
 | Repair strict narrated 3D capture coverage | ✅ 10.9.23 — exact short-tail reproduction; bounded schema-3 tail; strict encoded duration/frame/cue checks pass |
 | Retrieve and inspect slides/video for user review | ✅ 10.9.26 — all five artifacts/hash checks, nine PDF pages, encoded cue/media/source checks passed |
-| Final code-review/provenance correction | ✅ 10.10 — documented the local TopoLoop lifecycle patch while retaining upstream base and license attribution; Phase 10 remains in progress |
+| Final code-review/provenance correction | ✅ 10.10 — provenance corrected; whole-branch and both scoped live-fix reviews clean |
+| Review and commit recovery/layout follow-up | ✅ 10.9.28 — regression gaps closed; 640 Python tests, 87.23% coverage; actual nine-slide browser acceptance passed; local commit only |
 
 ### 10.1 Verify isolated branch and clean baseline — ✅ 10 November 2026
 
@@ -2032,3 +2033,32 @@ are verified. The upstream PoC lifecycle remains unsuccessful and honestly
 reported (1pass,1error,3skips); no root cause or product defect was invented.
 Human full listening, explicit Drive publication and shared activation remain
 separate gates, rather than claims of this completed local review cycle.
+
+### 10.9.28 Review and commit recovery/layout follow-up — ✅ 11 November 2026
+
+Reviewed the five-file recovery/layout delta against da116f9 with an independent
+read-only reviewer. Preserved the deck transcript at transcript.txt and the
+spoken-format transcript at narration/transcript.txt. Malformed speech package
+metadata now fails before inference, and a rejected pronunciation lexicon cannot
+discard the independently prepared source, deck or PDF. Added missing/null/list/
+string package cases and lexicon-failure recovery cases for both narrated
+templates. All six new cases fail against the original modules and pass with
+the fixes; six completed-speech cases also reproduce the original transcript
+overwrite against the original modules.
+
+Actual offline browser acceptance on the delivered OpenShell deck exposed a
+stale opening-slide selector in check-layout.mjs: generic identity slides use a
+project definition instead of a legacy claim list. Extended the overflow probe
+to both layouts, retained the deterministic topology-label overlap probe, and
+reran the exact command successfully: nine scenes and all eight acceptance
+checks passed under the pinned image with networking disabled, non-root user,
+read-only filesystem, 2 CPU and 4 Gi memory. No PoC validation was replayed and
+no delivered artifact was changed.
+
+Final verification: 640 Python tests passed, 87.23% coverage; 122 Node tests
+passed with 15 explicit browser/FFmpeg integration skips on the host; Ruff
+0.15.11 lint/format and Pyright passed. The changed browser acceptance script
+was separately exercised in the trusted renderer image, so its actual browser
+path was verified. Independent review has no outstanding findings. Commit
+locally as requested; the user will push manually. Existing human listening,
+Drive publication and shared activation gates remain unchanged.

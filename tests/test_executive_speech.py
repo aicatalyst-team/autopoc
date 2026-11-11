@@ -36,6 +36,22 @@ def speech_assets(root):
     return root
 
 
+@pytest.mark.parametrize("packages", [None, [], "kokoro", "missing"])
+def test_invalid_package_manifest_is_rejected_before_inference(tmp_path, packages):
+    from autopoc.executive_speech import verify_speech_assets
+
+    assets = speech_assets(tmp_path / "assets")
+    path = assets / "manifest.json"
+    manifest = json.loads(path.read_text())
+    if packages == "missing":
+        del manifest["packages"]
+    else:
+        manifest["packages"] = packages
+    path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError):
+        verify_speech_assets(assets)
+
+
 def inputs(tmp_path, *, slides=6, lexicon=False, generic=False):
     from autopoc.executive_speech import LEXICON
     from tests.test_executive_inputs import generic_documents

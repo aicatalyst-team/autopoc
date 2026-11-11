@@ -476,7 +476,7 @@ need offline, reviewed asset support. Existing delivered media is unchanged.
   selection, new media and rollout remain unstarted.
 
 
-## Phase 10: Generic storytelling implementation and fresh OpenShell cycle — ✅ Complete for local review delivery, 10 November 2026
+## Phase 10: Generic storytelling implementation and fresh OpenShell cycle — ✅ Complete for local review delivery and code review, 11 November 2026
 
 User explicitly requested implementation of the agreed generic storyboard first,
 then a fresh full OpenShell cycle using this AutoPoC branch. This authorizes a
@@ -500,6 +500,7 @@ Implementation plan: docs/superpowers/plans/2026-11-10-generic-poc-storytelling.
 | Repair strict narrated 3D capture coverage | ✅ 10.9.23 — exact short-tail reproduction; bounded schema-3 tail; strict encoded duration/frame/cue checks pass |
 | Retrieve and inspect slides/video for user review | ✅ 10.9.26 — all five artifacts/hash checks, nine PDF pages, encoded cue/media/source checks passed |
 | Final code-review/provenance correction | ✅ 10.10 — provenance corrected; whole-branch and both scoped live-fix reviews clean |
+| Review and commit recovery/layout follow-up | ✅ 10.9.28 — regression gaps closed; 640 Python tests, 87.23% coverage; actual nine-slide browser acceptance passed; local commit only |
 
 ### 10.1 Verify isolated branch and clean baseline — ✅ 10 November 2026
 
@@ -1119,3 +1120,20 @@ are verified. The upstream PoC lifecycle remains unsuccessful and honestly
 reported (1pass,1error,3skips); no root cause or product defect was invented.
 Human full listening, explicit Drive publication and shared activation remain
 separate gates, rather than claims of this completed local review cycle.
+
+### 10.9.28 Review and commit recovery/layout follow-up — ✅ 11 November 2026
+
+Reviewed the recovery/layout changes and closed the independent review's two
+regression gaps: invalid speech package metadata and source/deck/PDF preservation
+after lexicon failure. Both transcript formats now survive source packaging.
+All six new failure cases and the six transcript-overwrite cases reproduce
+their original failures against the original modules and pass with the fixes.
+
+Actual offline acceptance found and fixed a stale opening-slide selector in
+the checking script. The exact nine-slide OpenShell deck then passed all eight
+browser acceptance checks, including deterministic label overlap, overflow,
+missing assets and offline requests, in the pinned non-root renderer image.
+Final checks: 640 Python tests, 87.23% coverage; 122 Node tests passed with 15
+explicit host integration skips; Ruff 0.15.11 lint/format and Pyright passed.
+Independent review has no outstanding findings. Commit locally; user pushes
+manually. No PoC test rerun, output replacement, publication or shared rollout.
